@@ -1,0 +1,3119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>量纲匹配大师 - 完整关卡追踪学习系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: #e6e6e6;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: rgba(25, 25, 35, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(100, 100, 150, 0.3);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(100, 150, 255, 0.3);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #4cc9f0, #4361ee);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: #90e0ef;
+            margin-bottom: 15px;
+        }
+        
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .nav-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(67, 97, 238, 0.3);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(76, 201, 240, 0.3);
+        }
+        
+        .nav-btn:hover {
+            background: rgba(67, 97, 238, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 201, 240, 0.2);
+        }
+        
+        .nav-btn.active {
+            background: rgba(67, 97, 238, 0.8);
+            border-color: #4cc9f0;
+            box-shadow: 0 0 10px rgba(76, 201, 240, 0.5);
+        }
+        
+        .content-section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 游戏界面样式 */
+        .game-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin: 25px 0;
+        }
+        
+        .config-panel, .game-panel {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(20, 30, 60, 0.8);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(100, 150, 255, 0.2);
+        }
+        
+        .config-group {
+            margin-bottom: 20px;
+        }
+        
+        .config-group h3 {
+            color: #4cc9f0;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 1.2rem;
+        }
+        
+        .option-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .option {
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            font-size: 0.95rem;
+        }
+        
+        .option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .option.selected {
+            background: rgba(76, 201, 240, 0.2);
+            border-color: #4cc9f0;
+            box-shadow: 0 0 10px rgba(76, 201, 240, 0.3);
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stats-container {
+            display: flex;
+            gap: 25px;
+        }
+        
+        .stat-box {
+            text-align: center;
+            min-width: 80px;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ff9e00;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #a3d9ff;
+        }
+        
+        .cards-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .cards-column {
+            padding: 20px;
+            background: rgba(10, 20, 40, 0.6);
+            border-radius: 10px;
+            min-height: 350px;
+            border: 2px solid rgba(100, 150, 255, 0.1);
+        }
+        
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+        }
+        
+        .card {
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(30, 40, 70, 0.8);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .card:hover {
+            background: rgba(40, 50, 90, 0.9);
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card.selected {
+            border-color: #4cc9f0;
+            box-shadow: 0 0 20px rgba(76, 201, 240, 0.5);
+            background: rgba(76, 201, 240, 0.1);
+        }
+        
+        .card.matched {
+            background: rgba(56, 176, 0, 0.2);
+            border-color: #38b000;
+            cursor: default;
+            opacity: 0.7;
+        }
+        
+        /* 评估报告界面样式 */
+        .report-dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 25px 0;
+        }
+        
+        .report-card {
+            background: rgba(20, 30, 60, 0.8);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(100, 150, 255, 0.2);
+        }
+        
+        .report-card h3 {
+            color: #4cc9f0;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .metric-label {
+            color: #a3d9ff;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #ff9e00;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4cc9f0, #4361ee);
+            border-radius: 5px;
+            transition: width 1s ease;
+        }
+        
+        .chart-container {
+            height: 200px;
+            margin-top: 20px;
+            position: relative;
+        }
+        
+        /* 关卡学习成果表格样式 */
+        .level-mastery-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 0.95rem;
+        }
+        
+        .level-mastery-table th, .level-mastery-table td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .level-mastery-table th {
+            background: rgba(67, 97, 238, 0.2);
+            color: #4cc9f0;
+            font-weight: bold;
+        }
+        
+        .level-mastery-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .level-mastery-table td:first-child {
+            text-align: left;
+            font-weight: bold;
+            color: #ff9e00;
+        }
+        
+        .level-progress-cell {
+            width: 150px;
+        }
+        
+        .level-progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .level-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4cc9f0, #4361ee);
+            border-radius: 4px;
+        }
+        
+        .level-score {
+            font-weight: bold;
+            color: #38b000;
+        }
+        
+        .level-score.low {
+            color: #ff595e;
+        }
+        
+        .level-score.medium {
+            color: #ff9e00;
+        }
+        
+        .level-completion {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        
+        .completion-high { background: rgba(56, 176, 0, 0.2); color: #38b000; }
+        .completion-medium { background: rgba(255, 158, 0, 0.2); color: #ff9e00; }
+        .completion-low { background: rgba(255, 89, 94, 0.2); color: #ff595e; }
+        
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .history-table th, .history-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .history-table th {
+            background: rgba(67, 97, 238, 0.2);
+            color: #4cc9f0;
+            font-weight: bold;
+        }
+        
+        .difficulty-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        
+        .beginner-badge { background: rgba(76, 201, 240, 0.2); color: #4cc9f0; }
+        .intermediate-badge { background: rgba(255, 158, 0, 0.2); color: #ff9e00; }
+        .advanced-badge { background: rgba(255, 89, 94, 0.2); color: #ff595e; }
+        
+        .recommendation-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: rgba(15, 25, 45, 0.8);
+            border-radius: 12px;
+            border-left: 4px solid #7209b7;
+        }
+        
+        .recommendation-section h3 {
+            color: #7209b7;
+            margin-bottom: 15px;
+        }
+        
+        .recommendation-item {
+            margin-bottom: 15px;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .recommendation-item:before {
+            content: "✓";
+            color: #4cc9f0;
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(67, 97, 238, 0.3);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(76, 201, 240, 0.3);
+        }
+        
+        .action-btn:hover {
+            background: rgba(67, 97, 238, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .action-btn.primary {
+            background: linear-gradient(90deg, #4361ee, #3a0ca3);
+        }
+        
+        .concept-explanation {
+            background: rgba(15, 25, 45, 0.7);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #4361ee;
+        }
+        
+        .concept-explanation h3 {
+            color: #4cc9f0;
+            margin-bottom: 10px;
+        }
+        
+        .learning-tips {
+            background: rgba(15, 25, 45, 0.8);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 25px;
+            border-left: 4px solid #7209b7;
+        }
+        
+        .learning-tips h3 {
+            color: #7209b7;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        
+        .tip-item {
+            margin-bottom: 10px;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .tip-item:before {
+            content: "•";
+            color: #4cc9f0;
+            position: absolute;
+            left: 0;
+            font-size: 1.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .game-area, .report-dashboard {
+                flex-direction: column;
+            }
+            
+            .cards-container {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .stats-container {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .report-dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .level-mastery-table {
+                font-size: 0.85rem;
+            }
+            
+            .level-mastery-table th, .level-mastery-table td {
+                padding: 8px 10px;
+            }
+        }
+        
+        .pendulum-animation {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            margin-right: 10px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234cc9f0"><path d="M12,2A2,2 0 0,0 10,4C10,4.74 10.4,5.39 11,5.73V7H13V5.72C13.6,5.38 14,4.74 14,4A2,2 0 0,0 12,2M10,9A1,1 0 0,0 9,10V20A1,1 0 0,0 10,21H14A1,1 0 0,0 15,20V10A1,1 0 0,0 14,9H10Z" /></svg>');
+            background-size: contain;
+            vertical-align: middle;
+            animation: pendulum-swing 2s ease-in-out infinite;
+            transform-origin: top center;
+        }
+        
+        @keyframes pendulum-swing {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(15deg); }
+            75% { transform: rotate(-15deg); }
+        }
+        
+        /* 关卡总览样式 */
+        .level-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .domain-overview-card {
+            background: rgba(30, 40, 70, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #4cc9f0;
+        }
+        
+        .domain-overview-card h4 {
+            color: #ff9e00;
+            margin-bottom: 10px;
+        }
+        
+        .improvement-card {
+            background: rgba(30, 40, 70, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #38b000;
+            margin-bottom: 15px;
+        }
+        
+        .improvement-card h4 {
+            color: #ff9e00;
+            margin: 0 0 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span class="pendulum-animation"></span>量纲匹配大师</h1>
+            <p class="subtitle">完整关卡追踪学习系统 - 掌握物理量的量纲分析，提升工程科学素养</p>
+        </header>
+        
+        <div class="navigation">
+            <button class="nav-btn active" data-section="game">游戏学习</button>
+            <button class="nav-btn" data-section="progress">关卡进度</button>
+            <button class="nav-btn" data-section="report">学习评估</button>
+            <button class="nav-btn" data-section="theory">理论指导</button>
+        </div>
+        
+        <!-- 游戏学习界面 -->
+        <div id="game" class="content-section active">
+            <div class="concept-explanation">
+                <h3>量纲 vs. 单位：关键概念区分</h3>
+                <p><strong>量纲</strong>是物理量的本质类型（如长度[L]、时间[T]），而<strong>单位</strong>是量纲的具体度量标准（如米、秒）。本游戏帮助您掌握常见物理量的量纲表示法。</p>
+            </div>
+            
+            <div class="game-area">
+                <!-- 配置面板 -->
+                <div class="config-panel">
+                    <div class="config-group">
+                        <h3>物理领域</h3>
+                        <div class="option-group">
+                            <div class="option selected" data-domain="mechanics">力学</div>
+                            <div class="option" data-domain="thermodynamics">热力学</div>
+                            <div class="option" data-domain="electromagnetism">电磁学</div>
+                            <div class="option" data-domain="new_energy">新能源</div>
+                        </div>
+                    </div>
+                    
+                    <div class="config-group">
+                        <h3>难度级别</h3>
+                        <div class="option-group">
+                            <div class="option selected" data-difficulty="beginner">入门</div>
+                            <div class="option" data-difficulty="intermediate">中级</div>
+                            <div class="option" data-difficulty="advanced">高级</div>
+                        </div>
+                    </div>
+                    
+                    <div class="config-group">
+                        <h3>游戏模式</h3>
+                        <div class="option-group">
+                            <div class="option selected" data-mode="dimension_only">纯量纲匹配</div>
+                            <div class="option" data-mode="dimension_with_unit">量纲+单位提示</div>
+                        </div>
+                    </div>
+                    
+                    <div class="config-group">
+                        <h3>卡片数量</h3>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <input type="number" id="cardCount" min="4" max="10" value="6" style="width: 80px; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.3); color: white; text-align: center;">
+                            <span>对物理量</span>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 15px; margin-top: 25px;">
+                        <button class="action-btn primary" id="startGame" style="flex: 2;">开始游戏</button>
+                        <button class="action-btn" id="resetGame" style="flex: 1;">重置</button>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                        <div>单摆音效:</div>
+                        <input type="range" min="0" max="100" value="50" style="width: 150px;" id="volumeSlider">
+                        <div id="volumeValue">50%</div>
+                    </div>
+                </div>
+                
+                <!-- 游戏面板 -->
+                <div class="game-panel">
+                    <div class="game-header">
+                        <div>
+                            <h2 id="currentDomain">力学物理量</h2>
+                            <div style="color: #90e0ef;" id="currentDifficulty">难度: 入门</div>
+                        </div>
+                        <div class="stats-container">
+                            <div class="stat-box">
+                                <div class="stat-value" id="timer">90</div>
+                                <div class="stat-label">时间(秒)</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value" id="score">0</div>
+                                <div class="stat-label">得分</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value" id="matchedCount">0/0</div>
+                                <div class="stat-label">已匹配</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 15px; margin: 15px 0; background: rgba(0, 0, 0, 0.2); border-radius: 8px; min-height: 60px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255, 255, 255, 0.1);">
+                        <div id="matchMessage" style="font-size: 1.2rem; color: #e6e6e6; transition: all 0.3s;">请将物理量与其正确的量纲表达式匹配</div>
+                    </div>
+                    
+                    <div>
+                        <h3 style="color: #4cc9f0; margin-bottom: 15px; font-size: 1.3rem; text-align: center;">物理量 ↔ 量纲匹配</h3>
+                        <div class="cards-container">
+                            <div class="cards-column">
+                                <h4 style="text-align: center; margin-bottom: 20px; color: #ff9e00; font-size: 1.2rem; padding-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">物理量</h4>
+                                <div class="cards-grid" id="physicalCards">
+                                    <!-- 物理量卡片将通过JS动态生成 -->
+                                </div>
+                            </div>
+                            
+                            <div class="cards-column">
+                                <h4 style="text-align: center; margin-bottom: 20px; color: #ff9e00; font-size: 1.2rem; padding-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">量纲表达式</h4>
+                                <div class="cards-grid" id="dimensionalCards">
+                                    <!-- 量纲卡片将通过JS动态生成 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: center; gap: 20px; margin-top: 25px;">
+                        <button class="action-btn" id="hintBtn">提示 (<span id="hintCount">3</span>)</button>
+                        <button class="action-btn" id="showTheoryBtn">查看理论</button>
+                        <button class="action-btn" id="nextLevelBtn" disabled>下一关</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="learning-tips">
+                <h3>游戏学习要点</h3>
+                <div class="tip-item">量纲表达式使用基本量纲的幂次乘积表示，如速度的量纲是[L·T⁻¹]</div>
+                <div class="tip-item">物理定律必须满足量纲齐次性：方程两边每一项的量纲必须相同</div>
+                <div class="tip-item">无量纲量（如角度、应变）的量纲表示为[1]或无量纲</div>
+                <div class="tip-item">量纲分析可帮助检查方程的正确性、进行单位换算和实验设计</div>
+            </div>
+        </div>
+        
+        <!-- 关卡进度界面 -->
+        <div id="progress" class="content-section">
+            <div class="concept-explanation">
+                <h3>关卡学习进度总览</h3>
+                <p>基于您的学习数据生成的关卡进度报告，帮助您了解每个关卡的学习成果、掌握程度和进步轨迹。</p>
+            </div>
+            
+            <div class="report-card">
+                <h3>关卡学习进度总览</h3>
+                <p style="margin-bottom: 20px; color: #a3d9ff;">以下是您在所有关卡中的学习进度和掌握情况。每个关卡的学习成果都会被完整记录。</p>
+                
+                <div id="levelOverview" class="level-overview">
+                    <!-- 关卡总览将通过JS动态生成 -->
+                </div>
+                
+                <table class="level-mastery-table">
+                    <thead>
+                        <tr>
+                            <th>关卡</th>
+                            <th>游戏次数</th>
+                            <th>平均正确率</th>
+                            <th>最佳成绩</th>
+                            <th>平均用时</th>
+                            <th>掌握程度</th>
+                            <th>进度</th>
+                        </tr>
+                    </thead>
+                    <tbody id="levelMasteryBody">
+                        <!-- 关卡学习成果将通过JS动态生成 -->
+                    </tbody>
+                </table>
+                
+                <div style="margin-top: 25px;">
+                    <h4 style="color: #4cc9f0; margin-bottom: 10px;">关卡完成度统计</h4>
+                    <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 15px;">
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span style="color: #a3d9ff;">已掌握关卡</span>
+                                <span style="color: #ff9e00; font-weight: bold;" id="masteredLevels">0</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="masteredProgress" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span style="color: #a3d9ff;">进行中关卡</span>
+                                <span style="color: #ff9e00; font-weight: bold;" id="inProgressLevels">0</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="background: linear-gradient(90deg, #ff9e00, #ff5e62); width: 0%" id="inProgressProgress"></div>
+                            </div>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span style="color: #a3d9ff;">未开始关卡</span>
+                                <span style="color: #ff9e00; font-weight: bold;" id="notStartedLevels">12</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="background: linear-gradient(90deg, #90e0ef, #a3d9ff); width: 0%" id="notStartedProgress"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="report-dashboard">
+                <div class="report-card">
+                    <h3>学习时间分布</h3>
+                    <div class="chart-container">
+                        <canvas id="timeDistributionChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                
+                <div class="report-card">
+                    <h3>进步最快的关卡</h3>
+                    <div id="fastestProgress" style="margin-top: 15px;">
+                        <!-- 进步最快的关卡将通过JS动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 学习评估界面 -->
+        <div id="report" class="content-section">
+            <div class="concept-explanation">
+                <h3>学习评估报告</h3>
+                <p>基于您的学习数据生成的个性化评估报告，帮助您了解学习进度、识别薄弱环节，并提供改进建议。</p>
+            </div>
+            
+            <div class="report-dashboard">
+                <div class="report-card">
+                    <h3>学习概况</h3>
+                    <div class="metric">
+                        <div class="metric-label">总学习时间</div>
+                        <div class="metric-value" id="totalTime">0分钟</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">游戏次数</div>
+                        <div class="metric-value" id="totalGames">0次</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">平均正确率</div>
+                        <div class="metric-value" id="avgAccuracy">0%</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">学习完成度</div>
+                        <div class="metric-value" id="completionRate">0%</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="completionProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div class="report-card">
+                    <h3>能力评估</h3>
+                    <div class="metric">
+                        <div class="metric-label">量纲概念理解</div>
+                        <div class="metric-value" id="conceptScore">0%</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="conceptProgress" style="width: 0%"></div>
+                    </div>
+                    
+                    <div class="metric">
+                        <div class="metric-label">匹配熟练度</div>
+                        <div class="metric-value" id="skillScore">0%</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="skillProgress" style="width: 0%"></div>
+                    </div>
+                    
+                    <div class="metric">
+                        <div class="metric-label">反应速度</div>
+                        <div class="metric-value" id="speedScore">0%</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="speedProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div class="report-card">
+                    <h3>各领域掌握情况</h3>
+                    <div id="domainChart" class="chart-container">
+                        <canvas id="domainCanvas" width="300" height="200"></canvas>
+                    </div>
+                </div>
+                
+                <div class="report-card">
+                    <h3>难度进阶表现</h3>
+                    <div id="difficultyChart" class="chart-container">
+                        <canvas id="difficultyCanvas" width="300" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="report-card" style="margin-top: 25px;">
+                <h3>最近学习记录</h3>
+                <table class="history-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>领域</th>
+                            <th>难度</th>
+                            <th>正确率</th>
+                            <th>用时</th>
+                            <th>得分</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <!-- 历史记录将通过JS动态生成 -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="recommendation-section">
+                <h3>个性化学习建议</h3>
+                <div id="recommendations">
+                    <!-- 学习建议将通过JS动态生成 -->
+                    <p>开始游戏后，系统会根据您的表现生成个性化学习建议。</p>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="action-btn" id="exportReport">导出完整报告</button>
+                    <button class="action-btn primary" id="practiceWeakness">强化薄弱环节</button>
+                    <button class="action-btn" id="resetData">重置学习数据</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 理论指导界面 -->
+        <div id="theory" class="content-section">
+            <div class="concept-explanation">
+                <h3>量纲分析理论基础</h3>
+                <p>量纲分析是工程科学中的基本数学工具，用于研究物理量之间的关系，检查方程的正确性，指导实验设计和数据整理。</p>
+            </div>
+            
+            <div class="report-dashboard">
+                <div class="report-card">
+                    <h3>基本概念</h3>
+                    <div style="margin-bottom: 15px;">
+                        <h4 style="color: #4cc9f0; margin-bottom: 10px;">基本量纲</h4>
+                        <p>国际单位制(SI)中的7个基本量纲：</p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>[L] - 长度 (米, m)</li>
+                            <li>[M] - 质量 (千克, kg)</li>
+                            <li>[T] - 时间 (秒, s)</li>
+                            <li>[I] - 电流 (安培, A)</li>
+                            <li>[Θ] - 温度 (开尔文, K)</li>
+                            <li>[N] - 物质的量 (摩尔, mol)</li>
+                            <li>[J] - 发光强度 (坎德拉, cd)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="report-card">
+                    <h3>导出量纲</h3>
+                    <div style="margin-bottom: 15px;">
+                        <p>导出量纲由基本量纲的幂次乘积表示：</p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>速度: [v] = [L·T⁻¹]</li>
+                            <li>加速度: [a] = [L·T⁻²]</li>
+                            <li>力: [F] = [M·L·T⁻²]</li>
+                            <li>能量: [E] = [M·L²·T⁻²]</li>
+                            <li>功率: [P] = [M·L²·T⁻³]</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="report-card">
+                    <h3>无量纲量</h3>
+                    <div style="margin-bottom: 15px;">
+                        <p>无量纲量的量纲为[1]，常见的有：</p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>角度 (弧度, rad)</li>
+                            <li>应变 (ε = ΔL/L)</li>
+                            <li>雷诺数 (Re = ρvL/μ)</li>
+                            <li>普朗特数 (Pr = ν/α)</li>
+                            <li>努塞尔数 (Nu = hL/k)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="report-card">
+                    <h3>量纲齐次性原理</h3>
+                    <div style="margin-bottom: 15px;">
+                        <p>任何有意义的物理方程必须满足量纲齐次性：</p>
+                        <p style="margin-top: 10px; font-style: italic; color: #ff9e00;">
+                            "方程中每一项的量纲必须相同"
+                        </p>
+                        <p style="margin-top: 10px;">例如：牛顿第二定律 F = ma</p>
+                        <p>[F] = [M·L·T⁻²], [ma] = [M]·[L·T⁻²] = [M·L·T⁻²] ✓</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="report-card" style="margin-top: 25px;">
+                <h3>白金汉π定理</h3>
+                <div style="margin-bottom: 15px;">
+                    <p>对于涉及n个物理量的物理问题，如果这些物理量包含k个基本量纲，则可以组成n-k个独立的无量纲π项。</p>
+                    <p style="margin-top: 10px;">应用步骤：</p>
+                    <ol style="margin-left: 20px; margin-top: 10px;">
+                        <li>列出所有相关物理量</li>
+                        <li>确定基本量纲数量k</li>
+                        <li>构造n-k个无量纲π项</li>
+                        <li>通过实验确定π项之间的关系</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="recommendation-section">
+                <h3>新能源材料中的量纲分析实例</h3>
+                <div style="margin-bottom: 15px;">
+                    <h4 style="color: #4cc9f0; margin-bottom: 10px;">锂离子电池电极设计</h4>
+                    <p>关键物理量：</p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>离子扩散系数 D [L²·T⁻¹]</li>
+                        <li>电极厚度 L [L]</li>
+                        <li>充电时间 t [T]</li>
+                    </ul>
+                    <p style="margin-top: 10px;">无量纲数：傅里叶数 Fo = D·t/L²</p>
+                    <p>用于表征扩散过程相对快慢，指导电极厚度设计。</p>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h4 style="color: #4cc9f0; margin-bottom: 10px;">燃料电池传质分析</h4>
+                    <p>关键物理量：</p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>气体扩散系数 D [L²·T⁻¹]</li>
+                        <li>流速 v [L·T⁻¹]</li>
+                        <li>特征长度 L [L]</li>
+                    </ul>
+                    <p style="margin-top: 10px;">无量纲数：佩克莱数 Pe = v·L/D</p>
+                    <p>用于判断对流与扩散的相对重要性。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 物理量数据库
+        const physicalQuantitiesDB = {
+            mechanics: {
+                name: "力学",
+                quantities: [
+                    { name: "长度", symbol: "l", dimension: "L", siUnit: "m" },
+                    { name: "时间", symbol: "t", dimension: "T", siUnit: "s" },
+                    { name: "质量", symbol: "m", dimension: "M", siUnit: "kg" },
+                    { name: "速度", symbol: "v", dimension: "L·T⁻¹", siUnit: "m/s" },
+                    { name: "加速度", symbol: "a", dimension: "L·T⁻²", siUnit: "m/s²" },
+                    { name: "力", symbol: "F", dimension: "M·L·T⁻²", siUnit: "N" },
+                    { name: "能量", symbol: "E", dimension: "M·L²·T⁻²", siUnit: "J" },
+                    { name: "功率", symbol: "P", dimension: "M·L²·T⁻³", siUnit: "W" },
+                    { name: "动量", symbol: "p", dimension: "M·L·T⁻¹", siUnit: "kg·m/s" },
+                    { name: "角度", symbol: "θ", dimension: "1", siUnit: "rad" }
+                ]
+            },
+            thermodynamics: {
+                name: "热力学",
+                quantities: [
+                    { name: "温度", symbol: "T", dimension: "Θ", siUnit: "K" },
+                    { name: "热量", symbol: "Q", dimension: "M·L²·T⁻²", siUnit: "J" },
+                    { name: "熵", symbol: "S", dimension: "M·L²·T⁻²·Θ⁻¹", siUnit: "J/K" },
+                    { name: "热容", symbol: "C", dimension: "M·L²·T⁻²·Θ⁻¹", siUnit: "J/K" },
+                    { name: "压强", symbol: "p", dimension: "M·L⁻¹·T⁻²", siUnit: "Pa" },
+                    { name: "体积", symbol: "V", dimension: "L³", siUnit: "m³" }
+                ]
+            },
+            electromagnetism: {
+                name: "电磁学",
+                quantities: [
+                    { name: "电流", symbol: "I", dimension: "I", siUnit: "A" },
+                    { name: "电荷量", symbol: "Q", dimension: "T·I", siUnit: "C" },
+                    { name: "电压", symbol: "V", dimension: "M·L²·T⁻³·I⁻¹", siUnit: "V" },
+                    { name: "电阻", symbol: "R", dimension: "M·L²·T⁻³·I⁻²", siUnit: "Ω" },
+                    { name: "电容", symbol: "C", dimension: "M⁻¹·L⁻²·T⁴·I²", siUnit: "F" },
+                    { name: "电感", symbol: "L", dimension: "M·L²·T⁻²·I⁻²", siUnit: "H" }
+                ]
+            },
+            new_energy: {
+                name: "新能源",
+                quantities: [
+                    { name: "电流密度", symbol: "J", dimension: "I·L⁻²", siUnit: "A/m²" },
+                    { name: "扩散系数", symbol: "D", dimension: "L²·T⁻¹", siUnit: "m²/s" },
+                    { name: "热导率", symbol: "κ", dimension: "M·L·T⁻³·Θ⁻¹", siUnit: "W/(m·K)" },
+                    { name: "电极电位", symbol: "E", dimension: "M·L²·T⁻³·I⁻¹", siUnit: "V" },
+                    { name: "表面张力", symbol: "γ", dimension: "M·T⁻²", siUnit: "N/m" },
+                    { name: "离子浓度", symbol: "c", dimension: "N·L⁻³", siUnit: "mol/m³" }
+                ]
+            }
+        };
+
+        // 所有关卡定义（4个领域 × 3个难度）
+        const ALL_LEVELS = [
+            { domain: "mechanics", difficulty: "beginner", domainName: "力学", difficultyName: "入门" },
+            { domain: "mechanics", difficulty: "intermediate", domainName: "力学", difficultyName: "中级" },
+            { domain: "mechanics", difficulty: "advanced", domainName: "力学", difficultyName: "高级" },
+            { domain: "thermodynamics", difficulty: "beginner", domainName: "热力学", difficultyName: "入门" },
+            { domain: "thermodynamics", difficulty: "intermediate", domainName: "热力学", difficultyName: "中级" },
+            { domain: "thermodynamics", difficulty: "advanced", domainName: "热力学", difficultyName: "高级" },
+            { domain: "electromagnetism", difficulty: "beginner", domainName: "电磁学", difficultyName: "入门" },
+            { domain: "electromagnetism", difficulty: "intermediate", domainName: "电磁学", difficultyName: "中级" },
+            { domain: "electromagnetism", difficulty: "advanced", domainName: "电磁学", difficultyName: "高级" },
+            { domain: "new_energy", difficulty: "beginner", domainName: "新能源", difficultyName: "入门" },
+            { domain: "new_energy", difficulty: "intermediate", domainName: "新能源", difficultyName: "中级" },
+            { domain: "new_energy", difficulty: "advanced", domainName: "新能源", difficultyName: "高级" }
+        ];
+
+        // 增强版学习数据管理器 - 包含完整关卡追踪功能
+        class EnhancedLearningDataManager {
+            constructor() {
+                this.loadData();
+            }
+            
+            loadData() {
+                const savedData = localStorage.getItem('dimensionLearningData');
+                if (savedData) {
+                    this.data = JSON.parse(savedData);
+                    this.migrateOldData();
+                } else {
+                    this.initializeNewData();
+                }
+                this.saveData();
+            }
+            
+            initializeNewData() {
+                this.data = {
+                    version: "2.0", // 版本号更新
+                    totalGames: 0,
+                    totalTime: 0, // 分钟
+                    gameHistory: [],
+                    levelStats: {}, // 新增：按关卡统计的数据
+                    domainStats: {},
+                    difficultyStats: {},
+                    conceptScores: {},
+                    skillScores: {},
+                    speedScores: {},
+                    levelHistory: [], // 新增：关卡历史记录
+                    lastPlayed: null
+                };
+                
+                // 初始化所有关卡
+                ALL_LEVELS.forEach(level => {
+                    const levelKey = this.getLevelKey(level.domain, level.difficulty);
+                    if (!this.data.levelStats[levelKey]) {
+                        this.data.levelStats[levelKey] = {
+                            domain: level.domain,
+                            difficulty: level.difficulty,
+                            games: 0,
+                            totalCorrectRate: 0,
+                            bestScore: 0,
+                            totalTime: 0,
+                            lastPlayed: null,
+                            firstPlayed: null,
+                            improvement: [], // 记录进步轨迹
+                            recentScores: [] // 最近5次成绩
+                        };
+                    }
+                });
+            }
+            
+            migrateOldData() {
+                // 如果是从旧版本迁移，初始化新的数据结构
+                if (!this.data.version || this.data.version === "1.0") {
+                    this.data.version = "2.0";
+                    this.data.levelStats = {};
+                    this.data.levelHistory = [];
+                    
+                    // 初始化所有关卡
+                    ALL_LEVELS.forEach(level => {
+                        const levelKey = this.getLevelKey(level.domain, level.difficulty);
+                        this.data.levelStats[levelKey] = {
+                            domain: level.domain,
+                            difficulty: level.difficulty,
+                            games: 0,
+                            totalCorrectRate: 0,
+                            bestScore: 0,
+                            totalTime: 0,
+                            lastPlayed: null,
+                            firstPlayed: null,
+                            improvement: [],
+                            recentScores: []
+                        };
+                    });
+                    
+                    // 从现有历史记录中提取关卡数据
+                    if (this.data.gameHistory && this.data.gameHistory.length > 0) {
+                        this.data.gameHistory.forEach(record => {
+                            const levelKey = this.getLevelKey(record.domain, record.difficulty);
+                            this.updateLevelStats(levelKey, record);
+                        });
+                    }
+                }
+            }
+            
+            saveData() {
+                localStorage.setItem('dimensionLearningData', JSON.stringify(this.data));
+            }
+            
+            // 获取关卡键名
+            getLevelKey(domain, difficulty) {
+                return `${domain}_${difficulty}`;
+            }
+            
+            // 更新关卡统计
+            updateLevelStats(levelKey, record) {
+                const levelStat = this.data.levelStats[levelKey];
+                
+                // 如果这是第一次玩这个关卡
+                if (!levelStat.firstPlayed) {
+                    levelStat.firstPlayed = new Date().toISOString();
+                }
+                
+                levelStat.games++;
+                levelStat.totalCorrectRate += record.correctRate;
+                levelStat.bestScore = Math.max(levelStat.bestScore, record.score);
+                levelStat.totalTime += record.timeUsed;
+                levelStat.lastPlayed = new Date().toISOString();
+                
+                // 记录进步轨迹
+                levelStat.improvement.push({
+                    date: new Date().toISOString(),
+                    correctRate: record.correctRate,
+                    score: record.score,
+                    timeUsed: record.timeUsed
+                });
+                
+                // 限制进步轨迹记录数量
+                if (levelStat.improvement.length > 20) {
+                    levelStat.improvement = levelStat.improvement.slice(-20);
+                }
+                
+                // 记录最近5次成绩
+                levelStat.recentScores.push(record.correctRate);
+                if (levelStat.recentScores.length > 5) {
+                    levelStat.recentScores = levelStat.recentScores.slice(-5);
+                }
+                
+                // 记录关卡历史
+                this.data.levelHistory.push({
+                    levelKey: levelKey,
+                    domain: record.domain,
+                    difficulty: record.difficulty,
+                    date: new Date().toISOString(),
+                    correctRate: record.correctRate,
+                    score: record.score,
+                    timeUsed: record.timeUsed
+                });
+                
+                // 限制历史记录数量
+                if (this.data.levelHistory.length > 100) {
+                    this.data.levelHistory = this.data.levelHistory.slice(-100);
+                }
+            }
+            
+            addGameRecord(record) {
+                this.data.totalGames++;
+                this.data.totalTime += record.timeUsed / 60;
+                this.data.lastPlayed = new Date().toISOString();
+                
+                // 添加到游戏历史
+                this.data.gameHistory.unshift({
+                    id: Date.now(),
+                    date: new Date().toLocaleString('zh-CN'),
+                    domain: record.domain,
+                    difficulty: record.difficulty,
+                    correctRate: record.correctRate,
+                    timeUsed: record.timeUsed,
+                    score: record.score,
+                    totalPairs: record.totalPairs,
+                    matchedPairs: record.matchedPairs
+                });
+                
+                // 限制历史记录数量
+                if (this.data.gameHistory.length > 50) {
+                    this.data.gameHistory = this.data.gameHistory.slice(0, 50);
+                }
+                
+                // 更新关卡统计
+                const levelKey = this.getLevelKey(record.domain, record.difficulty);
+                this.updateLevelStats(levelKey, record);
+                
+                // 更新领域统计
+                if (!this.data.domainStats[record.domain]) {
+                    this.data.domainStats[record.domain] = {
+                        games: 0,
+                        totalCorrectRate: 0,
+                        bestScore: 0,
+                        avgTime: 0
+                    };
+                }
+                const domainStat = this.data.domainStats[record.domain];
+                domainStat.games++;
+                domainStat.totalCorrectRate += record.correctRate;
+                domainStat.bestScore = Math.max(domainStat.bestScore, record.score);
+                domainStat.avgTime = (domainStat.avgTime * (domainStat.games - 1) + record.timeUsed) / domainStat.games;
+                
+                // 更新难度统计
+                if (!this.data.difficultyStats[record.difficulty]) {
+                    this.data.difficultyStats[record.difficulty] = {
+                        games: 0,
+                        totalCorrectRate: 0,
+                        bestScore: 0
+                    };
+                }
+                const diffStat = this.data.difficultyStats[record.difficulty];
+                diffStat.games++;
+                diffStat.totalCorrectRate += record.correctRate;
+                diffStat.bestScore = Math.max(diffStat.bestScore, record.score);
+                
+                // 更新能力分数
+                this.updateAbilityScores(record);
+                
+                this.saveData();
+            }
+            
+            updateAbilityScores(record) {
+                // 概念理解分数（基于正确率）
+                const conceptWeight = 0.4;
+                const newConceptScore = record.correctRate;
+                this.data.conceptScores[record.domain] = 
+                    (this.data.conceptScores[record.domain] || 0) * (1 - conceptWeight) + 
+                    newConceptScore * conceptWeight;
+                
+                // 技能熟练度分数（基于匹配速度和准确性）
+                const skillWeight = 0.3;
+                const timePerPair = record.timeUsed / record.totalPairs;
+                const skillFactor = Math.min(1, 30 / timePerPair);
+                const newSkillScore = record.correctRate * skillFactor;
+                this.data.skillScores[record.domain] = 
+                    (this.data.skillScores[record.domain] || 0) * (1 - skillWeight) + 
+                    newSkillScore * skillWeight;
+                
+                // 反应速度分数（基于完成时间）
+                const speedWeight = 0.3;
+                const baseTime = {
+                    beginner: 90,
+                    intermediate: 60,
+                    advanced: 45
+                }[record.difficulty];
+                const timeRatio = Math.min(1, (baseTime - record.timeUsed) / baseTime + 0.5);
+                const newSpeedScore = Math.max(0, Math.min(1, timeRatio * record.correctRate));
+                this.data.speedScores[record.domain] = 
+                    (this.data.speedScores[record.domain] || 0) * (1 - speedWeight) + 
+                    newSpeedScore * speedWeight;
+            }
+            
+            // 获取所有关卡的学习成果
+            getAllLevelStats() {
+                const levelStats = [];
+                
+                ALL_LEVELS.forEach(level => {
+                    const levelKey = this.getLevelKey(level.domain, level.difficulty);
+                    const levelData = this.data.levelStats[levelKey];
+                    
+                    if (levelData && levelData.games > 0) {
+                        // 计算平均正确率
+                        const avgCorrectRate = Math.round((levelData.totalCorrectRate / levelData.games) * 100);
+                        
+                        // 计算平均用时
+                        const avgTime = Math.round(levelData.totalTime / levelData.games);
+                        
+                        // 计算掌握程度
+                        let masteryLevel = 0;
+                        if (avgCorrectRate >= 90) masteryLevel = 3; // 掌握
+                        else if (avgCorrectRate >= 70) masteryLevel = 2; // 熟练
+                        else if (avgCorrectRate >= 50) masteryLevel = 1; // 了解
+                        
+                        // 计算进步趋势（最近3次平均 vs 之前3次平均）
+                        let improvement = 0;
+                        if (levelData.recentScores && levelData.recentScores.length >= 6) {
+                            const recentAvg = levelData.recentScores.slice(-3).reduce((a, b) => a + b, 0) / 3;
+                            const previousAvg = levelData.recentScores.slice(-6, -3).reduce((a, b) => a + b, 0) / 3;
+                            improvement = Math.round((recentAvg - previousAvg) * 100);
+                        }
+                        
+                        levelStats.push({
+                            levelKey: levelKey,
+                            domain: level.domain,
+                            domainName: level.domainName,
+                            difficulty: level.difficulty,
+                            difficultyName: level.difficultyName,
+                            games: levelData.games,
+                            avgCorrectRate: avgCorrectRate,
+                            bestScore: levelData.bestScore,
+                            avgTime: avgTime,
+                            lastPlayed: levelData.lastPlayed,
+                            firstPlayed: levelData.firstPlayed,
+                            masteryLevel: masteryLevel,
+                            improvement: improvement,
+                            recentScores: levelData.recentScores || []
+                        });
+                    } else {
+                        // 未开始学习的关卡
+                        levelStats.push({
+                            levelKey: levelKey,
+                            domain: level.domain,
+                            domainName: level.domainName,
+                            difficulty: level.difficulty,
+                            difficultyName: level.difficultyName,
+                            games: 0,
+                            avgCorrectRate: 0,
+                            bestScore: 0,
+                            avgTime: 0,
+                            lastPlayed: null,
+                            firstPlayed: null,
+                            masteryLevel: 0,
+                            improvement: 0,
+                            recentScores: []
+                        });
+                    }
+                });
+                
+                return levelStats;
+            }
+            
+            // 获取关卡完成度统计
+            getLevelCompletionStats() {
+                const levelStats = this.getAllLevelStats();
+                let mastered = 0; // 掌握（正确率>=90%）
+                let inProgress = 0; // 进行中（正确率>=50%且<90%）
+                let notStarted = 0; // 未开始或正确率<50%
+                
+                levelStats.forEach(level => {
+                    if (level.avgCorrectRate >= 90) {
+                        mastered++;
+                    } else if (level.avgCorrectRate >= 50) {
+                        inProgress++;
+                    } else {
+                        notStarted++;
+                    }
+                });
+                
+                const totalLevels = ALL_LEVELS.length;
+                
+                return {
+                    mastered,
+                    inProgress,
+                    notStarted,
+                    totalLevels,
+                    masteredPercent: Math.round((mastered / totalLevels) * 100),
+                    inProgressPercent: Math.round((inProgress / totalLevels) * 100),
+                    notStartedPercent: Math.round((notStarted / totalLevels) * 100)
+                };
+            }
+            
+            // 获取学习时间分布
+            getTimeDistribution() {
+                const distribution = {
+                    mechanics: 0,
+                    thermodynamics: 0,
+                    electromagnetism: 0,
+                    new_energy: 0
+                };
+                
+                // 从游戏历史中计算时间分布
+                this.data.gameHistory.forEach(record => {
+                    if (distribution[record.domain] !== undefined) {
+                        distribution[record.domain] += record.timeUsed / 60; // 转换为分钟
+                    }
+                });
+                
+                return distribution;
+            }
+            
+            // 获取进步最快的关卡
+            getFastestImprovingLevels() {
+                const levelStats = this.getAllLevelStats();
+                
+                // 筛选有进步数据的关卡
+                const levelsWithImprovement = levelStats.filter(level => 
+                    level.games >= 2 && level.improvement !== 0
+                );
+                
+                // 按进步幅度排序
+                levelsWithImprovement.sort((a, b) => b.improvement - a.improvement);
+                
+                // 返回进步最快的3个关卡
+                return levelsWithImprovement.slice(0, 3);
+            }
+            
+            // 原有的统计方法保持不变
+            getOverallStats() {
+                const totalGames = this.data.totalGames;
+                const totalTime = this.data.totalTime;
+                
+                let totalCorrectRate = 0;
+                let completionRate = 0;
+                
+                if (totalGames > 0) {
+                    const recentGames = this.data.gameHistory.slice(0, Math.min(10, totalGames));
+                    totalCorrectRate = recentGames.reduce((sum, game) => sum + game.correctRate, 0) / recentGames.length;
+                    
+                    const domainsAttempted = Object.keys(this.data.domainStats).length;
+                    const difficultiesAttempted = Object.keys(this.data.difficultyStats).length;
+                    completionRate = Math.min(100, (domainsAttempted / 4) * 70 + (difficultiesAttempted / 3) * 30);
+                }
+                
+                return {
+                    totalGames,
+                    totalTime: Math.round(totalTime),
+                    avgAccuracy: Math.round(totalCorrectRate * 100),
+                    completionRate: Math.round(completionRate)
+                };
+            }
+            
+            getAbilityScores() {
+                const domains = Object.keys(this.data.conceptScores);
+                let conceptScore = 0, skillScore = 0, speedScore = 0;
+                
+                if (domains.length > 0) {
+                    conceptScore = domains.reduce((sum, domain) => sum + this.data.conceptScores[domain], 0) / domains.length;
+                    skillScore = domains.reduce((sum, domain) => sum + this.data.skillScores[domain], 0) / domains.length;
+                    speedScore = domains.reduce((sum, domain) => sum + this.data.speedScores[domain], 0) / domains.length;
+                }
+                
+                return {
+                    conceptScore: Math.round(conceptScore * 100),
+                    skillScore: Math.round(skillScore * 100),
+                    speedScore: Math.round(speedScore * 100)
+                };
+            }
+            
+            getDomainMastery() {
+                const mastery = {};
+                const domains = ['mechanics', 'thermodynamics', 'electromagnetism', 'new_energy'];
+                
+                domains.forEach(domain => {
+                    if (this.data.domainStats[domain]) {
+                        const stat = this.data.domainStats[domain];
+                        mastery[domain] = Math.round((stat.totalCorrectRate / stat.games) * 100);
+                    } else {
+                        mastery[domain] = 0;
+                    }
+                });
+                
+                return mastery;
+            }
+            
+            getDifficultyPerformance() {
+                const performance = {};
+                const difficulties = ['beginner', 'intermediate', 'advanced'];
+                
+                difficulties.forEach(diff => {
+                    if (this.data.difficultyStats[diff]) {
+                        const stat = this.data.difficultyStats[diff];
+                        performance[diff] = Math.round((stat.totalCorrectRate / stat.games) * 100);
+                    } else {
+                        performance[diff] = 0;
+                    }
+                });
+                
+                return performance;
+            }
+            
+            getRecommendations() {
+                const recommendations = [];
+                const overall = this.getOverallStats();
+                const ability = this.getAbilityScores();
+                const levelStats = this.getAllLevelStats();
+                const completionStats = this.getLevelCompletionStats();
+                
+                // 基于游戏次数
+                if (overall.totalGames < 3) {
+                    recommendations.push("您刚刚开始学习，建议多玩几次游戏来熟悉物理量的量纲表示法。");
+                } else if (overall.totalGames < 10) {
+                    recommendations.push("您已经积累了一些经验，尝试挑战更高难度或不同领域的物理量。");
+                }
+                
+                // 基于关卡完成度
+                if (completionStats.mastered === 0 && completionStats.inProgress === 0) {
+                    recommendations.push("您还没有开始任何关卡的学习，建议从入门难度开始尝试。");
+                } else if (completionStats.mastered < 4) {
+                    recommendations.push(`您已掌握${completionStats.mastered}个关卡，继续努力完成更多关卡！`);
+                } else if (completionStats.mastered >= 8) {
+                    recommendations.push("优秀！您已经掌握了大部分关卡，可以尝试挑战高级难度的所有领域。");
+                }
+                
+                // 基于能力分数
+                if (ability.conceptScore < 60) {
+                    recommendations.push("概念理解需要加强，建议重点关注物理量的本质属性和量纲表示法。");
+                }
+                
+                if (ability.skillScore < 60) {
+                    recommendations.push("匹配熟练度有待提高，多练习可以加快识别速度和准确性。");
+                }
+                
+                if (ability.speedScore < 60) {
+                    recommendations.push("反应速度可以进一步提高，尝试减少犹豫时间，快速做出判断。");
+                }
+                
+                // 基于薄弱关卡
+                const weakLevels = levelStats.filter(level => level.avgCorrectRate < 60 && level.games > 0);
+                if (weakLevels.length > 0) {
+                    const weakLevelNames = weakLevels.map(level => `${level.domainName}-${level.difficultyName}`).join('、');
+                    recommendations.push(`建议重点加强以下关卡的练习：${weakLevelNames}。`);
+                }
+                
+                // 如果建议太少，添加通用建议
+                if (recommendations.length < 3) {
+                    recommendations.push("坚持每天练习15-20分钟，可以有效提高量纲分析能力。");
+                    recommendations.push("结合理论指导理解量纲概念，将有助于在实际问题中应用。");
+                    recommendations.push("尝试在不同难度级别下练习，全面掌握量纲分析技能。");
+                }
+                
+                return recommendations.slice(0, 5); // 最多返回5条建议
+            }
+            
+            resetData() {
+                if (confirm("确定要重置所有学习数据吗？此操作将清除所有关卡的学习记录，不可撤销。")) {
+                    this.initializeNewData();
+                    this.saveData();
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        // 增强版游戏管理器 - 包含完整关卡追踪功能
+        class EnhancedGameManager {
+            constructor(learningDataManager) {
+                this.learningDataManager = learningDataManager;
+                this.audioManager = new AudioManager();
+                
+                // 自动跳转相关变量
+                this.autoJumpTimer = null;
+                this.autoJumpCountdown = 0;
+                
+                // 清空追踪记录，开始新游戏
+                this.resetGame();
+                
+                this.initEventListeners();
+                this.updateDisplay();
+            }
+            
+            resetGame() {
+                this.currentGame = {
+                    domain: "mechanics",
+                    difficulty: "beginner",
+                    mode: "dimension_only",
+                    cardCount: 6,
+                    selectedPhysical: null,
+                    selectedDimensional: null,
+                    matchedPairs: 0,
+                    totalPairs: 6,
+                    score: 0,
+                    timeLeft: 90,
+                    hintsLeft: 3,
+                    gameActive: false,
+                    startTime: null,
+                    timerInterval: null,
+                    currentPairs: []
+                };
+            }
+            
+            initEventListeners() {
+                // 导航按钮
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const section = btn.dataset.section;
+                        this.showSection(section);
+                    });
+                });
+                
+                // 领域选择
+                document.querySelectorAll('[data-domain]').forEach(option => {
+                    option.addEventListener('click', () => {
+                        document.querySelectorAll('[data-domain]').forEach(opt => opt.classList.remove('selected'));
+                        option.classList.add('selected');
+                        this.currentGame.domain = option.dataset.domain;
+                        this.updateDisplay();
+                    });
+                });
+                
+                // 难度选择
+                document.querySelectorAll('[data-difficulty]').forEach(option => {
+                    option.addEventListener('click', () => {
+                        document.querySelectorAll('[data-difficulty]').forEach(opt => opt.classList.remove('selected'));
+                        option.classList.add('selected');
+                        this.currentGame.difficulty = option.dataset.difficulty;
+                        this.updateDisplay();
+                    });
+                });
+                
+                // 模式选择
+                document.querySelectorAll('[data-mode]').forEach(option => {
+                    option.addEventListener('click', () => {
+                        document.querySelectorAll('[data-mode]').forEach(opt => opt.classList.remove('selected'));
+                        option.classList.add('selected');
+                        this.currentGame.mode = option.dataset.mode;
+                    });
+                });
+                
+                // 卡片数量
+                document.getElementById('cardCount').addEventListener('change', (e) => {
+                    let value = parseInt(e.target.value);
+                    if (value < 4) value = 4;
+                    if (value > 10) value = 10;
+                    this.currentGame.cardCount = value;
+                });
+                
+                // 音量控制
+                document.getElementById('volumeSlider').addEventListener('input', (e) => {
+                    const volume = e.target.value;
+                    document.getElementById('volumeValue').textContent = volume + '%';
+                    this.audioManager.setVolume(volume);
+                });
+                
+                // 游戏按钮
+                document.getElementById('startGame').addEventListener('click', () => this.startGame());
+                document.getElementById('resetGame').addEventListener('click', () => this.resetGameUI());
+                document.getElementById('hintBtn').addEventListener('click', () => this.giveHint());
+                document.getElementById('showTheoryBtn').addEventListener('click', () => this.showTheory());
+                document.getElementById('nextLevelBtn').addEventListener('click', () => {
+                    // 清除自动跳转定时器
+                    this.clearAutoJumpTimer();
+                    this.nextLevel();
+                });
+                
+                // 报告按钮
+                document.getElementById('exportReport').addEventListener('click', () => this.exportReport());
+                document.getElementById('practiceWeakness').addEventListener('click', () => this.practiceWeakness());
+                document.getElementById('resetData').addEventListener('click', () => this.resetLearningData());
+            }
+            
+            // 清除自动跳转定时器
+            clearAutoJumpTimer() {
+                if (this.autoJumpTimer) {
+                    clearInterval(this.autoJumpTimer);
+                    this.autoJumpTimer = null;
+                }
+            }
+            
+            showSection(sectionId) {
+                // 更新导航按钮状态
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.section === sectionId);
+                });
+                
+                // 显示对应内容区域
+                document.querySelectorAll('.content-section').forEach(section => {
+                    section.classList.toggle('active', section.id === sectionId);
+                });
+                
+                // 更新对应界面的数据
+                if (sectionId === 'progress') {
+                    this.updateProgressSection();
+                } else if (sectionId === 'report') {
+                    this.updateReportSection();
+                }
+            }
+            
+            updateDisplay() {
+                const domain = physicalQuantitiesDB[this.currentGame.domain];
+                document.getElementById('currentDomain').textContent = domain.name + "物理量";
+                
+                const difficultyMap = {
+                    beginner: "入门",
+                    intermediate: "中级", 
+                    advanced: "高级"
+                };
+                document.getElementById('currentDifficulty').textContent = `难度: ${difficultyMap[this.currentGame.difficulty]}`;
+            }
+            
+            startGame() {
+                this.resetGameUI();
+                
+                // 设置游戏参数
+                const difficultySettings = {
+                    beginner: { time: 90, hints: 3, scoreMultiplier: 1 },
+                    intermediate: { time: 60, hints: 2, scoreMultiplier: 1.5 },
+                    advanced: { time: 45, hints: 1, scoreMultiplier: 2 }
+                };
+                
+                const settings = difficultySettings[this.currentGame.difficulty];
+                this.currentGame.timeLeft = settings.time;
+                this.currentGame.hintsLeft = settings.hints;
+                this.currentGame.totalPairs = this.currentGame.cardCount;
+                this.currentGame.gameActive = true;
+                this.currentGame.startTime = Date.now();
+                
+                // 更新UI
+                document.getElementById('timer').textContent = this.currentGame.timeLeft;
+                document.getElementById('hintCount').textContent = this.currentGame.hintsLeft;
+                document.getElementById('nextLevelBtn').disabled = true;
+                
+                // 生成卡片
+                this.generateCards();
+                
+                // 开始计时器
+                this.startTimer();
+                
+                // 开始音效
+                this.audioManager.startPendulum();
+                
+                // 显示消息
+                this.showMessage("游戏开始！匹配物理量与其正确的量纲", "#4cc9f0");
+            }
+            
+            resetGameUI() {
+                // 停止计时器和音效
+                if (this.currentGame.timerInterval) {
+                    clearInterval(this.currentGame.timerInterval);
+                    this.currentGame.timerInterval = null;
+                }
+                this.audioManager.stopPendulum();
+                
+                // 清除自动跳转定时器
+                this.clearAutoJumpTimer();
+                
+                // 重置游戏状态
+                this.currentGame.selectedPhysical = null;
+                this.currentGame.selectedDimensional = null;
+                this.currentGame.matchedPairs = 0;
+                this.currentGame.score = 0;
+                this.currentGame.gameActive = false;
+                this.currentGame.currentPairs = [];
+                
+                // 更新UI
+                document.getElementById('score').textContent = "0";
+                document.getElementById('matchedCount').textContent = "0/0";
+                this.showMessage("请将物理量与其正确的量纲表达式匹配", "#e6e6e6");
+                document.getElementById('timer').style.color = "#ff9e00";
+                
+                // 清空卡片
+                document.getElementById('physicalCards').innerHTML = '';
+                document.getElementById('dimensionalCards').innerHTML = '';
+                
+                // 更新提示次数
+                const difficultySettings = {
+                    beginner: { hints: 3 },
+                    intermediate: { hints: 2 },
+                    advanced: { hints: 1 }
+                };
+                document.getElementById('hintCount').textContent = difficultySettings[this.currentGame.difficulty].hints;
+                
+                // 禁用下一关按钮
+                document.getElementById('nextLevelBtn').disabled = true;
+            }
+            
+            generateCards() {
+                const domain = physicalQuantitiesDB[this.currentGame.domain];
+                const allQuantities = [...domain.quantities];
+                const selectedQuantities = [];
+                
+                // 随机选择指定数量的物理量
+                for (let i = 0; i < this.currentGame.cardCount && allQuantities.length > 0; i++) {
+                    const randomIndex = Math.floor(Math.random() * allQuantities.length);
+                    selectedQuantities.push(allQuantities[randomIndex]);
+                    allQuantities.splice(randomIndex, 1);
+                }
+                
+                // 为每个物理量生成唯一ID
+                selectedQuantities.forEach((quantity, index) => {
+                    quantity.id = `q_${index}_${Date.now()}`;
+                });
+                
+                // 保存当前配对
+                this.currentGame.currentPairs = selectedQuantities;
+                
+                // 创建卡片
+                const physicalContainer = document.getElementById('physicalCards');
+                const dimensionalContainer = document.getElementById('dimensionalCards');
+                
+                // 清空容器
+                physicalContainer.innerHTML = '';
+                dimensionalContainer.innerHTML = '';
+                
+                // 创建物理量卡片
+                selectedQuantities.forEach(quantity => {
+                    const physicalCard = document.createElement('div');
+                    physicalCard.className = 'card';
+                    physicalCard.dataset.id = quantity.id;
+                    physicalCard.dataset.type = 'physical';
+                    
+                    let cardContent = `
+                        <div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 8px; color: #ffffff;">${quantity.name}</div>
+                        <div style="font-size: 1.4rem; color: #ff9e00; margin-bottom: 5px; font-family: 'Cambria', serif;">${quantity.symbol}</div>
+                    `;
+                    
+                    // 根据模式添加单位信息
+                    if (this.currentGame.mode === 'dimension_with_unit') {
+                        cardContent += `<div style="font-size: 0.9rem; color: #90e0ef; margin-top: 5px; font-style: italic;">SI单位: ${quantity.siUnit}</div>`;
+                    }
+                    
+                    physicalCard.innerHTML = cardContent;
+                    physicalCard.addEventListener('click', () => this.selectCard(quantity.id, 'physical'));
+                    physicalContainer.appendChild(physicalCard);
+                });
+                
+                // 创建量纲卡片（先正确配对，然后打乱）
+                const dimensionalCards = [];
+                selectedQuantities.forEach(quantity => {
+                    const dimensionalCard = document.createElement('div');
+                    dimensionalCard.className = 'card';
+                    dimensionalCard.dataset.id = quantity.id;
+                    dimensionalCard.dataset.type = 'dimensional';
+                    
+                    dimensionalCard.innerHTML = `
+                        <div style="font-family: 'Cambria', 'Times New Roman', serif; font-size: 1.2rem; color: #4cc9f0; font-weight: bold; margin-bottom: 5px;">[${quantity.dimension}]</div>
+                        <div style="font-size: 0.9rem; color: #90e0ef; margin-top: 5px; font-style: italic;">量纲表达式</div>
+                    `;
+                    
+                    dimensionalCard.addEventListener('click', () => this.selectCard(quantity.id, 'dimensional'));
+                    dimensionalCards.push(dimensionalCard);
+                });
+                
+                // 为高级难度添加干扰项
+                if (this.currentGame.difficulty === 'advanced') {
+                    this.addDistractorCards(dimensionalCards, selectedQuantities);
+                }
+                
+                // 打乱量纲卡片顺序
+                this.shuffleArray(dimensionalCards);
+                
+                // 添加到容器
+                dimensionalCards.forEach(card => {
+                    dimensionalContainer.appendChild(card);
+                });
+                
+                // 更新匹配计数显示
+                document.getElementById('matchedCount').textContent = `0/${this.currentGame.totalPairs}`;
+            }
+            
+            addDistractorCards(dimensionalCards, selectedQuantities) {
+                // 添加一些常见的错误量纲作为干扰
+                const commonDimensions = [
+                    "L", "T", "M", "Θ", "I",
+                    "L·T⁻¹", "L·T⁻²", "M·L·T⁻²",
+                    "M·L²·T⁻²", "M·L²·T⁻³",
+                    "M·L⁻¹·T⁻²", "T·I", "1"
+                ];
+                
+                // 添加1-2个干扰项
+                const numDistractors = Math.min(2, Math.floor(this.currentGame.cardCount / 3));
+                
+                for (let i = 0; i < numDistractors; i++) {
+                    // 选择不在当前量纲中的维度
+                    let distractorDim;
+                    do {
+                        distractorDim = commonDimensions[Math.floor(Math.random() * commonDimensions.length)];
+                    } while (selectedQuantities.some(q => q.dimension === distractorDim));
+                    
+                    const distractorCard = document.createElement('div');
+                    distractorCard.className = 'card';
+                    distractorCard.dataset.id = `distractor_${i}`;
+                    distractorCard.dataset.type = 'dimensional';
+                    distractorCard.dataset.isDistractor = true;
+                    
+                    distractorCard.innerHTML = `
+                        <div style="font-family: 'Cambria', 'Times New Roman', serif; font-size: 1.2rem; color: #4cc9f0; font-weight: bold; margin-bottom: 5px;">[${distractorDim}]</div>
+                        <div style="font-size: 0.9rem; color: #90e0ef; margin-top: 5px; font-style: italic;">干扰项</div>
+                    `;
+                    
+                    distractorCard.addEventListener('click', () => {
+                        this.showMessage("这是干扰项！请选择正确的量纲", "#ff595e");
+                        distractorCard.classList.add('incorrect');
+                        this.audioManager.playError();
+                        setTimeout(() => {
+                            distractorCard.classList.remove('incorrect');
+                        }, 1000);
+                    });
+                    
+                    dimensionalCards.push(distractorCard);
+                }
+            }
+            
+            shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+            
+            selectCard(id, type) {
+                if (!this.currentGame.gameActive) return;
+                
+                // 如果是干扰项，已经处理过点击事件
+                if (id.startsWith('distractor_')) return;
+                
+                // 如果卡片已匹配，忽略点击
+                const cardElement = document.querySelector(`.card[data-id="${id}"][data-type="${type}"]`);
+                if (cardElement && cardElement.classList.contains('matched')) return;
+                
+                // 取消之前的选择
+                if (type === 'physical') {
+                    if (this.currentGame.selectedPhysical === id) {
+                        // 取消选择
+                        this.currentGame.selectedPhysical = null;
+                        document.querySelectorAll('.card.selected[data-type="physical"]').forEach(card => {
+                            card.classList.remove('selected');
+                        });
+                        return;
+                    }
+                    
+                    // 清除所有物理量卡片的选中状态
+                    document.querySelectorAll('.card.selected[data-type="physical"]').forEach(card => {
+                        card.classList.remove('selected');
+                    });
+                    
+                    // 选择新卡片
+                    this.currentGame.selectedPhysical = id;
+                    cardElement.classList.add('selected');
+                    
+                    // 如果已经选择了量纲卡片，检查匹配
+                    if (this.currentGame.selectedDimensional) {
+                        this.checkMatch();
+                    }
+                } else if (type === 'dimensional') {
+                    if (this.currentGame.selectedDimensional === id) {
+                        // 取消选择
+                        this.currentGame.selectedDimensional = null;
+                        document.querySelectorAll('.card.selected[data-type="dimensional"]').forEach(card => {
+                            card.classList.remove('selected');
+                        });
+                        return;
+                    }
+                    
+                    // 清除所有量纲卡片的选中状态
+                    document.querySelectorAll('.card.selected[data-type="dimensional"]').forEach(card => {
+                        card.classList.remove('selected');
+                    });
+                    
+                    // 选择新卡片
+                    this.currentGame.selectedDimensional = id;
+                    cardElement.classList.add('selected');
+                    
+                    // 如果已经选择了物理量卡片，检查匹配
+                    if (this.currentGame.selectedPhysical) {
+                        this.checkMatch();
+                    }
+                }
+            }
+            
+            checkMatch() {
+                if (!this.currentGame.selectedPhysical || !this.currentGame.selectedDimensional) return;
+                
+                const physicalId = this.currentGame.selectedPhysical;
+                const dimensionalId = this.currentGame.selectedDimensional;
+                
+                // 查找对应的物理量
+                const physicalQuantity = this.currentGame.currentPairs.find(q => q.id === physicalId);
+                
+                if (physicalId === dimensionalId) {
+                    // 匹配成功
+                    this.handleMatchSuccess(physicalQuantity);
+                } else {
+                    // 匹配失败
+                    this.handleMatchFailure();
+                }
+            }
+            
+            handleMatchSuccess(quantity) {
+                // 播放成功音效
+                this.audioManager.playSuccess();
+                
+                // 标记卡片为已匹配
+                const physicalCard = document.querySelector(`.card[data-id="${quantity.id}"][data-type="physical"]`);
+                const dimensionalCard = document.querySelector(`.card[data-id="${quantity.id}"][data-type="dimensional"]`);
+                
+                physicalCard.classList.remove('selected');
+                dimensionalCard.classList.remove('selected');
+                physicalCard.classList.add('matched');
+                dimensionalCard.classList.add('matched');
+                
+                // 添加成功动画
+                physicalCard.classList.add('success-animation');
+                dimensionalCard.classList.add('success-animation');
+                setTimeout(() => {
+                    physicalCard.classList.remove('success-animation');
+                    dimensionalCard.classList.remove('success-animation');
+                }, 500);
+                
+                // 更新游戏状态
+                this.currentGame.matchedPairs++;
+                this.currentGame.selectedPhysical = null;
+                this.currentGame.selectedDimensional = null;
+                
+                // 计算得分
+                const difficultySettings = {
+                    beginner: { scoreMultiplier: 1 },
+                    intermediate: { scoreMultiplier: 1.5 },
+                    advanced: { scoreMultiplier: 2 }
+                };
+                const multiplier = difficultySettings[this.currentGame.difficulty].scoreMultiplier;
+                const baseScore = 100;
+                const timeBonus = Math.floor(this.currentGame.timeLeft / 10) * 5;
+                const score = Math.floor((baseScore + timeBonus) * multiplier);
+                this.currentGame.score += score;
+                
+                // 更新UI
+                document.getElementById('score').textContent = this.currentGame.score;
+                document.getElementById('matchedCount').textContent = `${this.currentGame.matchedPairs}/${this.currentGame.totalPairs}`;
+                
+                // 显示匹配成功消息
+                this.showMessage(
+                    `✓ 匹配正确！${quantity.name} (${quantity.symbol}) 的量纲是 [${quantity.dimension}]，SI单位: ${quantity.siUnit}`,
+                    "#38b000"
+                );
+                
+                // 检查游戏是否完成
+                if (this.currentGame.matchedPairs >= this.currentGame.totalPairs) {
+                    this.gameComplete();
+                }
+            }
+            
+            handleMatchFailure() {
+                // 播放错误音效
+                this.audioManager.playError();
+                
+                // 显示匹配失败消息
+                this.showMessage("匹配错误！请重新选择", "#ff595e");
+                
+                // 标记错误卡片
+                const physicalCard = document.querySelector(`.card[data-id="${this.currentGame.selectedPhysical}"][data-type="physical"]`);
+                const dimensionalCard = document.querySelector(`.card[data-id="${this.currentGame.selectedDimensional}"][data-type="dimensional"]`);
+                
+                physicalCard.classList.add('incorrect');
+                dimensionalCard.classList.add('incorrect');
+                
+                // 短暂延迟后重置
+                setTimeout(() => {
+                    physicalCard.classList.remove('selected');
+                    dimensionalCard.classList.remove('selected');
+                    physicalCard.classList.remove('incorrect');
+                    dimensionalCard.classList.remove('incorrect');
+                    
+                    this.currentGame.selectedPhysical = null;
+                    this.currentGame.selectedDimensional = null;
+                    
+                    // 清空消息
+                    setTimeout(() => {
+                        this.showMessage("请将物理量与其正确的量纲表达式匹配", "#e6e6e6");
+                    }, 1000);
+                }, 1000);
+            }
+            
+            gameComplete() {
+                // 停止计时器和音效
+                if (this.currentGame.timerInterval) {
+                    clearInterval(this.currentGame.timerInterval);
+                    this.currentGame.timerInterval = null;
+                }
+                this.audioManager.stopPendulum();
+                
+                // 计算游戏用时
+                const endTime = Date.now();
+                const timeUsed = Math.floor((endTime - this.currentGame.startTime) / 1000);
+                const difficultySettings = {
+                    beginner: { time: 90 },
+                    intermediate: { time: 60 },
+                    advanced: { time: 45 }
+                };
+                const actualTimeUsed = difficultySettings[this.currentGame.difficulty].time - this.currentGame.timeLeft;
+                
+                // 计算正确率
+                const correctRate = this.currentGame.matchedPairs / this.currentGame.totalPairs;
+                
+                // 保存游戏记录
+                const gameRecord = {
+                    domain: this.currentGame.domain,
+                    difficulty: this.currentGame.difficulty,
+                    correctRate: correctRate,
+                    timeUsed: actualTimeUsed,
+                    score: this.currentGame.score,
+                    totalPairs: this.currentGame.totalPairs,
+                    matchedPairs: this.currentGame.matchedPairs
+                };
+                
+                this.learningDataManager.addGameRecord(gameRecord);
+                
+                // 播放胜利音效
+                this.audioManager.playSuccess();
+                
+                // 标记游戏结束
+                this.currentGame.gameActive = false;
+                
+                // 显示完成消息
+                const finalScore = this.currentGame.score;
+                this.showMessage(
+                    `🎉 恭喜！完成所有匹配！用时: ${actualTimeUsed}秒，正确率: ${Math.round(correctRate * 100)}%，得分: ${finalScore}`,
+                    "#ff9e00"
+                );
+                
+                // 启用下一关按钮
+                document.getElementById('nextLevelBtn').disabled = false;
+                
+                // 开始自动跳转倒计时
+                this.startAutoJumpCountdown();
+            }
+            
+            // 开始自动跳转倒计时
+            startAutoJumpCountdown() {
+                this.autoJumpCountdown = 3; // 3秒后自动进入下一关
+                
+                // 更新消息，显示倒计时
+                const originalMessage = document.getElementById('matchMessage').innerHTML;
+                this.showMessage(
+                    `${originalMessage}<br>${this.autoJumpCountdown}秒后自动进入下一关...`,
+                    "#ff9e00"
+                );
+                
+                // 开始倒计时
+                this.autoJumpTimer = setInterval(() => {
+                    this.autoJumpCountdown--;
+                    
+                    if (this.autoJumpCountdown > 0) {
+                        this.showMessage(
+                            `🎉 关卡完成！用时: ${Math.floor((Date.now() - this.currentGame.startTime) / 1000)}秒<br>${this.autoJumpCountdown}秒后自动进入下一关...`,
+                            "#ff9e00"
+                        );
+                    } else {
+                        // 倒计时结束，自动进入下一关
+                        this.clearAutoJumpTimer();
+                        this.nextLevel();
+                    }
+                }, 1000);
+            }
+            
+            startTimer() {
+                this.currentGame.timerInterval = setInterval(() => {
+                    this.currentGame.timeLeft--;
+                    document.getElementById('timer').textContent = this.currentGame.timeLeft;
+                    
+                    // 时间警告（最后30秒）
+                    if (this.currentGame.timeLeft <= 30) {
+                        document.getElementById('timer').style.color = "#ff595e";
+                    }
+                    
+                    // 时间到
+                    if (this.currentGame.timeLeft <= 0) {
+                        clearInterval(this.currentGame.timerInterval);
+                        this.showMessage("时间到！游戏结束", "#ff595e");
+                        this.currentGame.gameActive = false;
+                        this.audioManager.stopPendulum();
+                        
+                        // 保存不完全的游戏记录
+                        const correctRate = this.currentGame.matchedPairs / this.currentGame.totalPairs;
+                        const difficultySettings = {
+                            beginner: { time: 90 },
+                            intermediate: { time: 60 },
+                            advanced: { time: 45 }
+                        };
+                        const actualTimeUsed = difficultySettings[this.currentGame.difficulty].time;
+                        
+                        const gameRecord = {
+                            domain: this.currentGame.domain,
+                            difficulty: this.currentGame.difficulty,
+                            correctRate: correctRate,
+                            timeUsed: actualTimeUsed,
+                            score: this.currentGame.score,
+                            totalPairs: this.currentGame.totalPairs,
+                            matchedPairs: this.currentGame.matchedPairs
+                        };
+                        
+                        this.learningDataManager.addGameRecord(gameRecord);
+                    }
+                }, 1000);
+            }
+            
+            giveHint() {
+                if (!this.currentGame.gameActive || this.currentGame.hintsLeft <= 0) return;
+                
+                // 减少提示次数
+                this.currentGame.hintsLeft--;
+                document.getElementById('hintCount').textContent = this.currentGame.hintsLeft;
+                
+                // 找到第一个未匹配的物理量
+                const unmatchedQuantity = this.currentGame.currentPairs.find(quantity => {
+                    const physicalCard = document.querySelector(`.card[data-id="${quantity.id}"][data-type="physical"]`);
+                    return !physicalCard.classList.contains('matched');
+                });
+                
+                if (unmatchedQuantity) {
+                    // 高亮对应的量纲卡片
+                    const dimensionalCard = document.querySelector(`.card[data-id="${unmatchedQuantity.id}"][data-type="dimensional"]`);
+                    
+                    dimensionalCard.style.boxShadow = "0 0 20px #ff9e00";
+                    dimensionalCard.style.backgroundColor = "rgba(255, 158, 0, 0.1)";
+                    
+                    this.showMessage(
+                        `提示: ${unmatchedQuantity.name} (${unmatchedQuantity.symbol}) 的量纲是 [${unmatchedQuantity.dimension}]`,
+                        "#ff9e00"
+                    );
+                    
+                    // 3秒后移除高亮
+                    setTimeout(() => {
+                        dimensionalCard.style.boxShadow = "";
+                        dimensionalCard.style.backgroundColor = "";
+                    }, 3000);
+                }
+            }
+            
+            showTheory() {
+                const currentDomain = physicalQuantitiesDB[this.currentGame.domain];
+                let theoryMessage = `<strong>${currentDomain.name} - 量纲理论</strong><br><br>`;
+                
+                theoryMessage += "该领域常用物理量的量纲关系：<br><br>";
+                
+                currentDomain.quantities.slice(0, 5).forEach(q => {
+                    theoryMessage += `${q.name} (${q.symbol}): [${q.dimension}]<br>`;
+                    theoryMessage += `&nbsp;&nbsp;SI单位: ${q.siUnit}<br><br>`;
+                });
+                
+                this.showMessage(theoryMessage, "#7209b7");
+                
+                // 5秒后恢复游戏消息
+                setTimeout(() => {
+                    if (this.currentGame.gameActive) {
+                        this.showMessage("请将物理量与其正确的量纲表达式匹配", "#e6e6e6");
+                    }
+                }, 8000);
+            }
+            
+            nextLevel() {
+                // 清除自动跳转定时器
+                this.clearAutoJumpTimer();
+                
+                // 增加难度
+                const difficultyOrder = ["beginner", "intermediate", "advanced"];
+                const currentIndex = difficultyOrder.indexOf(this.currentGame.difficulty);
+                const nextIndex = (currentIndex + 1) % difficultyOrder.length;  // 循环
+                this.currentGame.difficulty = difficultyOrder[nextIndex];
+                
+                // 更新UI中的难度选择
+                document.querySelectorAll('[data-difficulty]').forEach(opt => {
+                    opt.classList.remove('selected');
+                    if (opt.dataset.difficulty === this.currentGame.difficulty) {
+                        opt.classList.add('selected');
+                    }
+                });
+                
+                // 开始新游戏
+                this.startGame();
+            }
+            
+            // 更新进度界面
+            updateProgressSection() {
+                const levelStats = this.learningDataManager.getAllLevelStats();
+                const completionStats = this.learningDataManager.getLevelCompletionStats();
+                const timeDistribution = this.learningDataManager.getTimeDistribution();
+                const fastestImproving = this.learningDataManager.getFastestImprovingLevels();
+                
+                // 更新关卡总览
+                this.updateLevelOverview(levelStats);
+                
+                // 更新关卡学习成果表格
+                this.updateLevelMasteryTable(levelStats);
+                
+                // 更新关卡完成度统计
+                document.getElementById('masteredLevels').textContent = completionStats.mastered;
+                document.getElementById('inProgressLevels').textContent = completionStats.inProgress;
+                document.getElementById('notStartedLevels').textContent = completionStats.notStarted;
+                
+                document.getElementById('masteredProgress').style.width = completionStats.masteredPercent + '%';
+                document.getElementById('inProgressProgress').style.width = completionStats.inProgressPercent + '%';
+                document.getElementById('notStartedProgress').style.width = completionStats.notStartedPercent + '%';
+                
+                // 更新学习时间分布图表
+                this.updateTimeDistributionChart(timeDistribution);
+                
+                // 更新进步最快的关卡
+                this.updateFastestImprovingLevels(fastestImproving);
+            }
+            
+            updateLevelOverview(levelStats) {
+                const overviewDiv = document.getElementById('levelOverview');
+                
+                // 按领域分组
+                const domains = ['力学', '热力学', '电磁学', '新能源'];
+                let overviewHTML = '';
+                
+                domains.forEach(domain => {
+                    const domainLevels = levelStats.filter(level => level.domainName === domain);
+                    const totalLevels = domainLevels.length;
+                    const masteredLevels = domainLevels.filter(level => level.masteryLevel === 3).length;
+                    const progressPercent = totalLevels > 0 ? Math.round((masteredLevels / totalLevels) * 100) : 0;
+                    
+                    overviewHTML += `
+                        <div class="domain-overview-card">
+                            <h4>${domain}</h4>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="color: #a3d9ff;">掌握度</span>
+                                <span style="color: #ff9e00; font-weight: bold;">${progressPercent}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                            </div>
+                            <div style="font-size: 0.9rem; color: #90e0ef; margin-top: 10px;">
+                                已掌握: ${masteredLevels}/${totalLevels} 个关卡
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                overviewDiv.innerHTML = overviewHTML;
+            }
+            
+            updateLevelMasteryTable(levelStats) {
+                const tableBody = document.getElementById('levelMasteryBody');
+                tableBody.innerHTML = '';
+                
+                levelStats.forEach(level => {
+                    const row = document.createElement('tr');
+                    
+                    // 掌握程度标签
+                    let masteryLabel = '未开始';
+                    let masteryClass = 'completion-low';
+                    if (level.masteryLevel === 1) {
+                        masteryLabel = '了解';
+                        masteryClass = 'completion-low';
+                    } else if (level.masteryLevel === 2) {
+                        masteryLabel = '熟练';
+                        masteryClass = 'completion-medium';
+                    } else if (level.masteryLevel === 3) {
+                        masteryLabel = '掌握';
+                        masteryClass = 'completion-high';
+                    }
+                    
+                    // 正确率颜色
+                    const scoreClass = level.avgCorrectRate >= 80 ? 'level-score' : 
+                                      level.avgCorrectRate >= 60 ? 'level-score medium' : 'level-score low';
+                    
+                    row.innerHTML = `
+                        <td>${level.domainName} - ${level.difficultyName}</td>
+                        <td>${level.games}</td>
+                        <td><span class="${scoreClass}">${level.avgCorrectRate}%</span></td>
+                        <td>${level.bestScore}</td>
+                        <td>${level.games > 0 ? level.avgTime + '秒' : '--'}</td>
+                        <td><span class="level-completion ${masteryClass}">${masteryLabel}</span></td>
+                        <td class="level-progress-cell">
+                            <div>${level.avgCorrectRate}%</div>
+                            <div class="level-progress-bar">
+                                <div class="level-progress-fill" style="width: ${level.avgCorrectRate}%"></div>
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+            
+            updateTimeDistributionChart(timeDistribution) {
+                const canvas = document.getElementById('timeDistributionChart');
+                const ctx = canvas.getContext('2d');
+                
+                // 清除之前的图表
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                const labels = ['力学', '热力学', '电磁学', '新能源'];
+                const data = [
+                    timeDistribution.mechanics || 0,
+                    timeDistribution.thermodynamics || 0,
+                    timeDistribution.electromagnetism || 0,
+                    timeDistribution.new_energy || 0
+                ];
+                
+                const colors = [
+                    'rgba(76, 201, 240, 0.8)',
+                    'rgba(255, 158, 0, 0.8)',
+                    'rgba(67, 97, 238, 0.8)',
+                    'rgba(56, 176, 0, 0.8)'
+                ];
+                
+                // 计算最大值
+                const maxValue = Math.max(...data, 1);
+                const barWidth = 60;
+                const spacing = 30;
+                const startX = 50;
+                const maxHeight = 150;
+                
+                // 绘制柱状图
+                data.forEach((value, index) => {
+                    const x = startX + index * (barWidth + spacing);
+                    const height = (value / maxValue) * maxHeight;
+                    
+                    // 绘制柱状
+                    ctx.fillStyle = colors[index];
+                    ctx.fillRect(x, 180 - height, barWidth, height);
+                    
+                    // 绘制数值
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(value.toFixed(1) + '分', x + barWidth / 2, 170 - height);
+                    
+                    // 绘制标签
+                    ctx.fillStyle = '#ff9e00';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(labels[index], x + barWidth / 2, 195);
+                });
+                
+                // 绘制标题
+                ctx.fillStyle = '#4cc9f0';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('各领域学习时间分布（分钟）', canvas.width / 2, 20);
+            }
+            
+            updateFastestImprovingLevels(fastestImproving) {
+                const container = document.getElementById('fastestProgress');
+                
+                if (fastestImproving.length === 0) {
+                    container.innerHTML = '<p style="color: #a3d9ff; text-align: center;">暂无足够的进步数据，继续游戏以追踪进步情况。</p>';
+                    return;
+                }
+                
+                let html = '';
+                
+                fastestImproving.forEach((level, index) => {
+                    const improvementText = level.improvement > 0 ? 
+                        `↑ 进步${level.improvement}%` : 
+                        level.improvement < 0 ? `↓ 下降${Math.abs(level.improvement)}%` : '→ 持平';
+                    
+                    const improvementColor = level.improvement > 0 ? '#38b000' : 
+                                           level.improvement < 0 ? '#ff595e' : '#ff9e00';
+                    
+                    html += `
+                        <div class="improvement-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h4>${level.domainName} - ${level.difficultyName}</h4>
+                                <span style="color: ${improvementColor}; font-weight: bold;">${improvementText}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                                <div>
+                                    <div style="color: #a3d9ff;">正确率</div>
+                                    <div style="color: #ffffff; font-weight: bold;">${level.avgCorrectRate}%</div>
+                                </div>
+                                <div>
+                                    <div style="color: #a3d9ff;">游戏次数</div>
+                                    <div style="color: #ffffff; font-weight: bold;">${level.games}次</div>
+                                </div>
+                                <div>
+                                    <div style="color: #a3d9ff;">最佳成绩</div>
+                                    <div style="color: #ffffff; font-weight: bold;">${level.bestScore}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            }
+            
+            // 更新报告界面
+            updateReportSection() {
+                // 获取学习数据
+                const overallStats = this.learningDataManager.getOverallStats();
+                const abilityScores = this.learningDataManager.getAbilityScores();
+                const domainMastery = this.learningDataManager.getDomainMastery();
+                const difficultyPerformance = this.learningDataManager.getDifficultyPerformance();
+                const recommendations = this.learningDataManager.getRecommendations();
+                const history = this.learningDataManager.data.gameHistory.slice(0, 10);
+                
+                // 更新总体统计
+                document.getElementById('totalTime').textContent = overallStats.totalTime + "分钟";
+                document.getElementById('totalGames').textContent = overallStats.totalGames + "次";
+                document.getElementById('avgAccuracy').textContent = overallStats.avgAccuracy + "%";
+                document.getElementById('completionRate').textContent = overallStats.completionRate + "%";
+                document.getElementById('completionProgress').style.width = overallStats.completionRate + "%";
+                
+                // 更新能力评估
+                document.getElementById('conceptScore').textContent = abilityScores.conceptScore + "%";
+                document.getElementById('skillScore').textContent = abilityScores.skillScore + "%";
+                document.getElementById('speedScore').textContent = abilityScores.speedScore + "%";
+                document.getElementById('conceptProgress').style.width = abilityScores.conceptScore + "%";
+                document.getElementById('skillProgress').style.width = abilityScores.skillScore + "%";
+                document.getElementById('speedProgress').style.width = abilityScores.speedScore + "%";
+                
+                // 更新历史记录表格
+                const historyBody = document.getElementById('historyBody');
+                historyBody.innerHTML = '';
+                
+                if (history.length === 0) {
+                    historyBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 30px;">暂无学习记录，开始游戏后这里会显示您的学习历史</td></tr>`;
+                } else {
+                    history.forEach(record => {
+                        const difficultyClass = {
+                            beginner: 'beginner-badge',
+                            intermediate: 'intermediate-badge',
+                            advanced: 'advanced-badge'
+                        }[record.difficulty] || 'beginner-badge';
+                        
+                        const difficultyText = {
+                            beginner: '入门',
+                            intermediate: '中级',
+                            advanced: '高级'
+                        }[record.difficulty] || '入门';
+                        
+                        const domainText = {
+                            mechanics: '力学',
+                            thermodynamics: '热力学',
+                            electromagnetism: '电磁学',
+                            new_energy: '新能源'
+                        }[record.domain] || record.domain;
+                        
+                        let rateClass = 'rate-low';
+                        if (record.correctRate >= 0.8) rateClass = 'rate-high';
+                        else if (record.correctRate >= 0.6) rateClass = 'rate-medium';
+                        
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${record.date}</td>
+                            <td>${domainText}</td>
+                            <td><span class="difficulty-badge ${difficultyClass}">${difficultyText}</span></td>
+                            <td><span class="success-rate ${rateClass}">${Math.round(record.correctRate * 100)}%</span></td>
+                            <td>${record.timeUsed}秒</td>
+                            <td>${record.score}</td>
+                        `;
+                        historyBody.appendChild(row);
+                    });
+                }
+                
+                // 更新学习建议
+                const recommendationsDiv = document.getElementById('recommendations');
+                recommendationsDiv.innerHTML = '';
+                
+                if (recommendations.length === 0) {
+                    recommendationsDiv.innerHTML = '<p>继续游戏，系统会根据您的表现生成个性化学习建议。</p>';
+                } else {
+                    recommendations.forEach(rec => {
+                        const item = document.createElement('div');
+                        item.className = 'recommendation-item';
+                        item.textContent = rec;
+                        recommendationsDiv.appendChild(item);
+                    });
+                }
+                
+                // 更新图表
+                this.updateCharts(domainMastery, difficultyPerformance);
+            }
+            
+            updateCharts(domainMastery, difficultyPerformance) {
+                // 领域掌握情况图表
+                const domainCanvas = document.getElementById('domainCanvas');
+                const domainCtx = domainCanvas.getContext('2d');
+                
+                // 清除之前的图表
+                domainCtx.clearRect(0, 0, domainCanvas.width, domainCanvas.height);
+                
+                // 绘制领域掌握情况柱状图
+                const domains = ['力学', '热力学', '电磁学', '新能源'];
+                const domainValues = [
+                    domainMastery.mechanics || 0,
+                    domainMastery.thermodynamics || 0,
+                    domainMastery.electromagnetism || 0,
+                    domainMastery.new_energy || 0
+                ];
+                
+                const barWidth = 40;
+                const spacing = 20;
+                const startX = 40;
+                const maxHeight = 150;
+                
+                // 绘制坐标轴
+                domainCtx.beginPath();
+                domainCtx.moveTo(30, 10);
+                domainCtx.lineTo(30, 180);
+                domainCtx.lineTo(280, 180);
+                domainCtx.strokeStyle = '#4cc9f0';
+                domainCtx.lineWidth = 2;
+                domainCtx.stroke();
+                
+                // 绘制刻度
+                for (let i = 0; i <= 5; i++) {
+                    const y = 180 - (i * 30);
+                    domainCtx.beginPath();
+                    domainCtx.moveTo(25, y);
+                    domainCtx.lineTo(30, y);
+                    domainCtx.strokeStyle = '#4cc9f0';
+                    domainCtx.lineWidth = 1;
+                    domainCtx.stroke();
+                    
+                    domainCtx.fillStyle = '#90e0ef';
+                    domainCtx.font = '10px Arial';
+                    domainCtx.fillText(i * 20, 10, y + 3);
+                }
+                
+                // 绘制柱状图
+                domainValues.forEach((value, index) => {
+                    const x = startX + index * (barWidth + spacing);
+                    const height = (value / 100) * maxHeight;
+                    
+                    // 绘制柱状
+                    domainCtx.fillStyle = `rgba(76, 201, 240, ${0.3 + (value / 100) * 0.7})`;
+                    domainCtx.fillRect(x, 180 - height, barWidth, height);
+                    
+                    // 绘制数值
+                    domainCtx.fillStyle = '#ffffff';
+                    domainCtx.font = '12px Arial';
+                    domainCtx.textAlign = 'center';
+                    domainCtx.fillText(value + '%', x + barWidth / 2, 170 - height);
+                    
+                    // 绘制标签
+                    domainCtx.fillStyle = '#ff9e00';
+                    domainCtx.font = '11px Arial';
+                    domainCtx.fillText(domains[index], x + barWidth / 2, 195);
+                });
+                
+                // 难度表现图表
+                const difficultyCanvas = document.getElementById('difficultyCanvas');
+                const difficultyCtx = difficultyCanvas.getContext('2d');
+                
+                // 清除之前的图表
+                difficultyCtx.clearRect(0, 0, difficultyCanvas.width, difficultyCanvas.height);
+                
+                // 绘制难度表现雷达图
+                const difficulties = ['入门', '中级', '高级'];
+                const difficultyValues = [
+                    difficultyPerformance.beginner || 0,
+                    difficultyPerformance.intermediate || 0,
+                    difficultyPerformance.advanced || 0
+                ];
+                
+                const centerX = 150;
+                const centerY = 100;
+                const radius = 70;
+                const angleStep = (Math.PI * 2) / 3;
+                
+                // 绘制网格
+                for (let i = 1; i <= 5; i++) {
+                    const gridRadius = (radius * i) / 5;
+                    difficultyCtx.beginPath();
+                    for (let j = 0; j < 3; j++) {
+                        const angle = j * angleStep - Math.PI / 2;
+                        const x = centerX + gridRadius * Math.cos(angle);
+                        const y = centerY + gridRadius * Math.sin(angle);
+                        
+                        if (j === 0) {
+                            difficultyCtx.moveTo(x, y);
+                        } else {
+                            difficultyCtx.lineTo(x, y);
+                        }
+                    }
+                    difficultyCtx.closePath();
+                    difficultyCtx.strokeStyle = 'rgba(76, 201, 240, 0.2)';
+                    difficultyCtx.lineWidth = 1;
+                    difficultyCtx.stroke();
+                }
+                
+                // 绘制轴线
+                for (let i = 0; i < 3; i++) {
+                    const angle = i * angleStep - Math.PI / 2;
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+                    
+                    difficultyCtx.beginPath();
+                    difficultyCtx.moveTo(centerX, centerY);
+                    difficultyCtx.lineTo(x, y);
+                    difficultyCtx.strokeStyle = 'rgba(76, 201, 240, 0.5)';
+                    difficultyCtx.lineWidth = 1;
+                    difficultyCtx.stroke();
+                    
+                    // 绘制标签
+                    const labelX = centerX + (radius + 20) * Math.cos(angle);
+                    const labelY = centerY + (radius + 20) * Math.sin(angle);
+                    
+                    difficultyCtx.fillStyle = '#ff9e00';
+                    difficultyCtx.font = '12px Arial';
+                    difficultyCtx.textAlign = 'center';
+                    difficultyCtx.textBaseline = 'middle';
+                    difficultyCtx.fillText(difficulties[i], labelX, labelY);
+                }
+                
+                // 绘制数据区域
+                difficultyCtx.beginPath();
+                for (let i = 0; i < 3; i++) {
+                    const value = difficultyValues[i];
+                    const angle = i * angleStep - Math.PI / 2;
+                    const pointRadius = (value / 100) * radius;
+                    const x = centerX + pointRadius * Math.cos(angle);
+                    const y = centerY + pointRadius * Math.sin(angle);
+                    
+                    if (i === 0) {
+                        difficultyCtx.moveTo(x, y);
+                    } else {
+                        difficultyCtx.lineTo(x, y);
+                    }
+                }
+                difficultyCtx.closePath();
+                difficultyCtx.fillStyle = 'rgba(67, 97, 238, 0.3)';
+                difficultyCtx.fill();
+                difficultyCtx.strokeStyle = '#4361ee';
+                difficultyCtx.lineWidth = 2;
+                difficultyCtx.stroke();
+                
+                // 绘制数据点
+                for (let i = 0; i < 3; i++) {
+                    const value = difficultyValues[i];
+                    const angle = i * angleStep - Math.PI / 2;
+                    const pointRadius = (value / 100) * radius;
+                    const x = centerX + pointRadius * Math.cos(angle);
+                    const y = centerY + pointRadius * Math.sin(angle);
+                    
+                    difficultyCtx.beginPath();
+                    difficultyCtx.arc(x, y, 4, 0, Math.PI * 2);
+                    difficultyCtx.fillStyle = '#4361ee';
+                    difficultyCtx.fill();
+                    difficultyCtx.strokeStyle = '#ffffff';
+                    difficultyCtx.lineWidth = 1;
+                    difficultyCtx.stroke();
+                    
+                    // 绘制数值
+                    difficultyCtx.fillStyle = '#ffffff';
+                    difficultyCtx.font = '10px Arial';
+                    difficultyCtx.textAlign = 'center';
+                    difficultyCtx.fillText(value + '%', x, y - 10);
+                }
+            }
+            
+            exportReport() {
+                const overallStats = this.learningDataManager.getOverallStats();
+                const abilityScores = this.learningDataManager.getAbilityScores();
+                const levelStats = this.learningDataManager.getAllLevelStats();
+                const completionStats = this.learningDataManager.getLevelCompletionStats();
+                const recommendations = this.learningDataManager.getRecommendations();
+                
+                const report = `
+量纲匹配学习完整评估报告
+==================================================
+报告生成时间: ${new Date().toLocaleString('zh-CN')}
+报告版本: 2.0 (完整关卡追踪版)
+
+一、学习概况总览
+--------------------------------------------------
+总学习时间: ${overallStats.totalTime}分钟
+游戏次数: ${overallStats.totalGames}次
+平均正确率: ${overallStats.avgAccuracy}%
+学习完成度: ${overallStats.completionRate}%
+
+二、能力评估结果
+--------------------------------------------------
+概念理解能力: ${abilityScores.conceptScore}%
+匹配熟练程度: ${abilityScores.skillScore}%
+反应速度评估: ${abilityScores.speedScore}%
+
+三、关卡学习成果总览
+--------------------------------------------------
+总关卡数: ${completionStats.totalLevels}个
+已掌握关卡: ${completionStats.mastered}个 (${completionStats.masteredPercent}%)
+进行中关卡: ${completionStats.inProgress}个 (${completionStats.inProgressPercent}%)
+未开始关卡: ${completionStats.notStarted}个 (${completionStats.notStartedPercent}%)
+
+四、各关卡详细学习成果
+--------------------------------------------------
+${levelStats.map(level => `
+${level.domainName} - ${level.difficultyName}:
+  游戏次数: ${level.games}次
+  平均正确率: ${level.avgCorrectRate}%
+  最佳成绩: ${level.bestScore}分
+  平均用时: ${level.games > 0 ? level.avgTime + '秒' : '未开始'}
+  掌握程度: ${level.masteryLevel === 3 ? '掌握' : level.masteryLevel === 2 ? '熟练' : level.masteryLevel === 1 ? '了解' : '未开始'}
+  进步幅度: ${level.improvement > 0 ? '+' + level.improvement + '%' : level.improvement + '%'}
+`).join('')}
+
+五、个性化学习建议
+--------------------------------------------------
+${recommendations.map((rec, index) => `${index + 1}. ${rec}`).join('\n')}
+
+六、后续学习计划建议
+--------------------------------------------------
+1. 优先完成未开始的关卡，建立全面的量纲知识体系
+2. 针对掌握程度较低的关卡进行专项练习
+3. 尝试挑战更高难度的关卡，提升综合能力
+4. 结合理论指导，深入理解量纲分析原理
+5. 将所学应用于实际问题，检验学习效果
+
+学习寄语：
+量纲分析是工程科学的基石，掌握这一工具将为您未来的学习和工作
+打下坚实基础。持续练习，您将看到明显的进步！
+
+==================================================
+                `;
+                
+                // 创建下载链接
+                const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `量纲学习完整报告_${new Date().toISOString().slice(0,10)}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                this.showMessage("完整学习报告已导出为文本文件", "#38b000");
+            }
+            
+            practiceWeakness() {
+                const levelStats = this.learningDataManager.getAllLevelStats();
+                
+                // 找到最薄弱的关卡（有游戏记录但正确率最低）
+                const weakLevels = levelStats.filter(level => level.games > 0 && level.avgCorrectRate < 70);
+                
+                if (weakLevels.length === 0) {
+                    // 如果没有薄弱关卡，选择未开始的关卡
+                    const notStartedLevels = levelStats.filter(level => level.games === 0);
+                    if (notStartedLevels.length > 0) {
+                        const randomLevel = notStartedLevels[Math.floor(Math.random() * notStartedLevels.length)];
+                        this.setLevelForPractice(randomLevel.domain, randomLevel.difficulty);
+                    } else {
+                        this.showMessage("恭喜！您已经掌握了所有关卡，可以尝试挑战更高难度。", "#38b000");
+                    }
+                    return;
+                }
+                
+                // 选择正确率最低的关卡
+                weakLevels.sort((a, b) => a.avgCorrectRate - b.avgCorrectRate);
+                const weakestLevel = weakLevels[0];
+                
+                this.setLevelForPractice(weakestLevel.domain, weakestLevel.difficulty);
+            }
+            
+            setLevelForPractice(domain, difficulty) {
+                // 设置游戏参数
+                document.querySelectorAll('[data-domain]').forEach(opt => {
+                    opt.classList.remove('selected');
+                    if (opt.dataset.domain === domain) {
+                        opt.classList.add('selected');
+                    }
+                });
+                
+                document.querySelectorAll('[data-difficulty]').forEach(opt => {
+                    opt.classList.remove('selected');
+                    if (opt.dataset.difficulty === difficulty) {
+                        opt.classList.add('selected');
+                    }
+                });
+                
+                this.currentGame.domain = domain;
+                this.currentGame.difficulty = difficulty;
+                
+                // 切换到游戏界面
+                this.showSection('game');
+                this.updateDisplay();
+                
+                const domainName = physicalQuantitiesDB[domain].name;
+                const difficultyName = {
+                    beginner: "入门",
+                    intermediate: "中级",
+                    advanced: "高级"
+                }[difficulty];
+                
+                this.showMessage(`系统已为您切换到${domainName}-${difficultyName}关卡，开始练习吧！`, "#4cc9f0");
+            }
+            
+            resetLearningData() {
+                if (this.learningDataManager.resetData()) {
+                    this.updateProgressSection();
+                    this.updateReportSection();
+                    this.showMessage("所有学习数据已重置", "#38b000");
+                }
+            }
+            
+            showMessage(message, color = "#e6e6e6") {
+                const messageElement = document.getElementById('matchMessage');
+                messageElement.innerHTML = message;
+                messageElement.style.color = color;
+            }
+        }
+
+        // 音频管理器
+        class AudioManager {
+            constructor() {
+                this.audioContext = null;
+                this.gainNode = null;
+                this.isTick = true;
+                this.pendulumInterval = null;
+                this.volume = 0.5;
+                
+                this.initAudio();
+            }
+            
+            initAudio() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.gainNode = this.audioContext.createGain();
+                    this.gainNode.connect(this.audioContext.destination);
+                    this.gainNode.gain.value = this.volume;
+                } catch (error) {
+                    console.warn("Web Audio API 不支持，音效功能受限");
+                }
+            }
+            
+            playTick() {
+                if (!this.audioContext) return;
+                
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.gainNode);
+                
+                oscillator.frequency.value = this.isTick ? 440 : 330;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+                
+                oscillator.start();
+                oscillator.stop(this.audioContext.currentTime + 0.3);
+                
+                this.isTick = !this.isTick;
+            }
+            
+            startPendulum() {
+                if (this.pendulumInterval) clearInterval(this.pendulumInterval);
+                
+                this.pendulumInterval = setInterval(() => {
+                    this.playTick();
+                }, 1000);
+            }
+            
+            stopPendulum() {
+                if (this.pendulumInterval) {
+                    clearInterval(this.pendulumInterval);
+                    this.pendulumInterval = null;
+                }
+            }
+            
+            playSuccess() {
+                if (!this.audioContext) return;
+                
+                const now = this.audioContext.currentTime;
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.gainNode);
+                
+                oscillator.frequency.setValueAtTime(523.25, now); // C5
+                oscillator.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                oscillator.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                
+                oscillator.start();
+                oscillator.stop(now + 0.5);
+            }
+            
+            playError() {
+                if (!this.audioContext) return;
+                
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.gainNode);
+                
+                oscillator.frequency.value = 220;
+                oscillator.type = 'sawtooth';
+                
+                gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+                
+                oscillator.start();
+                oscillator.stop(this.audioContext.currentTime + 0.5);
+            }
+            
+            setVolume(volume) {
+                this.volume = volume / 100;
+                if (this.gainNode) {
+                    this.gainNode.gain.value = this.volume;
+                }
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化学习数据管理器
+            const learningDataManager = new EnhancedLearningDataManager();
+            
+            // 初始化游戏管理器
+            const gameManager = new EnhancedGameManager(learningDataManager);
+            
+            // 初始显示
+            gameManager.updateDisplay();
+            
+            // 添加CSS动画类
+            const style = document.createElement('style');
+            style.textContent = `
+                .success-animation {
+                    animation: success-pulse 0.5s;
+                }
+                
+                @keyframes success-pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.1); }
+                    100% { transform: scale(1); }
+                }
+                
+                .incorrect {
+                    border-color: #ff595e !important;
+                    box-shadow: 0 0 20px rgba(255, 89, 94, 0.5) !important;
+                    animation: shake 0.5s;
+                }
+                
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    25% { transform: translateX(-5px); }
+                    75% { transform: translateX(5px); }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+
+    <!-- 底部信息栏 -->
+    <div style="
+        text-align: center;
+        padding: 15px 25px;
+        margin-top: 30px;
+        color: #90e0ef;
+        font-size: 0.9rem;
+        border-top: 1px solid rgba(100, 150, 255, 0.3);
+        background: rgba(15, 25, 45, 0.5);
+        border-radius: 0 0 15px 15px;
+    ">
+        <p>量纲匹配大师 &copy; 2023 | 完整关卡追踪学习系统 | 版本 2.0 | 
+            <span style="color: #4cc9f0;">物理教育创新工具</span> | 
+            邮箱: xgyanger@qq.com
+        </p>
+        <p style="margin-top: 8px; font-size: 0.85rem; color: #a3d9ff;">
+            本系统旨在帮助学习者掌握物理量的量纲分析方法，提升工程科学素养
+        </p>
+        <div style="margin-top: 10px; display: flex; justify-content: center; gap: 15px;">
+            <span style="color: #ff9e00;">版权©2025AIknow. 保留所有权利  Copyright ©2025 AIknow. All rights reserved.</span>
+        </div>
+    </div>
+
+
+</body>
+</html>
