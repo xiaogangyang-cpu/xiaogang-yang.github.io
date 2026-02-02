@@ -1,0 +1,2420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>虚拟仿真实验矩阵 - 工程传递现象教学平台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-blue: #0a2463;
+            --secondary-blue: #3e92cc;
+            --accent-teal: #1eb9c5;
+            --light-bg: #f8f9fa;
+            --dark-bg: #121f3d;
+            --card-bg: #ffffff;
+            --text-dark: #333333;
+            --text-light: #f8f9fa;
+            --border-color: #e1e5eb;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-hover: 0 8px 20px rgba(0, 0, 0, 0.15);
+            --level1-color: #5eead4;
+            --level2-color: #38bdf8;
+            --level3-color: #a78bfa;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --info-color: #3b82f6;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            color: var(--text-dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        /* 左侧内容区域 */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            max-width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .header {
+            margin-bottom: 10px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            position: relative;
+            min-height: 120px;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 30px;
+        }
+        
+        .header-text {
+flex: 0 0 75%; /* 不增长，不收缩，基础宽度75% */
+            min-width: 0;
+        }
+        
+        .header h1 {
+            color: var(--primary-blue);
+            font-size: 2.4rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header h1 i {
+            color: var(--accent-teal);
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+            max-width: 1000px;
+        }
+        
+        /* 右上角紧凑统计模块 */
+        .stats-compact {
+            background: white;
+            border-radius: 12px;
+            padding: 15px 20px;
+            box-shadow: var(--shadow);
+flex: 0 0 25%; /* 右侧占25% */            
+min-width: 180px;
+            max-width: 50%;
+            margin-top: 5px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        
+        .stat-compact-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .stat-compact-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-blue);
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+        
+        .stat-compact-label {
+            font-size: 0.75rem;
+            color: #666;
+            line-height: 1.2;
+        }
+        
+        .stat-compact-change {
+            font-size: 0.7rem;
+            margin-top: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+        }
+        
+        .stat-compact-change.positive {
+            color: var(--success-color);
+        }
+        
+        .stat-compact-change.negative {
+            color: #f44336;
+        }
+        
+        /* 难度等级指示器 */
+        .difficulty-indicator {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+        }
+        
+        .difficulty-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .difficulty-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+        
+        .level1-color { background-color: var(--level1-color); }
+        .level2-color { background-color: var(--level2-color); }
+        .level3-color { background-color: var(--level3-color); }
+        
+        /* 筛选器样式 */
+        .filters {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .filter-group h3 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: var(--primary-blue);
+        }
+        
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            background-color: #f0f4f8;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+        
+        .filter-btn:hover {
+            background-color: #e1e8f0;
+        }
+        
+        .filter-btn.active {
+            background-color: var(--secondary-blue);
+            color: white;
+            border-color: var(--secondary-blue);
+        }
+        
+        /* 实验卡片网格 */
+        .experiments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .experiment-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+        }
+        
+        .experiment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .level-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+            z-index: 2;
+        }
+        
+        .level1-badge { background-color: var(--level1-color); }
+        .level2-badge { background-color: var(--level2-color); }
+        .level3-badge { background-color: var(--level3-color); }
+        
+        .card-header {
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            color: white;
+        }
+        
+        .card-header h2 {
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-content {
+            padding: 20px;
+            flex-grow: 1;
+        }
+        
+        .card-section {
+            margin-bottom: 18px;
+        }
+        
+        .card-section h3 {
+            font-size: 1rem;
+            color: var(--primary-blue);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .card-section p {
+            font-size: 0.95rem;
+            color: #555;
+            line-height: 1.5;
+        }
+        
+        .mechanism-tags, .objective-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .tag {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .mechanism-tags .tag {
+            background-color: #e8f4ff;
+            color: var(--secondary-blue);
+            border: 1px solid #b8d4f0;
+        }
+        
+        .objective-tags .tag {
+            background-color: #f0f7ff;
+            color: #2c6baf;
+            border: 1px solid #c2d8f0;
+        }
+        
+        .card-footer {
+            padding: 0 20px 20px;
+        }
+        
+        .experiment-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(to right, var(--accent-teal), #1ea5c5);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .experiment-btn:hover {
+            background: linear-gradient(to right, #1ca5b5, #1e8fa5);
+            box-shadow: 0 4px 12px rgba(30, 185, 197, 0.3);
+        }
+        
+        .experiment-btn i {
+            margin-right: 8px;
+        }
+        
+        /* 学习路径生成模块（底部） */
+        .path-generator {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(59, 130, 246, 0.08));
+            border: 2px dashed var(--success-color);
+            border-radius: 18px;
+            padding: 10px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .path-generator h3 {
+            color: var(--success-color);
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .path-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .path-btn {
+            padding: 12px 24px;
+            background: white;
+            border: 2px solid var(--success-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--success-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .path-btn:hover {
+            background: var(--success-color);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .path-stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+
+        .path-stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            min-width: 150px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-blue);
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        /* 学习路径画像面板 */
+        .profile-panel {
+            width: 0;
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100vh;
+            background-color: white;
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            padding: 0;
+        }
+        
+        .profile-panel.open {
+            width: 80%;
+            min-width: 600px;
+        }
+        
+        .profile-header {
+            padding: 20px;
+            background-color: var(--dark-bg);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .profile-header h2 {
+            font-size: 1.6rem;
+        }
+        
+        .profile-close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.8rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        
+        .profile-close-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .profile-content {
+            padding: 30px;
+            height: calc(100vh - 70px);
+            overflow-y: auto;
+        }
+        
+        .profile-section {
+            margin-bottom: 40px;
+        }
+        
+        .profile-section h3 {
+            font-size: 1.3rem;
+            color: var(--primary-blue);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .learning-path-map {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .path-visualization {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .path-stage {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .stage-marker {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e1e5eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #666;
+            flex-shrink: 0;
+        }
+        
+        .stage-marker.completed {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .stage-marker.in-progress {
+            background: var(--warning-color);
+            color: white;
+        }
+        
+        .stage-content {
+            flex-grow: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+        }
+        
+        .stage-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--primary-blue);
+        }
+        
+        .stage-experiments {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .stage-experiment {
+            padding: 6px 12px;
+            background: #f0f7ff;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .stage-experiment.completed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        /* 底部信息 */
+        .footer {
+            text-align: center;
+            padding: 25px;
+            color: #666;
+            font-size: 0.95rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: 20px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .experiments-grid {
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .stats-compact {
+                min-width: 100%;
+                max-width: 100%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px 15px;
+            }
+            
+            .experiments-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .profile-panel.open {
+                width: 100%;
+                min-width: 100%;
+            }
+            
+            .filters {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .path-actions {
+                flex-direction: column;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+            
+            .stats-compact {
+                padding: 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .stat-compact-item {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                text-align: left;
+                padding: 8px 0;
+                border-bottom: 1px solid var(--border-color);
+            }
+            
+            .stat-compact-item:last-child {
+                border-bottom: none;
+            }
+            
+            .stat-compact-value {
+                font-size: 1.1rem;
+                margin-bottom: 0;
+            }
+            
+            .stat-compact-label {
+                font-size: 0.8rem;
+            }
+        }
+        
+        /* 空状态 */
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            grid-column: 1 / -1;
+            color: #777;
+        }
+        
+        .no-results i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+        
+        /* 实验图标 */
+        .experiment-icon {
+            font-size: 1.3rem;
+        }
+        
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .panel-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: calc(100vh - 70px);
+            font-size: 1.2rem;
+            color: #666;
+        }
+        
+        .panel-loading .loading {
+            border: 3px solid rgba(10, 36, 99, 0.2);
+            border-top-color: var(--primary-blue);
+            margin-right: 15px;
+        }
+        
+        /* 右侧实验面板 */
+        .experiment-panel {
+            width: 0;
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100vh;
+            background-color: white;
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+        
+        .experiment-panel.open {
+            width: 75%;
+            min-width: 500px;
+        }
+        
+        .panel-header {
+            padding: 20px;
+            background-color: var(--dark-bg);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-header h2 {
+            font-size: 1.6rem;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.8rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        
+        .close-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .experiment-frame {
+            width: 100%;
+            height: calc(100vh - 70px);
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <header class="header">
+                <div class="header-content">
+                    <div class="header-text">
+                        <h1><i class="fas fa-flask"></i> 思维阶梯工坊：从直觉到设计的工程素养之旅</h1>
+                        <p>材料工程基础传递现象上机平台 - 基于思维地图的三级进阶学习路径，通过轻量化html在线/离线虚拟仿真实验逐级深入理解工程传递原理与物理机制。</p>
+                    </div>
+                    
+                    <!-- 右上角紧凑统计模块 -->
+                    <div class="stats-compact">
+                        <div class="stats-grid">
+                            <div class="stat-compact-item">
+                                <div class="stat-compact-value" id="page-visits">1.2k</div>
+                                <div class="stat-compact-label">访问量</div>
+                                <div class="stat-compact-change positive">
+                                    <i class="fas fa-arrow-up"></i> 12%
+                                </div>
+                            </div>
+                            
+                            <div class="stat-compact-item">
+                                <div class="stat-compact-value" id="active-users">86</div>
+                                <div class="stat-compact-label">活动用户</div>
+                                <div class="stat-compact-change positive">
+                                    <i class="fas fa-arrow-up"></i> 8%
+                                </div>
+                            </div>
+                            
+                            <div class="stat-compact-item">
+                                <div class="stat-compact-value" id="total-experiments-top">28</div>
+                                <div class="stat-compact-label">总实验</div>
+                                <div class="stat-compact-change">
+                                    <i class="fas fa-circle"></i> 稳定
+                                </div>
+                            </div>
+                            
+                            <div class="stat-compact-item">
+                                <div class="stat-compact-value" id="avg-completion">42%</div>
+                                <div class="stat-compact-label">**用户平均完成率</div>
+                                <div class="stat-compact-change positive">
+                                    <i class="fas fa-arrow-up"></i> 5%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- 难度等级指示器 -->
+            <div class="difficulty-indicator">
+                <div class="difficulty-item">
+                    <div class="difficulty-color level1-color"></div>
+                    <span>Lv.1 直觉与识别（初级）</span>
+                </div>
+                <div class="difficulty-item">
+                    <div class="difficulty-color level2-color"></div>
+                    <span>Lv.2 判断与调控（中级）</span>
+                </div>
+                <div class="difficulty-item">
+                    <div class="difficulty-color level3-color"></div>
+                    <span>Lv.3 系统与设计（高级）</span>
+                </div>
+            </div>
+            
+            <!-- 筛选器 -->
+            <div class="filters">
+                <div class="filter-group">
+                    <h3><i class="fas fa-industry"></i> 工程对象</h3>
+                    <div class="filter-buttons" id="engineering-filter">
+                        <button class="filter-btn active" data-filter="all">全部</button>
+                        <button class="filter-btn" data-filter="dimension">量纲分析</button>
+                        <button class="filter-btn" data-filter="fluid">流体力学</button>
+                        <button class="filter-btn" data-filter="heat">传热基础</button>
+                        <button class="filter-btn" data-filter="mass">传质基础</button>
+                        <button class="filter-btn" data-filter="drying">干燥应用</button>
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <h3><i class="fas fa-atom"></i> 物理机制</h3>
+                    <div class="filter-buttons" id="physics-filter">
+                        <button class="filter-btn active" data-filter="all">全部</button>
+                        <button class="filter-btn" data-filter="fluid">流体</button>
+                        <button class="filter-btn" data-filter="heat">传热</button>
+                        <button class="filter-btn" data-filter="mass">传质</button>
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <h3><i class="fas fa-chart-line"></i> 难度等级</h3>
+                    <div class="filter-buttons" id="difficulty-filter">
+                        <button class="filter-btn active" data-filter="all">全部</button>
+                        <button class="filter-btn" data-filter="level1">Lv.1 直觉与识别</button>
+                        <button class="filter-btn" data-filter="level2">Lv.2 判断与调控</button>
+                        <button class="filter-btn" data-filter="level3">Lv.3 系统与设计</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 实验卡片网格 -->
+            <div class="experiments-grid" id="experiments-container">
+                <!-- 实验卡片将通过JavaScript动态生成 -->
+            </div>
+            
+            <!-- 学习路径生成模块（底部） -->
+            <div class="path-generator">
+                <h3><i class="fas fa-map-marked-alt"></i> 学习路径与画像分析</h3>
+                <div class="path-actions">
+                    <button class="path-btn" id="generate-path-btn">
+                        <i class="fas fa-project-diagram"></i> 生成学习路径地图
+                    </button>
+                    <button class="path-btn" id="view-profile-btn">
+                        <i class="fas fa-user-graduate"></i> 查看学习画像
+                    </button>
+                    <button class="path-btn" id="export-report-btn">
+                        <i class="fas fa-file-export"></i> 导出学习报告
+                    </button>
+                    <button class="path-btn" id="get-certificate-btn">
+                        <i class="fas fa-award"></i> 获取学习证书
+                    </button>
+                    <button class="path-btn" id="self-learning-profile-btn">
+                        <i class="fas fa-user-edit"></i> 自主学习画像
+                    </button>
+                </div>
+                <div class="path-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="completed-count">0</div> 
+                        <div class="stat-label">已完成实验</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-experiments">28</div>
+                        <div class="stat-label">总实验数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="completion-rate">0%</div>
+                        <div class="stat-label">完成率</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="learning-level">Lv.0</div>
+                        <div class="stat-label">当前等级</div>
+                    </div>
+                </div>
+            </div>
+            
+
+        </div>
+        
+        <!-- 右侧实验面板 -->
+        <div class="experiment-panel" id="experiment-panel">
+            <div class="panel-header">
+                <h2 id="panel-title">实验加载中...</h2>
+                <button class="close-btn" id="close-panel">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="panel-loading" id="panel-loading">
+                <div class="loading"></div>
+                <span>加载实验仿真环境...</span>
+            </div>
+            <iframe class="experiment-frame" id="experiment-frame" style="display: none;"></iframe>
+        </div>
+        
+        <!-- 学习路径画像面板 -->
+        <div class="profile-panel" id="profile-panel">
+            <div class="profile-header">
+                <h2 id="profile-title">我的学习画像</h2>
+                <button class="profile-close-btn" id="close-profile-panel">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="profile-content" id="profile-content">
+                <!-- 学习画像内容将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 实验数据 - 基于思维地图文件中的所有实验项目
+        const experiments = [
+            // 量纲分析 Lv.1
+            {
+                id: 1,
+                name: "量纲分析连连看",
+                icon: "fas fa-puzzle-piece",
+                engineering: "dimension",
+                physics: [],
+                difficulty: "level1",
+                application: "通过连连看游戏形式，建立对工程传递现象中基本量纲的直观认识与对应关系理解。",
+                mechanism: "量纲分析、基本量纲对应、量纲一致性",
+                objectives: ["识别基本量纲", "建立量纲直觉", "掌握量纲对应关系"],
+                simulationUrl: "01-01-dimension-match.html",
+                level: "Lv.1"
+            },
+            {
+                id: 2,
+                name: "量纲一致性闯关",
+                icon: "fas fa-flag-checkered",
+                engineering: "dimension",
+                physics: [],
+                difficulty: "level1",
+                application: "通过闯关游戏形式，检验和巩固量纲一致性原则，培养工程问题分析中的量纲检查习惯。",
+                mechanism: "量纲一致性、方程检验、无量纲数识别",
+                objectives: ["应用量纲一致性原则", "检验方程量纲", "识别无量纲数"],
+                simulationUrl: "01-02-dimension- match.html",
+                level: "Lv.1"
+            },
+            // 量纲分析 Lv.2
+            {
+                id: 3,
+                name: "量纲一致性敲地鼠",
+                icon: "fas fa-hammer",
+                engineering: "dimension",
+                physics: [],
+                difficulty: "level2",
+                application: "通过交互式游戏，快速识别和判断工程方程中的量纲一致性问题，提升反应与判断能力。",
+                mechanism: "量纲一致性判断、快速反应训练",
+                objectives: ["提高量纲判断速度", "识别常见量纲错误", "巩固一致性原则"],
+                simulationUrl: "01-03-dimension-consistency.html",
+                level: "Lv.2"
+            },
+            {
+                id: 4,
+                name: "无量纲数判别训练",
+                icon: "fas fa-filter",
+                engineering: "dimension",
+                physics: [],
+                difficulty: "level2",
+                application: "通过分类训练，掌握常见无量纲数（如雷诺数、普朗特数等）的物理意义与判别方法。",
+                mechanism: "无量纲数识别、相似准则、特征数判别",
+                objectives: ["识别常见无量纲数", "理解无量纲数物理意义", "掌握相似准则"],
+                simulationUrl: "01-04-dimension-criteria.html",
+                level: "Lv.2"
+            },
+            // 量纲分析 Lv.3
+            {
+                id: 5,
+                name: "量纲相似动画模拟",
+                icon: "fas fa-expand-alt",
+                engineering: "dimension",
+                physics: [],
+                difficulty: "level3",
+                application: "通过动态模拟，展示量纲相似原理在不同尺度工程系统中的应用，理解尺度放大效应。",
+                mechanism: "量纲相似、尺度效应、模型与原型关系",
+                objectives: ["理解量纲相似原理", "分析尺度放大效应", "应用相似准则"],
+                simulationUrl: "01-05-dimension-similarity.html",
+                level: "Lv.3"
+            },
+            {
+                id: 6,
+                name: "工程估算与尺度放大",
+                icon: "fas fa-ruler-vertical",
+                engineering: "dimension",
+                physics: [],
+                difficulty: "level3",
+                application: "通过实际工程案例，应用量纲分析进行工程估算与系统尺度放大设计。",
+                mechanism: "工程估算、系统放大、相似设计",
+                objectives: ["进行工程参数估算", "设计系统放大方案", "应用相似准则"],
+                simulationUrl: "01-06-dimension-scaling.html",
+                level: "Lv.3"
+            },
+            // 流体力学 Lv.1
+            {
+                id: 7,
+                name: "雷诺数流态交互实验",
+                icon: "fas fa-tint",
+                engineering: "fluid",
+                physics: ["fluid"],
+                difficulty: "level1",
+                application: "通过交互式实验，观察不同雷诺数下流体流动状态的变化，建立流态与雷诺数的直观联系。",
+                mechanism: "雷诺数、层流与湍流、流态转换",
+                objectives: ["观察流态变化", "理解雷诺数意义", "识别层流与湍流"],
+                simulationUrl: "02-01-fluid-reynolds.html",
+                level: "Lv.1"
+            },
+            {
+                id: 8,
+                name: "伯努利效应与香蕉球",
+                icon: "fas fa-futbol",
+                engineering: "fluid",
+                physics: ["fluid"],
+                difficulty: "level1",
+                application: "通过足球运动中的香蕉球现象，直观展示伯努利效应在流体流动中的应用。",
+                mechanism: "伯努利方程、压力与速度关系、马格努斯效应",
+                objectives: ["理解伯努利效应", "分析压力分布", "解释香蕉球现象"],
+                simulationUrl: "02-02-fluid-bernoulli.html",
+                level: "Lv.1"
+            },
+            // 流体力学 Lv.2
+            {
+                id: 9,
+                name: "牛顿粘性定律挑战",
+                icon: "fas fa-weight-hanging",
+                engineering: "fluid",
+                physics: ["fluid"],
+                difficulty: "level2",
+                application: "通过交互挑战，掌握牛顿粘性定律的应用，分析剪切力与速度梯度的关系。",
+                mechanism: "牛顿粘性定律、剪切应力、速度梯度",
+                objectives: ["应用牛顿粘性定律", "计算剪切应力", "分析流体粘性"],
+                simulationUrl: "02-03-fluid-viscosity.html",
+                level: "Lv.2"
+            },
+            {
+                id: 10,
+                name: "变截面喷嘴与欧拉方程",
+                icon: "fas fa-hourglass-half",
+                engineering: "fluid",
+                physics: ["fluid"],
+                difficulty: "level2",
+                application: "通过变截面喷嘴流动分析，掌握欧拉方程在工程流体力学中的应用。",
+                mechanism: "欧拉方程、连续性方程、变截面流动",
+                objectives: ["应用欧拉方程", "分析变截面流动", "计算流动参数"],
+                simulationUrl: "02-04-fluid-euler-nozzle.html",
+                level: "Lv.2"
+            },
+            // 流体力学 Lv.3
+            {
+                id: 11,
+                name: "微流控层流控制",
+                icon: "fas fa-shoe-prints",
+                engineering: "fluid",
+                physics: ["fluid"],
+                difficulty: "level3",
+                application: "设计微流控芯片中的层流控制系统，实现精确的流体操控与混合。",
+                mechanism: "微尺度流动、层流控制、扩散混合",
+                objectives: ["设计微流控系统", "控制层流流动", "优化混合效率"],
+                simulationUrl: "02-05-fluid-microfluidic.html",
+                level: "Lv.3"
+            },
+            {
+                id: 12,
+                name: "微流控边界层控制",
+                icon: "fas fa-shoe-prints",
+                engineering: "fluid",
+                physics: ["fluid"],
+                difficulty: "level3",
+                application: "分析微流控通道中的边界层效应，设计边界层控制策略，优化传质效率。",
+                mechanism: "边界层理论、壁面效应、传质增强",
+                objectives: ["分析边界层效应", "设计控制策略", "优化传质效率"],
+                simulationUrl: "02-06-fluid-microfluidic.html",
+                level: "Lv.3"
+            },
+            // 传热基础 Lv.1
+            {
+                id: 13,
+                name: "一维热传导模拟器",
+                icon: "fas fa-chart-line",
+                engineering: "heat",
+                physics: ["heat"],
+                difficulty: "level1",
+                application: "通过一维热传导模拟，直观展示温度分布随时间和空间的变化规律。",
+                mechanism: "傅里叶定律、热传导方程、温度梯度",
+                objectives: ["观察温度分布", "理解热传导过程", "分析导热规律"],
+                simulationUrl: "03-01-heat-conduction-1d.html",
+                level: "Lv.1"
+            },
+            {
+                id: 14,
+                name: "牛顿冷却定律模拟",
+                icon: "fas fa-temperature-low",
+                engineering: "heat",
+                physics: ["heat"],
+                difficulty: "level1",
+                application: "通过物体冷却过程模拟，直观展示牛顿冷却定律在实际传热现象中的应用。",
+                mechanism: "牛顿冷却定律、对流传热、温度衰减",
+                objectives: ["理解牛顿冷却定律", "分析冷却过程", "计算传热系数"],
+                simulationUrl: "03-02-heat-newton-cooling.html",
+                level: "Lv.1"
+            },
+            // 传热基础 Lv.2
+            {
+                id: 15,
+                name: "电池模块冷却布局",
+                icon: "fas fa-car-battery",
+                engineering: "heat",
+                physics: ["heat"],
+                difficulty: "level2",
+                application: "设计电池模块的冷却系统布局，分析不同冷却策略对电池热管理的影响。",
+                mechanism: "电池热管理、冷却系统设计、热阻分析",
+                objectives: ["设计冷却布局", "分析热管理效果", "优化冷却策略"],
+                simulationUrl: "03-03-heat-battery-pack1.html",
+                level: "Lv.2"
+            },
+            {
+                id: 16,
+                name: "导热-对流综合模拟",
+                icon: "fas fa-random",
+                engineering: "heat",
+                physics: ["heat"],
+                difficulty: "level2",
+                application: "模拟复杂传热系统中的导热与对流耦合过程，分析综合传热效应。",
+                mechanism: "导热-对流耦合、复合传热、综合热分析",
+                objectives: ["分析耦合传热", "计算综合传热系数", "优化传热设计"],
+                simulationUrl: "03-04-heat-conduction-convection.html",
+                level: "Lv.2"
+            },
+            // 传热基础 Lv.3
+            {
+                id: 17,
+                name: "电池芯多层热阻模拟",
+                icon: "fas fa-microchip",
+                engineering: "heat",
+                physics: ["heat"],
+                difficulty: "level3",
+                application: "分析电池芯多层结构的热阻分布，设计高效的热管理系统。",
+                mechanism: "多层热阻、接触热阻、热管理系统设计",
+                objectives: ["分析多层热阻", "设计热管理系统", "优化散热性能"],
+                simulationUrl: "03-05-heat-cells.html",
+                level: "Lv.3"
+            },
+            {
+                id: 18,
+                name: "光热熔盐加热调控",
+                icon: "fas fa-sun",
+                engineering: "heat",
+                physics: ["heat"],
+                difficulty: "level3",
+                application: "设计光热熔盐系统的加热与调控策略，实现太阳能的高效热能转换与存储。",
+                mechanism: "光热转换、熔盐传热、热能存储与调控",
+                objectives: ["设计光热系统", "调控加热过程", "优化热能存储"],
+                simulationUrl: "03-06-heat-molten-salt.html",
+                level: "Lv.3"
+            },
+            // 传质基础 Lv.1
+            {
+                id: 19,
+                name: "一维扩散传质演示",
+                icon: "fas fa-arrows-alt-h",
+                engineering: "mass",
+                physics: ["mass"],
+                difficulty: "level1",
+                application: "通过一维扩散过程模拟，直观展示浓度分布随时间和空间的变化规律。",
+                mechanism: "菲克定律、扩散方程、浓度梯度",
+                objectives: ["观察浓度分布", "理解扩散过程", "分析传质规律"],
+                simulationUrl: "04-01-mass-diffusion-1d.html",
+                level: "Lv.1"
+            },
+            {
+                id: 20,
+                name: "纳米沟槽传质模拟",
+                icon: "fas fa-vial",
+                engineering: "mass",
+                physics: ["mass"],
+                difficulty: "level1",
+                application: "模拟纳米尺度沟槽中的传质过程，分析微尺度效应对传质的影响。",
+                mechanism: "纳米尺度传质、表面效应、扩散增强",
+                objectives: ["分析微尺度传质", "理解表面效应", "观察扩散过程"],
+                simulationUrl: "04-02-channel-mass.html",
+                level: "Lv.1"
+            },
+            // 传质基础 Lv.2
+            {
+                id: 21,
+                name: "污染物扩散可视化",
+                icon: "fas fa-smog",
+                engineering: "mass",
+                physics: ["mass"],
+                difficulty: "level2",
+                application: "可视化污染物在大气或水体中的扩散过程，分析环境传质现象。",
+                mechanism: "对流传质、扩散-对流耦合、污染物迁移",
+                objectives: ["可视化传质过程", "分析污染物扩散", "评估环境影响"],
+                simulationUrl: "04-03-mass-pollution.html",
+                level: "Lv.2"
+            },
+            {
+                id: 22,
+                name: "一维扩散传质进阶",
+                icon: "fas fa-chart-bar",
+                engineering: "mass",
+                physics: ["mass"],
+                difficulty: "level2",
+                application: "深入分析一维扩散传质过程，掌握扩散系数的测定与计算方法。",
+                mechanism: "扩散系数测定、传质速率计算、扩散过程分析",
+                objectives: ["测定扩散系数", "计算传质速率", "分析扩散过程"],
+                simulationUrl: "04-04-mass-diffusion-1d.html",
+                level: "Lv.2"
+            },
+            // 传质基础 Lv.3
+            {
+                id: 23,
+                name: "谢伍德数对流传质",
+                icon: "fas fa-calculator",
+                engineering: "mass",
+                physics: ["mass"],
+                difficulty: "level3",
+                application: "应用谢伍德数分析对流传质过程，设计高效传质设备与系统。",
+                mechanism: "谢伍德数、对流传质系数、传质设备设计",
+                objectives: ["应用谢伍德数", "计算对流传质系数", "设计传质设备"],
+                simulationUrl: "04-05-mass-sherwood.html",
+                level: "Lv.3"
+            },
+            {
+                id: 24,
+                name: "孔槽清洗传质控制",
+                icon: "fas fa-spray-can",
+                engineering: "mass",
+                physics: ["mass"],
+                difficulty: "level3",
+                application: "设计孔槽清洗过程中的传质控制策略，优化清洗效率与效果。",
+                mechanism: "表面清洗传质、扩散控制、清洗过程优化",
+                objectives: ["设计清洗策略", "控制传质过程", "优化清洗效率"],
+                simulationUrl: "04-06-mass-cleaning.html",
+                level: "Lv.3"
+            },
+            // 干燥应用 Lv.1
+            {
+                id: 25,
+                name: "露珠挥发模拟器",
+                icon: "fas fa-cloud-rain",
+                engineering: "drying",
+                physics: ["heat", "mass"],
+                difficulty: "level1",
+                application: "模拟露珠挥发过程，直观展示露点、表面水分蒸发的基本传热传质现象。",
+                mechanism: "表面蒸发、饱和蒸汽压、露点、传热传质耦合",
+                objectives: ["观察蒸发过程", "理解潜热交换", "分析传热传质耦合"],
+                simulationUrl: "05-01-dew-point.html",
+                level: "Lv.1"
+            },
+            {
+                id: 26,
+                name: "毛细管传质保墒",
+                icon: "fas fa-seedling",
+                engineering: "drying",
+                physics: ["mass"],
+                difficulty: "level1",
+                application: "模拟土壤毛细管中的水分迁移与保持，分析农业保墒的传质原理。",
+                mechanism: "毛细管传质、水分迁移、土壤保墒",
+                objectives: ["分析毛细管传质", "理解水分迁移", "设计保墒策略"],
+                simulationUrl: "05-02-capillary-mass.html",
+                level: "Lv.1"
+            },
+            // 干燥应用 Lv.2
+            {
+                id: 27,
+                name: "热空气干燥仿真",
+                icon: "fas fa-wind",
+                engineering: "drying",
+                physics: ["heat", "mass"],
+                difficulty: "level2",
+                application: "模拟热空气干燥过程，分析温度、湿度、流速对干燥速率的影响。",
+                mechanism: "热质耦合、干燥动力学、参数影响分析",
+                objectives: ["分析干燥过程", "理解热质耦合", "优化干燥参数"],
+                simulationUrl: "05-03-drying-industrial.htm",
+                level: "Lv.2"
+            },
+            // 干燥应用 Lv.3
+            {
+                id: 28,
+                name: "新能源材料干燥进阶",
+                icon: "fas fa-charging-station",
+                engineering: "drying",
+                physics: ["heat", "mass"],
+                difficulty: "level3",
+                application: "设计新能源材料（如电极材料）的工业级干燥系统，优化干燥工艺与能效。",
+                mechanism: "工业干燥系统、工艺优化、能效分析",
+                objectives: ["设计干燥系统", "优化干燥工艺", "分析系统能效"],
+                simulationUrl: "05-04-dry-processes.html",
+                level: "Lv.3"
+            }
+        ];
+
+        // 学习记录和用户数据
+        let userLearningData = {
+            completedExperiments: [], // 完成的实验ID数组
+            startedExperiments: [],   // 已开始的实验ID数组
+            completionDates: {},      // 实验完成日期映射
+            learningTime: 0,          // 总学习时长（分钟）
+            lastActive: null,         // 最后活跃时间
+            learningPath: []          // 学习路径顺序
+        };
+
+        // 平台统计数据（改进版：模拟在线统计数据）
+        let platformStats = {
+            // 本地存储的访问量（仅当前设备）
+            localVisits: 0,
+            
+            // 模拟的在线统计数据（随机生成，模拟多用户）
+            simulatedVisits: 1248,
+            simulatedActiveUsers: 86,
+            simulatedAvgCompletion: 42,
+            
+            // 总实验数量固定
+            totalExperiments: experiments.length,
+            
+            lastUpdated: new Date().toISOString()
+        };
+
+        // 当前筛选状态
+        let currentFilters = {
+            engineering: 'all',
+            physics: 'all',
+            difficulty: 'all'
+        };
+
+        // DOM 元素
+        const experimentsContainer = document.getElementById('experiments-container');
+        const engineeringFilter = document.getElementById('engineering-filter');
+        const physicsFilter = document.getElementById('physics-filter');
+        const difficultyFilter = document.getElementById('difficulty-filter');
+        const experimentPanel = document.getElementById('experiment-panel');
+        const experimentFrame = document.getElementById('experiment-frame');
+        const closePanelBtn = document.getElementById('close-panel');
+        const panelTitle = document.getElementById('panel-title');
+        const panelLoading = document.getElementById('panel-loading');
+        
+        // 顶部统计元素
+        const pageVisitsEl = document.getElementById('page-visits');
+        const activeUsersEl = document.getElementById('active-users');
+        const totalExperimentsTopEl = document.getElementById('total-experiments-top');
+        const avgCompletionEl = document.getElementById('avg-completion');
+        
+        // 学习路径相关元素
+        const generatePathBtn = document.getElementById('generate-path-btn');
+        const viewProfileBtn = document.getElementById('view-profile-btn');
+        const exportReportBtn = document.getElementById('export-report-btn');
+        const getCertificateBtn = document.getElementById('get-certificate-btn');
+const selfLearningProfileBtn = document.getElementById('self-learning-profile-btn');
+        const profilePanel = document.getElementById('profile-panel');
+        const closeProfilePanelBtn = document.getElementById('close-profile-panel');
+        const profileContent = document.getElementById('profile-content');
+        const completedCountEl = document.getElementById('completed-count');
+        const totalExperimentsEl = document.getElementById('total-experiments');
+        const completionRateEl = document.getElementById('completion-rate');
+        const learningLevelEl = document.getElementById('learning-level');
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+            loadPlatformStats();
+            updateLearningStats();
+            updatePlatformStatsDisplay();
+            renderExperiments(experiments);
+            setupFilterButtons();
+            setupEventListeners();
+            setupLearningPathButtons();
+            startStatsAnimation();
+            
+            // 每60秒更新一次模拟的在线统计数据
+            setInterval(updateSimulatedStats, 60000);
+        });
+
+        // 加载用户数据
+        function loadUserData() {
+            const savedData = localStorage.getItem('userLearningData');
+            if (savedData) {
+                userLearningData = JSON.parse(savedData);
+            }
+        }
+
+        // 加载平台统计数据
+        function loadPlatformStats() {
+            // 加载本地访问量
+            const savedLocalVisits = localStorage.getItem('localVisits');
+            if (savedLocalVisits) {
+                platformStats.localVisits = parseInt(savedLocalVisits);
+            } else {
+                platformStats.localVisits = 1; // 首次访问
+            }
+            
+            // 增加本地访问量
+            platformStats.localVisits++;
+            localStorage.setItem('localVisits', platformStats.localVisits.toString());
+            
+            // 加载模拟的在线统计数据
+            const savedSimulatedStats = localStorage.getItem('simulatedPlatformStats');
+            if (savedSimulatedStats) {
+                const parsedStats = JSON.parse(savedSimulatedStats);
+                platformStats.simulatedVisits = parsedStats.simulatedVisits || 1248;
+                platformStats.simulatedActiveUsers = parsedStats.simulatedActiveUsers || 86;
+                platformStats.simulatedAvgCompletion = parsedStats.simulatedAvgCompletion || 42;
+            }
+        }
+
+        // 保存平台统计数据
+        function savePlatformStats() {
+            const simulatedStats = {
+                simulatedVisits: platformStats.simulatedVisits,
+                simulatedActiveUsers: platformStats.simulatedActiveUsers,
+                simulatedAvgCompletion: platformStats.simulatedAvgCompletion,
+                lastUpdated: new Date().toISOString()
+            };
+            localStorage.setItem('simulatedPlatformStats', JSON.stringify(simulatedStats));
+        }
+
+        // 更新学习统计
+        function updateLearningStats() {
+            const completedCount = userLearningData.completedExperiments.length;
+            const totalExperiments = experiments.length;
+            const completionRate = totalExperiments > 0 ? Math.round((completedCount / totalExperiments) * 100) : 0;
+            
+            completedCountEl.textContent = completedCount;
+            totalExperimentsEl.textContent = totalExperiments;
+            completionRateEl.textContent = `${completionRate}%`;
+            
+            // 根据完成情况确定当前等级
+            let learningLevel = 'Lv.0';
+            if (completionRate >= 80) {
+                learningLevel = 'Lv.3';
+            } else if (completionRate >= 50) {
+                learningLevel = 'Lv.2';
+            } else if (completionRate >= 20) {
+                learningLevel = 'Lv.1';
+            }
+            learningLevelEl.textContent = learningLevel;
+            
+            // 保存用户数据
+            localStorage.setItem('userLearningData', JSON.stringify(userLearningData));
+        }
+
+        // 更新平台统计显示
+        function updatePlatformStatsDisplay() {
+            // 计算总访问量（本地+模拟在线）
+            const totalVisits = platformStats.localVisits + platformStats.simulatedVisits;
+            
+            // 格式化显示
+            pageVisitsEl.textContent = formatCompactNumber(totalVisits);
+            activeUsersEl.textContent = platformStats.simulatedActiveUsers;
+            totalExperimentsTopEl.textContent = platformStats.totalExperiments;
+            avgCompletionEl.textContent = `${platformStats.simulatedAvgCompletion}%`;
+        }
+
+        // 更新模拟的在线统计数据
+        function updateSimulatedStats() {
+            // 模拟访问量增长（随机）
+            const visitIncrease = Math.floor(Math.random() * 10) + 1;
+            platformStats.simulatedVisits += visitIncrease;
+            
+            // 模拟活动用户数变化（基于时间）
+            const hour = new Date().getHours();
+            if (hour >= 9 && hour <= 21) {
+                // 白天时段，活动用户较多
+                platformStats.simulatedActiveUsers = Math.floor(Math.random() * 30) + 70;
+            } else {
+                // 夜间时段，活动用户较少
+                platformStats.simulatedActiveUsers = Math.floor(Math.random() * 20) + 30;
+            }
+            
+            // 模拟平均完成率变化（基于用户进度）
+            const userCompletionRate = userLearningData.completedExperiments.length / experiments.length * 100;
+            platformStats.simulatedAvgCompletion = Math.round(
+                (platformStats.simulatedAvgCompletion * 0.9 + userCompletionRate * 0.1) * 10
+            ) / 10;
+            
+            // 保存并更新显示
+            savePlatformStats();
+            updatePlatformStatsDisplay();
+        }
+
+        // 格式化紧凑数字显示（如1.2k）
+        function formatCompactNumber(num) {
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'k';
+            }
+            return num.toString();
+        }
+
+        // 启动统计数字动画
+        function startStatsAnimation() {
+            // 页面访问量动画
+            const totalVisits = platformStats.localVisits + platformStats.simulatedVisits;
+            animateNumberCompact(pageVisitsEl, totalVisits, 1000);
+            
+            // 活动用户数动画
+            animateNumber(activeUsersEl, platformStats.simulatedActiveUsers, 800);
+            
+            // 每30秒更新一次模拟统计数据
+            setInterval(updateSimulatedStats, 30000);
+        }
+
+        // 数字动画效果（紧凑格式）
+        function animateNumberCompact(element, targetValue, duration) {
+            const currentText = element.textContent;
+            let currentValue;
+            
+            if (currentText.includes('k')) {
+                currentValue = parseFloat(currentText) * 1000;
+            } else {
+                currentValue = parseInt(currentText.replace(/,/g, '')) || 0;
+            }
+            
+            const increment = (targetValue - currentValue) / (duration / 16);
+            
+            let current = currentValue;
+            const timer = setInterval(() => {
+                current += increment;
+                if ((increment > 0 && current >= targetValue) || 
+                    (increment < 0 && current <= targetValue)) {
+                    current = targetValue;
+                    clearInterval(timer);
+                }
+                element.textContent = formatCompactNumber(Math.round(current));
+            }, 16);
+        }
+
+        // 数字动画效果
+        function animateNumber(element, targetValue, duration) {
+            const startValue = parseInt(element.textContent.replace(/,/g, '')) || 0;
+            const increment = (targetValue - startValue) / (duration / 16);
+            
+            let currentValue = startValue;
+            const timer = setInterval(() => {
+                currentValue += increment;
+                if ((increment > 0 && currentValue >= targetValue) || 
+                    (increment < 0 && currentValue <= targetValue)) {
+                    currentValue = targetValue;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.round(currentValue);
+            }, 16);
+        }
+
+        // 渲染实验卡片
+        function renderExperiments(experimentsToRender) {
+            experimentsContainer.innerHTML = '';
+            
+            if (experimentsToRender.length === 0) {
+                experimentsContainer.innerHTML = `
+                    <div class="no-results">
+                        <i class="fas fa-search"></i>
+                        <h3>未找到匹配的实验</h3>
+                        <p>请尝试调整筛选条件以查看其他实验</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            experimentsToRender.forEach(exp => {
+                const isCompleted = userLearningData.completedExperiments.includes(exp.id);
+                const isStarted = userLearningData.startedExperiments.includes(exp.id);
+                
+                const card = document.createElement('div');
+                card.className = 'experiment-card';
+                card.dataset.id = exp.id;
+                
+                // 确定难度等级颜色
+                let levelClass = '';
+                let levelText = '';
+                if (exp.level === "Lv.1") {
+                    levelClass = 'level1-badge';
+                    levelText = 'Lv.1 直觉与识别';
+                } else if (exp.level === "Lv.2") {
+                    levelClass = 'level2-badge';
+                    levelText = 'Lv.2 判断与调控';
+                } else if (exp.level === "Lv.3") {
+                    levelClass = 'level3-badge';
+                    levelText = 'Lv.3 系统与设计';
+                }
+                
+                // 创建机制标签
+                const mechanismTags = exp.physics.map(phys => {
+                    const labels = {
+                        'heat': '传热',
+                        'fluid': '流体',
+                        'mass': '传质'
+                    };
+                    return `<span class="tag">${labels[phys] || phys}</span>`;
+                }).join('');
+                
+                // 创建能力目标标签
+                const objectiveTags = exp.objectives.map(obj => 
+                    `<span class="tag">${obj}</span>`
+                ).join('');
+                
+                // 工程对象标签
+                const engineeringLabels = {
+                    'dimension': '量纲分析',
+                    'fluid': '流体力学',
+                    'heat': '传热基础',
+                    'mass': '传质基础',
+                    'drying': '干燥应用'
+                };
+                
+                // 完成状态指示
+                let statusIndicator = '';
+                if (isCompleted) {
+                    statusIndicator = '<div style="position: absolute; top: 15px; left: 15px; color: var(--success-color); font-size: 1.2rem;"><i class="fas fa-check-circle"></i></div>';
+                } else if (isStarted) {
+                    statusIndicator = '<div style="position: absolute; top: 15px; left: 15px; color: var(--warning-color); font-size: 1.2rem;"><i class="fas fa-play-circle"></i></div>';
+                }
+                
+                card.innerHTML = `
+                    ${statusIndicator}
+                    <div class="level-badge ${levelClass}">${levelText}</div>
+                    <div class="card-header">
+                        <h2><i class="${exp.icon} experiment-icon"></i> ${exp.name}</h2>
+                        <span style="font-size: 0.9rem; opacity: 0.9;">${engineeringLabels[exp.engineering] || exp.engineering}</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-section">
+                            <h3><i class="fas fa-industry"></i> 工程应用场景</h3>
+                            <p>${exp.application}</p>
+                        </div>
+                        <div class="card-section">
+                            <h3><i class="fas fa-atom"></i> 涉及的物理机制</h3>
+                            <div class="mechanism-tags">${mechanismTags || '<span class="tag">无量纲分析</span>'}</div>
+                        </div>
+                        <div class="card-section">
+                            <h3><i class="fas fa-bullseye"></i> 能力目标</h3>
+                            <div class="objective-tags">${objectiveTags}</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="experiment-btn" data-id="${exp.id}">
+                            <i class="fas fa-play-circle"></i> ${isCompleted ? '复习实验' : (isStarted ? '继续实验' : '进入实验')}
+                        </button>
+                    </div>
+                `;
+                
+                experimentsContainer.appendChild(card);
+            });
+            
+            // 为所有"进入实验"按钮添加事件监听
+            document.querySelectorAll('.experiment-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const expId = parseInt(this.dataset.id);
+                    markExperimentAsStarted(expId);
+                    openExperiment(expId);
+                });
+            });
+        }
+
+        // 标记实验为已开始
+        function markExperimentAsStarted(expId) {
+            if (!userLearningData.startedExperiments.includes(expId)) {
+                userLearningData.startedExperiments.push(expId);
+                updateLearningStats();
+            }
+        }
+
+        // 标记实验为已完成
+        function markExperimentAsCompleted(expId) {
+            if (!userLearningData.completedExperiments.includes(expId)) {
+                userLearningData.completedExperiments.push(expId);
+                userLearningData.completionDates[expId] = new Date().toISOString();
+                updateLearningStats();
+                updateSimulatedStats();
+            }
+        }
+
+        // 设置筛选按钮
+        function setupFilterButtons() {
+            // 工程对象筛选
+            engineeringFilter.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    engineeringFilter.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilters.engineering = this.dataset.filter;
+                    filterExperiments();
+                });
+            });
+            
+            // 物理机制筛选
+            physicsFilter.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    physicsFilter.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilters.physics = this.dataset.filter;
+                    filterExperiments();
+                });
+            });
+            
+            // 难度筛选
+            difficultyFilter.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    difficultyFilter.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilters.difficulty = this.dataset.filter;
+                    filterExperiments();
+                });
+            });
+        }
+
+        // 筛选实验
+        function filterExperiments() {
+            let filtered = experiments.filter(exp => {
+                // 工程对象筛选
+                if (currentFilters.engineering !== 'all' && exp.engineering !== currentFilters.engineering) {
+                    return false;
+                }
+                
+                // 物理机制筛选
+                if (currentFilters.physics !== 'all') {
+                    // 对于量纲分析，physics为空数组，需要特殊处理
+                    if (exp.engineering === 'dimension' && currentFilters.physics !== 'all') {
+                        return false;
+                    }
+                    // 对于其他工程对象，检查physics数组中是否包含筛选的物理机制
+                    if (exp.engineering !== 'dimension' && !exp.physics.includes(currentFilters.physics)) {
+                        return false;
+                    }
+                }
+                
+                // 难度筛选
+                if (currentFilters.difficulty !== 'all' && exp.difficulty !== currentFilters.difficulty) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            renderExperiments(filtered);
+        }
+
+        // 设置学习路径按钮
+        function setupLearningPathButtons() {
+            generatePathBtn.addEventListener('click', generateLearningPath);
+            viewProfileBtn.addEventListener('click', showLearningProfile);
+            exportReportBtn.addEventListener('click', exportLearningReport);
+            getCertificateBtn.addEventListener('click', generateCertificate);
+selfLearningProfileBtn.addEventListener('click', openSelfLearningProfile); // 新增这一行
+            closeProfilePanelBtn.addEventListener('click', closeProfilePanel);
+            
+            // 点击面板外部关闭面板
+            profilePanel.addEventListener('click', function(e) {
+                if (e.target === profilePanel) {
+                    closeProfilePanel();
+                }
+            });
+            
+            // ESC键关闭面板
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && profilePanel.classList.contains('open')) {
+                    closeProfilePanel();
+                }
+            });
+        }
+
+        // 生成学习路径地图
+        function generateLearningPath() {
+            showLearningProfile();
+            
+            // 更新学习路径数据
+            userLearningData.learningPath = userLearningData.completedExperiments.slice();
+            localStorage.setItem('userLearningData', JSON.stringify(userLearningData));
+            
+            // 可以在这里添加生成路径地图的特定逻辑
+            alert('学习路径地图已生成！请查看学习画像面板。');
+        }
+
+        // 显示学习画像
+        function showLearningProfile() {
+            profilePanel.classList.add('open');
+            renderLearningProfile();
+        }
+
+        // 关闭学习画像面板
+        function closeProfilePanel() {
+            profilePanel.classList.remove('open');
+        }
+
+        // 渲染学习画像
+        function renderLearningProfile() {
+            const completedCount = userLearningData.completedExperiments.length;
+            const totalExperiments = experiments.length;
+            const completionRate = totalExperiments > 0 ? Math.round((completedCount / totalExperiments) * 100) : 0;
+            
+            // 按工程对象统计
+            const engineeringStats = {};
+            const levelStats = { level1: 0, level2: 0, level3: 0 };
+            const physicsStats = { heat: 0, fluid: 0, mass: 0 };
+            
+            experiments.forEach(exp => {
+                if (userLearningData.completedExperiments.includes(exp.id)) {
+                    // 工程对象统计
+                    engineeringStats[exp.engineering] = (engineeringStats[exp.engineering] || 0) + 1;
+                    
+                    // 难度等级统计
+                    if (exp.difficulty === 'level1') levelStats.level1++;
+                    if (exp.difficulty === 'level2') levelStats.level2++;
+                    if (exp.difficulty === 'level3') levelStats.level3++;
+                    
+                    // 物理机制统计
+                    exp.physics.forEach(phys => {
+                        physicsStats[phys] = (physicsStats[phys] || 0) + 1;
+                    });
+                }
+            });
+            
+            // 工程对象标签
+            const engineeringLabels = {
+                'dimension': '量纲分析',
+                'fluid': '流体力学',
+                'heat': '传热基础',
+                'mass': '传质基础',
+                'drying': '干燥应用'
+            };
+            
+            // 物理机制标签
+            const physicsLabels = {
+                'heat': '传热',
+                'fluid': '流体',
+                'mass': '传质'
+            };
+            
+            // 生成工程对象进度条
+            let engineeringProgress = '';
+            Object.keys(engineeringLabels).forEach(key => {
+                const totalInCategory = experiments.filter(exp => exp.engineering === key).length;
+                const completedInCategory = engineeringStats[key] || 0;
+                const progressPercent = totalInCategory > 0 ? Math.round((completedInCategory / totalInCategory) * 100) : 0;
+                
+                engineeringProgress += `
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>${engineeringLabels[key]}</span>
+                            <span>${completedInCategory}/${totalInCategory} (${progressPercent}%)</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            // 生成学习路径阶段
+            let learningPathStages = '';
+            const stages = [
+                { 
+                    title: '基础认知阶段 (Lv.1)', 
+                    description: '建立工程传递现象的基本直觉与识别能力',
+                    experiments: experiments.filter(exp => exp.difficulty === 'level1'),
+                    stage: 1
+                },
+                { 
+                    title: '分析判断阶段 (Lv.2)', 
+                    description: '掌握参数影响分析与判断调控能力',
+                    experiments: experiments.filter(exp => exp.difficulty === 'level2'),
+                    stage: 2
+                },
+                { 
+                    title: '系统设计阶段 (Lv.3)', 
+                    description: '培养复杂系统设计与优化能力',
+                    experiments: experiments.filter(exp => exp.difficulty === 'level3'),
+                    stage: 3
+                }
+            ];
+            
+            stages.forEach(stage => {
+                const completedInStage = stage.experiments.filter(exp => 
+                    userLearningData.completedExperiments.includes(exp.id)
+                ).length;
+                const totalInStage = stage.experiments.length;
+                const stageProgress = totalInStage > 0 ? Math.round((completedInStage / totalInStage) * 100) : 0;
+                
+                let stageExperimentsHTML = '';
+                stage.experiments.forEach(exp => {
+                    const isCompleted = userLearningData.completedExperiments.includes(exp.id);
+                    stageExperimentsHTML += `
+                        <div class="stage-experiment ${isCompleted ? 'completed' : ''}">
+                            <i class="fas fa-${isCompleted ? 'check' : 'circle'}"></i>
+                            ${exp.name}
+                        </div>
+                    `;
+                });
+                
+                learningPathStages += `
+                    <div class="path-stage">
+                        <div class="stage-marker ${completedInStage === totalInStage ? 'completed' : (completedInStage > 0 ? 'in-progress' : '')}">
+                            ${stage.stage}
+                        </div>
+                        <div class="stage-content">
+                            <div class="stage-title">${stage.title}</div>
+                            <div>${stage.description}</div>
+                            <div class="progress-container" style="margin-top: 10px;">
+                                <div class="progress-label">
+                                    <span>完成进度</span>
+                                    <span>${completedInStage}/${totalInStage} (${stageProgress}%)</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${stageProgress}%"></div>
+                                </div>
+                            </div>
+                            <div class="stage-experiments">
+                                ${stageExperimentsHTML}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            // 生成学习建议
+            let recommendationsHTML = '';
+            
+            // 基于完成率给出建议
+            if (completionRate < 30) {
+                recommendationsHTML += `
+                    <div class="recommendation-card">
+                        <h4><i class="fas fa-lightbulb"></i> 学习建议</h4>
+                        <p>建议从Lv.1基础实验开始，建立工程传递现象的基本直觉。</p>
+                    </div>
+                `;
+            } else if (completionRate < 60) {
+                recommendationsHTML += `
+                    <div class="recommendation-card">
+                        <h4><i class="fas fa-lightbulb"></i> 学习建议</h4>
+                        <p>可以开始挑战Lv.2实验，培养参数分析与判断能力。</p>
+                    </div>
+                `;
+            } else {
+                recommendationsHTML += `
+                    <div class="recommendation-card">
+                        <h4><i class="fas fa-lightbulb"></i> 学习建议</h4>
+                        <p>可以挑战Lv.3系统设计实验，培养复杂工程问题解决能力。</p>
+                    </div>
+                `;
+            }
+            
+            // 基于薄弱环节给出建议
+            const weakAreas = Object.keys(engineeringStats).filter(key => {
+                const totalInCategory = experiments.filter(exp => exp.engineering === key).length;
+                const completedInCategory = engineeringStats[key] || 0;
+                return totalInCategory > 0 && (completedInCategory / totalInCategory) < 0.5;
+            });
+            
+            if (weakAreas.length > 0) {
+                recommendationsHTML += `
+                    <div class="recommendation-card">
+                        <h4><i class="fas fa-exclamation-triangle"></i> 薄弱环节</h4>
+                        <p>建议加强以下模块的学习：${weakAreas.map(key => engineeringLabels[key]).join('、')}</p>
+                    </div>
+                `;
+            }
+            
+            // 生成学习画像内容
+            profileContent.innerHTML = `
+                <div class="profile-section">
+                    <h3><i class="fas fa-chart-pie"></i> 学习概况</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+                        <div class="stat-item">
+                            <div class="stat-value">${completedCount}</div>
+                            <div class="stat-label">已完成实验</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${completionRate}%</div>
+                            <div class="stat-label">整体完成率</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${levelStats.level1 + levelStats.level2 + levelStats.level3}</div>
+                            <div class="stat-label">总学习时长(小时)</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${completionRate >= 80 ? 'Lv.3' : completionRate >= 50 ? 'Lv.2' : completionRate >= 20 ? 'Lv.1' : 'Lv.0'}</div>
+                            <div class="stat-label">当前等级</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="profile-section">
+                    <h3><i class="fas fa-project-diagram"></i> 学习路径地图</h3>
+                    <div class="learning-path-map">
+                        <p style="margin-bottom: 20px; color: #666;">以下是根据您的学习进度生成的三级进阶学习路径：</p>
+                        <div class="path-visualization">
+                            ${learningPathStages}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="profile-section">
+                    <h3><i class="fas fa-chart-bar"></i> 模块完成情况</h3>
+                    ${engineeringProgress}
+                </div>
+                
+                <div class="profile-section">
+                    <h3><i class="fas fa-bullseye"></i> 能力分析</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+                        <div class="stat-item">
+                            <div class="stat-value">${levelStats.level1}</div>
+                            <div class="stat-label">Lv.1直觉实验完成</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${levelStats.level2}</div>
+                            <div class="stat-label">Lv.2分析实验完成</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${levelStats.level3}</div>
+                            <div class="stat-label">Lv.3设计实验完成</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="profile-section">
+                    <h3><i class="fas fa-lightbulb"></i> 学习建议</h3>
+                    <div class="recommendation-cards">
+                        ${recommendationsHTML || '<p>暂无学习建议，请继续完成更多实验。</p>'}
+                    </div>
+                </div>
+                
+                <div class="profile-section">
+                    <h3><i class="fas fa-history"></i> 学习时间线</h3>
+                    <p style="color: #666;">最近完成的实验：</p>
+                    <div style="margin-top: 15px;">
+                        ${userLearningData.completedExperiments.length > 0 ? 
+                            userLearningData.completedExperiments.slice(-5).reverse().map(id => {
+                                const exp = experiments.find(e => e.id === id);
+                                return exp ? `<div style="padding: 10px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px;">
+                                    <i class="fas fa-check-circle" style="color: var(--success-color); margin-right: 8px;"></i>
+                                    ${exp.name} - ${engineeringLabels[exp.engineering]}
+                                </div>` : '';
+                            }).join('') : 
+                            '<p>暂无完成的实验记录。</p>'
+                        }
+                    </div>
+                </div>
+            `;
+        }
+
+        // 导出学习报告
+        function exportLearningReport() {
+            const completedCount = userLearningData.completedExperiments.length;
+            const totalExperiments = experiments.length;
+            const completionRate = totalExperiments > 0 ? Math.round((completedCount / totalExperiments) * 100) : 0;
+            
+            // 创建报告内容
+            const reportContent = `
+                工程传递现象虚拟仿真实验学习报告
+                ===================================
+                
+                报告生成时间：${new Date().toLocaleString()}
+                学员：虚拟仿真实验用户
+                
+                学习概况：
+                ---------
+                已完成实验：${completedCount} / ${totalExperiments}
+                整体完成率：${completionRate}%
+                学习等级：${completionRate >= 80 ? 'Lv.3 系统与设计' : completionRate >= 50 ? 'Lv.2 判断与调控' : completionRate >= 20 ? 'Lv.1 直觉与识别' : 'Lv.0 入门'}
+                
+                完成实验列表：
+                ------------
+                ${userLearningData.completedExperiments.map(id => {
+                    const exp = experiments.find(e => e.id === id);
+                    return exp ? `- ${exp.name} (${exp.level})` : '';
+                }).join('\n') || '暂无完成的实验'}
+                
+                学习路径建议：
+                ------------
+                ${completionRate < 30 ? '建议从Lv.1基础实验开始，建立工程传递现象的基本直觉。' :
+                  completionRate < 60 ? '可以开始挑战Lv.2实验，培养参数分析与判断能力。' :
+                  '可以挑战Lv.3系统设计实验，培养复杂工程问题解决能力。'}
+                
+                备注：
+                -----
+                本报告基于虚拟仿真实验平台的学习记录自动生成。
+                请继续努力，完成更多实验，提升工程传递现象的理解与应用能力。
+            `;
+            
+            // 创建下载链接
+            const blob = new Blob([reportContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `学习报告_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert('学习报告已生成并下载！');
+        }
+
+        // 生成学习证书
+        function generateCertificate() {
+            const completedCount = userLearningData.completedExperiments.length;
+            const totalExperiments = experiments.length;
+            const completionRate = totalExperiments > 0 ? Math.round((completedCount / totalExperiments) * 100) : 0;
+            
+            if (completionRate < 50) {
+                alert('完成率不足50%，无法获得学习证书。请继续努力完成更多实验！');
+                return;
+            }
+            
+            // 创建证书内容
+            const certificateHTML = `
+                <!DOCTYPE html>
+                <html lang="zh-CN">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>学习证书</title>
+                    <style>
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            margin: 0;
+                            padding: 40px;
+                            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            min-height: 100vh;
+                        }
+                        .certificate {
+                            background: white;
+                            border: 20px solid #0a2463;
+                            border-radius: 20px;
+                            padding: 60px;
+                            max-width: 800px;
+                            text-align: center;
+                            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+                            position: relative;
+                        }
+                        .certificate:before {
+                            content: '';
+                            position: absolute;
+                            top: 10px;
+                            left: 10px;
+                            right: 10px;
+                            bottom: 10px;
+                            border: 2px solid #ffd166;
+                            border-radius: 10px;
+                            pointer-events: none;
+                        }
+                        .title {
+                            font-size: 3rem;
+                            color: #0a2463;
+                            margin-bottom: 10px;
+                            font-weight: bold;
+                        }
+                        .subtitle {
+                            font-size: 1.2rem;
+                            color: #666;
+                            margin-bottom: 40px;
+                        }
+                        .achievement {
+                            font-size: 1.5rem;
+                            color: #333;
+                            margin: 30px 0;
+                            line-height: 1.6;
+                        }
+                        .name {
+                            font-size: 2.5rem;
+                            color: #0a2463;
+                            margin: 40px 0;
+                            padding: 20px 0;
+                            border-top: 3px solid #ffd166;
+                            border-bottom: 3px solid #ffd166;
+                        }
+                        .details {
+                            font-size: 1.1rem;
+                            color: #555;
+                            margin: 30px 0;
+                            line-height: 1.6;
+                        }
+                        .seal {
+                            width: 150px;
+                            height: 150px;
+                            background: radial-gradient(circle, #0a2463, #121f3d);
+                            border-radius: 50%;
+                            margin: 40px auto;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-size: 1.8rem;
+                            font-weight: bold;
+                            border: 5px solid #ffd166;
+                        }
+                        .date {
+                            font-size: 1.2rem;
+                            color: #666;
+                            margin-top: 40px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="certificate">
+                        <div class="title">学习成就证书</div>
+                        <div class="subtitle">工程传递现象虚拟仿真实验平台</div>
+                        
+                        <div class="achievement">
+                            兹证明学员已完成工程传递现象虚拟仿真实验课程学习，
+                            掌握了工程传递现象的基本原理、分析方法与系统设计能力。
+                        </div>
+                        
+                        <div class="name">虚拟仿真实验学员</div>
+                        
+                        <div class="details">
+                            已完成实验：${completedCount} / ${totalExperiments}<br>
+                            整体完成率：${completionRate}%<br>
+                            学习等级：${completionRate >= 80 ? 'Lv.3 系统与设计' : completionRate >= 50 ? 'Lv.2 判断与调控' : 'Lv.1 直觉与识别'}
+                        </div>
+                        
+                        <div class="seal">
+                            认证
+                        </div>
+                        
+                        <div class="date">
+                            颁发日期：${new Date().toLocaleDateString()}
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            // 在新窗口中打开证书
+            const certificateWindow = window.open('', '_blank');
+            certificateWindow.document.write(certificateHTML);
+            certificateWindow.document.close();
+            
+            alert('学习证书已生成！可以在新窗口中打印或保存。');
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            closePanelBtn.addEventListener('click', closeExperimentPanel);
+            
+            // 点击面板外部关闭面板
+            experimentPanel.addEventListener('click', function(e) {
+                if (e.target === experimentPanel) {
+                    closeExperimentPanel();
+                }
+            });
+            
+            // ESC键关闭面板
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    if (experimentPanel.classList.contains('open')) {
+                        closeExperimentPanel();
+                    }
+                    if (profilePanel.classList.contains('open')) {
+                        closeProfilePanel();
+                    }
+                }
+            });
+        }
+
+
+// 自主学习画像页面新网页
+function openSelfLearningProfile() {
+    // 打开新的自主学习画像页面
+    window.open('Learning-achievement-figure.html', '_blank');
+    
+    // 或者如果您想直接传递数据到新页面，可以这样：
+    // window.open(`Learning-achievement-figure.html?user=${encodeURIComponent(JSON.stringify(userLearningData))}`, '_blank');
+    
+    // 更简单的方案：如果没有独立页面，可以临时创建一个
+    // createTemporaryProfilePage();
+}
+
+
+        // 打开实验
+        function openExperiment(expId) {
+            const experiment = experiments.find(exp => exp.id === expId);
+            if (!experiment) return;
+            
+            // 更新面板标题
+            panelTitle.textContent = experiment.name;
+            
+            // 显示加载状态
+            panelLoading.style.display = 'flex';
+            experimentFrame.style.display = 'none';
+            
+            // 打开面板
+            experimentPanel.classList.add('open');
+            
+            // 模拟实验完成（在实际应用中，这里应该根据实际实验完成情况来标记）
+            setTimeout(() => {
+                // 模拟实验完成，标记为已完成
+                markExperimentAsCompleted(expId);
+                
+                // 在实际应用中，这里应该加载真实的仿真URL
+                experimentFrame.src = experiment.simulationUrl;
+                
+                // 隐藏加载状态，显示iframe
+                panelLoading.style.display = 'none';
+                experimentFrame.style.display = 'block';
+            }, 1500);
+        }
+
+        // 关闭实验面板
+        function closeExperimentPanel() {
+            experimentPanel.classList.remove('open');
+            
+            // 重置iframe
+            setTimeout(() => {
+                experimentFrame.src = '';
+            }, 400);
+        }
+    </script>
+
+
+
+<!-- 底部信息栏 -->
+<div style="
+    text-align: center;
+    padding: 20px 30px;
+    margin-top: -20px;
+    color: #e6f7ff;
+    font-size: 0.9rem;
+    border-top: 2px solid rgba(0, 180, 255, 0.5);
+    background: linear-gradient(180deg, rgba(10, 135, 163, 0.95), rgba(18, 126, 158, 0.9));
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+">
+    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+    
+    <p style="font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; color: #ffffff;">
+        虚拟仿真实验矩阵 - 工程传递现象教学平台 © 2025 | 基于思维地图的三级进阶学习路径 | 版本 1.0 |
+      <style="margin-bottom: 12px; color: #cbd5e1;">
+        <strong>邮箱:</strong> xgyanger@qq.com
+    </p>
+    
+    <div style="margin-top: 15px;">
+        <span style="color: #ffcc00; font-weight: bold; font-size: 1.1rem;">
+            版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+        </span>
+    </div>
+</div>
+
+
+</body>
+</html>
