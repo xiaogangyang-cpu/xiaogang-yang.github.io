@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<title>量纲一致性闯关小游戏</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;background:#0f172a;color:#e5e7eb;margin:0}
+#app{max-width:900px;margin:0 auto;padding:24px}
+h1{color:#38bdf8}
+.card{background:#020617;border-radius:12px;padding:20px;margin-top:16px;box-shadow:0 0 20px rgba(56,189,248,.2)}
+.options button{display:block;width:100%;margin:8px 0;padding:10px;border-radius:8px;border:1px solid #334155;background:#020617;color:#e5e7eb;cursor:pointer}
+.options button.selected{background:#1e293b;border-color:#38bdf8}
+.feedback{margin-top:12px;font-weight:bold}
+.success{color:#22c55e}
+.fail{color:#ef4444}
+#nextBtn{margin-top:16px;padding:10px 16px;border-radius:8px;border:none;background:#38bdf8;color:#020617;font-size:16px;cursor:pointer;display:none}
+</style>
+</head>
+<body>
+<div id="app">
+<h1>量纲一致性闯关小游戏</h1>
+<p>目标：判断所选物理量是否<strong>可能</strong>组成目标物理量（不算数值，只看量纲）。</p>
+
+<div class="card">
+<h2 id="levelTitle"></h2>
+<p id="question"></p>
+<div class="options" id="options"></div>
+<div class="feedback" id="feedback"></div>
+<button id="nextBtn">下一关 ▶</button>
+</div>
+</div>
+
+<script>
+const levels = [
+{
+ title: "第 1 关｜冷却时间 t",
+ question: "冷却时间 t 可能与哪些量有关？",
+ options: [
+  {name:"特征长度 L", dim:"L"},
+  {name:"热扩散率 α", dim:"L² T⁻¹"},
+  {name:"温差 ΔT", dim:"Θ"},
+  {name:"质量 m", dim:"M"}
+ ],
+ correct: [0,1],
+ multi: true,
+ explain: "工程师点评：在传热建模中，时间尺度通常由 L²/α 决定。"
+},
+{
+ title: "第 2 关｜动能 Ek",
+ question: "哪些量可能组成动能 Ek？",
+ options: [
+  {name:"质量 m", dim:"M"},
+  {name:"速度 v", dim:"L T⁻¹"},
+  {name:"长度 L", dim:"L"},
+  {name:"温度 T", dim:"Θ"}
+ ],
+ correct: [0,1],
+ multi: true,
+ explain: "工程师点评：能量判断不靠公式，先看是否能拼出 ML²T⁻²。"
+},
+{
+ title: "第 3 关｜雷诺数 Re",
+ question: "哪些量可能组成雷诺数 Re？",
+ options: [
+  {name:"密度 ρ", dim:"M L⁻³"},
+  {name:"速度 v", dim:"L T⁻¹"},
+  {name:"特征长度 L", dim:"L"},
+  {name:"粘度 μ", dim:"M L⁻¹ T⁻¹"}
+ ],
+ correct: [0,1,2,3],
+ multi: true,
+ explain: "工程师点评：无量纲数是流动相似性的核心语言。"
+},
+{
+ title: "第 4 关｜对流换热系数 h",
+ question: "哪些量可能组成对流换热系数 h（W/(m²·K)）？",
+ options: [
+  {name:"流速 v", dim:"L T⁻¹"},
+  {name:"导热系数 k", dim:"M L T⁻³ Θ⁻¹"},
+  {name:"特征长度 L", dim:"L"},
+  {name:"密度 ρ", dim:"M L⁻³"}
+ ],
+ correct: [1,2],
+ multi: true,
+ explain: "工程师点评：h 量纲为 [M T⁻³ Θ⁻¹]，可由 k/L 组合得到。流速 v 和密度 ρ 通过无量纲数影响 h，但无法直接组合出 h 的量纲。"
+},
+{
+ title: "第 5 关｜努塞尔数 Nu",
+ question: "Nu = hL/k，需要哪些量？",
+ options: [
+  {name:"h", dim:"M T⁻³ Θ⁻¹"},
+  {name:"L", dim:"L"},
+  {name:"k", dim:"M L T⁻³ Θ⁻¹"},
+  {name:"ρ", dim:"M L⁻³"}
+ ],
+ correct: [0,1,2], 
+
+ multi: true,
+ explain: "工程师点评：Nu 的意义在于判断对流是否真正增强了传热。"
+},
+{
+ title: "第 6 关｜自由建模关",
+ question: "目标：构造一个可能的‘对流换热增强判据’（无量纲）。请选择你认为有必要的物理量。",
+ options: [
+  {name:"流速 v", dim:"L T⁻¹"},
+  {name:"特征长度 L", dim:"L"},
+  {name:"导热系数 k", dim:"M L T⁻³ Θ⁻¹"},
+  {name:"传热系数 h", dim:"M T⁻³ Θ⁻¹"},
+  {name:"密度 ρ", dim:"M L⁻³"},
+  {name:"比热 c_p", dim:"L² T⁻² Θ⁻¹"}
+ ],
+ correct: [1,2,3],
+ multi: true,
+ explain: "工程师点评：优秀的工程模型，往往先来自‘无量纲判断’，再来自经验关联式。"
+}
+];
+
+let current = 0;
+let selected = new Set();
+
+const titleEl = document.getElementById('levelTitle');
+const qEl = document.getElementById('question');
+const optEl = document.getElementById('options');
+const fbEl = document.getElementById('feedback');
+const nextBtn = document.getElementById('nextBtn');
+
+function loadLevel(){
+ const lvl = levels[current];
+ selected.clear();
+ titleEl.textContent = lvl.title;
+ qEl.textContent = lvl.question;
+ optEl.innerHTML = '';
+ fbEl.textContent = '';
+ nextBtn.style.display = 'none';
+ lvl.options.forEach((opt,i)=>{
+  const b = document.createElement('button');
+  b.innerHTML = `<div><strong>${opt.name}</strong><div style="font-size:0.85em;color:#93c5fd;margin-top:4px">[${opt.dim}]</div></div>`;
+  b.onclick = ()=>toggle(i,b);
+  optEl.appendChild(b);
+});
+}
+
+function toggle(i,btn){
+ const lvl = levels[current];
+ if(!lvl.multi){selected.clear();document.querySelectorAll('.options button').forEach(b=>b.classList.remove('selected'));}
+ if(selected.has(i)){selected.delete(i);btn.classList.remove('selected');}
+ else{selected.add(i);btn.classList.add('selected');}
+ check();
+}
+
+function check(){
+ const lvl = levels[current];
+ const sel = Array.from(selected).sort().join(',');
+ const cor = lvl.correct.slice().sort().join(',');
+ if(sel === cor){
+  fbEl.textContent = '✔ 量纲一致，有物理意义。' + lvl.explain;
+  fbEl.className = 'feedback success';
+  nextBtn.style.display = 'inline-block';
+ } else {
+  fbEl.textContent = '✖ 量纲不一致，没有物理意义';
+  fbEl.className = 'feedback fail';
+ }
+}
+
+nextBtn.onclick = ()=>{
+ current++;
+ if(current < levels.length) loadLevel();
+ else {
+  titleEl.textContent = '🎉 通关成功';
+  qEl.textContent = '你已掌握量纲分析的工程直觉（白银工程师）';
+  optEl.innerHTML = '';
+  fbEl.textContent = '';
+  nextBtn.style.display = 'none';
+ }
+};
+
+loadLevel();
+</script>
+
+
+    <!-- 底部信息栏 -->
+    <div style="
+        text-align: center;
+        padding: 15px 25px;
+        margin-top: 30px;
+        color: #93c5fd;
+        font-size: 0.9rem;
+        border-top: 1px solid rgba(56, 189, 248, 0.3);
+        background: rgba(2, 6, 23, 0.8);
+        border-radius: 0 0 12px 12px;
+    ">
+        <p>量纲一致性闯关小游戏 &copy; 2023 | 工程直觉训练系统 | 版本 1.0 | 
+            <span style="color: #38bdf8;">工程科学素养提升工具</span> | 
+            邮箱: xgyanger@qq.com
+        </p>
+        <p style="margin-top: 8px; font-size: 0.85rem; color: #60a5fa;">
+            本系统旨在帮助工程师培养量纲分析的直觉判断能力，提升工程建模素养
+        </p>
+        <div style="margin-top: 10px; display: flex; justify-content: center; gap: 15px;">
+            <span style="color: #ff9e00;">版权©2025AIknow. 保留所有权利  Copyright ©2025 AIknow. All rights reserved.</span>
+        </div>
+    </div>
+
+
+</body>
+</html>

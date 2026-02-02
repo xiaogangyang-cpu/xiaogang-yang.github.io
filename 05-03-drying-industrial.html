@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>干燥工程仿真 | 等焓干燥过程模拟与评测</title>
+    <style>
+        :root {
+            --bg-dark: #0a0e17;
+            --panel-dark: #131a2a;
+            --panel-border: #1e2a44;
+            --primary-blue: #00a8ff;
+            --primary-glow: rgba(0, 168, 255, 0.4);
+            --accent-cyan: #00f3ff;
+            --accent-orange: #ff8a00;
+            --accent-yellow: #ffcc00;
+            --accent-green: #00ff9d;
+            --accent-red: #ff4757;
+            --text-primary: #e2f3ff;
+            --text-secondary: #8ca0c7;
+            --grid-color: rgba(30, 42, 68, 0.6);
+            --temp-cool: #4d7fff;
+            --temp-warm: #ff8a00;
+            --temp-hot: #ff4757;
+            --humidity-low: rgba(0, 168, 255, 0.3);
+            --humidity-high: rgba(0, 243, 255, 0.7);
+            --pipe-color: #2a3b5c;
+            --pipe-highlight: #3a4b6c;
+            --state-bg: rgba(19, 26, 42, 0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(0, 40, 80, 0.3) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(0, 60, 120, 0.2) 0%, transparent 40%),
+                var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* 科技背景网格 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+            opacity: 0.3;
+        }
+        
+        /* 顶部抬头 */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: linear-gradient(145deg, rgba(19, 26, 42, 0.9) 0%, rgba(13, 20, 34, 0.9) 100%);
+            border-radius: 16px;
+            border: 1px solid var(--panel-border);
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(0, 168, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            background: linear-gradient(90deg, var(--primary-blue), var(--accent-cyan));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 20px rgba(0, 168, 255, 0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 1200px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            max-width: 1400px;
+            margin: 0 auto 40px; /* 增加底部外边距 */
+        }
+        
+        /* 面板样式 */
+        .panel {
+            background: linear-gradient(145deg, var(--panel-dark) 0%, #0d1422 100%);
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid var(--panel-border);
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(0, 168, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 15px 35px rgba(0, 0, 0, 0.5),
+                0 0 20px rgba(0, 168, 255, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        h2 {
+            color: var(--text-primary);
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+            position: relative;
+            padding-bottom: 10px;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-blue), var(--accent-cyan));
+            border-radius: 2px;
+        }
+        
+        /* 问题描述区域 */
+        .problem-box {
+            background: rgba(0, 40, 80, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-orange);
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .problem-box h3 {
+            color: var(--accent-orange);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        
+        .problem-box ul {
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .problem-box li {
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+        
+        .problem-box .highlight {
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+        
+        /* 提示框 */
+        .hint-box {
+            background: rgba(0, 60, 120, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--panel-border);
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hint-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-green);
+        }
+        
+        .hint-box h3 {
+            color: var(--accent-green);
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .hint-box p {
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        
+        /* 三温区状态图 */
+        .state-diagram {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            gap: 10px;
+        }
+        
+        .state-card {
+            flex: 1;
+            background: var(--state-bg);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .state-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .state-card.state-1 {
+            border-top: 4px solid var(--primary-blue);
+        }
+        
+        .state-card.state-2 {
+            border-top: 4px solid var(--accent-orange);
+        }
+        
+        .state-card.state-3 {
+            border-top: 4px solid var(--accent-green);
+        }
+        
+        .state-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .state-temp {
+            font-size: 1.4rem;
+            font-family: 'Consolas', monospace;
+            color: var(--accent-cyan);
+            margin-bottom: 5px;
+        }
+        
+        .state-humidity {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        /* 控制组样式 */
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+        
+        .control-value {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            font-family: 'Consolas', monospace;
+            font-size: 1.1rem;
+        }
+        
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: rgba(30, 42, 68, 0.8);
+            border-radius: 4px;
+            outline: none;
+            margin: 12px 0;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            background: var(--primary-blue);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--primary-glow);
+            border: 2px solid white;
+            transition: all 0.2s;
+        }
+        
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+        
+        /* 按钮样式 */
+        button {
+            padding: 16px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-family: 'Segoe UI', sans-serif;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, #0088cc 100%);
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 168, 255, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 168, 255, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #666 0%, #444 100%);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--accent-green) 0%, #00cc7a 100%);
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 255, 157, 0.3);
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 255, 157, 0.4);
+        }
+        
+        /* 仪表盘 */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(30, 42, 68, 0.7) 0%, rgba(19, 26, 42, 0.9) 100%);
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+            border: 1px solid var(--panel-border);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-blue), var(--accent-cyan));
+        }
+        
+        .stat-card div:first-child {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            font-family: 'Consolas', monospace;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+        
+        /* 评测区域 */
+        .evaluation-area {
+            background: rgba(0, 40, 80, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 25px;
+            border: 1px solid var(--panel-border);
+        }
+        
+        .answer-input {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .input-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(30, 42, 68, 0.8);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-family: 'Consolas', monospace;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 10px rgba(0, 168, 255, 0.3);
+        }
+        
+        .result-display {
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-weight: bold;
+            display: none;
+        }
+        
+        .result-correct {
+            background: rgba(0, 255, 157, 0.1);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+        }
+        
+        .result-incorrect {
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid var(--accent-red);
+            color: var(--accent-red);
+        }
+        
+        /* 改进的过程可视化 - 管道设计（加粗） */
+        .process-visualization {
+            height: 320px; /* 增加高度以容纳状态标签 */
+            background: rgba(10, 20, 40, 0.3);
+            border: 2px solid var(--panel-border);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            margin: 25px 0;
+        }
+        
+        .pipe-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            padding: 20px 0;
+        }
+        
+        .pipe {
+            position: absolute;
+            top: 42%;
+            left: 0;
+            right: 0;
+            height: 200px; /* 加粗管道 */
+            background: linear-gradient(to bottom, var(--pipe-color), var(--pipe-highlight));
+            transform: translateY(-50%);
+            z-index: 1;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                inset 0 0 30px rgba(0, 0, 0, 0.6),
+                0 5px 15px rgba(0, 0, 0, 0.3);
+            /* 管道开口效果 */
+            border-left: none;
+            border-right: none;
+        }
+        
+        /* 管道入口和出口 */
+        .pipe::before, .pipe::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 20px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--pipe-highlight), #1a243a);
+            z-index: 2;
+        }
+        
+        .pipe::before {
+            left: 0;
+            border-radius: 0 10px 10px 0;
+        }
+        
+        .pipe::after {
+            right: 0;
+            border-radius: 10px 0 0 10px;
+        }
+        
+        .pipe-section {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+        
+        .section-label {
+            position: absolute;
+            top: 5px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--text-secondary);
+            text-align: center;
+            width: 100%;
+        }
+        
+        /* 分区状态显示 - 管道内部 */
+        .section-status {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            z-index: 4;
+            padding: 3px 0;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2;
+        }
+        
+        .section-temp-display {
+            color: var(--accent-cyan);
+            font-family: 'Consolas', monospace;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        
+        .section-humidity-display {
+            color: var(--accent-green);
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+        }
+        
+        .section-temperature {
+            position: absolute;
+            bottom: -40px;
+            font-size: 0.9rem;
+            font-family: 'Consolas', monospace;
+            color: var(--accent-cyan);
+            text-align: center;
+            width: 100%;
+        }
+        
+        .section-humidity {
+            position: absolute;
+            bottom: 85px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-align: center;
+            width: 100%;
+        }
+        
+        .section-divider {
+            position: absolute;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            z-index: 3;
+        }
+        
+        .section-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -4px;
+            width: 10px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translateY(-50%);
+        }
+        
+        #inlet-section {
+            left: 0%;
+            width: 12%;
+        }
+        
+        #heating-section {
+            left: 12%;
+            width: 28%;
+            background: rgba(255, 138, 0, 0.1);
+        }
+        
+        #insulation-section {
+            left: 40%;
+            width: 8%;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        #drying-section {
+            left: 48%;
+            width: 28%;
+            background: rgba(0, 255, 157, 0.1);
+        }
+        
+        #outlet-section {
+            left: 76%;
+            width: 24%;
+        }
+        
+        /* 空气粒子容器 */
+        .air-particles-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .air-particle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.7;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
+            z-index: 10;
+        }
+        
+        .particle-info {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+            font-family: 'Consolas', monospace;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2px 5px;
+            border-radius: 3px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .air-particle:hover .particle-info {
+            opacity: 1;
+        }
+        
+        /* 动态参数控制 */
+        .dynamic-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .dynamic-controls .control-group {
+            margin-bottom: 0;
+        }
+        
+        /* 湿焓图容器 */
+        .chart-container {
+            background: rgba(10, 20, 40, 0.1);
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 25px;
+            position: relative;
+        }
+        
+        .chart-title {
+            display: flex;
+            justify-content: space-between;
+           font-size: 1.8rem;
+            align-items: center;
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+        }
+        
+        .chart-legend {
+            display: flex;
+            gap: 15px;
+            font-size: 1rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 200px;
+            display: block;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .dynamic-controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .pipe {
+                left: 10px;
+                right: 10px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .state-diagram {
+                flex-direction: column;
+            }
+            
+            .section-label {
+                font-size: 0.8rem;
+                top: -30px;
+            }
+            
+            .section-status {
+                font-size: 0.65rem;
+                top: 5px;
+            }
+            
+            .section-temperature {
+                font-size: 0.8rem;
+                bottom: -35px;
+            }
+            
+            .section-humidity {
+                font-size: 0.7rem;
+                bottom: -50px;
+            }
+            
+            .pipe {
+                height: 100px;
+            }
+        }
+        
+        /* 新增底部信息栏样式 */
+        .footer {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+        
+        .footer-content {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+        }
+        
+        .footer-title {
+            font-size: 1.1rem;
+            color: var(--accent-cyan);
+            margin-bottom: 10px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        
+        .footer-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .footer-note {
+            font-size: 0.85rem;
+            color: rgba(140, 160, 199, 0.8);
+            margin-top: 10px;
+            line-height: 1.4;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>干燥工程仿真实验</h1>
+    <p>等焓干燥过程模拟：空气从管道左侧流入，经过加热区升温，保温区稳定，干燥区吸收水分，最后从右侧流出。</p>
+</div>
+
+<div class="container">
+    <!-- 左侧面板：理论计算与评测 -->
+    <div class="panel">
+        <h2>工程问题计算</h2>
+        
+        <div class="problem-box">
+            <h3>已知条件：</h3>
+            <ul>
+                <li>空气初始状态：t₁ = <span class="highlight">30°C</span>, p<sub>v1</sub> = <span class="highlight">2.938 kPa</span></li>
+                <li>加热后温度：t₂ = <span class="highlight">60°C</span>（等湿加热）</li>
+                <li>干燥器出口温度：t₃ = <span class="highlight">35°C</span>（等焓干燥）</li>
+                <li>大气压强：P = <span class="highlight">0.1 MPa</span> = 100 kPa</li>
+                <li>饱和水蒸气压力：30°C时约为4.246 kPa，35°C时约为5.628 kPa，60°C时约为19.923 kPa</li>
+            </ul>
+            <p><strong>求解：</strong></p>
+            <ol>
+                <li>空气在加热器中吸收的热量 (kJ/kg干空气)</li>
+                <li>1kg干空气在干燥器中所吸收的水分 (kg水/kg干空气)</li>
+            </ol>
+        </div>
+        
+        <!-- 三温区状态图 -->
+        <div class="state-diagram">
+            <div class="state-card state-1">
+                <div class="state-title">状态1: 入口</div>
+                <div class="state-temp" id="state1-temp">30.0°C</div>
+                <div class="state-humidity" id="state1-humidity">H₁ = 0.01885</div>
+            </div>
+            <div class="state-card state-2">
+                <div class="state-title">状态2: 加热后</div>
+                <div class="state-temp" id="state2-temp">60.0°C</div>
+                <div class="state-humidity" id="state2-humidity">H₂ = 0.01885</div>
+            </div>
+            <div class="state-card state-3">
+                <div class="state-title">状态3: 出口</div>
+                <div class="state-temp" id="state3-temp">35.0°C</div>
+                <div class="state-humidity" id="state3-humidity">H₃ = 0.02898</div>
+            </div>
+        </div>
+        
+        <div class="hint-box">
+            <h3>干球温度与湿球温度求解提示：</h3>
+            <p>1. <strong>干球温度 (Tdb)</strong>: 普通温度计测得的空气温度，即t₁, t₂, t₃。</p>
+            <p>2. <strong>湿球温度 (Twb)</strong>: 在等焓过程中，湿球温度保持不变。可通过湿空气焓值公式计算：h = 1.005T + H(2501 + 1.86T)。</p>
+            <p>3. <strong>湿度计算</strong>: H = 0.622 × p<sub>v</sub> / (P - p<sub>v</sub>)，其中p<sub>v</sub>为水蒸气分压。</p>
+            <p>4. <strong>等焓过程</strong>: 干燥器内h₂ = h₃，由此可求出口湿度H₃。</p>
+        </div>
+        
+        <div class="control-group">
+            <div class="control-label">
+                <span>计算步骤显示:</span>
+                <button id="show-steps" class="btn-primary">显示计算步骤</button>
+            </div>
+        </div>
+        
+        <div id="calculation-steps" style="display: none; margin-top: 20px; padding: 20px; background: rgba(0,40,80,0.2); border-radius: 10px; line-height: 1.6;">
+            <h4>计算过程：</h4>
+            <p><strong>步骤1：计算初始湿度H₁</strong></p>
+            <p>H₁ = 0.622 × p<sub>v1</sub> / (P - p<sub>v1</sub>) = 0.622 × 2.938 / (100 - 2.938) = 0.01885 kg水/kg干空气</p>
+            
+            <p><strong>步骤2：计算加热器吸热量</strong></p>
+            <p>h₁ = 1.005×30 + 0.01885×(2501 + 1.86×30) = 30.15 + 0.01885×2556.8 = 30.15 + 48.20 = 78.35 kJ/kg</p>
+            <p>h₂ = 1.005×60 + 0.01885×(2501 + 1.86×60) = 60.3 + 0.01885×2612.6 = 60.3 + 49.25 = 109.55 kJ/kg</p>
+            <p>q = h₂ - h₁ = 109.55 - 78.35 = <strong>31.20 kJ/kg干空气</strong></p>
+            
+            <p><strong>步骤3：计算干燥器出口湿度H₃</strong></p>
+            <p>等焓过程：h₃ = h₂ = 109.55 kJ/kg</p>
+            <p>109.55 = 1.005×35 + H₃×(2501 + 1.86×35)</p>
+            <p>109.55 = 35.175 + H₃×(2501 + 65.1) = 35.175 + H₃×2566.1</p>
+            <p>H₃ = (109.55 - 35.175) / 2566.1 = 74.375 / 2566.1 = <strong>0.02898 kg水/kg干空气</strong></p>
+            
+            <p><strong>步骤4：计算吸收水分量</strong></p>
+            <p>ΔH = H₃ - H₁ = 0.02898 - 0.01885 = <strong>0.01013 kg水/kg干空气</strong></p>
+            
+            <p><strong>参考答案：</strong></p>
+            <p>1. 加热器吸热量: <span id="answer-q">31.20</span> kJ/kg干空气</p>
+            <p>2. 吸收水分量: <span id="answer-dh">0.01013</span> kg水/kg干空气</p>
+        </div>
+        
+        <div class="evaluation-area">
+            <h3>评测你的答案</h3>
+            <div class="answer-input">
+                <div class="input-group">
+                    <label>加热器吸热量 (kJ/kg干空气):</label>
+                    <input type="number" id="input-q" step="0.01" placeholder="输入计算结果">
+                </div>
+                <div class="input-group">
+                    <label>吸收水分量 (kg水/kg干空气):</label>
+                    <input type="number" id="input-dh" step="0.0001" placeholder="输入计算结果">
+                </div>
+            </div>
+            
+            <button id="check-answers" class="btn-success">提交评测</button>
+            <button id="reset-answers" class="btn-secondary">重置答案</button>
+            
+            <div id="result-box" class="result-display">
+                <!-- 评测结果将显示在这里 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 右侧面板：过程模拟与可视化 -->
+    <div class="panel">
+        <h2>干燥过程模拟</h2>
+        
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div>加热器吸热量 q</div>
+                <div class="stat-value" id="display-q">0.00 kJ/kg</div>
+            </div>
+            <div class="stat-card">
+                <div>吸收水分量 ΔH</div>
+                <div class="stat-value" id="display-dh">0.0000 kg/kg</div>
+            </div>
+            <div class="stat-card">
+                <div>干燥效率 η</div>
+                <div class="stat-value" id="display-eff">0.00%</div>
+            </div>
+            <div class="stat-card">
+                <div>能量利用率</div>
+                <div class="stat-value" id="display-energy">0.00%</div>
+            </div>
+        </div>
+        
+        <!-- 改进的过程可视化：管道设计（加粗、开口） -->
+        <div class="process-visualization">
+            <div class="pipe-container">
+                <!-- 管道主体 -->
+                <div class="pipe"></div>
+                
+                <!-- 管道分区 -->
+                <div class="pipe-section" id="inlet-section">
+                    <div class="section-label">入口</div>
+                    <!-- 新增：入口状态显示 -->
+                    <div class="section-status" id="inlet-status">
+                        <div class="section-temp-display" id="inlet-status-temp">30.0°C</div>
+                        <div class="section-humidity-display" id="inlet-status-humidity">H = 0.01885</div>
+                    </div>
+                    <div class="section-temperature" id="inlet-temp">30°C</div>
+                    <div class="section-humidity" id="inlet-humidity">H = 0.01885</div>
+                </div>
+                
+                <div class="pipe-section" id="heating-section">
+                    <div class="section-label">加热区</div>
+                    <!-- 新增：加热区状态显示 -->
+                    <div class="section-status" id="heating-status">
+                        <div class="section-temp-display" id="heating-status-temp">30.0 → 60.0°C</div>
+                        <div class="section-humidity-display" id="heating-status-humidity">等湿过程 H不变</div>
+                    </div>
+                    <div class="section-temperature" id="heating-temp">30→60°C</div>
+                    <div class="section-humidity" id="heating-humidity">等湿过程 H不变</div>
+                </div>
+                
+                <div class="pipe-section" id="insulation-section">
+                    <div class="section-label">保温区</div>
+                    <!-- 新增：保温区状态显示 -->
+                    <div class="section-status" id="insulation-status">
+                        <div class="section-temp-display" id="insulation-status-temp">60.0°C</div>
+                        <div class="section-humidity-display" id="insulation-status-humidity">H = 0.01885</div>
+                    </div>
+                    <div class="section-temperature" id="insulation-temp">60°C</div>
+                    <div class="section-humidity" id="insulation-humidity">H = 0.01885</div>
+                </div>
+                
+                <div class="pipe-section" id="drying-section">
+                    <div class="section-label">干燥区</div>
+                    <!-- 新增：干燥区状态显示 -->
+                    <div class="section-status" id="drying-status">
+                        <div class="section-temp-display" id="drying-status-temp">60.0 → 35.0°C</div>
+                        <div class="section-humidity-display" id="drying-status-humidity">等焓过程 H增加</div>
+                    </div>
+                    <div class="section-temperature" id="drying-temp">60→35°C</div>
+                    <div class="section-humidity" id="drying-humidity">等焓过程 H增加</div>
+                </div>
+                
+                <div class="pipe-section" id="outlet-section">
+                    <div class="section-label">出口</div>
+                    <!-- 新增：出口状态显示 -->
+                    <div class="section-status" id="outlet-status">
+                        <div class="section-temp-display" id="outlet-status-temp">35.0°C</div>
+                        <div class="section-humidity-display" id="outlet-status-humidity">H = 0.02898</div>
+                    </div>
+                    <div class="section-temperature" id="outlet-temp">35°C</div>
+                    <div class="section-humidity" id="outlet-humidity">H = 0.02898</div>
+                </div>
+                
+                <!-- 分区分隔线 -->
+                <div class="section-divider" style="left: 12%;"></div>
+                <div class="section-divider" style="left: 40%;"></div>
+                <div class="section-divider" style="left: 48%;"></div>
+                <div class="section-divider" style="left: 76%;"></div>
+                
+                <!-- 空气粒子容器 -->
+                <div class="air-particles-container" id="air-particles">
+                    <!-- 空气粒子将通过JS动态生成 -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="dynamic-controls">
+            <div class="control-group">
+                <div class="control-label">
+                    <span>加热器温度 T₂:</span>
+                    <span class="control-value" id="v-heater-temp">60.0°C</span>
+                </div>
+                <input type="range" id="i-heater-temp" min="40" max="90" step="1" value="60">
+            </div>
+            
+            <div class="control-group">
+                <div class="control-label">
+                    <span>干燥器出口温度 T₃:</span>
+                    <span class="control-value" id="v-dryer-temp">35.0°C</span>
+                </div>
+                <input type="range" id="i-dryer-temp" min="30" max="50" step="0.5" value="35">
+            </div>
+            
+            <div class="control-group">
+                <div class="control-label">
+                    <span>空气流速 (m/s):</span>
+                    <span class="control-value" id="v-velocity">1.0</span>
+                </div>
+                <input type="range" id="i-velocity" min="0.5" max="3.0" step="0.1" value="1.0">
+            </div>
+            
+            <div class="control-group">
+                <div class="control-label">
+                    <span>空气初始湿度:</span>
+                    <span class="control-value" id="v-humidity">0.692</span>
+                </div>
+                <input type="range" id="i-humidity" min="0.1" max="0.9" step="0.01" value="0.692">
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="simulate-btn" class="btn-primary">开始模拟过程</button>
+            <button id="reset-sim" class="btn-secondary">重置模拟</button>
+            <button id="update-chart" class="btn-success">更新湿焓图</button>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-title">
+                <span>湿焓图</span>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #00a8ff;"></div>
+                        <span>状态1 (入口)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ff8a00;"></div>
+                        <span>状态2 (加热后)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #00ff9d;"></div>
+                        <span>状态3 (出口)</span>
+                    </div>
+                </div>
+            </div>
+            <canvas id="psychrometric-chart" width="800" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    // 状态管理
+    const state = {
+        simulating: false,
+        heaterTemp: 60.0,
+        dryerTemp: 35.0,
+        velocity: 1.0,
+        humidity: 0.692, // 相对湿度
+        airParticles: [],
+        particlesToRemove: [], // 待移除的粒子
+        simulationTime: 0,
+        animationId: null,
+        particleIdCounter: 0, // 粒子ID计数器
+        // 动态参数
+        T1: 30.0,
+        H1: 0.01885,
+        T2: 60.0,
+        H2: 0.01885,
+        T3: 35.0,
+        H3: 0.02898,
+        // 物理计算缓存
+        qValue: 31.20,
+        dhValue: 0.01013
+    };
+
+    // 初始化
+    function initialize() {
+        updateDisplays();
+        createInitialAirParticles();
+        drawPsychrometricChart();
+        
+        // 显示计算步骤按钮
+        document.getElementById('show-steps').addEventListener('click', function() {
+            const stepsDiv = document.getElementById('calculation-steps');
+            stepsDiv.style.display = stepsDiv.style.display === 'none' ? 'block' : 'none';
+            this.textContent = stepsDiv.style.display === 'none' ? '显示计算步骤' : '隐藏计算步骤';
+        });
+        
+        // 评测按钮
+        document.getElementById('check-answers').addEventListener('click', checkAnswers);
+        
+        // 重置答案按钮
+        document.getElementById('reset-answers').addEventListener('click', function() {
+            document.getElementById('input-q').value = '';
+            document.getElementById('input-dh').value = '';
+            const resultBox = document.getElementById('result-box');
+            resultBox.style.display = 'none';
+        });
+        
+        // 模拟按钮
+        document.getElementById('simulate-btn').addEventListener('click', function() {
+            state.simulating = !state.simulating;
+            this.textContent = state.simulating ? '暂停模拟' : '开始模拟过程';
+            
+            if (state.simulating) {
+                startSimulation();
+            } else {
+                stopSimulation();
+            }
+        });
+        
+        // 重置模拟按钮
+        document.getElementById('reset-sim').addEventListener('click', resetSimulation);
+        
+        // 更新湿焓图按钮
+        document.getElementById('update-chart').addEventListener('click', function() {
+            recalculateParameters();
+            drawPsychrometricChart();
+        });
+        
+        // 滑块事件 - 实时响应
+        document.getElementById('i-heater-temp').addEventListener('input', function() {
+            state.heaterTemp = parseFloat(this.value);
+            document.getElementById('v-heater-temp').textContent = state.heaterTemp.toFixed(1) + '°C';
+            state.T2 = state.heaterTemp;
+            // 实时更新状态显示和湿焓图
+            updateStateDisplays();
+            updatePipeSectionDisplays();
+            updateSectionStatusDisplays();
+            recalculateParameters();
+            drawPsychrometricChart();
+        });
+        
+        document.getElementById('i-dryer-temp').addEventListener('input', function() {
+            state.dryerTemp = parseFloat(this.value);
+            document.getElementById('v-dryer-temp').textContent = state.dryerTemp.toFixed(1) + '°C';
+            state.T3 = state.dryerTemp;
+            // 实时更新状态显示和湿焓图
+            updateStateDisplays();
+            updatePipeSectionDisplays();
+            updateSectionStatusDisplays();
+            recalculateParameters();
+            drawPsychrometricChart();
+        });
+        
+        document.getElementById('i-velocity').addEventListener('input', function() {
+            state.velocity = parseFloat(this.value);
+            document.getElementById('v-velocity').textContent = state.velocity.toFixed(1);
+            // 更新所有粒子的速度
+            state.airParticles.forEach(particle => {
+                particle.vx = 0.05 * state.velocity;
+            });
+        });
+        
+        document.getElementById('i-humidity').addEventListener('input', function() {
+            state.humidity = parseFloat(this.value);
+            document.getElementById('v-humidity').textContent = state.humidity.toFixed(3);
+            // 更新初始湿度H1
+            recalculateParameters();
+            drawPsychrometricChart();
+            updateStateDisplays();
+            updatePipeSectionDisplays();
+            updateSectionStatusDisplays();
+        });
+    }
+
+    // 重新计算参数（基于新的T2, T3, H1）
+    function recalculateParameters() {
+        // 1. 计算初始湿度H1（基于相对湿度）
+        const pv_sat_30 = 4.246; // 30°C时的饱和蒸汽压(kPa)
+        const pv1 = state.humidity * pv_sat_30;
+        state.H1 = 0.622 * pv1 / (100 - pv1);
+        
+        // 2. 状态2是等湿加热，所以H2 = H1
+        state.H2 = state.H1;
+        
+        // 3. 计算状态3的湿度H3（基于等焓过程）
+        // 计算状态2的焓值
+        const h2 = 1.005 * state.T2 + state.H2 * (2501 + 1.86 * state.T2);
+        
+        // 等焓过程：h3 = h2
+        // h3 = 1.005*T3 + H3*(2501 + 1.86*T3)
+        // 所以 H3 = (h2 - 1.005*T3) / (2501 + 1.86*T3)
+        state.H3 = (h2 - 1.005 * state.T3) / (2501 + 1.86 * state.T3);
+        
+        // 确保H3不为负
+        if (state.H3 < 0) state.H3 = 0;
+        
+        // 4. 计算加热器吸热量
+        const h1 = 1.005 * state.T1 + state.H1 * (2501 + 1.86 * state.T1);
+        state.qValue = h2 - h1;
+        
+        // 5. 计算吸收水分量
+        state.dhValue = state.H3 - state.H1;
+        
+        // 更新显示
+        updateStatDisplays();
+        updateEfficiency();
+    }
+
+    // 更新三温区状态显示
+    function updateStateDisplays() {
+        document.getElementById('state1-temp').textContent = state.T1.toFixed(1) + '°C';
+        document.getElementById('state1-humidity').textContent = 'H₁ = ' + state.H1.toFixed(5);
+        
+        document.getElementById('state2-temp').textContent = state.T2.toFixed(1) + '°C';
+        document.getElementById('state2-humidity').textContent = 'H₂ = ' + state.H2.toFixed(5);
+        
+        document.getElementById('state3-temp').textContent = state.T3.toFixed(1) + '°C';
+        document.getElementById('state3-humidity').textContent = 'H₃ = ' + state.H3.toFixed(5);
+    }
+
+    // 更新管道分区显示
+    function updatePipeSectionDisplays() {
+        document.getElementById('inlet-temp').textContent = state.T1.toFixed(1) + '°C';
+        document.getElementById('inlet-humidity').textContent = 'H = ' + state.H1.toFixed(5);
+        
+        document.getElementById('heating-temp').textContent = state.T1.toFixed(1) + '→' + state.T2.toFixed(1) + '°C';
+        document.getElementById('heating-humidity').textContent = '等湿过程 H不变';
+        
+        document.getElementById('insulation-temp').textContent = state.T2.toFixed(1) + '°C';
+        document.getElementById('insulation-humidity').textContent = 'H = ' + state.H2.toFixed(5);
+        
+        document.getElementById('drying-temp').textContent = state.T2.toFixed(1) + '→' + state.T3.toFixed(1) + '°C';
+        document.getElementById('drying-humidity').textContent = '等焓过程 H增加';
+        
+        document.getElementById('outlet-temp').textContent = state.T3.toFixed(1) + '°C';
+        document.getElementById('outlet-humidity').textContent = 'H = ' + state.H3.toFixed(5);
+    }
+
+    // 更新分区状态显示（管道内部）
+    function updateSectionStatusDisplays() {
+        // 入口状态
+        document.getElementById('inlet-status-temp').textContent = state.T1.toFixed(1) + '°C';
+        document.getElementById('inlet-status-humidity').textContent = 'H = ' + state.H1.toFixed(3);
+        
+        // 加热区状态
+        document.getElementById('heating-status-temp').textContent = state.T1.toFixed(1) + ' → ' + state.T2.toFixed(1) + '°C';
+        document.getElementById('heating-status-humidity').textContent = 'H = ' + state.H1.toFixed(3);
+        
+        // 保温区状态
+        document.getElementById('insulation-status-temp').textContent = state.T2.toFixed(1) + '°C';
+        document.getElementById('insulation-status-humidity').textContent = 'H = ' + state.H2.toFixed(3);
+        
+        // 干燥区状态
+        document.getElementById('drying-status-temp').textContent = state.T2.toFixed(1) + ' → ' + state.T3.toFixed(1) + '°C';
+        document.getElementById('drying-status-humidity').textContent = 'H = ' + state.H2.toFixed(3) + ' → ' + state.H3.toFixed(3);
+        
+        // 出口状态
+        document.getElementById('outlet-status-temp').textContent = state.T3.toFixed(1) + '°C';
+        document.getElementById('outlet-status-humidity').textContent = 'H = ' + state.H3.toFixed(3);
+    }
+
+    // 更新统计显示
+    function updateStatDisplays() {
+        document.getElementById('display-q').textContent = state.qValue.toFixed(2) + ' kJ/kg';
+        document.getElementById('display-dh').textContent = state.dhValue.toFixed(5) + ' kg/kg';
+    }
+
+    // 更新效率显示
+    function updateEfficiency() {
+        // 干燥效率计算（简化模型）
+        const efficiency = 85 + (state.velocity - 1) * 5 + (0.8 - state.humidity) * 20;
+        const energyUtilization = 75 + (state.velocity - 1) * 3 + (0.8 - state.humidity) * 15;
+        
+        document.getElementById('display-eff').textContent = Math.min(efficiency, 98).toFixed(2) + '%';
+        document.getElementById('display-energy').textContent = Math.min(energyUtilization, 95).toFixed(2) + '%';
+    }
+
+    // 根据温度获取颜色
+    function getTemperatureColor(temp) {
+        // 线性插值：30°C为蓝色，60°C为橙色，35°C为蓝绿色
+        if (temp <= 30) {
+            return 'var(--temp-cool)';
+        } else if (temp >= 60) {
+            return 'var(--temp-hot)';
+        } else {
+            // 在30-60°C之间线性插值
+            const ratio = (temp - 30) / (60 - 30);
+            
+            // 从蓝色(#4d7fff)到橙色(#ff8a00)的渐变
+            const r1 = 77, g1 = 127, b1 = 255; // #4d7fff
+            const r2 = 255, g2 = 138, b2 = 0;  // #ff8a00
+            
+            const r = Math.round(r1 + (r2 - r1) * ratio);
+            const g = Math.round(g1 + (g2 - g1) * ratio);
+            const b = Math.round(b1 + (b2 - b1) * ratio);
+            
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+    }
+
+    // 根据湿度获取气泡大小
+    function getHumiditySize(humidity) {
+        // 湿度范围：0.01-0.04，对应气泡大小：5-20px（加大尺寸）
+        const minSize = 5;
+        const maxSize = 20;
+        const minHumidity = 0.01;
+        const maxHumidity = 0.04;
+        
+        if (humidity <= minHumidity) return minSize;
+        if (humidity >= maxHumidity) return maxSize;
+        
+        const ratio = (humidity - minHumidity) / (maxHumidity - minHumidity);
+        return minSize + (maxSize - minSize) * ratio;
+    }
+
+    // 创建初始空气粒子（不显示在管道外）
+    function createInitialAirParticles() {
+        const container = document.getElementById('air-particles');
+        container.innerHTML = '';
+        state.airParticles = [];
+        state.particleIdCounter = 0;
+        state.particlesToRemove = [];
+        
+        // 创建40个空气粒子，全部在管道内部
+        for (let i = 0; i < 40; i++) {
+            createNewAirParticleInPipe();
+        }
+    }
+
+    // 在管道内部创建一个新的空气粒子
+    function createNewAirParticleInPipe() {
+        const container = document.getElementById('air-particles');
+        const particleId = state.particleIdCounter++;
+        
+        const particle = document.createElement('div');
+        particle.className = 'air-particle';
+        particle.id = 'particle-' + particleId;
+        
+        // 创建粒子信息显示
+        const particleInfo = document.createElement('div');
+        particleInfo.className = 'particle-info';
+        particle.appendChild(particleInfo);
+        
+        // 初始位置在管道入口区域（0%-30%之间）
+        const startPosition = Math.random() * 30;
+        const verticalPosition = 40 + (Math.random() - 0.5) * 40;
+        
+        // 初始温度和湿度（状态1）
+        const temp = state.T1;
+        const humidity = state.H1;
+        const size = getHumiditySize(humidity);
+        const color = getTemperatureColor(temp);
+        
+        particle.style.left = startPosition + '%';
+        particle.style.top = verticalPosition + '%';
+        particle.style.width = size + 'px';
+        particle.style.height = size + 'px';
+        particle.style.backgroundColor = color;
+        particle.style.opacity = 0.6 + Math.random() * 0.4;
+        
+        // 添加到容器
+        container.appendChild(particle);
+        
+        // 存储粒子状态
+        const particleObj = {
+            element: particle,
+            info: particleInfo,
+            position: startPosition, // 粒子在管道中的位置（百分比）
+            verticalPosition: verticalPosition,
+            temperature: temp,
+            humidity: humidity,
+            section: 'inlet',
+            id: particleId,
+            birthTime: Date.now(),
+            vx: 0.05 * state.velocity // x方向速度（% per frame），与流速相关
+        };
+        
+        state.airParticles.push(particleObj);
+        
+        // 更新粒子信息显示
+        particleInfo.textContent = `T: ${particleObj.temperature.toFixed(1)}°C H: ${particleObj.humidity.toFixed(5)}`;
+    }
+
+    // 在入口处生成新的空气粒子（当需要补充时）
+    function generateNewParticleAtInlet() {
+        createNewAirParticleInPipe();
+    }
+
+    // 更新粒子位置和属性
+    function updateParticlePositionAndProperties(particle) {
+        // 更新粒子位置 - 单向流动，x方向始终为正
+        particle.position += particle.vx;
+        particle.element.style.left = particle.position + '%';
+        
+        // 更新粒子所在区域
+        let currentSection = 'inlet';
+        if (particle.position >= 0 && particle.position < 12) {
+            currentSection = 'inlet';
+        } else if (particle.position >= 12 && particle.position < 40) {
+            currentSection = 'heating';
+        } else if (particle.position >= 40 && particle.position < 48) {
+            currentSection = 'insulation';
+        } else if (particle.position >= 48 && particle.position < 76) {
+            currentSection = 'drying';
+        } else if (particle.position >= 76 && particle.position <= 100) {
+            currentSection = 'outlet';
+        } else if (particle.position > 100) {
+            currentSection = 'exited';
+        }
+        
+        particle.section = currentSection;
+        
+        // 根据所在区域更新粒子的温度和湿度
+        updateParticleProperties(particle);
+        
+        // 更新粒子外观
+        updateParticleAppearance(particle);
+        
+        // 更新粒子信息显示
+        particle.info.textContent = `T: ${particle.temperature.toFixed(1)}°C H: ${particle.humidity.toFixed(5)}`;
+        
+        // 检查粒子是否已离开管道（到达出口）
+        if (particle.position > 100) {
+            // 标记粒子待移除
+            state.particlesToRemove.push(particle);
+            return false; // 粒子已离开
+        }
+        
+        return true; // 粒子仍在管道内
+    }
+
+    // 更新粒子属性（温度和湿度）
+    function updateParticleProperties(particle) {
+        const section = particle.section;
+        
+        switch(section) {
+            case 'inlet':
+                particle.temperature = state.T1;
+                particle.humidity = state.H1;
+                break;
+                
+            case 'heating':
+                // 在加热区，温度线性增加，湿度不变
+                const heatingProgress = (particle.position - 12) / (40 - 12);
+                particle.temperature = state.T1 + (state.T2 - state.T1) * heatingProgress;
+                particle.humidity = state.H1; // 等湿过程
+                break;
+                
+            case 'insulation':
+                // 保温区，温度和湿度保持不变
+                particle.temperature = state.T2;
+                particle.humidity = state.H2;
+                break;
+                
+            case 'drying':
+                // 在干燥区，温度线性降低，湿度线性增加（等焓过程）
+                const dryingProgress = (particle.position - 48) / (76 - 48);
+                particle.temperature = state.T2 + (state.T3 - state.T2) * dryingProgress;
+                particle.humidity = state.H2 + (state.H3 - state.H2) * dryingProgress;
+                break;
+                
+            case 'outlet':
+                // 出口区，保持最终状态
+                particle.temperature = state.T3;
+                particle.humidity = state.H3;
+                break;
+        }
+    }
+
+    // 更新粒子外观
+    function updateParticleAppearance(particle) {
+        // 更新颜色基于温度
+        particle.element.style.backgroundColor = getTemperatureColor(particle.temperature);
+        
+        // 更新大小基于湿度
+        const size = getHumiditySize(particle.humidity);
+        particle.element.style.width = size + 'px';
+        particle.element.style.height = size + 'px';
+        
+        // 轻微垂直浮动效果
+        const floatOffset = Math.sin(Date.now() / 1000 + particle.id * 0.1) * 8;
+        particle.element.style.top = (particle.verticalPosition + floatOffset) + '%';
+        
+        // 根据位置调整透明度
+        let opacity = 0.7;
+        particle.element.style.opacity = opacity;
+    }
+
+    // 移除标记的粒子
+    function removeMarkedParticles() {
+        for (let i = state.particlesToRemove.length - 1; i >= 0; i--) {
+            const particle = state.particlesToRemove[i];
+            
+            // 从DOM中移除元素
+            if (particle.element && particle.element.parentNode) {
+                particle.element.parentNode.removeChild(particle.element);
+            }
+            
+            // 从状态数组中移除
+            const index = state.airParticles.indexOf(particle);
+            if (index > -1) {
+                state.airParticles.splice(index, 1);
+            }
+            
+            // 在入口生成新的粒子，保持流量稳定
+            generateNewParticleAtInlet();
+        }
+        
+        // 清空待移除列表
+        state.particlesToRemove = [];
+    }
+
+    // 主动画循环
+    function animateParticles() {
+        if (!state.simulating) return;
+        
+        // 清空待移除列表
+        state.particlesToRemove = [];
+        
+        // 更新所有粒子的位置和属性
+        for (let i = 0; i < state.airParticles.length; i++) {
+            const particle = state.airParticles[i];
+            updateParticlePositionAndProperties(particle);
+        }
+        
+        // 移除已离开管道的粒子
+        removeMarkedParticles();
+        
+        // 确保有足够的粒子（至少40个）
+        while (state.airParticles.length < 40) {
+            generateNewParticleAtInlet();
+        }
+        
+        // 继续动画
+        state.animationId = requestAnimationFrame(animateParticles);
+    }
+
+    // 开始模拟
+    function startSimulation() {
+        state.simulating = true;
+        // 重置所有粒子的速度，考虑当前流速
+        state.airParticles.forEach(particle => {
+            particle.vx = 0.05 * state.velocity;
+        });
+        animateParticles();
+    }
+
+    // 停止模拟
+    function stopSimulation() {
+        state.simulating = false;
+        if (state.animationId) {
+            cancelAnimationFrame(state.animationId);
+            state.animationId = null;
+        }
+    }
+
+    // 重置模拟
+    function resetSimulation() {
+        stopSimulation();
+        state.simulationTime = 0;
+        
+        // 重置滑块到初始值
+        document.getElementById('i-heater-temp').value = 60;
+        document.getElementById('i-dryer-temp').value = 35;
+        document.getElementById('i-velocity').value = 1.0;
+        document.getElementById('i-humidity').value = 0.692;
+        
+        state.heaterTemp = 60.0;
+        state.dryerTemp = 35.0;
+        state.velocity = 1.0;
+        state.humidity = 0.692;
+        
+        document.getElementById('v-heater-temp').textContent = '60.0°C';
+        document.getElementById('v-dryer-temp').textContent = '35.0°C';
+        document.getElementById('v-velocity').textContent = '1.0';
+        document.getElementById('v-humidity').textContent = '0.692';
+        
+        document.getElementById('simulate-btn').textContent = '开始模拟过程';
+        
+        // 重新计算参数
+        recalculateParameters();
+        drawPsychrometricChart();
+        updateStateDisplays();
+        updatePipeSectionDisplays();
+        updateSectionStatusDisplays();
+        
+        // 重新创建空气粒子
+        createInitialAirParticles();
+    }
+
+    // 更新显示
+    function updateDisplays() {
+        recalculateParameters();
+        updateStateDisplays();
+        updatePipeSectionDisplays();
+        updateSectionStatusDisplays();
+    }
+
+    // 绘制湿焓图 - 修复版本
+    function drawPsychrometricChart() {
+        const canvas = document.getElementById('psychrometric-chart');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        // 1. 重置所有变换矩阵到默认状态
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
+        // 2. 完全清空画布
+        ctx.clearRect(0, 0, width, height);
+        
+        // 3. 保存原始状态
+        ctx.save();
+        
+        // 4. 应用平移
+        const offsetX = 30;
+        ctx.translate(offsetX, 0);
+        
+        // 绘制坐标轴
+        ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+        ctx.lineWidth = 1.5;
+        
+        // X轴（温度）
+        ctx.beginPath();
+        ctx.moveTo(50, height - 30);
+        ctx.lineTo(width - 30, height - 30);
+        ctx.stroke();
+        
+        // Y轴（湿度）
+        ctx.beginPath();
+        ctx.moveTo(50, 30);
+        ctx.lineTo(50, height - 30);
+        ctx.stroke();
+        
+        // 坐标轴标签
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.font = '18px Consolas, monospace';
+        ctx.fillText('温度 T (°C)', width - 150, height - 0);
+        
+        // 绘制Y轴标签（湿度）
+        ctx.save();
+        ctx.translate(0, height / 1.2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('湿度 H (kg/kg)', 0, 0);
+        ctx.restore();
+        
+        // 绘制等焓线（示意）
+        ctx.strokeStyle = 'rgba(0, 168, 255, 0.3)';
+        ctx.setLineDash([5, 3]);
+        
+        // 绘制多条等焓线
+        for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            const startY = height - 30 - i * 40;
+            const endY = 30 + i * 40;
+            ctx.moveTo(50, startY);
+            ctx.lineTo(width - 30, endY);
+            ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        
+        // 绘制三个状态点
+        drawStatePoint(ctx, state.T1, state.H1, width, height, '1', '#00a8ff'); // 点1: 初始状态
+        drawStatePoint(ctx, state.T2, state.H2, width, height, '2', '#ff8a00'); // 点2: 加热后
+        drawStatePoint(ctx, state.T3, state.H3, width, height, '3', '#00ff9d'); // 点3: 干燥后
+        
+        // 连接点1->点2 (等湿加热)
+        ctx.strokeStyle = '#ff8a00';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const p1 = calculatePoint(state.T1, state.H1, width, height);
+        const p2 = calculatePoint(state.T2, state.H2, width, height);
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+        
+        // 连接点2->点3 (等焓干燥)
+        ctx.strokeStyle = '#00ff9d';
+        ctx.beginPath();
+        const p3 = calculatePoint(state.T3, state.H3, width, height);
+        ctx.moveTo(p2.x, p2.y);
+        ctx.lineTo(p3.x, p3.y);
+        ctx.stroke();
+        
+        // 添加参数值显示
+        ctx.fillStyle = 'rgba(140, 160, 199, 1)';
+        ctx.font = '12px Consolas';
+        ctx.fillText(`T₁ = ${state.T1}°C, T₂ = ${state.T2}°C, T₃ = ${state.T3}°C`, width - 300, 20);
+        ctx.fillText(`H₁ = ${state.H1.toFixed(4)}, H₂ = ${state.H2.toFixed(4)}, H₃ = ${state.H3.toFixed(4)}`, width - 300, 35);
+        
+        // 绘制含水量刻度
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.font = '12px Consolas, monospace';
+        ctx.textAlign = 'right';
+        
+        for (let i = 0; i <= 5; i++) {
+            const value = 0.04 - i * 0.008;
+            const y = 30 + i * ((height - 60) / 5);
+            ctx.fillText(value.toFixed(3), 47, y);
+        }
+        ctx.textAlign = 'left';
+        
+        // 绘制温度刻度
+        ctx.textAlign = 'center';
+        for (let i = 0; i <= 6; i++) {
+            const value = 20 + i * 10;
+            const x = 50 + i * ((width - 80) / 6);
+            ctx.fillText(value.toString(), x, height - 17);
+        }
+        ctx.textAlign = 'left';
+        
+        // 5. 恢复原始状态
+        ctx.restore();
+    }
+
+    // 计算点在图表上的坐标
+    function calculatePoint(T, H, width, height) {
+        const x = 50 + (T - 20) * (width - 80) / 60; // 20-80°C范围
+        const y = height - 30 - H * 2500; // 缩放湿度值，0.04对应顶部
+        return { x: x, y: Math.max(30, Math.min(height - 30, y)) };
+    }
+
+    // 绘制状态点
+    function drawStatePoint(ctx, T, H, width, height, label, color) {
+        const point = calculatePoint(T, H, width, height);
+        
+        // 绘制点
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 绘制光环
+        ctx.strokeStyle = color + '80';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 10, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // 添加标签
+        ctx.fillStyle = color;
+        ctx.font = 'bold 12px Segoe UI';
+        ctx.fillText(label, point.x - 4, point.y - 12);
+        
+        // 添加坐标值
+        ctx.fillStyle = 'rgba(255, 255, 0, 1)';
+        ctx.font = '12px Consolas';
+        ctx.fillText(`${T}°C, ${H.toFixed(3)}`, point.x - 35, point.y + 20);
+    }
+
+    // 评测答案
+    function checkAnswers() {
+        const inputQ = parseFloat(document.getElementById('input-q').value);
+        const inputDH = parseFloat(document.getElementById('input-dh').value);
+        
+        if (isNaN(inputQ) || isNaN(inputDH)) {
+            showResult('请输入有效的数值', false);
+            return;
+        }
+        
+        // 计算误差（允许5%误差）
+        const qError = Math.abs(inputQ - state.qValue) / state.qValue;
+        const dhError = Math.abs(inputDH - state.dhValue) / state.dhValue;
+        
+        const resultBox = document.getElementById('result-box');
+        
+        if (qError <= 0.05 && dhError <= 0.05) {
+            // 答案正确
+            showResult(`
+                <div style="margin-bottom: 10px;">✅ <strong>答案正确！</strong></div>
+                <div>加热器吸热量: ${inputQ.toFixed(2)} kJ/kg (误差: ${(qError*100).toFixed(1)}%)</div>
+                <div>吸收水分量: ${inputDH.toFixed(5)} kg/kg (误差: ${(dhError*100).toFixed(1)}%)</div>
+                <div style="margin-top: 15px; color: #8ca0c7;">你对等焓干燥过程的理解很准确！</div>
+            `, true);
+        } else {
+            // 答案错误
+            let feedback = '';
+            if (qError > 0.05) {
+                feedback += `<div>• 加热器吸热量计算有较大误差 (${(qError*100).toFixed(1)}%)</div>`;
+            }
+            if (dhError > 0.05) {
+                feedback += `<div>• 吸收水分量计算有较大误差 (${(dhError*100).toFixed(1)}%)</div>`;
+            }
+            
+            showResult(`
+                <div style="margin-bottom: 10px;">❌ <strong>答案需要调整</strong></div>
+                ${feedback}
+                <div style="margin-top: 15px; color: #8ca0c7;">提示：检查焓值计算公式和等焓过程条件</div>
+            `, false);
+        }
+    }
+
+    // 显示评测结果
+    function showResult(message, isCorrect) {
+        const resultBox = document.getElementById('result-box');
+        resultBox.innerHTML = message;
+        resultBox.className = `result-display ${isCorrect ? 'result-correct' : 'result-incorrect'}`;
+        resultBox.style.display = 'block';
+    }
+
+    // 页面加载时初始化
+    window.addEventListener('load', initialize);
+</script>
+
+
+
+<!-- 底部信息栏 -->
+<div style="
+    text-align: center;
+    padding: 20px 30px;
+    margin-top: 40px;
+    color: #e6f7ff;
+    font-size: 0.9rem;
+    border-top: 2px solid rgba(0, 180, 255, 0.5);
+    background: linear-gradient(135deg, rgba(10, 15, 43, 0.95), rgba(18, 26, 58, 0.9));
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+">
+    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+    
+    <p style="font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; color: #00b4ff;">
+        等焓干燥工程仿真实验 © 2025 | 干燥工程仿真系统 | 版本 1.0 |
+      <style="margin-bottom: 12px; color: #cbd5e1;">
+        <strong>邮箱:</strong> xgyanger@qq.com
+    </p>
+    
+    <div style="margin-top: 15px;">
+        <span style="color: #ffcc00; font-weight: bold; font-size: 1.1rem;">
+            版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+        </span>
+    </div>
+</div>
+
+
+</body>
+</html>

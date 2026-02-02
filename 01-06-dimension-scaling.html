@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>几何相似与量纲分析闯关小游戏</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;background:#0f172a;color:#e5e7eb;margin:0}
+#app{max-width:1000px;margin:0 auto;padding:24px}
+h1{color:#38bdf8;text-align:center}
+.card{background:#020617;border-radius:12px;padding:20px;margin-top:16px;box-shadow:0 0 20px rgba(56,189,248,.2)}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+select,input,button{padding:10px;border-radius:8px;border:1px solid #334155;background:#020617;color:#e5e7eb;font-size:16px}
+button{cursor:pointer;background:#38bdf8;color:#020617;border:none}
+.feedback{margin-top:14px;font-weight:bold;white-space:pre-wrap;}
+.good{color:#22c55e}
+.bad{color:#ef4444}
+.hint{color:#94a3b8;font-size:14px;margin-top:8px}
+#nextBtn{margin-top:16px;padding:10px 16px;border-radius:8px;border:none;background:#38bdf8;color:#020617;font-size:16px;cursor:pointer;display:none}
+</style>
+</head>
+<body>
+<div id="app">
+<h1>⚙️ 几何相似与量纲分析闯关小游戏</h1>
+<p>目标：通过量纲分析和几何相似预测数量关系，理解从小尺度到大尺度的工程直觉。</p>
+
+<div class="card card-grid">
+<div>
+<h2 id="levelTitle"></h2>
+<p id="question"></p>
+<div id="inputArea"></div>
+<div style="margin-top:12px"><button id="checkBtn">开始判断</button></div>
+<div style="margin-top:12px"><button id="nextBtn">进入下一关 ▶</button></div>
+</div>
+<div>
+<h2>👷 工程师反馈</h2>
+<div class="feedback" id="feedback">等待你的工程判断…</div>
+<div class="hint" id="hint"></div>
+</div>
+</div>
+
+<script>
+// 填充系数
+const fillBall = 0.64; // 球填充系数
+const fillCell = 0.8;  // 电芯填充系数
+
+// 球体和容器参数
+const D_ball = 0.04;   // 乒乓球直径 m
+const V_ball = (4/3)*Math.PI*Math.pow(D_ball/2,3);
+
+// 各尺度容器特征长度 m
+const L_box = 0.5;      // 50cm 箱子
+const L_class = 5;      // 5 m 教室
+const L_gym = 50;       // 50 m 体育馆
+
+// 电芯体积及电池包体积
+const V_cell = 0.001; // 电芯 m³
+const V_car = 0.1;    // 电动车电池包
+const V_truck = 0.5;  // 卡车电池包
+const V_ship = 5;     // 电动轮船电池包
+
+const levels = [
+{
+  title:"第 1 关｜50cm 箱子放乒乓球",
+  question:"箱子边长约 50 cm，乒乓球直径约 4 cm，填充系数为~0.8，估算箱子最多可放多少球？",
+  correct:function(input){
+    const V_box = Math.pow(L_box,3);
+    const N = V_box / V_ball * fillBall;
+    return Math.abs(input-N)/N<=0.3;
+  },
+  hint:function(){ return `N_box ≈ ${Math.floor(Math.pow(L_box,3)/V_ball*fillBall)} 个球`; },
+  feedback:"使用体积比 × 填充系数估算数量。"
+},
+{
+  title:"第 2 关｜5 m 教室放乒乓球",
+  question:"教室边长约 5 m，参考箱子估算方法，预测教室最多可放多少乒乓球？",
+  correct:function(input){
+    const N_box = Math.pow(L_box,3)/V_ball*fillBall;
+    const scale = Math.pow(L_class/L_box,3);
+    const N = N_box * scale; // ❌ 已修正：不要再乘 fillBall
+    return Math.abs(input-N)/N<=0.3;
+  },
+  hint:function(){ 
+    const N_box = Math.pow(L_box,3)/V_ball*fillBall;
+    return `N_class ≈ N_box × (L_class/L_box)^3 ≈ ${Math.floor(N_box * Math.pow(L_class/L_box,3))} 个球`; 
+  },
+  feedback:"体积按立方关系放大，填充系数已计入 N_box。"
+},
+{
+  title:"第 3 关｜50 m 体育馆放乒乓球",
+  question:"体育馆边长约 50 m，参考教室估算方法，预测体育馆最多可放多少乒乓球？",
+  correct:function(input){
+    const N_class = Math.pow(L_class,3)/V_ball*fillBall;
+    const scale = Math.pow(L_gym/L_class,3);
+    const N = N_class * scale; // ❌ 修正：不要重复乘 fillBall
+    return Math.abs(input-N)/N<=0.3;
+  },
+  hint:function(){ 
+    const N_class = Math.pow(L_class,3)/V_ball*fillBall;
+    return `N_gym ≈ N_class × (L_gym/L_class)^3 ≈ ${Math.floor(N_class * Math.pow(L_gym/L_class,3))} 个球`;
+  },
+  feedback:"再次按几何相似放大，量纲一致性强化工程直觉。"
+},
+{
+  title:"第 4 关｜电动车电芯预测",
+  question:"电动车电池包体积 0.1 m³，每个电芯体积 0.001 m³，填充系数为0.8，估算包内可放电芯数量。",
+  correct:function(input){
+    const N = Math.floor(V_car/V_cell*fillCell);
+    return Math.abs(input-N)/N<=0.3;
+  },
+  hint:function(){ return `N ≈ V_car / V_cell × 填充系数 ≈ ${Math.floor(V_car/V_cell*fillCell)} 个电芯`; },
+  feedback:"电池数量与电池包体积 / 单体电芯体积成正比。"
+},
+{
+  title:"第 5 关｜电动卡车电芯预测",
+  question:"卡车电池包体积约 0.5 m³，参考电动车的电芯体积，估算可放电芯数量。",
+  correct:function(input){
+    const N = Math.floor(V_truck/V_cell*fillCell);
+    return Math.abs(input-N)/N<=0.3;
+  },
+  hint:function(){ return `N ≈ V_truck / V_cell × 填充系数 ≈ ${Math.floor(V_truck/V_cell*fillCell)} 个电芯`; },
+  feedback:"卡车包容量放大，数量按比例放大。"
+},
+{
+  title:"第 6 关｜电动游轮电芯预测",
+  question:"游轮电池包体积约 5 m³，参考电动车的电芯体积，估算可放电芯数量。",
+  correct:function(input){
+    const N = Math.floor(V_ship/V_cell*fillCell);
+    return Math.abs(input-N)/N<=0.3;
+  },
+  hint:function(){ return `N ≈ V_ship / V_cell × 填充系数 ≈ ${Math.floor(V_ship/V_cell*fillCell)} 个电芯`; },
+  feedback:"大型系统预测强化工程直觉，量纲一致性验证。"
+}
+];
+
+let current=0;
+const levelTitle=document.getElementById('levelTitle');
+const questionEl=document.getElementById('question');
+const inputArea=document.getElementById('inputArea');
+const checkBtn=document.getElementById('checkBtn');
+const nextBtn=document.getElementById('nextBtn');
+const feedbackEl=document.getElementById('feedback');
+const hintEl=document.getElementById('hint');
+
+function loadLevel(){
+  const lvl=levels[current];
+  levelTitle.textContent=lvl.title;
+  questionEl.textContent=lvl.question;
+  inputArea.innerHTML='<input type="number" id="userInput" placeholder="请输入数量">';
+  feedbackEl.textContent='等待你的工程判断…';
+  feedbackEl.className='feedback';
+  hintEl.textContent='';
+  checkBtn.style.display='inline-block';
+  nextBtn.style.display='none';
+}
+
+checkBtn.onclick=function(){
+  const input=parseFloat(document.getElementById('userInput').value);
+  if(isNaN(input)||input<=0){
+    feedbackEl.textContent='请输入合理数量';
+    feedbackEl.className='feedback bad';
+    return;
+  }
+  const lvl=levels[current];
+  const lvlCorrect=lvl.correct(input);
+  if(lvlCorrect){
+    feedbackEl.textContent='✅ 工程判断合理！\n'+lvl.feedback;
+    feedbackEl.className='feedback good';
+    hintEl.textContent=lvl.hint();
+    nextBtn.style.display='inline-block';
+  } else {
+    feedbackEl.textContent='⚠ 数量不合理，请重新估算';
+    feedbackEl.className='feedback bad';
+  }
+};
+
+nextBtn.onclick=function(){
+  current++;
+  if(current<levels.length){
+    loadLevel();
+  } else {
+    levelTitle.textContent='🎉 全部通关';
+    questionEl.textContent='恭喜你，你已掌握几何相似与量纲分析的工程直觉（白银工程师）！';
+    inputArea.innerHTML='';
+    feedbackEl.textContent='';
+    hintEl.textContent='';
+    checkBtn.style.display='none';
+    nextBtn.style.display='none';
+  }
+};
+
+loadLevel();
+</script>
+
+    <!-- 底部信息栏 -->
+    <div style="
+        text-align: center;
+        padding: 20px 30px;
+        margin-top: 40px;
+        color: #93c5fd;
+        font-size: 0.9rem;
+        border-top: 2px solid rgba(56, 189, 248, 0.5);
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9));
+        border-radius: 15px 15px 0 0;
+        box-shadow: 0 -10px 30px rgba(56, 189, 248, 0.1);
+        position: relative;
+        overflow: hidden;
+    ">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #38bdf8, #0ea5e9, #38bdf8);"></div>
+        
+        <p style="font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; color: #38bdf8;">
+            几何相似与量纲分析闯关小游戏 &copy; 2025 | 工程直觉训练系统 | 版本 1.0 | 
+        
+        <style="margin-bottom: 12px; color: #cbd5e1;">
+             <strong>邮箱:</strong> xgyanger@qq.com
+        </p>
+        
+      
+        <div style="margin-top: 15px; display: flex; justify-content: center; gap: 15px;">
+            <span style="color: #ff9e00; font-weight: bold; font-size: 1rem;">
+                版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+            </span>
+        </div>
+    </div>
+
+
+</body>
+</html>

@@ -1,0 +1,3230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>墒情守护：毛细管传质实验站</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Exo+2:wght@300;500&display=swap">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background: linear-gradient(135deg, #0a0a2a 0%, #111144 50%, #0a0a2a 100%);
+            color: #e0f7ff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding: 20px;
+            position: relative;
+        }
+        
+        /* 背景网格线 */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 150, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 150, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+        }
+        
+        /* 浮动粒子效果 */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .particle {
+            position: absolute;
+            background-color: rgba(0, 200, 255, 0.3);
+            border-radius: 50%;
+            animation: float 15s infinite linear;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px) translateX(0px); opacity: 0.3; }
+            50% { opacity: 0.7; }
+            100% { transform: translateY(-1000px) translateX(500px); opacity: 0; }
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(0, 200, 255, 0.3);
+        }
+        
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.8rem;
+            background: linear-gradient(90deg, #00a8ff, #00ffea);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(0, 200, 255, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #a0e7ff;
+            font-weight: 300;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        /* 实验阶段指示器 */
+        .stage-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0 30px;
+            color: #a0e7ff;
+            font-size: 1rem;
+        }
+        
+        .stage {
+            text-align: center;
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            transition: all 0.3s;
+            background: rgba(10, 20, 40, 0.5);
+            margin: 0 5px;
+            position: relative;
+        }
+        
+        .stage.active {
+            color: #00ffea;
+            font-weight: 500;
+            background: rgba(0, 100, 200, 0.3);
+            box-shadow: 0 0 15px rgba(0, 150, 255, 0.3);
+            text-shadow: 0 0 8px rgba(0, 255, 234, 0.5);
+        }
+        
+        .stage.completed {
+            color: #88ff88;
+            background: rgba(0, 100, 50, 0.3);
+        }
+        
+        .stage-number {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            border-radius: 50%;
+            background: rgba(0, 150, 255, 0.2);
+            margin-right: 8px;
+            text-align: center;
+        }
+        
+        .stage.active .stage-number {
+            background: #00a8ff;
+            box-shadow: 0 0 10px #00a8ff;
+        }
+        
+        .stage.completed .stage-number {
+            background: #00cc66;
+            box-shadow: 0 0 10px #00cc66;
+        }
+        
+        .experiment-progress {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-bottom: 30px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 150, 255, 0.2);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0066ff, #00ccff, #66ffff);
+            width: 0%;
+            transition: width 0.5s;
+            box-shadow: 0 0 15px #00ccff;
+        }
+        
+        .experiment-container {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .experiment-panel {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(15, 20, 45, 0.8);
+            border-radius: 15px;
+            border: 2px solid rgba(0, 200, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 
+                        inset 0 0 30px rgba(0, 150, 255, 0.1);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+        
+        .experiment-panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 100, 255, 0.4), 
+                        inset 0 0 30px rgba(0, 150, 255, 0.2);
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(0, 200, 255, 0.3);
+        }
+        
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            color: #00ffea;
+            text-shadow: 0 0 10px rgba(0, 255, 234, 0.5);
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: #00ff00;
+            box-shadow: 0 0 15px #00ff00;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
+        }
+        
+        .status-dot.inactive {
+            background-color: #ff5555;
+            box-shadow: 0 0 15px #ff5555;
+            animation: pulse-red 2s infinite;
+        }
+        
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(255, 85, 85, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 85, 85, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 85, 85, 0); }
+        }
+        
+        .soil-container {
+            position: relative;
+            height: 300px;
+            background: linear-gradient(to bottom, #0a1122, #0a1a2a);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 2px solid rgba(0, 150, 255, 0.2);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* 土壤区域 */
+        .soil-area {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 80%;
+            background: linear-gradient(to top, #2a221a, #3a2a22);
+            border-radius: 0 0 10px 10px;
+            z-index: 2;
+            box-shadow: inset 0 5px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* 毛细管 */
+        .capillary {
+            position: absolute;
+            width: 3px;
+            background: linear-gradient(to top, #0088ff, #00ccff, #66ffff);
+            opacity: 0.9;
+            box-shadow: 0 0 15px #00a8ff;
+            transition: all 0.5s;
+            z-index: 3;
+            border-radius: 2px;
+        }
+        
+        .capillary.broken {
+            background: linear-gradient(to top, #666, #999);
+            opacity: 0.4;
+            box-shadow: 0 0 5px #666;
+        }
+        
+        /* 水滴 */
+        .water-drop {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: radial-gradient(circle at 30% 30%, #00ccff, #0088ff);
+            border-radius: 50%;
+            box-shadow: 0 0 20px #00ccff;
+            z-index: 5;
+            animation: drop-shimmer 2s infinite;
+        }
+        
+        @keyframes drop-shimmer {
+            0% { box-shadow: 0 0 10px #00ccff; }
+            50% { box-shadow: 0 0 25px #00ccff; }
+            100% { box-shadow: 0 0 10px #00ccff; }
+        }
+        
+        /* 蒸发粒子 */
+        .evaporation-particle {
+            position: absolute;
+            width: 7px;
+            height: 7px;
+            background: radial-gradient(circle at 30% 30%, #66e0ff, #00a8ff);
+            border-radius: 50%;
+            opacity: 0.9;
+            box-shadow: 0 0 15px #66e0ff;
+            z-index: 6;
+        }
+        
+        /* 禾苗 */
+        .plant {
+            position: absolute;
+            bottom: 90%;
+            left: 80%;
+            transform: translateX(-50%);
+            z-index: 7;
+            transition: all 1s;
+        }
+        
+        .plant-stem {
+            width: 10px;
+            height: 30px;
+            background: linear-gradient(to top, #00aa00, #44ff44);
+            margin: 0 auto;
+            border-radius: 5px 5px 0 0;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+            transition: all 1s;
+position: relative;
+    top: 60px;
+        }
+        
+        .plant-leaves {
+            display: flex;
+            justify-content: center;
+            margin-top: 5px;
+            transition: all 1s;
+        }
+        
+        .leaf {
+            width: 45px;
+            height: 22px;
+            background: linear-gradient(to bottom right, #00cc00, #88ff88);
+            border-radius: 50% 50% 50% 0;
+            margin: 0 8px;
+            position: relative;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+            transition: all 1s;
+        }
+        
+        .leaf::after {
+            content: "";
+            position: absolute;
+            top: 3px;
+            left: 5px;
+            width: 15px;
+            height: 4px;
+            background: linear-gradient(to right, #88ff88, #ccffcc);
+            border-radius: 2px;
+            transition: all 1s;
+        }
+        
+        .leaf:nth-child(2) {
+            transform: rotateY(180deg);
+        }
+        
+        /* 枯萎效果 */
+        .plant.wilting .plant-stem {
+            background: linear-gradient(to top, #aa8800, #ccaa00);
+            box-shadow: 0 0 10px rgba(255, 200, 0, 0.3);
+        }
+        
+        .plant.wilting .leaf {
+            background: linear-gradient(to bottom right, #ccaa00, #ffdd88);
+            box-shadow: 0 0 10px rgba(255, 200, 0, 0.3);
+        }
+        
+        .plant.wilting .leaf::after {
+            background: linear-gradient(to right, #ffdd88, #ffeecc);
+        }
+        
+        /* 严重枯萎效果 */
+        .plant.severe-wilting .plant-stem {
+            background: linear-gradient(to top, #996600, #aa7700);
+            box-shadow: 0 0 5px rgba(255, 150, 0, 0.3);
+            height: 60px;
+        }
+        
+        .plant.severe-wilting .leaf {
+            background: linear-gradient(to bottom right, #996600, #cc8800);
+            box-shadow: 0 0 5px rgba(255, 150, 0, 0.3);
+            width: 20px;
+            height: 10px;
+        }
+        
+        .plant.severe-wilting .leaf::after {
+            background: linear-gradient(to right, #cc8800, #dd9900);
+            width: 10px;
+        }
+        
+        /* 死亡效果 */
+        .plant.dead .plant-stem {
+            background: linear-gradient(to top, #664400, #885500);
+            box-shadow: 0 0 3px rgba(150, 100, 0, 0.3);
+            height: 50px;
+        }
+        
+        .plant.dead .leaf {
+            background: linear-gradient(to bottom right, #664400, #885500);
+            box-shadow: 0 0 3px rgba(150, 100, 0, 0.3);
+            width: 15px;
+            height: 8px;
+            opacity: 0.7;
+        }
+        
+        .plant.dead .leaf::after {
+            background: linear-gradient(to right, #885500, #996600);
+            width: 8px;
+            opacity: 0.7;
+        }
+        
+        .health-bar {
+            width: 100px;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin: 10px auto;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 200, 255, 0.2);
+position: absolute;
+left: -260%;
+        }
+        
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #66ff66);
+            width: 100%;
+            transition: width 1s, background 1s;
+            box-shadow: 0 0 15px #00ff00;
+        }
+        
+        .health-fill.low {
+            background: linear-gradient(90deg, #ffaa00, #ffcc00);
+            box-shadow: 0 0 15px #ffaa00;
+        }
+        
+        .health-fill.critical {
+            background: linear-gradient(90deg, #ff5500, #ff8800);
+            box-shadow: 0 0 15px #ff5500;
+        }
+        
+        /* 数据面板 */
+        .data-panel {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .data-item {
+            text-align: center;
+            min-width: 120px;
+        }
+        
+        .data-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            color: #00ffea;
+            margin-bottom: 5px;
+            text-shadow: 0 0 15px rgba(0, 255, 234, 0.5);
+        }
+        
+        .data-label {
+            color: #a0e7ff;
+            font-size: 0.9rem;
+            font-weight: 300;
+        }
+        
+        .transmission-rate {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0, 30, 70, 0.6);
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .rate-bar {
+            height: 20px;
+            flex-grow: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 15px;
+            border: 1px solid rgba(0, 150, 255, 0.2);
+        }
+        
+        .rate-fill {
+            height: 100%;
+            border-radius: 8px;
+            transition: width 1s;
+            box-shadow: 0 0 10px;
+        }
+        
+        .rate-fill.high {
+            background: linear-gradient(90deg, #ff3300, #ff6600);
+            box-shadow: 0 0 15px #ff6600;
+        }
+        
+        .rate-fill.low {
+            background: linear-gradient(90deg, #00cc66, #00ff99);
+            box-shadow: 0 0 15px #00ff99;
+        }
+        
+        .rate-label {
+            font-family: 'Orbitron', sans-serif;
+            min-width: 80px;
+            text-align: right;
+            font-size: 1.1rem;
+            text-shadow: 0 0 8px;
+        }
+        
+        /* 步骤控制面板 */
+        .step-controls {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin: 30px 0;
+        }
+        
+        .step-btn {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Exo 2', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: rgba(10, 15, 40, 0.9);
+            border: 2px solid rgba(0, 200, 255, 0.3);
+            color: #00ccff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .step-btn.active {
+            background: linear-gradient(90deg, #0066cc, #00a8ff);
+            color: white;
+            border-color: #00a8ff;
+            box-shadow: 0 8px 25px rgba(0, 104, 255, 0.5);
+        }
+        
+        .step-btn.completed {
+            background: rgba(0, 100, 50, 0.7);
+            border-color: #00cc66;
+            color: #88ff88;
+        }
+        
+        .step-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 100, 255, 0.5);
+        }
+        
+        .step-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        /* 控制面板 */
+        .control-panel {
+            background: rgba(10, 15, 40, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            border: 2px solid rgba(0, 200, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 
+                        inset 0 0 30px rgba(0, 150, 255, 0.1);
+        }
+        
+        .control-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: #00a8ff;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(0, 168, 255, 0.5);
+        }
+        
+        .params-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .param-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: rgba(0, 40, 80, 0.6);
+            border-radius: 10px;
+            border-left: 5px solid #00a8ff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s;
+        }
+        
+        .param-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .param-label {
+            color: #a0e7ff;
+            font-weight: 300;
+            font-size: 1rem;
+        }
+        
+        .param-value {
+            font-family: 'Orbitron', sans-serif;
+            color: #00ffea;
+            font-weight: 500;
+            font-size: 1.1rem;
+            text-shadow: 0 0 8px rgba(0, 255, 234, 0.5);
+        }
+        
+        .timer {
+            text-align: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            color: #00ffea;
+            margin-top: 20px;
+            padding: 12px;
+            background: rgba(0, 40, 80, 0.6);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 200, 255, 0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 0 10px rgba(0, 255, 234, 0.5);
+        }
+        
+        .buttons-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 25px;
+        }
+        
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Exo 2', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 180px;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, #0066cc, #00a8ff);
+            color: white;
+            box-shadow: 0 8px 25px rgba(0, 104, 255, 0.5);
+            border: 2px solid #00a8ff;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(90deg, #00a8ff, #0066cc);
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 104, 255, 0.7);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(90deg, rgba(0, 40, 80, 0.8), rgba(0, 80, 160, 0.8));
+            color: #00ccff;
+            border: 2px solid #00a8ff;
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(90deg, rgba(0, 80, 160, 0.9), rgba(0, 120, 220, 0.9));
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 100, 255, 0.5);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        .tool-icon {
+            width: 24px;
+            height: 24px;
+            filter: drop-shadow(0 0 8px #00a8ff);
+        }
+        
+        /* 提示面板 */
+        .hint-panel {
+            background: rgba(0, 40, 90, 0.9);
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-top: 20px;
+            border-left: 5px solid #ffaa00;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            display: none;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .hint-title {
+            color: #ffaa00;
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            text-shadow: 0 0 8px rgba(255, 170, 0, 0.5);
+        }
+        
+        .hint-text {
+            color: #ffdd99;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+        
+        /* 步骤说明面板 */
+        .step-instruction {
+            background: rgba(0, 40, 90, 0.8);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid #00a8ff;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .step-title {
+            font-family: 'Orbitron', sans-serif;
+            color: #00ffea;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(0, 255, 234, 0.5);
+        }
+        
+        .step-description {
+            color: #a0e7ff;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+        
+        /* 结论面板 */
+        .conclusion-panel {
+            background: rgba(10, 15, 40, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 40px;
+            border: 2px solid #00a8ff;
+            box-shadow: 0 0 40px rgba(0, 168, 255, 0.4);
+            display: none;
+        }
+        
+        .conclusion-header {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            color: #00ffea;
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(0, 200, 255, 0.3);
+            text-shadow: 0 0 15px rgba(0, 255, 234, 0.5);
+        }
+        
+        .conclusion-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 900px) {
+            .conclusion-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .observation-box, .principle-box {
+            background: rgba(0, 30, 70, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 5px solid #00ccff;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .box-title {
+            font-family: 'Orbitron', sans-serif;
+            color: #00a8ff;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            text-shadow: 0 0 10px rgba(0, 168, 255, 0.5);
+        }
+        
+        .box-content {
+            line-height: 1.7;
+            color: #c0e7ff;
+            font-size: 1rem;
+        }
+        
+        /* 评测面板 */
+        .assessment-panel {
+            background: rgba(10, 15, 40, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 40px;
+            border: 2px solid #ffaa00;
+            box-shadow: 0 0 40px rgba(255, 170, 0, 0.3);
+            display: none;
+        }
+        
+        .assessment-header {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            color: #ffaa00;
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255, 170, 0, 0.3);
+            text-shadow: 0 0 15px rgba(255, 170, 0, 0.5);
+        }
+        
+        .question-container {
+            margin-bottom: 30px;
+        }
+        
+        .question {
+            font-size: 1.2rem;
+            color: #ffdd99;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .option {
+            padding: 12px 20px;
+            background: rgba(0, 30, 70, 0.7);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid rgba(255, 170, 0, 0.3);
+        }
+        
+        .option:hover {
+            background: rgba(0, 50, 100, 0.8);
+            transform: translateY(-3px);
+        }
+        
+        .option.selected {
+            background: rgba(0, 100, 200, 0.8);
+            border-color: #00a8ff;
+        }
+        
+        .option.correct {
+            background: rgba(0, 150, 0, 0.7);
+            border-color: #00ff00;
+        }
+        
+        .option.incorrect {
+            background: rgba(150, 0, 0, 0.7);
+            border-color: #ff5555;
+        }
+        
+        .submit-btn {
+            display: block;
+            margin: 30px auto 0;
+            padding: 14px 40px;
+            background: linear-gradient(90deg, #ff8800, #ffaa00);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Exo 2', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 25px rgba(255, 136, 0, 0.5);
+        }
+        
+        .submit-btn:hover {
+            background: linear-gradient(90deg, #ffaa00, #ff8800);
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(255, 136, 0, 0.7);
+        }
+        
+        .result-panel {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 30, 70, 0.7);
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .result-title {
+            font-family: 'Orbitron', sans-serif;
+            color: #00ffea;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .score {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            color: #ffaa00;
+            margin: 10px 0;
+            text-shadow: 0 0 15px rgba(255, 170, 0, 0.5);
+        }
+        
+        .feedback {
+            color: #a0e7ff;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-top: 15px;
+        }
+        
+        /* 评价等级 */
+        .rating {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .rating-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(0, 40, 80, 0.7);
+            min-width: 150px;
+            border: 2px solid rgba(0, 200, 255, 0.3);
+        }
+        
+        .rating-title {
+            font-family: 'Orbitron', sans-serif;
+            color: #00ffea;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .rating-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            color: #ffaa00;
+            text-shadow: 0 0 10px rgba(255, 170, 0, 0.5);
+        }
+        
+        /* 松土区域效果 */
+        .loosened-area {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(150, 100, 50, 0.3);
+            box-shadow: 0 0 20px rgba(150, 100, 50, 0.5), 
+                        inset 0 0 15px rgba(255, 200, 100, 0.3);
+            z-index: 8;
+            pointer-events: none;
+            animation: loosen-glow 2s infinite alternate;
+        }
+        
+        @keyframes loosen-glow {
+            0% { box-shadow: 0 0 15px rgba(150, 100, 50, 0.5), 
+                             inset 0 0 10px rgba(255, 200, 100, 0.3); }
+            100% { box-shadow: 0 0 25px rgba(150, 100, 50, 0.7), 
+                             inset 0 0 20px rgba(255, 200, 100, 0.5); }
+        }
+        
+        /* 毛细管断裂效果 */
+        .capillary-break {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle at 30% 30%, #ff5500, #ff8800);
+            border-radius: 50%;
+            z-index: 4;
+            box-shadow: 0 0 15px #ff5500;
+            animation: break-pulse 1.5s infinite;
+        }
+        
+        @keyframes break-pulse {
+            0% { transform: scale(1); box-shadow: 0 0 10px #ff5500; }
+            50% { transform: scale(1.2); box-shadow: 0 0 20px #ff5500; }
+            100% { transform: scale(1); box-shadow: 0 0 10px #ff5500; }
+        }
+        
+        /* 新增的评测页面样式 */
+        .new-assessment-panel {
+            background: rgba(10, 15, 40, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 40px;
+            border: 2px solid #00cc66;
+            box-shadow: 0 0 40px rgba(0, 204, 102, 0.3);
+            display: none;
+        }
+        
+        .new-assessment-header {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            color: #00cc66;
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(0, 204, 102, 0.3);
+            text-shadow: 0 0 15px rgba(0, 204, 102, 0.5);
+        }
+        
+        .new-question-container {
+            margin-bottom: 35px;
+            padding: 20px;
+            background: rgba(0, 30, 70, 0.5);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 200, 255, 0.2);
+        }
+        
+        .new-question {
+            font-size: 1.2rem;
+            color: #e0f7ff;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+        
+        .new-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .new-option {
+            padding: 12px 20px;
+            background: rgba(0, 40, 80, 0.7);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid rgba(0, 150, 255, 0.3);
+            color: #a0e7ff;
+            font-size: 1rem;
+        }
+        
+        .new-option:hover {
+            background: rgba(0, 60, 120, 0.8);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 100, 255, 0.2);
+        }
+        
+        .new-option.selected {
+            background: rgba(0, 100, 200, 0.8);
+            border-color: #00a8ff;
+            color: white;
+            box-shadow: 0 0 15px rgba(0, 168, 255, 0.4);
+        }
+        
+        .new-option.correct {
+            background: rgba(0, 150, 0, 0.7);
+            border-color: #00ff00;
+            color: #e0ffe0;
+        }
+        
+        .new-option.incorrect {
+            background: rgba(150, 0, 0, 0.7);
+            border-color: #ff5555;
+            color: #ffe0e0;
+        }
+        
+        .answer-explanation {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 40, 90, 0.8);
+            border-radius: 8px;
+            border-left: 4px solid #ffaa00;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .correct-answer {
+            color: #00ff00;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        
+        .explanation-text {
+            color: #ffdd99;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+        
+        .new-submit-btn {
+            display: block;
+            margin: 30px auto 0;
+            padding: 14px 40px;
+            background: linear-gradient(90deg, #00cc66, #00ff99);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Exo 2', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 25px rgba(0, 204, 102, 0.5);
+        }
+        
+        .new-submit-btn:hover:not(:disabled) {
+            background: linear-gradient(90deg, #00ff99, #00cc66);
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 204, 102, 0.7);
+        }
+        
+        .new-submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .new-result-panel {
+            text-align: center;
+            margin-top: 40px;
+            padding: 25px;
+            background: rgba(0, 30, 70, 0.7);
+            border-radius: 10px;
+            border: 2px solid rgba(0, 200, 255, 0.3);
+            display: none;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        .new-score {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            color: #ffaa00;
+            margin: 15px 0;
+            text-shadow: 0 0 15px rgba(255, 170, 0, 0.5);
+        }
+        
+        .new-feedback {
+            color: #a0e7ff;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin: 20px 0;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .retry-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: linear-gradient(90deg, #0066cc, #00a8ff);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Exo 2', sans-serif;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .retry-btn:hover {
+            background: linear-gradient(90deg, #00a8ff, #0066cc);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 104, 255, 0.5);
+        }
+        
+        /* 评测选择按钮 */
+        .assessment-choice {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .assessment-choice-btn {
+            padding: 18px 35px;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Exo 2', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            min-width: 250px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+        
+        .assessment-choice-btn.basic {
+            background: linear-gradient(135deg, #ff8800, #ffaa00);
+            color: white;
+            border: 2px solid #ffaa00;
+        }
+        
+        .assessment-choice-btn.advanced {
+            background: linear-gradient(135deg, #00cc66, #00ff99);
+            color: white;
+            border: 2px solid #00ff99;
+        }
+        
+        .assessment-choice-btn:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        }
+        
+        .choice-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+        }
+        
+        .choice-desc {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        @media (max-width: 768px) {
+            .experiment-container {
+                flex-direction: column;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .stage-indicator {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .step-controls {
+                flex-direction: column;
+            }
+            
+            .params-display {
+                grid-template-columns: 1fr;
+            }
+            
+            .buttons-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .rating {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .rating-item {
+                width: 100%;
+                max-width: 250px;
+            }
+            
+            .new-options {
+                gap: 8px;
+            }
+            
+            .new-option {
+                padding: 10px 15px;
+            }
+            
+            .assessment-choice {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .assessment-choice-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>墒情守护：毛细管传质实验站</h1>
+            <p class="subtitle">通过对比实验直观展示毛细管传质原理与松土保墒的工程学价值 | 传质学与工程直觉教学</p>
+        </div>
+        
+        <div class="stage-indicator">
+            <div class="stage active" id="stage1">
+                <span class="stage-number">1</span>实验准备
+            </div>
+            <div class="stage" id="stage2">
+                <span class="stage-number">2</span>松土操作
+            </div>
+            <div class="stage" id="stage3">
+                <span class="stage-number">3</span>动态观察
+            </div>
+            <div class="stage" id="stage4">
+                <span class="stage-number">4</span>实验结论
+            </div>
+            <div class="stage" id="stage5">
+                <span class="stage-number">5</span>原理评测
+            </div>
+        </div>
+        
+        <div class="experiment-progress">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <!-- 步骤控制按钮 -->
+        <div class="step-controls">
+            <button class="step-btn active" id="step1Btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                步骤1: 实验准备
+            </button>
+            <button class="step-btn" id="step2Btn" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 14L14 20M20 14V18M20 14H16M14 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4H18C19.1046 4 20 4.89543 20 6V14Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                步骤2: 松土操作
+            </button>
+            <button class="step-btn" id="step3Btn" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 5V19L19 12L8 5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                </svg>
+                步骤3: 开始实验
+            </button>
+            <button class="step-btn" id="step4Btn" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                步骤4: 查看结论
+            </button>
+            <button class="step-btn" id="step5Btn" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 14L12 12M12 8H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                步骤5: 原理评测
+            </button>
+        </div>
+        
+        <!-- 步骤说明面板 -->
+        <div class="step-instruction" id="stepInstruction">
+            <div class="step-title">步骤1: 实验准备</div>
+            <div class="step-description">
+                欢迎来到毛细管传质实验站！本实验将展示松土保墒的工程学原理。请先了解实验装置：
+                <ul style="margin-top: 10px; padding-left: 20px;">
+                    <li>左侧为<strong>对照组</strong>：未松土的板结土壤，毛细管保持连通</li>
+                    <li>右侧为<strong>实验组</strong>：可进行松土操作的土壤</li>
+                    <li>两组土壤初始含水量相同(25%)，各有一株禾苗</li>
+                    <li>实验目标：验证松土对保持土壤水分和植物健康的效果</li>
+                </ul>
+                点击"下一步"开始松土操作。
+            </div>
+        </div>
+        
+        <div class="experiment-container">
+            <!-- 对照组 -->
+            <div class="experiment-panel">
+                <div class="panel-header">
+                    <div class="panel-title">对照组：未松土板结土壤</div>
+                    <div class="status-indicator">
+                        <span>毛细管状态：</span>
+                        <div class="status-dot" id="controlStatus"></div>
+                        <span id="controlStatusText">连通</span>
+                    </div>
+                </div>
+                
+                <div class="soil-container" id="controlSoil">
+                    <!-- 植物 -->
+                    <div class="plant" id="controlPlant">
+                        <div class="plant-stem"></div>
+                        <div class="plant-leaves">
+                            <div class="leaf"></div>
+                            <div class="leaf"></div>
+                        </div>
+                        <div class="health-bar">
+                            <div class="health-fill" id="controlHealth" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <!-- 毛细管和水分将通过JS生成 -->
+                </div>
+                
+                <div class="data-panel">
+                    <div class="data-item">
+                        <div class="data-value" id="controlMoisture">25.0%</div>
+                        <div class="data-label">土壤含水量</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-value" id="controlHealthValue">100%</div>
+                        <div class="data-label">禾苗常青度</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-value" id="controlEvapRate">0.18%/s</div>
+                        <div class="data-label">水分蒸发速率</div>
+                    </div>
+                </div>
+                
+                <div class="transmission-rate">
+                    <span>毛细管传质速率：</span>
+                    <div class="rate-bar">
+                        <div class="rate-fill high" id="controlRate" style="width: 90%"></div>
+                    </div>
+                    <div class="rate-label" id="controlRateText">高</div>
+                </div>
+            </div>
+            
+            <!-- 实验组 -->
+            <div class="experiment-panel">
+                <div class="panel-header">
+                    <div class="panel-title">实验组：可手动松土土壤</div>
+                    <div class="status-indicator">
+                        <span>毛细管状态：</span>
+                        <div class="status-dot" id="experimentStatus"></div>
+                        <span id="experimentStatusText">连通</span>
+                    </div>
+                </div>
+                
+                <div class="soil-container" id="experimentSoil">
+                    <!-- 植物 -->
+                    <div class="plant" id="experimentPlant">
+                        <div class="plant-stem"></div>
+                        <div class="plant-leaves">
+                            <div class="leaf"></div>
+                            <div class="leaf"></div>
+                        </div>
+                        <div class="health-bar">
+                            <div class="health-fill" id="experimentHealth" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <!-- 毛细管和水分将通过JS生成 -->
+                </div>
+                
+                <div class="data-panel">
+                    <div class="data-item">
+                        <div class="data-value" id="experimentMoisture">25.0%</div>
+                        <div class="data-label">土壤含水量</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-value" id="experimentHealthValue">100%</div>
+                        <div class="data-label">禾苗常青度</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-value" id="experimentEvapRate">0.18%/s</div>
+                        <div class="data-label">水分蒸发速率</div>
+                    </div>
+                </div>
+                
+                <div class="transmission-rate">
+                    <span>毛细管传质速率：</span>
+                    <div class="rate-bar">
+                        <div class="rate-fill low" id="experimentRate" style="width: 10%"></div>
+                    </div>
+                    <div class="rate-label" id="experimentRateText">极低</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="control-panel">
+            <div class="control-title">实验控制中心</div>
+            
+            <div class="params-display">
+                <div class="param-item">
+                    <span class="param-label">环境温度</span>
+                    <span class="param-value" id="temperature">28°C</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">环境湿度</span>
+                    <span class="param-value" id="humidity">30%</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">初始含水量</span>
+                    <span class="param-value" id="initialMoisture">25%</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">植物水分需求</span>
+                    <span class="param-value" id="plantNeed">0.35%/s</span>
+                </div>
+            </div>
+            
+            <div class="timer" id="timer">实验时间：00:00</div>
+            
+            <div class="buttons-container">
+                <button class="btn btn-secondary" id="loosenBtn" disabled>
+                    <svg class="tool-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 14L14 20M20 14V18M20 14H16M14 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4H18C19.1046 4 20 4.89543 20 6V14Z" stroke="#00ccff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    松土工具（请先进入步骤2）
+                </button>
+                <button class="btn btn-primary" id="startBtn" disabled>
+                    <svg class="tool-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 5V19L19 12L8 5Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                    </svg>
+                    开始实验（需先完成松土）
+                </button>
+                <button class="btn btn-secondary" id="nextStepBtn">
+                    <svg class="tool-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="#00ccff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    下一步
+                </button>
+                <button class="btn btn-secondary" id="resetBtn">
+                    <svg class="tool-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 4V9H4.582M4.582 9C5.24585 7.35812 6.43568 5.9829 7.96503 5.08985C9.49438 4.1968 11.2768 3.8364 13.033 4.06513C14.7891 4.29386 16.4198 5.09878 17.6694 6.35377C18.919 7.60875 19.7168 9.24285 19.938 11M4.582 9H9M20 20V15H19.419M19.419 15C18.7542 16.6419 17.564 18.0171 16.0347 18.9101C14.5054 19.8032 12.7237 20.1636 10.9681 19.9349C9.21246 19.7061 7.5812 18.9012 6.33154 17.6462C5.08187 16.3912 4.28406 14.7571 4.063 13M19.419 15H15" stroke="#00ccff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    重置实验
+                </button>
+            </div>
+        </div>
+        
+        <div class="hint-panel" id="hintPanel">
+            <div class="hint-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="#ffaa00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>实验提示</span>
+            </div>
+            <div class="hint-text" id="hintText"></div>
+        </div>
+        
+        <div class="conclusion-panel" id="conclusionPanel">
+            <div class="conclusion-header">实验结论与工程学道理</div>
+            
+            <div class="conclusion-content">
+                <div class="observation-box">
+                    <div class="box-title">实验现象总结</div>
+                    <div class="box-content">
+                        <p><strong>未松土组（板结土壤）：</strong>毛细管连通，水分沿毛细管快速传质至表层蒸发，土壤失水快（<span id="finalControlMoisture">25%</span> → <span id="finalControlMoistureEnd">5%</span>），禾苗短时间枯萎（常青度从100%降至<span id="finalControlHealth">10%</span>）。</p>
+                        <br>
+                        <p><strong>松土组：</strong>毛细管被物理阻断，水分传质路径断裂，深层水分无法快速到达表层，土壤保水效果显著（<span id="finalExperimentMoisture">25%</span> → <span id="finalExperimentMoistureEnd">20%</span>），禾苗长期常青（常青度保持<span id="finalExperimentHealth">95%</span>以上）。</p>
+                        <br>
+                        <p><strong>关键对比数据：</strong></p>
+                        <ul style="margin-top: 10px; padding-left: 20px;">
+                            <li>对照组蒸发速率：<span id="finalControlEvapRate">0.18%/s</span></li>
+                            <li>实验组蒸发速率：<span id="finalExperimentEvapRate">0.03%/s</span></li>
+                            <li>保水效果提升：<span id="waterConservation">6倍</span></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="principle-box">
+                    <div class="box-title">工程学原理</div>
+                    <div class="box-content">
+                        <p>1. <strong>毛细管传质原理：</strong>多孔介质（土壤、多孔材料等）中，连通的毛细管会形成连续的水分传质路径，加速水分蒸发和流失。</p>
+                        <br>
+                        <p>2. <strong>松土保墒本质：</strong>通过物理手段（松土）阻断毛细管传质路径，抑制水分的毛细管迁移与蒸发，属于传质过程的人工调控。</p>
+                        <br>
+                        <p>3. <strong>工程应用逻辑：</strong>"阻断传质路径，控制传质速率"这一原理可迁移至各类工程场景，实现材料防潮、食品保水、水利工程节水等目标。</p>
+                        <br>
+                        <p>4. <strong>现代农业意义：</strong>松土保墒不仅减少灌溉需求，还能改善土壤结构，提高作物抗旱能力，是可持续农业的重要技术。</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="box-title" style="margin-top: 20px; text-align: center;">工程原理迁移拓展</div>
+            <div class="migration-apps" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px;">
+                <div style="background: rgba(15, 30, 70, 0.8); border-radius: 10px; padding: 20px; border-top: 3px solid #00ccff;">
+                    <div style="font-family: 'Orbitron', sans-serif; color: #00ffea; margin-bottom: 10px; font-size: 1.2rem;">古代地下沟渠防蒸发</div>
+                    <div style="color: #a0e7ff; font-size: 0.95rem; line-height: 1.6;">古代水利工程中，在输水渠道上方覆盖疏松回填土，阻断毛细管传质路径，有效减少水分蒸发损失。</div>
+                </div>
+                
+                <div style="background: rgba(15, 30, 70, 0.8); border-radius: 10px; padding: 20px; border-top: 3px solid #00ccff;">
+                    <div style="font-family: 'Orbitron', sans-serif; color: #00ffea; margin-bottom: 10px; font-size: 1.2rem;">食品干燥剂包装</div>
+                    <div style="color: #a0e7ff; font-size: 0.95rem; line-height: 1.6;">食品包装中放置干燥剂，通过吸附作用降低包装内湿度，改变毛细管传质方向，防止食品受潮变质。</div>
+                </div>
+                
+                <div style="background: rgba(15, 30, 70, 0.8); border-radius: 10px; padding: 20px; border-top: 3px solid #00ccff;">
+                    <div style="font-family: 'Orbitron', sans-serif; color: #00ffea; margin-bottom: 10px; font-size: 1.2rem;">建筑地基防潮层</div>
+                    <div style="color: #a0e7ff; font-size: 0.95rem; line-height: 1.6;">建筑物基础中设置防水材料层，物理阻断土壤毛细管上升路径，防止地下水分渗透至建筑内部。</div>
+                </div>
+                
+                <div style="background: rgba(15, 30, 70, 0.8); border-radius: 10px; padding: 20px; border-top: 3px solid #00ccff;">
+                    <div style="font-family: 'Orbitron', sans-serif; color: #00ffea; margin-bottom: 10px; font-size: 1.2rem;">沙漠公路防沙固水</div>
+                    <div style="color: #a0e7ff; font-size: 0.95rem; line-height: 1.6;">沙漠公路建设中，在路基中铺设防渗层，阻断地下毛细管上升，防止水分蒸发导致路基失稳。</div>
+                </div>
+            </div>
+            
+            <div class="box-title" style="margin-top: 30px; text-align: center;">请选择评测类型</div>
+            <div class="assessment-choice">
+                <button class="assessment-choice-btn basic" id="basicAssessmentBtn">
+                    <div class="choice-title">基础评测</div>
+                    <div class="choice-desc">3道选择题</div>
+                    <div class="choice-desc">检验实验原理基本掌握情况</div>
+                </button>
+                <button class="assessment-choice-btn advanced" id="advancedAssessmentBtn">
+                    <div class="choice-title">深度评测</div>
+                    <div class="choice-desc">3道深度思考题</div>
+                    <div class="choice-desc">检验原理深度理解和迁移应用能力</div>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 新增的3题评测面板 -->
+        <div class="new-assessment-panel" id="newAssessmentPanel">
+            <div class="new-assessment-header">毛细管传质原理深度评测</div>
+            
+            <div class="new-question-container" id="newQ1">
+                <div class="new-question">1. 在毛细管传质过程中，水分上升的主要驱动力是什么？</div>
+                <div class="new-options">
+                    <div class="new-option" data-value="a">A. 重力作用</div>
+                    <div class="new-option" data-value="b">B. 表面张力与毛细管压力差</div>
+                    <div class="new-option" data-value="c">C. 土壤温度梯度</div>
+                    <div class="new-option" data-value="d">D. 植物根系吸收力</div>
+                </div>
+                <div class="answer-explanation" id="explanation1">
+                    <div class="correct-answer">正确答案：B. 表面张力与毛细管压力差</div>
+                    <div class="explanation-text">
+                        在毛细管中，水分上升的主要驱动力是液体的表面张力与毛细管壁产生的润湿作用形成的压力差。
+                        当毛细管半径越小，表面张力作用越显著，水分上升高度越大。这一原理是理解土壤水分毛细管迁移的基础。
+                    </div>
+                </div>
+            </div>
+            
+            <div class="new-question-container" id="newQ2">
+                <div class="new-question">2. 松土保墒工程中，最佳松土深度应如何确定？</div>
+                <div class="new-options">
+                    <div class="new-option" data-value="a">A. 越深越好，完全切断深层水分上升</div>
+                    <div class="new-option" data-value="b">B. 根据土壤类型和作物根系深度综合确定</div>
+                    <div class="new-option" data-value="c">C. 固定为20厘米，适用于所有土壤</div>
+                    <div class="new-option" data-value="d">D. 只需表面松土，不影响深层结构</div>
+                </div>
+                <div class="answer-explanation" id="explanation2">
+                    <div class="correct-answer">正确答案：B. 根据土壤类型和作物根系深度综合确定</div>
+                    <div class="explanation-text">
+                        松土深度需要科学设计：过浅无法有效阻断毛细管，过深可能破坏土壤结构并影响植物根系。
+                        实践中需考虑土壤质地（黏土、壤土、砂土）、作物类型和根系分布、气候条件等因素。
+                        一般农田松土深度在15-30厘米之间，需根据具体情况调整。
+                    </div>
+                </div>
+            </div>
+            
+            <div class="new-question-container" id="newQ3">
+                <div class="new-question">3. 除了农业保墒，"阻断传质路径"原理在以下哪个工业领域也有重要应用？</div>
+                <div class="new-options">
+                    <div class="new-option" data-value="a">A. 锂离子电池隔膜设计</div>
+                    <div class="new-option" data-value="b">B. 建筑外墙涂料防渗</div>
+                    <div class="new-option" data-value="c">C. 食品真空包装技术</div>
+                    <div class="new-option" data-value="d">D. 以上所有</div>
+                </div>
+                <div class="answer-explanation" id="explanation3">
+                    <div class="correct-answer">正确答案：D. 以上所有</div>
+                    <div class="explanation-text">
+                        1. 锂离子电池隔膜：通过微孔结构设计控制离子传质路径，平衡导电性与安全性<br>
+                        2. 建筑外墙涂料：添加憎水材料阻断毛细管，防止水分渗透导致墙体损坏<br>
+                        3. 食品真空包装：移除空气并密封，阻断氧气和水分的传质路径，延长保质期<br>
+                        这体现了工程原理的可迁移性，核心都是通过控制传质路径来调控物质迁移。
+                    </div>
+                </div>
+            </div>
+            
+            <button class="new-submit-btn" id="newSubmitBtn">提交答案</button>
+            
+            <div class="new-result-panel" id="newResultPanel">
+                <div class="new-score" id="newScoreDisplay">0/3</div>
+                <div class="new-feedback" id="newFeedbackText"></div>
+                <button class="retry-btn" id="retryBtn">重新评测</button>
+            </div>
+        </div>
+        
+        <div class="assessment-panel" id="assessmentPanel">
+            <div class="assessment-header">工程原理基础评测</div>
+            
+            <div class="question-container" id="q1">
+                <div class="question">1. 毛细管传质在土壤水分蒸发中的作用是什么？</div>
+                <div class="options">
+                    <div class="option" data-value="a">A. 阻碍水分蒸发，保持土壤湿润</div>
+                    <div class="option" data-value="b">B. 形成连续的水分传质路径，加速水分蒸发</div>
+                    <div class="option" data-value="c">C. 与水分蒸发无关，只影响植物根系吸收</div>
+                    <div class="option" data-value="d">D. 增加土壤孔隙度，提高空气流通</div>
+                </div>
+            </div>
+            
+            <div class="question-container" id="q2">
+                <div class="question">2. 松土保墒的工程学本质是什么？</div>
+                <div class="options">
+                    <div class="option" data-value="a">A. 增加土壤有机质含量</div>
+                    <div class="option" data-value="b">B. 物理阻断毛细管传质路径，抑制水分迁移</div>
+                    <div class="option" data-value="c">C. 提高土壤温度，促进水分蒸发</div>
+                    <div class="option" data-value="d">D. 增加土壤微生物活动</div>
+                </div>
+            </div>
+            
+            <div class="question-container" id="q3">
+                <div class="question">3. 下列哪个工程场景应用了"阻断毛细管传质路径"的原理？</div>
+                <div class="options">
+                    <div class="option" data-value="a">A. 建筑地基防潮层设置</div>
+                    <div class="option" data-value="b">B. 农田灌溉系统设计</div>
+                    <div class="option" data-value="c">C. 太阳能热水器安装</div>
+                    <div class="option" data-value="d">D. 风力发电机组布局</div>
+                </div>
+            </div>
+            
+ 
+            
+            <button class="submit-btn" id="submitAssessmentBtn">提交答案</button>
+            
+            <div class="result-panel" id="resultPanel">
+                <div class="result-title">评测结果与达成评价</div>
+                <div class="score" id="scoreDisplay">0/3</div>
+                
+                <div class="rating">
+                    <div class="rating-item">
+                        <div class="rating-title">知识掌握</div>
+                        <div class="rating-value" id="knowledgeScore">0%</div>
+                    </div>
+                    <div class="rating-item">
+                        <div class="rating-title">原理应用</div>
+                        <div class="rating-value" id="applicationScore">0%</div>
+                    </div>
+                    <div class="rating-item">
+                        <div class="rating-title">工程思维</div>
+                        <div class="rating-value" id="thinkingScore">0%</div>
+                    </div>
+                </div>
+                
+                <div class="feedback" id="feedbackText"></div>
+                
+                <div style="margin-top: 30px; padding: 20px; background: rgba(0, 30, 70, 0.5); border-radius: 10px;">
+                    <div style="font-family: 'Orbitron', sans-serif; color: #00ffea; margin-bottom: 10px; font-size: 1.2rem;">学习建议</div>
+                    <div id="learningSuggestions" style="color: #a0e7ff; line-height: 1.6;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态管理
+        const gameState = {
+            currentStep: 1, // 当前步骤 1-5
+            isRunning: false,
+            isLoosened: false,
+            timeElapsed: 0,
+            controlMoisture: 25.0,
+            experimentMoisture: 25.0,
+            controlHealth: 100,
+            experimentHealth: 100,
+            experimentCapillaries: [],
+            loosenedAreas: [],
+            clickCount: 0,
+            controlEvapRate: 0.18, // 蒸发速率 %/s
+            experimentEvapRate: 0.18,
+            assessmentAnswers: {
+                q1: null, q2: null, q3: null, q4: null, q5: null, q6: null
+            },
+            assessmentSubmitted: false,
+            newAssessmentAnswers: {
+                newQ1: null,
+                newQ2: null,
+                newQ3: null
+            },
+            newAssessmentSubmitted: false,
+            timerInterval: null,
+            animationInterval: null,
+            completedSteps: [1], // 已完成的步骤
+            experimentDuration: 300 // 实验持续时间（秒）- 改为5分钟（300秒）
+        };
+        
+        // DOM元素引用
+        let controlSoil, experimentSoil, startBtn, resetBtn, loosenBtn, timerElement;
+        let conclusionPanel, assessmentPanel, hintPanel, hintText, progressFill;
+        let stageElements, controlPlant, experimentPlant, controlHealthFill, experimentHealthFill;
+        let basicAssessmentBtn, advancedAssessmentBtn, submitAssessmentBtn, resultPanel, scoreDisplay, feedbackText;
+        let stepButtons, stepInstruction, nextStepBtn;
+        let newAssessmentPanel, newSubmitBtn, newResultPanel, newScoreDisplay, newFeedbackText, retryBtn;
+        
+        // 正确答案
+        const correctAnswers = {
+            q1: 'b',
+            q2: 'b',
+            q3: 'a',
+        };
+        
+        // 新的正确答案映射
+        const newCorrectAnswers = {
+            newQ1: 'b',
+            newQ2: 'b',
+            newQ3: 'd'
+        };
+        
+        // 初始化背景粒子
+        function initParticles() {
+            const particlesContainer = document.getElementById('particles');
+            if (!particlesContainer) return;
+            
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const size = Math.random() * 4 + 1;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                particle.style.animationDelay = `${Math.random() * 10}s`;
+                particle.style.animationDuration = `${15 + Math.random() * 10}s`;
+                particlesContainer.appendChild(particle);
+            }
+        }
+        
+        // 创建毛细管
+        function createCapillaries() {
+            // 清空现有毛细管
+            const existingCapillaries = controlSoil.querySelectorAll('.capillary, .water-drop');
+            existingCapillaries.forEach(el => el.remove());
+            
+            const existingExpCapillaries = experimentSoil.querySelectorAll('.capillary, .water-drop, .capillary-break, .loosened-area');
+            existingExpCapillaries.forEach(el => el.remove());
+            
+            // 创建对照组的毛细管（全部连通）
+            for (let i = 0; i < 15; i++) {
+                const x = Math.random() * 85 + 5; // 5% - 90% 位置
+                const height = Math.random() * 180 + 100; // 100-280px 高度
+                
+                const capillary = document.createElement('div');
+                capillary.className = 'capillary';
+                capillary.style.left = `${x}%`;
+                capillary.style.bottom = '0';
+                capillary.style.height = `${height}px`;
+                
+                controlSoil.appendChild(capillary);
+                
+                // 添加水滴
+                if (Math.random() > 0.2) {
+                    const waterDrop = document.createElement('div');
+                    waterDrop.className = 'water-drop';
+                    waterDrop.style.left = `${x}%`;
+                    waterDrop.style.bottom = '0';
+                    waterDrop.dataset.speed = (Math.random() * 0.5 + 0.4).toFixed(2);
+                    controlSoil.appendChild(waterDrop);
+                }
+            }
+            
+            // 创建实验组的毛细管（初始连通，可被松土破坏）
+            gameState.experimentCapillaries = [];
+            for (let i = 0; i < 15; i++) {
+                const x = Math.random() * 85 + 5;
+                const height = Math.random() * 180 + 100;
+                
+                const capillary = document.createElement('div');
+                capillary.className = 'capillary';
+                capillary.style.left = `${x}%`;
+                capillary.style.bottom = '0';
+                capillary.style.height = `${height}px`;
+                capillary.dataset.id = i;
+                capillary.dataset.broken = 'false';
+                
+                experimentSoil.appendChild(capillary);
+                
+                // 存储毛细管状态
+                gameState.experimentCapillaries.push({
+                    id: i,
+                    x: x,
+                    height: height,
+                    broken: false,
+                    brokenAt: null
+                });
+                
+                // 添加水滴
+                if (Math.random() > 0.2) {
+                    const waterDrop = document.createElement('div');
+                    waterDrop.className = 'water-drop';
+                    waterDrop.style.left = `${x}%`;
+                    waterDrop.style.bottom = '0';
+                    waterDrop.dataset.speed = (Math.random() * 0.5 + 0.4).toFixed(2);
+                    waterDrop.dataset.capillaryId = i;
+                    experimentSoil.appendChild(waterDrop);
+                }
+            }
+        }
+        
+        // 更新步骤说明
+        function updateStepInstruction() {
+            const stepInstruction = document.getElementById('stepInstruction');
+            if (!stepInstruction) return;
+            
+            const titles = {
+                1: '步骤1: 实验准备',
+                2: '步骤2: 松土操作',
+                3: '步骤3: 开始实验',
+                4: '步骤4: 实验结论',
+                5: '步骤5: 原理评测'
+            };
+            
+            const descriptions = {
+                1: '欢迎来到毛细管传质实验站！本实验将展示松土保墒的工程学原理。请先了解实验装置：<ul style="margin-top: 10px; padding-left: 20px;"><li>左侧为<strong>对照组</strong>：未松土的板结土壤，毛细管保持连通</li><li>右侧为<strong>实验组</strong>：可进行松土操作的土壤</li><li>两组土壤初始含水量相同(25%)，各有一株禾苗</li><li>实验目标：验证松土对保持土壤水分和植物健康的效果</li></ul>点击"下一步"开始松土操作。',
+                2: '现在进入松土操作阶段。请点击实验组土壤（右侧）3-5次进行松土：<ul style="margin-top: 10px; padding-left: 20px;"><li>每次点击会破坏点击区域的毛细管</li><li>松土会切断毛细管传质路径</li><li>建议点击3-5次以获得最佳效果</li><li>完成后点击"下一步"开始实验</li></ul>',
+                3: '实验即将开始！请观察两组土壤的对比：<ul style="margin-top: 10px; padding-left: 20px;"><li>对照组：毛细管连通，水分蒸发快</li><li>实验组：毛细管被切断，水分蒸发慢</li><li>实验将运行5分钟，或直到对照组禾苗枯萎</li><li>观察土壤含水率和植物健康度的实时变化</li></ul>点击"开始实验"按钮开始观察。',
+                4: '实验完成！请观察实验结果：<ul style="margin-top: 10px; padding-left: 20px;"><li>对照组土壤水分大量流失，禾苗枯萎</li><li>实验组土壤保持水分，禾苗健康</li><li>这证明了松土保墒的有效性</li><li>查看详细数据对比和工程学原理</li></ul>点击"下一步"进入原理评测。',
+                5: '最后一步：原理评测。请回答以下问题，检验您对毛细管传质原理的理解。'
+            };
+            
+            stepInstruction.querySelector('.step-title').innerHTML = titles[gameState.currentStep];
+            stepInstruction.querySelector('.step-description').innerHTML = descriptions[gameState.currentStep];
+        }
+        
+        // 更新步骤按钮状态
+        function updateStepButtons() {
+            stepButtons.forEach((btn, index) => {
+                const stepNum = index + 1;
+                
+                // 重置所有按钮状态
+                btn.className = 'step-btn';
+                btn.disabled = true;
+                
+                // 已完成的步骤
+                if (gameState.completedSteps.includes(stepNum)) {
+                    btn.classList.add('completed');
+                    btn.disabled = false;
+                }
+                
+                // 当前步骤
+                if (stepNum === gameState.currentStep) {
+                    btn.classList.add('active');
+                    btn.disabled = false;
+                }
+                
+                // 允许跳转到已完成的步骤
+                if (gameState.completedSteps.includes(stepNum) && stepNum !== gameState.currentStep) {
+                    btn.disabled = false;
+                }
+            });
+            
+            // 更新下一步按钮文本
+            if (nextStepBtn) {
+                if (gameState.currentStep === 5) {
+                    nextStepBtn.innerHTML = `
+                        <svg class="tool-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#00ccff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        完成实验
+                    `;
+                } else {
+                    nextStepBtn.innerHTML = `
+                        <svg class="tool-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="#00ccff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        下一步
+                    `;
+                }
+            }
+        }
+        
+        // 切换到指定步骤
+        function goToStep(step) {
+            if (step < 1 || step > 5) return;
+            
+            // 如果是跳转到已完成的步骤或下一步
+            if (step > gameState.currentStep && !gameState.completedSteps.includes(step - 1)) {
+                showHint('请先完成当前步骤！');
+                return;
+            }
+            
+            gameState.currentStep = step;
+            
+            // 添加到已完成步骤
+            if (!gameState.completedSteps.includes(step)) {
+                gameState.completedSteps.push(step);
+                gameState.completedSteps.sort((a, b) => a - b);
+            }
+            
+            // 更新UI
+            updateStepInstruction();
+            updateStepButtons();
+            updateUIData();
+            
+            // 隐藏所有面板
+            if (conclusionPanel) conclusionPanel.style.display = 'none';
+            if (assessmentPanel) assessmentPanel.style.display = 'none';
+            if (newAssessmentPanel) newAssessmentPanel.style.display = 'none';
+            
+            // 根据步骤执行相应操作
+            switch(step) {
+                case 1:
+                    // 实验准备
+                    showHint('请仔细阅读实验说明，了解实验装置和目的。');
+                    if (loosenBtn) loosenBtn.disabled = true;
+                    if (startBtn) startBtn.disabled = true;
+                    break;
+                    
+                case 2:
+                    // 松土操作
+                    showHint('请点击实验组土壤（右侧）3-5次进行松土操作。每次点击会破坏点击区域的毛细管。');
+                    if (loosenBtn) {
+                        loosenBtn.disabled = false;
+                        loosenBtn.innerHTML = `
+                            <svg class="tool-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M20 14L14 20M20 14V18M20 14H16M14 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4H18C19.1046 4 20 4.89543 20 6V14Z" stroke="#00ccff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            松土工具（点击实验组土壤3-5次）
+                        `;
+                    }
+                    if (startBtn) startBtn.disabled = true;
+                    break;
+                    
+                case 3:
+                    // 开始实验
+                    showHint('松土操作完成！请点击"开始实验"按钮观察两组土壤的对比效果。实验将持续5分钟。');
+                    if (loosenBtn) loosenBtn.disabled = true;
+                    if (startBtn) startBtn.disabled = false;
+                    break;
+                    
+                case 4:
+                    // 实验结论
+                    if (!gameState.completedSteps.includes(3)) {
+                        // 如果还没完成实验，自动运行实验
+                        if (!gameState.isRunning) {
+                            startExperiment();
+                        }
+                        // 等待实验结束
+                        setTimeout(() => {
+                            if (gameState.isRunning) {
+                                endExperiment();
+                            }
+                            showHint('实验完成！请查看实验结果和工程学原理。');
+                        }, 1000);
+                    } else {
+                        showHint('实验完成！请查看实验结果和工程学原理。');
+                        if (conclusionPanel) {
+                            conclusionPanel.style.display = 'block';
+                            conclusionPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }
+                    break;
+                    
+                case 5:
+                    // 原理评测
+                    showHint('请选择评测类型：基础评测（6题）或深度评测（3题）。');
+                    if (conclusionPanel) {
+                        conclusionPanel.style.display = 'block';
+                        conclusionPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                    break;
+            }
+        }
+        
+        // 下一步
+        function nextStep() {
+            if (gameState.currentStep < 5) {
+                goToStep(gameState.currentStep + 1);
+            } else {
+                showHint('实验已完成！感谢参与。');
+            }
+        }
+        
+        // 更新UI数据
+        function updateUIData() {
+            // 更新土壤含水量
+            document.getElementById('controlMoisture').textContent = `${gameState.controlMoisture.toFixed(1)}%`;
+            document.getElementById('experimentMoisture').textContent = `${gameState.experimentMoisture.toFixed(1)}%`;
+            
+            // 更新蒸发速率
+            document.getElementById('controlEvapRate').textContent = `${gameState.controlEvapRate.toFixed(2)}%/s`;
+            document.getElementById('experimentEvapRate').textContent = `${gameState.experimentEvapRate.toFixed(2)}%/s`;
+            
+            // 更新禾苗常青度
+            controlHealthFill.style.width = `${gameState.controlHealth}%`;
+            experimentHealthFill.style.width = `${gameState.experimentHealth}%`;
+            
+            // 更新禾苗健康度样式
+            controlHealthFill.className = 'health-fill';
+            experimentHealthFill.className = 'health-fill';
+            
+            if (gameState.controlHealth < 60) {
+                controlHealthFill.classList.add('low');
+            }
+            if (gameState.controlHealth < 30) {
+                controlHealthFill.classList.add('critical');
+            }
+            
+            if (gameState.experimentHealth < 60) {
+                experimentHealthFill.classList.add('low');
+            }
+            if (gameState.experimentHealth < 30) {
+                experimentHealthFill.classList.add('critical');
+            }
+            
+            document.getElementById('controlHealthValue').textContent = `${gameState.controlHealth.toFixed(0)}%`;
+            document.getElementById('experimentHealthValue').textContent = `${gameState.experimentHealth.toFixed(0)}%`;
+            
+            // 更新禾苗状态（根据健康度）
+            updatePlantStatus();
+            
+            // 更新毛细管状态指示器
+            const controlStatus = document.getElementById('controlStatus');
+            const controlStatusText = document.getElementById('controlStatusText');
+            const experimentStatus = document.getElementById('experimentStatus');
+            const experimentStatusText = document.getElementById('experimentStatusText');
+            
+            if (controlStatus) controlStatus.className = 'status-dot';
+            if (controlStatusText) controlStatusText.textContent = '连通';
+            
+            if (gameState.isLoosened) {
+                if (experimentStatus) experimentStatus.className = 'status-dot inactive';
+                if (experimentStatusText) experimentStatusText.textContent = '部分断裂';
+            } else {
+                if (experimentStatus) experimentStatus.className = 'status-dot';
+                if (experimentStatusText) experimentStatusText.textContent = '连通';
+            }
+            
+            // 更新毛细管传质速率
+            const controlRate = document.getElementById('controlRate');
+            const controlRateText = document.getElementById('controlRateText');
+            const experimentRate = document.getElementById('experimentRate');
+            const experimentRateText = document.getElementById('experimentRateText');
+            
+            if (gameState.isRunning || gameState.completedSteps.includes(3)) {
+                if (controlRate) controlRate.style.width = '90%';
+                if (controlRateText) controlRateText.textContent = '高';
+                
+                if (gameState.isLoosened) {
+                    if (experimentRate) experimentRate.style.width = '10%';
+                    if (experimentRateText) experimentRateText.textContent = '极低';
+                } else {
+                    if (experimentRate) experimentRate.style.width = '90%';
+                    if (experimentRateText) experimentRateText.textContent = '高';
+                }
+            }
+            
+            // 更新实验阶段指示器
+            stageElements.forEach((el, index) => {
+                if (index + 1 === gameState.currentStep) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+                
+                // 标记已完成的步骤
+                if (gameState.completedSteps.includes(index + 1) && index + 1 !== gameState.currentStep) {
+                    el.classList.add('completed');
+                } else {
+                    el.classList.remove('completed');
+                }
+            });
+            
+            // 更新进度条
+            if (progressFill) {
+                progressFill.style.width = `${(gameState.currentStep - 1) * 25}%`;
+            }
+        }
+        
+        // 更新植物状态
+        function updatePlantStatus() {
+            // 对照组植物状态
+            controlPlant.className = 'plant';
+            if (gameState.controlHealth < 80) {
+                controlPlant.classList.add('wilting');
+            }
+            if (gameState.controlHealth < 50) {
+                controlPlant.classList.add('severe-wilting');
+            }
+            if (gameState.controlHealth < 20) {
+                controlPlant.classList.add('dead');
+            }
+            
+            // 实验组植物状态
+            experimentPlant.className = 'plant';
+            if (gameState.experimentHealth < 80) {
+                experimentPlant.classList.add('wilting');
+            }
+            if (gameState.experimentHealth < 50) {
+                experimentPlant.classList.add('severe-wilting');
+            }
+            if (gameState.experimentHealth < 20) {
+                experimentPlant.classList.add('dead');
+            }
+        }
+        
+        // 松土操作
+        function loosenSoil(e) {
+            if (gameState.currentStep !== 2 || gameState.clickCount >= 5) return;
+            
+            gameState.clickCount++;
+            
+            // 记录松土区域
+            let areaX, areaY;
+            if (e) {
+                const rect = experimentSoil.getBoundingClientRect();
+                areaX = ((e.clientX - rect.left) / rect.width) * 100;
+                areaY = ((rect.bottom - e.clientY) / rect.height) * 100;
+            } else {
+                areaX = Math.random() * 70 + 15;
+                areaY = Math.random() * 50 + 20;
+            }
+            
+            const areaRadius = Math.random() * 12 + 8;
+            
+            gameState.loosenedAreas.push({
+                x: areaX,
+                y: areaY,
+                radius: areaRadius
+            });
+            
+            // 创建松土区域视觉效果
+            const loosenedArea = document.createElement('div');
+            loosenedArea.className = 'loosened-area';
+            loosenedArea.style.left = `${areaX}%`;
+            loosenedArea.style.bottom = `${areaY}%`;
+            loosenedArea.style.width = `${areaRadius * 2}px`;
+            loosenedArea.style.height = `${areaRadius * 2}px`;
+            experimentSoil.appendChild(loosenedArea);
+            
+            // 破坏松土区域内的毛细管
+            gameState.experimentCapillaries.forEach((capillary, index) => {
+                // 检查毛细管是否在松土区域内
+                for (const area of gameState.loosenedAreas) {
+                    const distance = Math.abs(capillary.x - area.x);
+                    const capillaryBottom = 0;
+                    const capillaryTop = capillary.height;
+                    const areaBottom = area.y - area.radius;
+                    const areaTop = area.y + area.radius;
+                    
+                    // 如果毛细管在松土区域内且未被破坏
+                    if (!capillary.broken && distance < area.radius && 
+                        ((capillaryBottom >= areaBottom && capillaryBottom <= areaTop) ||
+                         (capillaryTop >= areaBottom && capillaryTop <= areaTop) ||
+                         (capillaryBottom <= areaBottom && capillaryTop >= areaTop))) {
+                        
+                        capillary.broken = true;
+                        // 断裂点在松土区域内随机位置
+                        capillary.brokenAt = Math.random() * 0.6 + 0.2; // 断裂位置 (20%-80%高度)
+                        
+                        // 更新UI中的毛细管
+                        const capillaryElement = document.querySelector(`.capillary[data-id="${index}"]`);
+                        if (capillaryElement) {
+                            capillaryElement.classList.add('broken');
+                            
+                            // 创建断裂效果
+                            const brokenHeight = capillary.brokenAt * capillary.height;
+                            
+                            capillaryElement.style.height = `${brokenHeight}px`;
+                            
+                            // 在断裂处创建断裂标记
+                            const breakMark = document.createElement('div');
+                            breakMark.className = 'capillary-break';
+                            breakMark.style.left = `${capillary.x}%`;
+                            breakMark.style.bottom = `${brokenHeight}px`;
+                            experimentSoil.appendChild(breakMark);
+                            
+                            // 在断裂处上方创建另一段毛细管（断开）
+                            const upperCapillary = document.createElement('div');
+                            upperCapillary.className = 'capillary broken';
+                            upperCapillary.style.left = `${capillary.x}%`;
+                            upperCapillary.style.bottom = `${brokenHeight + 5}px`;
+                            upperCapillary.style.height = `${capillary.height - brokenHeight - 5}px`;
+                            experimentSoil.appendChild(upperCapillary);
+                        }
+                        
+                        break; // 毛细管已被破坏，无需检查其他松土区域
+                    }
+                }
+            });
+            
+            // 计算破坏的毛细管比例
+            const brokenCount = gameState.experimentCapillaries.filter(c => c.broken).length;
+            const brokenPercentage = Math.round((brokenCount / gameState.experimentCapillaries.length) * 100);
+            
+            // 更新蒸发速率（根据破坏的毛细管比例）
+            gameState.experimentEvapRate = 0.18 * (1 - brokenPercentage / 100 * 0.8);
+            
+            // 更新UI
+            updateUIData();
+            
+            // 更新按钮文本
+            loosenBtn.innerHTML = `
+                <svg class="tool-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 14L14 20M20 14V18M20 14H16M14 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4H18C19.1046 4 20 4.89543 20 6V14Z" stroke="#00ccff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                松土工具（已点击${gameState.clickCount}次，${brokenPercentage}%毛细管被切断）
+            `;
+            
+            // 显示提示
+            if (gameState.clickCount >= 3) {
+                gameState.isLoosened = true;
+                showHint(`已松土${gameState.clickCount}次，${brokenPercentage}%的毛细管被切断。蒸发速率降至${gameState.experimentEvapRate.toFixed(2)}%/s。松土完成！可以点击"下一步"开始实验。`);
+                
+                // 启用开始实验按钮
+                startBtn.disabled = false;
+                startBtn.innerHTML = `
+                    <svg class="tool-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 5V19L19 12L8 5Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                    </svg>
+                    开始实验
+                `;
+                
+                if (gameState.clickCount === 5) {
+                    loosenBtn.disabled = true;
+                    showHint(`松土完成！已点击5次，${brokenPercentage}%毛细管被切断。蒸发速率降至${gameState.experimentEvapRate.toFixed(2)}%/s。可以点击"下一步"开始实验。`);
+                }
+            } else {
+                showHint(`请继续点击实验组土壤进行松土，建议点击3-5次（已点击${gameState.clickCount}次）`);
+            }
+        }
+        
+        // 显示提示
+        function showHint(text) {
+            if (!hintText || !hintPanel) return;
+            
+            hintText.innerHTML = text;
+            hintPanel.style.display = 'block';
+            
+            // 5秒后自动隐藏提示
+            setTimeout(() => {
+                if (hintPanel) {
+                    hintPanel.style.display = 'none';
+                }
+            }, 5000);
+        }
+        
+        // 开始实验
+        function startExperiment() {
+            if (gameState.isRunning || gameState.currentStep !== 3) return;
+            
+            gameState.isRunning = true;
+            
+            startBtn.disabled = true;
+            startBtn.innerHTML = `
+                <svg class="tool-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 9V15L15 12L10 9Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                实验进行中
+            `;
+            
+            // 禁用松土按钮
+            loosenBtn.disabled = true;
+            
+            // 显示提示
+            showHint('实验开始！计时器已启动，请观察两组土壤水分蒸发和禾苗生长状态的实时变化。实验将持续5分钟。');
+            
+            // 开始实验模拟
+            runExperimentSimulation();
+        }
+        
+        // 重置实验
+        function resetExperiment() {
+            // 清除所有定时器
+            if (gameState.timerInterval) {
+                clearInterval(gameState.timerInterval);
+                gameState.timerInterval = null;
+            }
+            
+            if (gameState.animationInterval) {
+                clearInterval(gameState.animationInterval);
+                gameState.animationInterval = null;
+            }
+            
+            gameState.currentStep = 1;
+            gameState.isRunning = false;
+            gameState.isLoosened = false;
+            gameState.timeElapsed = 0;
+            gameState.controlMoisture = 25.0;
+            gameState.experimentMoisture = 25.0;
+            gameState.controlHealth = 100;
+            gameState.experimentHealth = 100;
+            gameState.controlEvapRate = 0.18;
+            gameState.experimentEvapRate = 0.18;
+            gameState.loosenedAreas = [];
+            gameState.clickCount = 0;
+            gameState.completedSteps = [1];
+            
+            // 重置评测状态
+            resetAssessment();
+            resetNewAssessment();
+            
+            // 重置UI
+            if (timerElement) timerElement.textContent = '实验时间：00:00';
+            if (conclusionPanel) conclusionPanel.style.display = 'none';
+            if (assessmentPanel) assessmentPanel.style.display = 'none';
+            if (newAssessmentPanel) newAssessmentPanel.style.display = 'none';
+            if (hintPanel) hintPanel.style.display = 'none';
+            
+            // 重置按钮
+            if (startBtn) {
+                startBtn.disabled = true;
+                startBtn.innerHTML = `
+                    <svg class="tool-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 5V19L19 12L8 5Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                    </svg>
+                    开始实验（需先完成松土）
+                `;
+            }
+            
+            if (loosenBtn) {
+                loosenBtn.disabled = true;
+                loosenBtn.innerHTML = `
+                    <svg class="tool-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 14L14 20M20 14V18M20 14H16M14 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4H18C19.1046 4 20 4.89543 20 6V14Z" stroke="#00ccff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    松土工具（请先进入步骤2）
+                `;
+            }
+            
+            // 重置植物状态
+            controlPlant.className = 'plant';
+            experimentPlant.className = 'plant';
+            
+            // 重新创建毛细管
+            createCapillaries();
+            
+            // 更新步骤
+            updateStepInstruction();
+            updateStepButtons();
+            updateUIData();
+            
+            // 显示提示
+            showHint('实验已重置！请从步骤1开始。');
+        }
+        
+        // 运行实验模拟
+        function runExperimentSimulation() {
+            if (!gameState.isRunning || gameState.currentStep !== 3) return;
+            
+            // 清除可能的旧定时器
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+            if (gameState.animationInterval) clearInterval(gameState.animationInterval);
+            
+            // 计时器
+            gameState.timerInterval = setInterval(() => {
+                gameState.timeElapsed++;
+                const minutes = Math.floor(gameState.timeElapsed / 60);
+                const seconds = gameState.timeElapsed % 60;
+                if (timerElement) {
+                    timerElement.textContent = `实验时间：${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+                
+                // 模拟水分蒸发和植物健康变化
+                simulateMoistureChange();
+                updateUIData();
+                
+                // 检查实验结束条件：对照组禾苗健康度低于30%或时间达到5分钟（300秒）
+                if (gameState.controlHealth <= 30 || gameState.timeElapsed >= gameState.experimentDuration) {
+                    endExperiment();
+                }
+                
+                // 定期显示提示
+                if (gameState.timeElapsed === 60) { // 1分钟时提示
+                    showHint('注意观察：对照组土壤含水量开始下降，实验组因松土保墒，水分蒸发缓慢。');
+                }
+                
+                if (gameState.timeElapsed === 150) { // 2.5分钟时提示
+                    showHint('对照组禾苗开始出现枯萎迹象，实验组禾苗仍然健康。');
+                }
+                
+                if (gameState.timeElapsed === 240) { // 4分钟时提示
+                    showHint('工程学启示：阻断毛细管传质路径可有效抑制水分流失，这是松土保墒的核心原理。');
+                }
+            }, 1000); // 每秒更新一次
+            
+            // 动画效果
+            gameState.animationInterval = setInterval(() => {
+                animateWaterDrops();
+                createEvaporationParticles();
+            }, 80); // 加快动画频率
+        }
+        
+        // 模拟水分变化
+        function simulateMoistureChange() {
+            // 对照组：毛细管连通，水分蒸发快
+            if (gameState.controlMoisture > 0) {
+                // 蒸发导致水分减少
+                gameState.controlMoisture -= gameState.controlEvapRate;
+                if (gameState.controlMoisture < 0) gameState.controlMoisture = 0;
+                
+                // 植物健康度下降（与水分相关）
+                if (gameState.controlHealth > 0) {
+                    let healthDeclineRate = 0;
+                    
+                    // 根据土壤含水量决定健康度下降速度
+                    if (gameState.controlMoisture > 15) {
+                        healthDeclineRate = 0.2; // 水分充足，健康度下降慢
+                    } else if (gameState.controlMoisture > 10) {
+                        healthDeclineRate = 0.35; // 水分较少，健康度下降中等
+                    } else if (gameState.controlMoisture > 5) {
+                        healthDeclineRate = 0.5; // 水分缺乏，健康度下降快
+                    } else {
+                        healthDeclineRate = 0.8; // 水分严重缺乏，健康度急剧下降
+                    }
+                    
+                    gameState.controlHealth -= healthDeclineRate;
+                    if (gameState.controlHealth < 0) gameState.controlHealth = 0;
+                }
+            }
+            
+            // 实验组：根据是否松土决定蒸发速率
+            if (gameState.experimentMoisture > 0) {
+                // 蒸发导致水分减少
+                gameState.experimentMoisture -= gameState.experimentEvapRate;
+                if (gameState.experimentMoisture < 0) gameState.experimentMoisture = 0;
+                
+                // 植物健康度变化
+                if (gameState.experimentHealth > 0) {
+                    let healthDeclineRate = 0;
+                    
+                    // 根据土壤含水量决定健康度下降速度
+                    if (gameState.experimentMoisture > 20) {
+                        healthDeclineRate = 0.05; // 水分充足，健康度几乎不下降
+                    } else if (gameState.experimentMoisture > 15) {
+                        healthDeclineRate = 0.1; // 水分充足，健康度下降很慢
+                    } else if (gameState.experimentMoisture > 10) {
+                        healthDeclineRate = 0.2; // 水分较少，健康度下降慢
+                    } else {
+                        healthDeclineRate = 0.4; // 水分缺乏，健康度下降
+                    }
+                    
+                    gameState.experimentHealth -= healthDeclineRate;
+                    if (gameState.experimentHealth < 0) gameState.experimentHealth = 0;
+                }
+            }
+        }
+        
+        // 动画水滴上升
+        function animateWaterDrops() {
+            // 对照组水滴动画
+            const controlWaterDrops = controlSoil.querySelectorAll('.water-drop');
+            controlWaterDrops.forEach(drop => {
+                let bottom = parseFloat(drop.style.bottom) || 0;
+                const speed = parseFloat(drop.dataset.speed) || 0.5;
+                
+                // 如果水滴到达顶部或超出毛细管高度，重置到底部
+                if (bottom > 250) {
+                    bottom = 0;
+                } else {
+                    bottom += speed;
+                }
+                
+                drop.style.bottom = `${bottom}px`;
+                
+                // 水滴亮度随高度变化
+                const opacity = 0.3 + (bottom / 250) * 0.7;
+                drop.style.opacity = opacity;
+            });
+            
+            // 实验组水滴动画
+            const experimentWaterDrops = experimentSoil.querySelectorAll('.water-drop');
+            experimentWaterDrops.forEach(drop => {
+                let bottom = parseFloat(drop.style.bottom) || 0;
+                const speed = parseFloat(drop.dataset.speed) || 0.5;
+                const capillaryId = parseInt(drop.dataset.capillaryId);
+                
+                // 检查该毛细管是否断裂
+                const capillary = gameState.experimentCapillaries.find(c => c.id === capillaryId);
+                
+                // 如果毛细管断裂且水滴到达断裂点，则停止上升或重置
+                if (capillary && capillary.broken) {
+                    const breakHeight = capillary.brokenAt * capillary.height;
+                    
+                    if (bottom >= breakHeight - 10) {
+                        // 在断裂点附近徘徊或消失
+                        if (Math.random() > 0.5) {
+                            bottom = 0; // 重置到底部
+                        } else {
+                            // 轻微上下浮动，模拟受阻
+                            bottom += (Math.random() - 0.5) * 2;
+                        }
+                    } else {
+                        bottom += speed;
+                    }
+                } else {
+                    // 毛细管未断裂，正常上升
+                    if (bottom > 250) {
+                        bottom = 0;
+                    } else {
+                        bottom += speed;
+                    }
+                }
+                
+                drop.style.bottom = `${bottom}px`;
+                
+                // 水滴亮度随高度变化
+                const opacity = 0.3 + (bottom / 250) * 0.7;
+                drop.style.opacity = opacity;
+            });
+        }
+        
+        // 创建蒸发粒子
+        function createEvaporationParticles() {
+            // 对照组：大量蒸发粒子
+            if (gameState.isRunning && gameState.controlMoisture > 5) {
+                const controlParticleCount = gameState.controlMoisture > 15 ? 4 : 2;
+                for (let i = 0; i < controlParticleCount; i++) {
+                    createEvaporationParticle(controlSoil, 1.0, 1.8);
+                }
+            }
+            
+            // 实验组：根据是否松土决定粒子数量
+            if (gameState.isRunning && gameState.experimentMoisture > 5) {
+                let experimentParticleCount;
+                if (gameState.isLoosened) {
+                    experimentParticleCount = gameState.experimentMoisture > 15 ? 1 : 0;
+                } else {
+                    experimentParticleCount = gameState.experimentMoisture > 15 ? 4 : 2;
+                }
+                
+                for (let i = 0; i < experimentParticleCount; i++) {
+                    createEvaporationParticle(experimentSoil, 1.0, 1.8);
+                }
+            }
+        }
+        
+        // 创建单个蒸发粒子
+        function createEvaporationParticle(soilElement, opacity, speedMultiplier) {
+            const particle = document.createElement('div');
+            particle.className = 'evaporation-particle';
+            const startX = Math.random() * 80 + 10;
+            particle.style.left = `${startX}%`;
+            particle.style.bottom = '200px';
+            particle.style.opacity = opacity;
+            
+            soilElement.appendChild(particle);
+            
+            // 粒子上升动画
+            let pos = 200;
+            const riseSpeed = (Math.random() * 1 + 0.5) * speedMultiplier;
+            const drift = (Math.random() - 0.5) * 3;
+            
+            const animate = () => {
+                pos += riseSpeed;
+                const currentLeft = parseFloat(particle.style.left);
+                particle.style.left = `${currentLeft + drift}%`;
+                particle.style.bottom = `${pos}px`;
+                
+                // 粒子逐渐消失
+                if (pos > 250) {
+                    particle.style.opacity = opacity * (1 - (pos - 250) / 100);
+                }
+                
+                if (pos < 350) {
+                    requestAnimationFrame(animate);
+                } else {
+                    if (particle.parentNode) {
+                        particle.remove();
+                    }
+                }
+            };
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // 结束实验
+        function endExperiment() {
+            if (!gameState.isRunning) return;
+            
+            gameState.isRunning = false;
+            
+            // 停止计时器和动画
+            if (gameState.timerInterval) {
+                clearInterval(gameState.timerInterval);
+                gameState.timerInterval = null;
+            }
+            
+            if (gameState.animationInterval) {
+                clearInterval(gameState.animationInterval);
+                gameState.animationInterval = null;
+            }
+            
+            // 标记步骤3为已完成
+            if (!gameState.completedSteps.includes(3)) {
+                gameState.completedSteps.push(3);
+                gameState.completedSteps.sort((a, b) => a - b);
+            }
+            
+            // 更新步骤按钮
+            updateStepButtons();
+            
+            // 显示结论面板（如果当前是步骤4）
+            if (gameState.currentStep === 4 && conclusionPanel) {
+                conclusionPanel.style.display = 'block';
+                
+                // 更新结论数据
+                document.getElementById('finalControlMoisture').textContent = '25';
+                document.getElementById('finalControlMoistureEnd').textContent = gameState.controlMoisture.toFixed(1);
+                document.getElementById('finalControlHealth').textContent = gameState.controlHealth.toFixed(0);
+                document.getElementById('finalControlEvapRate').textContent = gameState.controlEvapRate.toFixed(2);
+                
+                document.getElementById('finalExperimentMoisture').textContent = '25';
+                document.getElementById('finalExperimentMoistureEnd').textContent = gameState.experimentMoisture.toFixed(1);
+                document.getElementById('finalExperimentHealth').textContent = gameState.experimentHealth.toFixed(0);
+                document.getElementById('finalExperimentEvapRate').textContent = gameState.experimentEvapRate.toFixed(2);
+                
+                // 计算保水效果
+                const waterConservation = (gameState.controlEvapRate / gameState.experimentEvapRate).toFixed(1);
+                document.getElementById('waterConservation').textContent = waterConservation + '倍';
+                
+                // 滚动到结论面板
+                conclusionPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            
+            showHint('实验完成！请查看实验结果和工程学原理。');
+        }
+        
+        // 显示基础评测面板
+        function showBasicAssessment() {
+            if (gameState.currentStep !== 5) return;
+            
+            // 隐藏其他面板
+            if (conclusionPanel) conclusionPanel.style.display = 'none';
+            if (newAssessmentPanel) newAssessmentPanel.style.display = 'none';
+            
+            // 显示基础评测面板
+            if (assessmentPanel) {
+                assessmentPanel.style.display = 'block';
+                // 重置评测状态
+                resetAssessment();
+                // 滚动到评测面板
+                assessmentPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            
+            showHint('请回答以下6道基础评测题目，检验您对实验原理的掌握程度。');
+        }
+        
+        // 显示深度评测面板
+        function showAdvancedAssessment() {
+            if (gameState.currentStep !== 5) return;
+            
+            // 隐藏其他面板
+            if (conclusionPanel) conclusionPanel.style.display = 'none';
+            if (assessmentPanel) assessmentPanel.style.display = 'none';
+            
+            // 显示深度评测面板
+            if (newAssessmentPanel) {
+                newAssessmentPanel.style.display = 'block';
+                // 重置新评测状态
+                resetNewAssessment();
+                // 滚动到新评测面板
+                newAssessmentPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            
+            showHint('请回答以下3道深度评测题目，检验您对毛细管传质原理的深度理解。');
+        }
+        
+        // 初始化评测环节
+        function initAssessment() {
+            // 为选项添加点击事件
+            document.querySelectorAll('.option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const questionContainer = this.closest('.question-container');
+                    const questionId = questionContainer.id;
+                    const selectedValue = this.getAttribute('data-value');
+                    
+                    // 清除该问题的其他选项的选中状态
+                    questionContainer.querySelectorAll('.option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    // 选中当前选项
+                    this.classList.add('selected');
+                    
+                    // 保存答案
+                    gameState.assessmentAnswers[questionId] = selectedValue;
+                });
+            });
+            
+            // 提交评测
+            if (submitAssessmentBtn) {
+                submitAssessmentBtn.addEventListener('click', submitAssessment);
+            }
+            
+            // 评测选择按钮事件
+            if (basicAssessmentBtn) {
+                basicAssessmentBtn.addEventListener('click', showBasicAssessment);
+            }
+            
+            if (advancedAssessmentBtn) {
+                advancedAssessmentBtn.addEventListener('click', showAdvancedAssessment);
+            }
+        }
+        
+        // 提交评测
+        function submitAssessment() {
+            if (gameState.assessmentSubmitted) return;
+            
+            let score = 0;
+            
+            // 检查每道题的答案
+            Object.keys(gameState.assessmentAnswers).forEach(questionId => {
+                const answer = gameState.assessmentAnswers[questionId];
+                const correctAnswer = correctAnswers[questionId];
+                
+                if (answer === correctAnswer) {
+                    score++;
+                    
+                    // 标记正确答案
+                    const questionContainer = document.getElementById(questionId);
+                    if (questionContainer) {
+                        const correctOption = questionContainer.querySelector(`.option[data-value="${correctAnswer}"]`);
+                        if (correctOption) correctOption.classList.add('correct');
+                    }
+                } else if (answer !== null) {
+                    // 标记错误答案和正确答案
+                    const questionContainer = document.getElementById(questionId);
+                    if (questionContainer) {
+                        const wrongOption = questionContainer.querySelector(`.option[data-value="${answer}"]`);
+                        if (wrongOption) wrongOption.classList.add('incorrect');
+                        
+                        const correctOption = questionContainer.querySelector(`.option[data-value="${correctAnswer}"]`);
+                        if (correctOption) correctOption.classList.add('correct');
+                    }
+                } else {
+                    // 未作答，只显示正确答案
+                    const questionContainer = document.getElementById(questionId);
+                    if (questionContainer) {
+                        const correctOption = questionContainer.querySelector(`.option[data-value="${correctAnswer}"]`);
+                        if (correctOption) correctOption.classList.add('correct');
+                    }
+                }
+            });
+            
+            // 显示结果
+            if (scoreDisplay) scoreDisplay.textContent = `${score}/3`;
+            
+            // 计算各项得分
+            const totalQuestions = 3;
+            const knowledgeScore = Math.round((score / totalQuestions) * 100);
+            const applicationScore = Math.round((score >= 4 ? 100 : score >= 2 ? 70 : 30));
+            const thinkingScore = Math.round((score >= 5 ? 100 : score >= 3 ? 80 : score >= 1 ? 50 : 20));
+            
+            // 更新评分显示
+            document.getElementById('knowledgeScore').textContent = `${knowledgeScore}%`;
+            document.getElementById('applicationScore').textContent = `${applicationScore}%`;
+            document.getElementById('thinkingScore').textContent = `${thinkingScore}%`;
+            
+            // 根据分数显示反馈
+            let feedback = '';
+            let learningSuggestions = '';
+            
+            if (score === 6) {
+                feedback = '优秀！您完全理解了毛细管传质原理及其工程应用。作为工程师，您已经掌握了通过调控传质路径来控制物质迁移的核心思想，具备优秀的工程思维能力。';
+                learningSuggestions = '建议深入学习更复杂的传质工程案例，如多孔材料设计、微流体控制等前沿领域。';
+            } else if (score >= 4) {
+                feedback = '良好！您基本理解了毛细管传质原理，能够将实验现象与工程原理联系起来。建议进一步思考如何将这一原理应用于更多工程场景，如材料防潮、食品保鲜等领域。';
+                learningSuggestions = '建议扩展学习其他传质控制技术，如表面改性、涂层技术等，丰富工程知识体系。';
+            } else if (score >= 2) {
+                feedback = '基本掌握！您对毛细管传质原理有一定理解，但还需要加强知识点的联系和应用能力。建议回顾实验过程，重点理解"阻断传质路径可抑制水分流失"这一核心工程原理。';
+                learningSuggestions = '建议重新观看实验过程，重点关注土壤含水率变化与植物健康度的关系，加深对传质原理的理解。';
+            } else {
+                feedback = '需要加强学习！建议重新进行实验，观察松土前后土壤水分蒸发和植物状态的变化，理解毛细管传质的基本原理。';
+                learningSuggestions = '建议从基础开始，先理解毛细管现象，再学习传质原理，最后联系实际工程应用。';
+            }
+            
+            if (feedbackText) feedbackText.textContent = feedback;
+            if (document.getElementById('learningSuggestions')) {
+                document.getElementById('learningSuggestions').textContent = learningSuggestions;
+            }
+            
+            // 显示结果面板
+            if (resultPanel) resultPanel.style.display = 'block';
+            
+            // 禁用提交按钮
+            if (submitAssessmentBtn) {
+                submitAssessmentBtn.disabled = true;
+            }
+            gameState.assessmentSubmitted = true;
+            
+            // 标记步骤5为已完成
+            if (!gameState.completedSteps.includes(5)) {
+                gameState.completedSteps.push(5);
+                gameState.completedSteps.sort((a, b) => a - b);
+                updateStepButtons();
+            }
+            
+            // 滚动到结果
+            if (resultPanel) {
+                resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+        
+        // 重置评测
+        function resetAssessment() {
+            // 清除选项状态
+            document.querySelectorAll('.option').forEach(option => {
+                option.classList.remove('selected', 'correct', 'incorrect');
+            });
+            
+            // 重置答案
+            gameState.assessmentAnswers = {
+                q1: null, q2: null, q3: null, q4: null, q5: null, q6: null
+            };
+            
+            gameState.assessmentSubmitted = false;
+            
+            // 隐藏结果面板，启用提交按钮
+            if (resultPanel) resultPanel.style.display = 'none';
+            if (submitAssessmentBtn) submitAssessmentBtn.disabled = false;
+            
+            // 重置评分显示
+            document.getElementById('knowledgeScore').textContent = '0%';
+            document.getElementById('applicationScore').textContent = '0%';
+            document.getElementById('thinkingScore').textContent = '0%';
+        }
+        
+        // 初始化新的评测环节
+        function initNewAssessment() {
+            // 为新的选项添加点击事件
+            document.querySelectorAll('.new-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    if (gameState.newAssessmentSubmitted) return;
+                    
+                    const questionContainer = this.closest('.new-question-container');
+                    const questionId = questionContainer.id;
+                    const selectedValue = this.getAttribute('data-value');
+                    
+                    // 清除该问题的其他选项的选中状态
+                    questionContainer.querySelectorAll('.new-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    // 选中当前选项
+                    this.classList.add('selected');
+                    
+                    // 保存答案
+                    gameState.newAssessmentAnswers[questionId] = selectedValue;
+                });
+            });
+            
+            // 新的提交按钮事件
+            if (newSubmitBtn) {
+                newSubmitBtn.addEventListener('click', submitNewAssessment);
+            }
+            
+            // 重新评测按钮事件
+            if (retryBtn) {
+                retryBtn.addEventListener('click', resetNewAssessment);
+            }
+        }
+        
+        // 提交新的评测
+        function submitNewAssessment() {
+            if (gameState.newAssessmentSubmitted) return;
+            
+            let score = 0;
+            const totalQuestions = 3;
+            
+            // 检查每道题的答案并显示解释
+            Object.keys(gameState.newAssessmentAnswers).forEach(questionId => {
+                const answer = gameState.newAssessmentAnswers[questionId];
+                const correctAnswer = newCorrectAnswers[questionId];
+                const explanationElement = document.getElementById(`explanation${questionId.slice(-1)}`);
+                
+                if (answer === correctAnswer) {
+                    score++;
+                    
+                    // 标记正确答案
+                    const questionContainer = document.getElementById(questionId);
+                    if (questionContainer) {
+                        const correctOption = questionContainer.querySelector(`.new-option[data-value="${correctAnswer}"]`);
+                        if (correctOption) correctOption.classList.add('correct');
+                    }
+                } else if (answer !== null) {
+                    // 标记错误答案和正确答案
+                    const questionContainer = document.getElementById(questionId);
+                    if (questionContainer) {
+                        const wrongOption = questionContainer.querySelector(`.new-option[data-value="${answer}"]`);
+                        if (wrongOption) wrongOption.classList.add('incorrect');
+                        
+                        const correctOption = questionContainer.querySelector(`.new-option[data-value="${correctAnswer}"]`);
+                        if (correctOption) correctOption.classList.add('correct');
+                    }
+                } else {
+                    // 未作答，只显示正确答案
+                    const questionContainer = document.getElementById(questionId);
+                    if (questionContainer) {
+                        const correctOption = questionContainer.querySelector(`.new-option[data-value="${correctAnswer}"]`);
+                        if (correctOption) correctOption.classList.add('correct');
+                    }
+                }
+                
+                // 显示解释
+                if (explanationElement) {
+                    explanationElement.style.display = 'block';
+                }
+            });
+            
+            // 显示分数
+            if (newScoreDisplay) {
+                newScoreDisplay.textContent = `${score}/${totalQuestions}`;
+            }
+            
+            // 显示反馈
+            if (newFeedbackText) {
+                let feedback = '';
+                
+                if (score === 3) {
+                    feedback = '优秀！您对毛细管传质原理的理解非常深入，能够准确掌握核心概念并理解其工程应用。您展现了出色的工程思维能力！';
+                } else if (score === 2) {
+                    feedback = '良好！您基本理解了毛细管传质原理，能够将实验现象与工程原理联系起来。建议进一步思考如何将这一原理应用于更多工程场景，如材料防潮、食品保鲜等领域。';
+                } else if (score === 1) {
+                    feedback = '需要加强！您对毛细管传质原理有一定了解，但还需要系统学习。建议重新观看实验动画，重点关注水分在毛细管中的迁移机制。';
+                } else {
+                    feedback = '需要认真学习！建议从头开始实验，仔细观察松土前后毛细管状态的变化，理解毛细管传质的基本原理。';
+                }
+                
+                newFeedbackText.textContent = feedback;
+            }
+            
+            // 显示结果面板
+            if (newResultPanel) {
+                newResultPanel.style.display = 'block';
+                newResultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            
+            // 禁用提交按钮
+            if (newSubmitBtn) {
+                newSubmitBtn.disabled = true;
+            }
+            
+            gameState.newAssessmentSubmitted = true;
+            
+            // 标记步骤5为已完成
+            if (!gameState.completedSteps.includes(5)) {
+                gameState.completedSteps.push(5);
+                gameState.completedSteps.sort((a, b) => a - b);
+                updateStepButtons();
+            }
+        }
+        
+        // 重置新的评测
+        function resetNewAssessment() {
+            // 清除选项状态
+            document.querySelectorAll('.new-option').forEach(option => {
+                option.classList.remove('selected', 'correct', 'incorrect');
+            });
+            
+            // 隐藏解释
+            document.querySelectorAll('.answer-explanation').forEach(explanation => {
+                explanation.style.display = 'none';
+            });
+            
+            // 重置答案
+            gameState.newAssessmentAnswers = {
+                newQ1: null,
+                newQ2: null,
+                newQ3: null
+            };
+            
+            gameState.newAssessmentSubmitted = false;
+            
+            // 隐藏结果面板，启用提交按钮
+            if (newResultPanel) newResultPanel.style.display = 'none';
+            if (newSubmitBtn) newSubmitBtn.disabled = false;
+            
+            // 重置分数显示
+            if (newScoreDisplay) newScoreDisplay.textContent = '0/3';
+        }
+        
+        // 获取DOM元素引用
+        function getDomElements() {
+            controlSoil = document.getElementById('controlSoil');
+            experimentSoil = document.getElementById('experimentSoil');
+            startBtn = document.getElementById('startBtn');
+            resetBtn = document.getElementById('resetBtn');
+            loosenBtn = document.getElementById('loosenBtn');
+            timerElement = document.getElementById('timer');
+            conclusionPanel = document.getElementById('conclusionPanel');
+            assessmentPanel = document.getElementById('assessmentPanel');
+            newAssessmentPanel = document.getElementById('newAssessmentPanel');
+            hintPanel = document.getElementById('hintPanel');
+            hintText = document.getElementById('hintText');
+            progressFill = document.getElementById('progressFill');
+            stageElements = document.querySelectorAll('.stage');
+            controlPlant = document.getElementById('controlPlant');
+            experimentPlant = document.getElementById('experimentPlant');
+            controlHealthFill = document.getElementById('controlHealth');
+            experimentHealthFill = document.getElementById('experimentHealth');
+            basicAssessmentBtn = document.getElementById('basicAssessmentBtn');
+            advancedAssessmentBtn = document.getElementById('advancedAssessmentBtn');
+            submitAssessmentBtn = document.getElementById('submitAssessmentBtn');
+            resultPanel = document.getElementById('resultPanel');
+            scoreDisplay = document.getElementById('scoreDisplay');
+            feedbackText = document.getElementById('feedbackText');
+            stepButtons = document.querySelectorAll('.step-btn');
+            stepInstruction = document.getElementById('stepInstruction');
+            nextStepBtn = document.getElementById('nextStepBtn');
+            newSubmitBtn = document.getElementById('newSubmitBtn');
+            newResultPanel = document.getElementById('newResultPanel');
+            newScoreDisplay = document.getElementById('newScoreDisplay');
+            newFeedbackText = document.getElementById('newFeedbackText');
+            retryBtn = document.getElementById('retryBtn');
+        }
+        
+        // 初始化游戏
+        function initGame() {
+            // 获取DOM元素引用
+            getDomElements();
+            
+            // 创建初始毛细管
+            createCapillaries();
+            
+            // 初始化背景粒子
+            initParticles();
+            
+            // 初始化评测环节
+            initAssessment();
+            initNewAssessment();
+            
+            // 设置事件监听器
+            if (startBtn) {
+                startBtn.addEventListener('click', startExperiment);
+            }
+            
+            if (resetBtn) {
+                resetBtn.addEventListener('click', resetExperiment);
+            }
+            
+            if (nextStepBtn) {
+                nextStepBtn.addEventListener('click', nextStep);
+            }
+            
+            // 实验组土壤点击事件（松土）
+            if (experimentSoil) {
+                experimentSoil.addEventListener('click', (e) => {
+                    if (gameState.currentStep === 2 && gameState.clickCount < 5) {
+                        loosenSoil(e);
+                    }
+                });
+            }
+            
+            // 步骤按钮点击事件
+            stepButtons.forEach((btn, index) => {
+                btn.addEventListener('click', () => {
+                    const stepNum = index + 1;
+                    if (gameState.completedSteps.includes(stepNum) || stepNum === gameState.currentStep) {
+                        goToStep(stepNum);
+                    }
+                });
+            });
+            
+            // 显示初始提示
+            setTimeout(() => {
+                showHint('欢迎来到墒情守护实验站！请按照步骤完成实验，观察毛细管传质原理。点击"下一步"开始。');
+            }, 1000);
+            
+            // 初始化步骤
+            updateStepInstruction();
+            updateStepButtons();
+            updateUIData();
+        }
+        
+        // 页面加载完成后初始化游戏
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+
+
+<!-- 底部信息栏 -->
+<div style="
+    text-align: center;
+    padding: 20px 30px;
+    margin-top: 40px;
+    color: #e6f7ff;
+    font-size: 0.9rem;
+    border-top: 2px solid rgba(0, 180, 255, 0.5);
+    background: linear-gradient(135deg, rgba(10, 15, 43, 0.95), rgba(18, 26, 58, 0.9));
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+">
+    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+    
+    <p style="font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; color: #00b4ff;">
+        毛细管传质保墒模拟器 © 2025 | 干燥交互仿真系统 | 版本 1.0 |
+      <style="margin-bottom: 12px; color: #cbd5e1;">
+        <strong>邮箱:</strong> xgyanger@qq.com
+    </p>
+    
+    <div style="margin-top: 15px;">
+        <span style="color: #ffcc00; font-weight: bold; font-size: 1.1rem;">
+            版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+        </span>
+    </div>
+</div>
+
+
+
+</body>
+</html>

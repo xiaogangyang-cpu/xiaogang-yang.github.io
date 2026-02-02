@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>热传导与对流传导综合模拟器 - 努塞尔数应用</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0c2461 0%, #1e3799 100%);
+            color: #f5f5f5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #f093fb, #f5576c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #a4b0be;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .page {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .page.active {
+            display: block;
+            opacity: 1;
+        }
+        
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .controls-panel, .simulation-panel, .test-panel {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .controls-panel {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .simulation-panel {
+            flex: 2;
+            min-width: 500px;
+        }
+        
+        .test-panel {
+            width: 100%;
+        }
+        
+        .panel-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #f8c291;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .panel-title i {
+            font-size: 1.3rem;
+        }
+        
+        .control-group {
+            margin-bottom: 25px;
+        }
+        
+        .control-label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            color: #dfe6e9;
+        }
+        
+        .mode-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .mode-option {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .mode-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-3px);
+        }
+        
+        .mode-option.active {
+            background: rgba(45, 156, 219, 0.25);
+            border-color: #2d9cdb;
+            box-shadow: 0 5px 15px rgba(45, 156, 219, 0.3);
+        }
+        
+        .mode-icon {
+            font-size: 2rem;
+            width: 50px;
+            text-align: center;
+            color: #f8c291;
+        }
+        
+        .mode-info {
+            flex: 1;
+        }
+        
+        .mode-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+        }
+        
+        .mode-desc {
+            font-size: 0.9rem;
+            color: #a4b0be;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .slider-value {
+            min-width: 60px;
+            text-align: center;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+            color: #f8c291;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #f8c291;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .temperature-display {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        
+        .temp-label {
+            font-size: 0.9rem;
+            color: #a4b0be;
+        }
+        
+        .temp-value {
+            font-weight: 600;
+            color: #f8c291;
+        }
+        
+        .material-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+        }
+        
+        .material-option {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .material-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .material-option.active {
+            background: rgba(45, 156, 219, 0.25);
+            border-color: #2d9cdb;
+        }
+        
+        .simulation-area {
+            height: 400px;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            margin-bottom: 20px;
+        }
+        
+        .heat-source {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, #ff6b6b, #ee5a24);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.7);
+            z-index: 10;
+        }
+        
+        .temperature-map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: background 1.5s ease;
+        }
+        
+        .conduction-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .conduction-line {
+            position: absolute;
+            height: 3px;
+            background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
+            transform-origin: left center;
+        }
+        
+        .convection-flow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .flow-particle {
+            position: absolute;
+            background: rgba(116, 185, 255, 0.6);
+            border-radius: 50%;
+            animation: flow 15s linear infinite;
+        }
+        
+        .flow-particle.hot {
+            background: rgba(255, 107, 107, 0.6);
+        }
+        
+        .flow-arrow {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            clip-path: polygon(0 0, 100% 50%, 0 100%);
+            animation: flow-arrow 8s linear infinite;
+        }
+        
+        .streamline {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+            border-radius: 1px;
+            animation: streamline-flow 12s linear infinite;
+        }
+        
+        .fan-indicator {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+            z-index: 5;
+            animation: fan-rotate 2s linear infinite;
+        }
+        
+        .flow-direction {
+            position: absolute;
+            width: 100%;
+            height: 30px;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1), transparent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            z-index: 1;
+        }
+        
+        @keyframes flow {
+            0% {
+                transform: translateX(-20px) translateY(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.8;
+            }
+            90% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateX(calc(100% + 20px)) translateY(0);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes flow-arrow {
+            0% {
+                transform: translateX(-30px) translateY(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.7;
+            }
+            90% {
+                opacity: 0.7;
+            }
+            100% {
+                transform: translateX(calc(100% + 30px)) translateY(0);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes streamline-flow {
+            0% {
+                background-position: -100% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+        
+        @keyframes fan-rotate {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .comparison-table th, .comparison-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .comparison-table th {
+            color: #f8c291;
+            font-weight: 600;
+        }
+        
+        .comparison-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .formula-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .formula-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #f8c291;
+        }
+        
+        .formula {
+            font-size: 1.5rem;
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-family: 'Cambria Math', serif;
+        }
+        
+        .formula-explanation {
+            line-height: 1.6;
+            color: #dfe6e9;
+        }
+        
+        /* 测试部分样式 */
+        .test-question {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .question-text {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #f8c291;
+        }
+        
+        .options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 12px;
+        }
+        
+        .option {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .option:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .option.selected {
+            background: rgba(45, 156, 219, 0.25);
+            border-color: #2d9cdb;
+        }
+        
+        .option.correct {
+            background: rgba(46, 204, 113, 0.25);
+            border-color: #2ecc71;
+        }
+        
+        .option.incorrect {
+            background: rgba(231, 76, 60, 0.25);
+            border-color: #e74c3c;
+        }
+        
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            background: linear-gradient(to right, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .btn-next {
+            background: linear-gradient(to right, #2ecc71, #27ae60);
+        }
+        
+        .btn-next:hover {
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
+        }
+        
+        .btn-back {
+            background: linear-gradient(to right, #9b59b6, #8e44ad);
+        }
+        
+        .btn-back:hover {
+            box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4);
+        }
+        
+        .btn-submit {
+            background: linear-gradient(to right, #e67e22, #d35400);
+        }
+        
+        .btn-submit:hover {
+            box-shadow: 0 5px 15px rgba(230, 126, 34, 0.4);
+        }
+        
+        .btn-reset {
+            background: linear-gradient(to right, #e74c3c, #c0392b);
+        }
+        
+        .btn-reset:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+        
+        .result-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 25px;
+            margin-top: 30px;
+            text-align: center;
+            display: none;
+        }
+        
+        .result-title {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: #f8c291;
+        }
+        
+        .engineer-level {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #0c2461, #1e3799);
+        }
+        
+        .level-beginner {
+            color: #f39c12;
+            border: 3px solid #f39c12;
+        }
+        
+        .level-engineer {
+            color: #3498db;
+            border: 3px solid #3498db;
+        }
+        
+        .level-expert {
+            color: #2ecc71;
+            border: 3px solid #2ecc71;
+        }
+        
+        .result-description {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto 20px;
+        }
+        
+        .score-display {
+            font-size: 1.3rem;
+            margin: 15px 0;
+            color: #f8c291;
+        }
+        
+        .page-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .page-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .page-dot.active {
+            background: #f8c291;
+            transform: scale(1.2);
+        }
+        
+        .exploration-tips {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-top: 20px;
+        }
+        
+        .exploration-tips h4 {
+            color: #f8c291;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .cooling-effect {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 15px 0;
+            font-size: 1.1rem;
+            color: #f8c291;
+        }
+        
+        .parameter-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .parameter-table th, .parameter-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .parameter-table th {
+            color: #f8c291;
+            font-weight: 600;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #a4b0be;
+            font-size: 0.9rem;
+        }
+        
+        .medium-selector {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .medium-btn {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #f5f5f5;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .medium-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .medium-btn.active {
+            background: rgba(45, 156, 219, 0.25);
+            color: #f8c291;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 1100px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .controls-panel, .simulation-panel {
+                min-width: 100%;
+            }
+        }
+        
+        .performance-indicator {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .indicator {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .indicator-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #f8c291;
+            margin: 10px 0;
+        }
+        
+        .indicator-label {
+            font-size: 0.9rem;
+            color: #a4b0be;
+        }
+        
+        .flow-visualization {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        
+        .flow-vis-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .flow-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .flow-text {
+            font-size: 0.9rem;
+        }
+        
+        .nusselt-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        
+        .nusselt-title {
+            font-size: 1.2rem;
+            color: #f8c291;
+            margin-bottom: 10px;
+        }
+        
+        .nusselt-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2ecc71;
+            margin: 10px 0;
+        }
+        
+        .nusselt-formula {
+            font-size: 1.2rem;
+            color: #a4b0be;
+            text-align: center;
+            font-family: 'Cambria Math', serif;
+            margin-top: 10px;
+        }
+        
+        /* 新增的温度梯度指示器样式 */
+        .gradient-indicator {
+            height: 20px;
+            background: linear-gradient(to right, #ff6b6b, #0984e3);
+            border-radius: 10px;
+            margin-top: 10px;
+            position: relative;
+        }
+        
+        .gradient-marker {
+            position: absolute;
+            top: -5px;
+            width: 2px;
+            height: 30px;
+            background: white;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+        }
+        
+        .gradient-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.8rem;
+            color: #a4b0be;
+        }
+        
+        .temperature-gradient-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-thermometer-half"></i> 热传导与对流传导综合模拟器</h1>
+            <p class="subtitle">探索热传导与对流传导的差异，理解努塞尔数的物理意义，掌握平面散热机理。</p>
+        </header>
+        
+        <div class="page-indicator">
+            <div class="page-dot active" data-page="1"></div>
+            <div class="page-dot" data-page="2"></div>
+        </div>
+        
+        <!-- 页面1：模拟探索 -->
+        <div class="page active" id="page1">
+            <div class="content">
+                <div class="controls-panel">
+                    <h2 class="panel-title"><i class="fas fa-sliders-h"></i> 传热模式与控制参数</h2>
+                    
+                    <div class="control-group">
+                        <label class="control-label">选择传热模式:</label>
+                        <div class="mode-selector" id="modeSelector">
+                            <div class="mode-option active" data-mode="conduction">
+                                <div class="mode-icon"><i class="fas fa-wave-square"></i></div>
+                                <div class="mode-info">
+                                    <div class="mode-name">纯热传导</div>
+                                    <div class="mode-desc">热量通过固体材料传递，没有流体流动</div>
+                                </div>
+                            </div>
+                            <div class="mode-option" data-mode="convection">
+                                <div class="mode-icon"><i class="fas fa-wind"></i></div>
+                                <div class="mode-info">
+                                    <div class="mode-name">对流传导</div>
+                                    <div class="mode-desc">热量通过流体流动传递，效率更高</div>
+                                </div>
+                            </div>
+                            <div class="mode-option" data-mode="mixed">
+                                <div class="mode-icon"><i class="fas fa-sync-alt"></i></div>
+                                <div class="mode-info">
+                                    <div class="mode-name">混合传热</div>
+                                    <div class="mode-desc">热传导与对流传导共同作用</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">热源温度: <span id="heatTempValue" class="slider-value">100°C</span></label>
+                        <div class="slider-container">
+                            <input type="range" id="heatTempSlider" min="50" max="300" value="100" step="10">
+                        </div>
+                        <div class="temperature-display">
+                            <span class="temp-label">低温</span>
+                            <span class="temp-label">高温</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">环境温度: <span id="ambientTempValue" class="slider-value">25°C</span></label>
+                        <div class="slider-container">
+                            <input type="range" id="ambientTempSlider" min="0" max="50" value="25" step="1">
+                        </div>
+                        <div class="temperature-display">
+                            <span class="temp-label">低温</span>
+                            <span class="temp-label">高温</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">流速/风速: <span id="flowRateValue" class="slider-value">1.0 m/s</span></label>
+                        <div class="slider-container">
+                            <input type="range" id="flowRateSlider" min="0" max="5.0" value="1.0" step="0.1">
+                        </div>
+                        <div class="temperature-display">
+                            <span class="temp-label">静止</span>
+                            <span class="temp-label">高速</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">平板材料:</label>
+                        <div class="material-selector">
+                            <div class="material-option active" data-material="copper">铜</div>
+                            <div class="material-option" data-material="aluminum">铝</div>
+                            <div class="material-option" data-material="steel">钢</div>
+                            <div class="material-option" data-material="glass">玻璃</div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">流体介质:</label>
+                        <div class="medium-selector">
+                            <button class="medium-btn active" data-medium="air">空气</button>
+                            <button class="medium-btn" data-medium="water">水</button>
+                            <button class="medium-btn" data-medium="oil">硅油</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">平板厚度: <span id="thicknessValue" class="slider-value">0.01 m</span></label>
+                        <div class="slider-container">
+                            <input type="range" id="thicknessSlider" min="0.001" max="0.05" value="0.01" step="0.001">
+                        </div>
+                    </div>
+                    
+                    <!-- 新增的温度梯度指示器 -->
+                    <div class="control-group">
+                        <label class="control-label">温度梯度指示:</label>
+                        <div class="gradient-indicator">
+                            <div class="gradient-marker" id="gradientMarker"></div>
+                        </div>
+                        <div class="gradient-labels">
+                            <span>平缓梯度 (传导)</span>
+                            <span>陡峭梯度 (强对流)</span>
+                        </div>
+                        <div class="temperature-gradient-info" id="gradientInfo">
+                            当前温度梯度: 计算中...
+                        </div>
+                    </div>
+                    
+                    <div class="nusselt-display">
+                        <div class="nusselt-title">当前努塞尔数 (Nu)</div>
+                        <div class="nusselt-value" id="nusseltValue">5.2</div>
+                        <div class="nusselt-formula">Nu = h·L / k_f</div>
+                        <div style="font-size: 0.9rem; color: #a4b0be; margin-top: 10px;">
+                            Nu > 1: 对流传热主导<br>
+                            Nu ≈ 1: 传导与对流相当<br>
+                            Nu < 1: 热传导主导
+                        </div>
+                    </div>
+                    
+                    <div class="exploration-tips">
+                        <h4><i class="fas fa-lightbulb"></i> 传热机制探索提示</h4>
+                        <p>1. 比较不同传热模式的温度分布差异</p>
+                        <p>2. 观察努塞尔数随流速和介质的变化</p>
+                        <p>3. 分析材料导热系数对热传导的影响</p>
+                        <p>4. 理解Nu数如何表征对流传热强度</p>
+                        <p>5. 观察流体介质改变如何影响温度梯度</p>
+                    </div>
+                </div>
+                
+                <div class="simulation-panel">
+                    <h2 class="panel-title"><i class="fas fa-temperature-high"></i> 平面散热模拟与可视化</h2>
+                    
+                    <div class="simulation-area">
+                        <div class="heat-source" id="heatSource">100°C</div>
+                        <div class="temperature-map" id="temperatureMap"></div>
+                        <div class="conduction-lines" id="conductionLines"></div>
+                        <div class="convection-flow" id="convectionFlow"></div>
+                        
+                        <!-- 风扇指示器（对流模式时显示） -->
+                        <div class="fan-indicator" id="fanIndicator" style="display: none;">
+                            <i class="fas fa-fan"></i>
+                        </div>
+                        
+                        <!-- 流动方向指示 -->
+                        <div class="flow-direction" id="flowDirection" style="display: none;">
+                            气流方向 →
+                        </div>
+                    </div>
+                    
+                    <div class="flow-visualization">
+                        <div class="flow-vis-item">
+                            <div class="flow-color" style="background: rgba(255, 255, 255, 0.4);"></div>
+                            <div class="flow-text">热传导等温线</div>
+                        </div>
+                        <div class="flow-vis-item">
+                            <div class="flow-color" style="background: rgba(116, 185, 255, 0.6);"></div>
+                            <div class="flow-text">冷流体流动</div>
+                        </div>
+                        <div class="flow-vis-item">
+                            <div class="flow-color" style="background: rgba(255, 107, 107, 0.6);"></div>
+                            <div class="flow-text">热流体流动</div>
+                        </div>
+                    </div>
+                    
+                    <div class="cooling-effect">
+                        <span id="coolingEffectText">当前传热机制：纯热传导</span>
+                    </div>
+                    
+                    <div class="performance-indicator">
+                        <div class="indicator">
+                            <div class="indicator-label">总散热功率</div>
+                            <div class="indicator-value" id="totalPower">125 W</div>
+                            <div class="indicator-label">单位：瓦特(W)</div>
+                        </div>
+                        <div class="indicator">
+                            <div class="indicator-label">对流传热占比</div>
+                            <div class="indicator-value" id="convectionRatio">0%</div>
+                            <div class="indicator-label">传导 vs 对流</div>
+                        </div>
+                        <div class="indicator">
+                            <div class="indicator-label">传热系数 h</div>
+                            <div class="indicator-value" id="hValue">25.0</div>
+                            <div class="indicator-label">W/m²·K</div>
+                        </div>
+                        <div class="indicator">
+                            <div class="indicator-label">热源表面温度</div>
+                            <div class="indicator-value" id="surfaceTemp">95°C</div>
+                            <div class="indicator-label">较热源降低: <span id="tempDrop">5</span>°C</div>
+                        </div>
+                    </div>
+                    
+                    <div class="formula-panel">
+                        <h3 class="formula-title"><i class="fas fa-calculator"></i> 热传导与对流传导公式</h3>
+                        <div class="formula" id="formula">
+                            Q_cond = k·A·ΔT / L &nbsp;&nbsp; Q_conv = h·A·ΔT
+                        </div>
+                        <p class="formula-explanation" id="formulaExplanation">
+                            <strong>热传导（傅里叶定律）：</strong>Q_cond = k·A·ΔT / L，其中k为材料导热系数，A为面积，ΔT为温差，L为厚度。<br>
+                            <strong>对流传导（牛顿冷却定律）：</strong>Q_conv = h·A·ΔT，其中h为对流传热系数。<br>
+                            <strong>努塞尔数：</strong>Nu = h·L / k_f，表征对流传热与热传导的强度比，其中k_f为流体导热系数。<br>
+                            <strong>总散热功率：</strong>Q_total = Q_cond + Q_conv (混合模式)。
+                        </p>
+                        
+                        <h3 class="formula-title" style="margin-top: 25px;"><i class="fas fa-chart-line"></i> 传热机制对比</h3>
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th>传热机制</th>
+                                    <th>传热方式</th>
+                                    <th>典型Nu范围</th>
+                                    <th>传热效率</th>
+                                    <th>应用场景</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>纯热传导</td>
+                                    <td>固体内部热量传递</td>
+                                    <td>Nu → 0</td>
+                                    <td>低，依赖材料k值</td>
+                                    <td>隔热材料、电子基板</td>
+                                </tr>
+                                <tr>
+                                    <td>自然对流</td>
+                                    <td>流体密度差驱动</td>
+                                    <td>1-10</td>
+                                    <td>中等，依赖温差</td>
+                                    <td>散热器自然冷却</td>
+                                </tr>
+                                <tr>
+                                    <td>强制对流</td>
+                                    <td>外力驱动流体流动</td>
+                                    <td>10-1000</td>
+                                    <td>高，依赖流速</td>
+                                    <td>风扇散热、液冷系统</td>
+                                </tr>
+                                <tr>
+                                    <td>混合传热</td>
+                                    <td>传导+对流复合</td>
+                                    <td>变化</td>
+                                    <td>综合两者优点</td>
+                                    <td>实际工程散热系统</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="navigation-buttons">
+                <div></div> <!-- 占位 -->
+                <button class="btn btn-next" id="nextButton">
+                    <i class="fas fa-arrow-right"></i> 完成探索，开始评测
+                </button>
+            </div>
+        </div>
+        
+        <!-- 页面2：传热机制评测 -->
+        <div class="page" id="page2">
+            <div class="test-panel">
+                <h2 class="panel-title"><i class="fas fa-graduation-cap"></i> 热传导与对流传导综合评测</h2>
+                <p style="margin-bottom: 25px; line-height: 1.6;">你已经完成了热传导与对流传导的模拟探索，理解了努塞尔数的物理意义。现在回答以下5道选择题来测试你对传热机制的理解。根据你的表现，将获得工程师评级：初级工程师、工程师或专业工程师。</p>
+                
+                <div class="test-question" id="question1">
+                    <div class="question-text">1. 努塞尔数(Nu)的物理意义是什么？</div>
+                    <div class="options">
+                        <div class="option" data-value="A">A. 表示流体的流动速度</div>
+                        <div class="option" data-value="B">B. 表示对流传热与热传导的强度比</div>
+                        <div class="option" data-value="C">C. 表示材料的导热能力</div>
+                        <div class="option" data-value="D">D. 表示温度差的大小</div>
+                    </div>
+                </div>
+                
+                <div class="test-question" id="question2">
+                    <div class="question-text">2. 在纯热传导模式下，增加平板厚度会如何影响散热？</div>
+                    <div class="options">
+                        <div class="option" data-value="A">A. 散热功率增加</div>
+                        <div class="option" data-value="B">B. 散热功率减少</div>
+                        <div class="option" data-value="C">C. 散热功率不变</div>
+                        <div class="option" data-value="D">D. 表面温度升高</div>
+                    </div>
+                </div>
+                
+                <div class="test-question" id="question3">
+                    <div class="question-text">3. 从纯热传导模式切换到对流传导模式，努塞尔数(Nu)会如何变化？</div>
+                    <div class="options">
+                        <div class="option" data-value="A">A. 显著减小</div>
+                        <div class="option" data-value="B">B. 显著增大</div>
+                        <div class="option" data-value="C">C. 基本不变</div>
+                        <div class="option" data-value="D">D. 变为负值</div>
+                    </div>
+                </div>
+                
+                <div class="test-question" id="question4">
+                    <div class="question-text">4. 对于相同的温差，为什么对流传热通常比热传导更高效？</div>
+                    <div class="options">
+                        <div class="option" data-value="A">A. 对流不需要介质</div>
+                        <div class="option" data-value="B">B. 对流通过流体流动不断带走热量，更新热边界层</div>
+                        <div class="option" data-value="C">C. 对流不需要温度差</div>
+                        <div class="option" data-value="D">D. 对流只在液体中发生</div>
+                    </div>
+                </div>
+                
+                <div class="test-question" id="question5">
+                    <div class="question-text">5. 在混合传热模式下，如果努塞尔数Nu=15，这表示什么？</div>
+                    <div class="options">
+                        <div class="option" data-value="A">A. 热传导主导散热过程</div>
+                        <div class="option" data-value="B">B. 对流传热是热传导的15倍</div>
+                        <div class="option" data-value="C">C. 总散热功率是纯传导的15倍</div>
+                        <div class="option" data-value="D">D. 材料导热系数是对流的15倍</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: center; gap: 20px; margin-top: 30px;">
+                    <button class="btn btn-submit" id="submitTest">提交评测</button>
+                    <button class="btn btn-reset" id="resetTest">重置答案</button>
+                </div>
+                
+                <div class="result-panel" id="resultPanel">
+                    <h3 class="result-title">评测结果</h3>
+                    <div class="score-display">得分: <span id="scoreValue">0</span>/5</div>
+                    <div class="engineer-level" id="engineerLevel">初级工程师</div>
+                    <p class="result-description" id="resultDescription"></p>
+                    <div style="display: flex; justify-content: center; gap: 20px; margin-top: 25px;">
+                        <button class="btn btn-back" id="retryTest">重新评测</button>
+                        <button class="btn" id="backToSimulation">返回模拟器</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="navigation-buttons">
+                <button class="btn btn-back" id="backButton">
+                    <i class="fas fa-arrow-left"></i> 返回模拟器
+                </button>
+                <div></div> <!-- 占位 -->
+            </div>
+        </div>
+        
+     
+<!-- 底部信息栏 -->
+<div style="
+    text-align: center;
+    padding: 20px 30px;
+    margin-top: 40px;
+    color: #e6f7ff;
+    font-size: 0.9rem;
+    border-top: 2px solid rgba(0, 180, 255, 0.5);
+    background: linear-gradient(135deg, rgba(10, 15, 43, 0.95), rgba(18, 26, 58, 0.9));
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    /* 新增以下，确保完全宽度 */
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+">    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+        
+    <p style="font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; color: #00b4ff;">
+
+热传导与对流传导Nu综合模拟器© 2025 | 平面散热机理分析 | 版本1.0  |  
+    <style="margin-bottom: 12px; color: #cbd5e1;">
+        <strong>邮箱:</strong> xgyanger@qq.com
+    <div style="margin-top: 15px;">
+        <span style="color: #ffcc00; font-weight: bold; font-size: 1rem;">
+            版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+        </span>
+        </footer>
+    </div>
+
+    <script>
+        // 材料导热系数数据 (W/m·K)
+        const materials = {
+            'copper': { name: '铜', k: 401, color: '#e58e26' },
+            'aluminum': { name: '铝', k: 237, color: '#bdc3c7' },
+            'steel': { name: '钢', k: 50, color: '#95a5a6' },
+            'glass': { name: '玻璃', k: 1.0, color: '#9b59b6' }
+        };
+        
+        // 流体性质数据
+        const fluids = {
+            'air': { 
+                name: '空气', 
+                k: 0.026,  // 导热系数 W/m·K
+                nu: 1.5e-5, // 运动粘度 m²/s
+                alpha: 2.2e-5, // 热扩散率 m²/s
+                Pr: 0.71,  // 普朗特数
+                color: 'rgba(116, 185, 255, 0.6)'
+            },
+            'water': { 
+                name: '水', 
+                k: 0.6,
+                nu: 1.0e-6,
+                alpha: 1.43e-7,
+                Pr: 7.0,
+                color: 'rgba(52, 152, 219, 0.8)'
+            },
+            'oil': { 
+                name: '硅油', 
+                k: 0.1,
+                nu: 5.0e-4,
+                alpha: 1.0e-7,
+                Pr: 50,
+                color: 'rgba(155, 89, 182, 0.7)'
+            }
+        };
+        
+        // 当前选择的参数
+        let currentMode = 'conduction';
+        let currentMaterial = 'copper';
+        let currentFluid = 'air';
+        
+        // 测试答案
+        const correctAnswers = {
+            'question1': 'B',
+            'question2': 'B',
+            'question3': 'B',
+            'question4': 'B',
+            'question5': 'B'
+        };
+        
+        // 测试结果描述
+        const levelDescriptions = {
+            'beginner': {
+                title: '初级工程师',
+                description: '你对热传导与对流传导有基本了解，但还需要进一步掌握两者差异和努塞尔数的物理意义。建议多使用模拟器探索不同传热模式的特点，重点关注Nu数的变化规律。'
+            },
+            'engineer': {
+                title: '工程师',
+                description: '你对热传导与对流传导有较好的理解，能够区分两种传热机制并理解努塞尔数的意义。可以进一步学习复杂传热系统设计、边界层理论和湍流传热等高级主题。'
+            },
+            'expert': {
+                title: '专业工程师',
+                description: '恭喜！你对热传导与对流传导有深入理解，能够准确分析两种传热机制的差异，理解努塞尔数的物理意义，并能应用于实际工程问题。你已具备解决复杂传热问题的能力！'
+            }
+        };
+        
+        // 页面管理
+        let currentPage = 1;
+        
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化传热模式选择器
+            initModeSelector();
+            
+            // 初始化材料选择器
+            initMaterialSelector();
+            
+            // 初始化流体选择器
+            initFluidSelector();
+            
+            // 初始化滑块事件
+            initSliders();
+            
+            // 初始化传热模拟
+            updateSimulation();
+            
+            // 初始化测试系统
+            initTestSystem();
+            
+            // 初始化页面切换
+            initPageNavigation();
+            
+            // 创建可视化效果
+            createVisualEffects();
+        });
+        
+        // 初始化传热模式选择器
+        function initModeSelector() {
+            const modeSelector = document.getElementById('modeSelector');
+            
+            document.querySelectorAll('.mode-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    // 移除所有active类
+                    document.querySelectorAll('.mode-option').forEach(opt => {
+                        opt.classList.remove('active');
+                    });
+                    
+                    // 设置当前选中模式
+                    this.classList.add('active');
+                    currentMode = this.getAttribute('data-mode');
+                    
+                    // 更新模拟
+                    updateSimulation();
+                });
+            });
+        }
+        
+        // 初始化材料选择器
+        function initMaterialSelector() {
+            document.querySelectorAll('.material-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    // 移除所有active类
+                    document.querySelectorAll('.material-option').forEach(opt => {
+                        opt.classList.remove('active');
+                    });
+                    
+                    // 设置当前选中材料
+                    this.classList.add('active');
+                    currentMaterial = this.getAttribute('data-material');
+                    
+                    // 更新模拟
+                    updateSimulation();
+                });
+            });
+        }
+        
+        // 初始化流体选择器
+        function initFluidSelector() {
+            document.querySelectorAll('.medium-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 移除所有active类
+                    document.querySelectorAll('.medium-btn').forEach(b => {
+                        b.classList.remove('active');
+                    });
+                    
+                    // 设置当前选中流体
+                    this.classList.add('active');
+                    currentFluid = this.getAttribute('data-medium');
+                    
+                    // 更新模拟
+                    updateSimulation();
+                });
+            });
+        }
+        
+        // 初始化滑块事件
+        function initSliders() {
+            // 热源温度滑块
+            const heatTempSlider = document.getElementById('heatTempSlider');
+            const heatTempValue = document.getElementById('heatTempValue');
+            
+            heatTempSlider.addEventListener('input', function() {
+                heatTempValue.textContent = this.value + '°C';
+                updateSimulation();
+            });
+            
+            // 环境温度滑块
+            const ambientTempSlider = document.getElementById('ambientTempSlider');
+            const ambientTempValue = document.getElementById('ambientTempValue');
+            
+            ambientTempSlider.addEventListener('input', function() {
+                ambientTempValue.textContent = this.value + '°C';
+                updateSimulation();
+            });
+            
+            // 流速滑块
+            const flowRateSlider = document.getElementById('flowRateSlider');
+            const flowRateValue = document.getElementById('flowRateValue');
+            
+            flowRateSlider.addEventListener('input', function() {
+                flowRateValue.textContent = this.value + ' m/s';
+                updateSimulation();
+            });
+            
+            // 厚度滑块
+            const thicknessSlider = document.getElementById('thicknessSlider');
+            const thicknessValue = document.getElementById('thicknessValue');
+            
+            thicknessSlider.addEventListener('input', function() {
+                thicknessValue.textContent = this.value + ' m';
+                updateSimulation();
+            });
+        }
+        
+        // 创建可视化效果
+        function createVisualEffects() {
+            createConductionLines();
+            createConvectionFlow();
+        }
+        
+        // 创建热传导等温线
+        function createConductionLines() {
+            const conductionLines = document.getElementById('conductionLines');
+            conductionLines.innerHTML = '';
+            
+            // 创建8条等温线，从热源向外辐射
+            for (let i = 0; i < 8; i++) {
+                const line = document.createElement('div');
+                line.className = 'conduction-line';
+                // 等温线从热源中心向外辐射
+                const angle = (i * 45) * Math.PI / 180;
+                const length = 150 + Math.random() * 100;
+                
+                line.style.width = length + 'px';
+                line.style.top = '50%';
+                line.style.left = '50%';
+                line.style.transform = `rotate(${angle}rad)`;
+                line.style.opacity = 0.7 - (i * 0.08);
+                
+                conductionLines.appendChild(line);
+            }
+        }
+        
+        // 创建对流传热流动效果
+        function createConvectionFlow() {
+            const convectionFlow = document.getElementById('convectionFlow');
+            convectionFlow.innerHTML = '';
+            
+            // 创建冷流体粒子（从左侧流入）
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'flow-particle';
+                particle.style.width = Math.random() * 8 + 4 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.left = Math.random() * 30 + '%'; // 从左侧进入
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 10 + 's';
+                particle.style.animationDuration = (Math.random() * 5 + 8) + 's';
+                particle.style.backgroundColor = fluids[currentFluid].color;
+                convectionFlow.appendChild(particle);
+            }
+            
+            // 创建热流体粒子（从热源向上）
+            for (let i = 0; i < 15; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'flow-particle hot';
+                particle.style.width = Math.random() * 10 + 6 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.left = '50%';
+                particle.style.top = '50%';
+                particle.style.animationDelay = Math.random() * 5 + 's';
+                particle.style.animationDuration = (Math.random() * 3 + 5) + 's';
+                // 热粒子向上运动
+                particle.style.animationName = 'flow-up';
+                convectionFlow.appendChild(particle);
+            }
+            
+            // 添加向上流动的CSS动画
+            const style = document.createElement('style');
+            style.innerHTML = `
+                @keyframes flow-up {
+                    0% {
+                        transform: translate(-50%, -50%) translateY(0);
+                        opacity: 0;
+                    }
+                    10% {
+                        opacity: 0.8;
+                    }
+                    90% {
+                        opacity: 0.8;
+                    }
+                    100% {
+                        transform: translate(-50%, -50%) translateY(-200px);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // 更新传热模拟
+        function updateSimulation() {
+            // 获取当前参数
+            const heatTemp = parseInt(document.getElementById('heatTempSlider').value);
+            const ambientTemp = parseInt(document.getElementById('ambientTempSlider').value);
+            const flowRate = parseFloat(document.getElementById('flowRateSlider').value);
+            const thickness = parseFloat(document.getElementById('thicknessSlider').value);
+            
+            // 计算温差
+            const deltaT = heatTemp - ambientTemp;
+            
+            // 获取材料性质
+            const material = materials[currentMaterial];
+            const fluid = fluids[currentFluid];
+            
+            // 计算热传导散热功率 (傅里叶定律: Q_cond = k * A * ΔT / L)
+            // 假设平板面积 A = 0.1 m²
+            const A = 0.1;
+            const Q_cond = material.k * A * deltaT / thickness;
+            
+            // 计算对流传热系数和散热功率
+            let h = 0;
+            let Q_conv = 0;
+            let Nu = 0;
+            
+            if (currentMode !== 'conduction') {
+                // 计算雷诺数 Re = U * L / ν
+                const L = 0.1; // 特征长度 (平板长度)
+                const Re = flowRate * L / fluid.nu;
+                
+                // 根据流动状态计算努塞尔数
+                if (Re < 2300) {
+                    // 层流：平板层流关联式 Nu = 0.664 * Re^0.5 * Pr^0.333
+                    Nu = 0.664 * Math.pow(Re, 0.5) * Math.pow(fluid.Pr, 1/3);
+                } else {
+                    // 湍流：平板湍流关联式 Nu = 0.037 * Re^0.8 * Pr^0.333
+                    Nu = 0.037 * Math.pow(Re, 0.8) * Math.pow(fluid.Pr, 1/3);
+                }
+                
+                // 如果流速为0（自然对流），使用自然对流关联式
+                if (flowRate === 0 && currentMode === 'convection') {
+                    // 自然对流简化模型：Nu ≈ 0.59 * Ra^0.25 (层流自然对流)
+                    const g = 9.81; // 重力加速度
+                    const beta = 1 / (273 + (heatTemp + ambientTemp) / 2); // 体积膨胀系数
+                    const Ra = g * beta * deltaT * Math.pow(L, 3) / (fluid.nu * fluid.alpha);
+                    Nu = 0.59 * Math.pow(Ra, 0.25);
+                }
+                
+                // 计算对流传热系数 h = Nu * k_f / L
+                h = Nu * fluid.k / L;
+                
+                // 计算对流传热功率 (牛顿冷却定律: Q_conv = h * A * ΔT)
+                Q_conv = h * A * deltaT;
+            }
+            
+            // 计算总散热功率
+            let Q_total = 0;
+            let convectionRatio = 0;
+            
+            if (currentMode === 'conduction') {
+                Q_total = Q_cond;
+                convectionRatio = 0;
+            } else if (currentMode === 'convection') {
+                Q_total = Q_conv;
+                convectionRatio = 1;
+            } else if (currentMode === 'mixed') {
+                Q_total = Q_cond + Q_conv;
+                convectionRatio = Q_conv / Q_total;
+            }
+            
+            // 计算热源表面温度（简化模型）
+            const surfaceTemp = heatTemp - deltaT * (1 - Math.exp(-h * thickness / material.k));
+            const tempDrop = heatTemp - surfaceTemp;
+            
+            // 更新热源显示
+            document.getElementById('heatSource').textContent = heatTemp + '°C';
+            
+            // 更新温度分布图（现在传入Nu和h）
+            updateTemperatureMap(heatTemp, ambientTemp, currentMode, Nu, h);
+            
+            // 更新温度梯度指示器
+            updateTemperatureGradient(Nu, h, deltaT, material.k, thickness);
+            
+            // 更新流动效果显示
+            updateFlowEffect(flowRate);
+            
+            // 更新性能指标
+            document.getElementById('totalPower').textContent = Math.round(Q_total) + ' W';
+            document.getElementById('convectionRatio').textContent = (convectionRatio * 100).toFixed(0) + '%';
+            document.getElementById('hValue').textContent = h.toFixed(1);
+            document.getElementById('surfaceTemp').textContent = Math.round(surfaceTemp) + '°C';
+            document.getElementById('tempDrop').textContent = Math.round(tempDrop);
+            document.getElementById('nusseltValue').textContent = Nu.toFixed(1);
+            
+            // 更新散热效果文本
+            let effectText = "当前传热机制：";
+            if (currentMode === 'conduction') effectText += "纯热传导";
+            else if (currentMode === 'convection') effectText += "对流传导";
+            else effectText += "混合传热";
+            
+            if (currentMode !== 'conduction') {
+                if (Nu < 1) effectText += " (Nu<1，传导主导)";
+                else if (Nu < 10) effectText += " (Nu=1-10，弱对流)";
+                else if (Nu < 100) effectText += " (Nu=10-100，中等对流)";
+                else effectText += " (Nu>100，强对流)";
+            }
+            
+            document.getElementById('coolingEffectText').textContent = effectText;
+            
+            // 更新公式显示
+            updateFormulaDisplay(material.k, fluid.k, h, thickness, deltaT, Q_cond, Q_conv, Q_total, Nu);
+        }
+        
+        // 更新温度分布图 - 根据Nu值动态调整梯度
+        function updateTemperatureMap(heatTemp, ambientTemp, mode, Nu, h) {
+            const temperatureMap = document.getElementById('temperatureMap');
+            
+            // 计算温度梯度因子
+            let gradientFactor;
+            
+            if (mode === 'conduction') {
+                // 热传导：温度梯度较小，分布均匀
+                gradientFactor = 0.3;
+            } else {
+                // 对流/混合：根据Nu值调整梯度
+                // Nu越大，对流越强，热边界层越薄，梯度越陡
+                gradientFactor = Math.min(0.9, Math.max(0.1, 1 - Math.log10(Nu + 1) / 3));
+            }
+            
+            // 根据梯度因子计算颜色停止点
+            const redStop = '0%';
+            const orangeStop = `${10 + gradientFactor * 20}%`;  // 10-30%
+            const blueStop = `${30 + gradientFactor * 40}%`;    // 30-70%
+            const lightBlueStop = '100%';
+            
+            let gradientColors;
+            
+            if (mode === 'conduction') {
+                // 热传导：温度梯度较小，分布均匀
+                gradientColors = `
+                    radial-gradient(circle at center, 
+                        #ff6b6b ${redStop}, 
+                        #ff8e8e ${orangeStop}, 
+                        #ffb5b5 ${blueStop}, 
+                        #a5d6ff ${lightBlueStop})
+                `;
+            } else if (mode === 'convection') {
+                // 对流传导：温度梯度较大，热边界层薄
+                gradientColors = `
+                    radial-gradient(circle at center, 
+                        #ff6b6b ${redStop}, 
+                        #ff8e8e ${orangeStop}, 
+                        #a5d6ff ${blueStop}, 
+                        #0984e3 ${lightBlueStop})
+                `;
+            } else {
+                // 混合传热：介于两者之间
+                gradientColors = `
+                    radial-gradient(circle at center, 
+                        #ff6b6b ${redStop}, 
+                        #ff8e8e ${orangeStop}, 
+                        #ffb5b5 ${blueStop}, 
+                        #a5d6ff ${lightBlueStop})
+                `;
+            }
+            
+            temperatureMap.style.background = gradientColors;
+        }
+        
+        // 更新温度梯度指示器
+        function updateTemperatureGradient(Nu, h, deltaT, k_material, thickness) {
+            const gradientMarker = document.getElementById('gradientMarker');
+            const gradientInfo = document.getElementById('gradientInfo');
+            
+            // 计算温度梯度
+            let temperatureGradient;
+            let gradientDescription;
+            
+            if (currentMode === 'conduction') {
+                // 热传导：温度梯度 = ΔT / L
+                temperatureGradient = deltaT / thickness;
+                gradientDescription = "纯热传导，温度梯度均匀";
+            } else {
+                // 对流/混合：温度梯度 ≈ h * ΔT / k_material
+                temperatureGradient = h * deltaT / k_material;
+                gradientDescription = "对流传热，温度梯度较大";
+            }
+            
+            // 将Nu值映射到梯度标记位置 (0-100%)
+            let markerPosition;
+            if (currentMode === 'conduction') {
+                markerPosition = 30; // 传导模式，标记在左侧
+            } else {
+                // Nu值越大，标记越靠右（梯度越陡）
+                markerPosition = Math.min(95, Math.max(5, 30 + Math.log10(Nu + 1) * 15));
+            }
+            
+            // 更新标记位置
+            gradientMarker.style.left = `${markerPosition}%`;
+            
+            // 更新梯度信息文本
+            let infoText = `当前温度梯度: ${temperatureGradient.toFixed(1)} K/m<br>`;
+            
+            // 根据Nu值给出梯度描述
+            if (currentMode !== 'conduction') {
+                if (Nu < 1) {
+                    infoText += "Nu<1，传导主导，温度梯度平缓";
+                } else if (Nu < 10) {
+                    infoText += "Nu=1-10，弱对流，温度梯度适中";
+                } else if (Nu < 100) {
+                    infoText += "Nu=10-100，中等对流，温度梯度较陡";
+                } else {
+                    infoText += "Nu>100，强对流，温度梯度很陡";
+                }
+                
+                // 添加流体介质影响
+                infoText += `<br>流体介质: ${fluids[currentFluid].name} (k_f=${fluids[currentFluid].k} W/m·K)`;
+            } else {
+                infoText += "纯热传导模式，温度分布均匀";
+            }
+            
+            gradientInfo.innerHTML = infoText;
+        }
+        
+        // 更新流动效果显示
+        function updateFlowEffect(flowRate) {
+            const conductionLines = document.getElementById('conductionLines');
+            const convectionFlow = document.getElementById('convectionFlow');
+            const fanIndicator = document.getElementById('fanIndicator');
+            const flowDirection = document.getElementById('flowDirection');
+            
+            // 根据当前传热模式显示/隐藏效果
+            if (currentMode === 'conduction') {
+                conductionLines.style.display = 'block';
+                convectionFlow.style.display = 'none';
+                fanIndicator.style.display = 'none';
+                flowDirection.style.display = 'none';
+            } 
+            else if (currentMode === 'convection' || currentMode === 'mixed') {
+                conductionLines.style.display = 'none';
+                convectionFlow.style.display = 'block';
+                
+                // 如果有流速（强制对流），显示风扇和方向指示
+                if (flowRate > 0) {
+                    fanIndicator.style.display = 'flex';
+                    flowDirection.style.display = 'flex';
+                    
+                    // 调整风扇旋转速度
+                    fanIndicator.style.animationDuration = (2 / flowRate) + 's';
+                    
+                    // 调整流动速度
+                    const particles = convectionFlow.querySelectorAll('.flow-particle');
+                    particles.forEach(particle => {
+                        if (particle.classList.contains('hot')) {
+                            // 热粒子向上速度不变
+                            particle.style.animationDuration = (Math.random() * 3 + 5) + 's';
+                        } else {
+                            // 冷粒子水平速度随流速变化
+                            particle.style.animationDuration = (8 / flowRate) + 's';
+                        }
+                    });
+                } else {
+                    // 自然对流
+                    fanIndicator.style.display = 'none';
+                    flowDirection.style.display = 'none';
+                }
+            }
+        }
+        
+        // 更新公式显示
+        function updateFormulaDisplay(k_material, k_fluid, h, thickness, deltaT, Q_cond, Q_conv, Q_total, Nu) {
+            const formulaElement = document.getElementById('formula');
+            const explanationElement = document.getElementById('formulaExplanation');
+            
+            // 格式化数值
+            const Q_condFormatted = Math.round(Q_cond);
+            const Q_convFormatted = Math.round(Q_conv);
+            const Q_totalFormatted = Math.round(Q_total);
+            const hFormatted = h.toFixed(1);
+            const NuFormatted = Nu.toFixed(1);
+            
+            // 计算温度梯度
+            let temperatureGradient;
+            if (currentMode === 'conduction') {
+                temperatureGradient = (deltaT / thickness).toFixed(1);
+            } else {
+                temperatureGradient = (h * deltaT / k_material).toFixed(1);
+            }
+            
+            let formulaHTML = '';
+            let explanationHTML = '';
+            
+            if (currentMode === 'conduction') {
+                formulaHTML = `
+                    Q = k·A·ΔT / L = ${k_material} × 0.1 × ${deltaT} / ${thickness.toFixed(3)}<br>
+                    <span style="font-size: 1.2rem;">Q = ${Q_condFormatted} W</span>
+                `;
+                
+                explanationHTML = `
+                    <strong>纯热传导模式：</strong>热量通过固体材料传递，没有流体流动参与。<br>
+                    <strong>傅里叶定律：</strong>Q = k·A·ΔT / L，其中k为材料导热系数，A为面积，ΔT为温差，L为厚度。<br>
+                    <strong>当前参数：</strong>材料k = ${k_material} W/m·K，面积A = 0.1 m²，温差ΔT = ${deltaT} K，厚度L = ${thickness.toFixed(3)} m。<br>
+                    <strong>散热功率：</strong>Q = ${Q_condFormatted} W。<br>
+                    <strong>温度梯度：</strong>∇T = ΔT / L = ${temperatureGradient} K/m。<br>
+                    <strong>传热特点：</strong>散热效率较低，依赖材料导热系数，温度分布均匀。
+                `;
+            }
+            else if (currentMode === 'convection') {
+                formulaHTML = `
+                    Q = h·A·ΔT = ${hFormatted} × 0.1 × ${deltaT}<br>
+                    <span style="font-size: 1.2rem;">Q = ${Q_convFormatted} W</span><br>
+                    <span style="font-size: 1.1rem;">Nu = h·L / k_f = ${NuFormatted}</span>
+                `;
+                
+                explanationHTML = `
+                    <strong>对流传导模式：</strong>热量通过流体流动传递，效率更高。<br>
+                    <strong>牛顿冷却定律：</strong>Q = h·A·ΔT，其中h为对流传热系数。<br>
+                    <strong>努塞尔数：</strong>Nu = h·L / k_f = ${NuFormatted}，其中L为特征长度，k_f为流体导热系数。<br>
+                    <strong>当前参数：</strong>传热系数h = ${hFormatted} W/m²·K，面积A = 0.1 m²，温差ΔT = ${deltaT} K。<br>
+                    <strong>散热功率：</strong>Q = ${Q_convFormatted} W。<br>
+                    <strong>温度梯度：</strong>∇T ≈ h·ΔT / k = ${temperatureGradient} K/m。<br>
+                    <strong>传热特点：</strong>散热效率高，依赖流体流动，温度梯度较大。
+                `;
+            }
+            else if (currentMode === 'mixed') {
+                formulaHTML = `
+                    Q_total = Q_cond + Q_conv = ${Q_condFormatted} + ${Q_convFormatted}<br>
+                    <span style="font-size: 1.2rem;">Q_total = ${Q_totalFormatted} W</span><br>
+                    <span style="font-size: 1.1rem;">Nu = ${NuFormatted} (对流占比: ${(Q_conv/Q_total*100).toFixed(0)}%)</span>
+                `;
+                
+                explanationHTML = `
+                    <strong>混合传热模式：</strong>热传导与对流传导共同作用。<br>
+                    <strong>总散热功率：</strong>Q_total = Q_cond + Q_conv = ${Q_totalFormatted} W。<br>
+                    <strong>热传导部分：</strong>Q_cond = k·A·ΔT / L = ${Q_condFormatted} W。<br>
+                    <strong>对流传导部分：</strong>Q_conv = h·A·ΔT = ${Q_convFormatted} W。<br>
+                    <strong>努塞尔数：</strong>Nu = h·L / k_f = ${NuFormatted}，表征对流传热强度。<br>
+                    <strong>温度梯度：</strong>综合传导和对流，∇T ≈ ${temperatureGradient} K/m。<br>
+                    <strong>传热特点：</strong>综合两种传热机制优点，实际工程中最常见。
+                `;
+            }
+            
+            formulaElement.innerHTML = formulaHTML;
+            explanationElement.innerHTML = explanationHTML;
+        }
+        
+        // 初始化测试系统
+        function initTestSystem() {
+            // 为每个选项添加点击事件
+            document.querySelectorAll('.option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const question = this.closest('.test-question');
+                    const options = question.querySelectorAll('.option');
+                    
+                    // 移除该问题所有选项的选择状态
+                    options.forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    // 设置当前选项为选中状态
+                    this.classList.add('selected');
+                });
+            });
+            
+            // 提交测试按钮
+            document.getElementById('submitTest').addEventListener('click', function() {
+                submitTest();
+            });
+            
+            // 重置测试按钮
+            document.getElementById('resetTest').addEventListener('click', function() {
+                resetTest();
+            });
+            
+            // 重新测试按钮
+            document.getElementById('retryTest').addEventListener('click', function() {
+                resetTest();
+                document.getElementById('resultPanel').style.display = 'none';
+            });
+            
+            // 返回模拟器按钮
+            document.getElementById('backToSimulation').addEventListener('click', function() {
+                goToPage(1);
+            });
+        }
+        
+        // 初始化页面导航
+        function initPageNavigation() {
+            // 下一步按钮
+            document.getElementById('nextButton').addEventListener('click', function() {
+                goToPage(2);
+            });
+            
+            // 返回按钮
+            document.getElementById('backButton').addEventListener('click', function() {
+                goToPage(1);
+            });
+            
+            // 页面指示器点击
+            document.querySelectorAll('.page-dot').forEach(dot => {
+                dot.addEventListener('click', function() {
+                    const pageNum = parseInt(this.getAttribute('data-page'));
+                    goToPage(pageNum);
+                });
+            });
+        }
+        
+        // 切换页面
+        function goToPage(pageNum) {
+            // 更新当前页面
+            currentPage = pageNum;
+            
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // 显示目标页面
+            document.getElementById(`page${pageNum}`).classList.add('active');
+            
+            // 更新页面指示器
+            document.querySelectorAll('.page-dot').forEach(dot => {
+                if (parseInt(dot.getAttribute('data-page')) === pageNum) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+            
+            // 滚动到顶部
+            window.scrollTo(0, 0);
+        }
+        
+        // 提交测试
+        function submitTest() {
+            let score = 0;
+            const questions = document.querySelectorAll('.test-question');
+            
+            // 检查每个问题的答案
+            questions.forEach(question => {
+                const questionId = question.id;
+                const selectedOption = question.querySelector('.option.selected');
+                
+                if (selectedOption) {
+                    const userAnswer = selectedOption.getAttribute('data-value');
+                    const correctAnswer = correctAnswers[questionId];
+                    
+                    // 清除之前的正确/错误标记
+                    const options = question.querySelectorAll('.option');
+                    options.forEach(opt => {
+                        opt.classList.remove('correct', 'incorrect');
+                    });
+                    
+                    // 标记正确答案
+                    const correctOption = question.querySelector(`.option[data-value="${correctAnswer}"]`);
+                    correctOption.classList.add('correct');
+                    
+                    // 检查用户答案
+                    if (userAnswer === correctAnswer) {
+                        score++;
+                        selectedOption.classList.add('correct');
+                    } else {
+                        selectedOption.classList.add('incorrect');
+                    }
+                }
+            });
+            
+            // 计算得分并显示结果
+            displayTestResult(score);
+        }
+        
+        // 显示测试结果
+        function displayTestResult(score) {
+            const resultPanel = document.getElementById('resultPanel');
+            const scoreValue = document.getElementById('scoreValue');
+            const engineerLevel = document.getElementById('engineerLevel');
+            const resultDescription = document.getElementById('resultDescription');
+            
+            // 设置得分
+            scoreValue.textContent = score;
+            
+            // 确定工程师等级
+            let level, levelClass;
+            if (score <= 2) {
+                level = levelDescriptions.beginner;
+                levelClass = 'level-beginner';
+            } else if (score <= 4) {
+                level = levelDescriptions.engineer;
+                levelClass = 'level-engineer';
+            } else {
+                level = levelDescriptions.expert;
+                levelClass = 'level-expert';
+            }
+            
+            // 更新显示
+            engineerLevel.textContent = level.title;
+            engineerLevel.className = `engineer-level ${levelClass}`;
+            resultDescription.textContent = level.description;
+            
+            // 显示结果面板
+            resultPanel.style.display = 'block';
+            
+            // 滚动到结果面板
+            resultPanel.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // 重置测试
+        function resetTest() {
+            // 清除所有选择
+            document.querySelectorAll('.option').forEach(option => {
+                option.classList.remove('selected', 'correct', 'incorrect');
+            });
+            
+            // 隐藏结果面板
+            document.getElementById('resultPanel').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

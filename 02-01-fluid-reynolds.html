@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雷诺数与流态交互实验室 (可视管径版)</title>
+    <style>
+        :root {
+            --primary-color: #00b4ff;
+            --secondary-color: #6c8cff;
+            --success-color: #00ff9d;
+            --warning-color: #ffcc00;
+            --danger-color: #ff3366;
+            --bg-dark: #0a0f2b;
+            --bg-card: #121a3a;
+            --text-light: #e6f7ff;
+            --border-color: #2a3a7a;
+            --accent-glow: rgba(0, 180, 255, 0.3);
+            --wall-color: #2a3a6a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0a0f2b 0%, #151d40 100%);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-align: center;
+            text-shadow: 0 0 10px var(--accent-glow);
+            background: linear-gradient(90deg, #00b4ff, #6c8cff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-style: italic;
+            color: var(--secondary-color);
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            max-width: 1300px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* Visualization Section - 科技感增强 */
+        .canvas-container {
+            flex: 2;
+            min-width: 320px;
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                        0 0 0 1px rgba(0, 180, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .canvas-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                var(--primary-color), 
+                transparent);
+        }
+
+        #flowCanvas {
+            background: linear-gradient(180deg, #0a1429 0%, #1a264a 100%);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5),
+                        0 0 30px rgba(0, 180, 255, 0.1);
+        }
+
+        .status-panel {
+            margin-top: 20px;
+            text-align: center;
+            width: 100%;
+            padding: 15px;
+            background: rgba(18, 26, 58, 0.8);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        #reValueDisplay {
+            font-size: 1.6em;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-shadow: 0 0 8px rgba(0, 180, 255, 0.5);
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        #flowRegimeDisplay {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            color: white;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        /* Controls Section - 科技感设计 */
+        .controls-container {
+            flex: 1;
+            min-width: 320px;
+            background: var(--bg-card);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                        0 0 0 1px rgba(0, 180, 255, 0.1);
+            position: relative;
+        }
+
+        .controls-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                var(--primary-color), 
+                transparent);
+        }
+
+        .controls-container h3 {
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 1.4em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .control-group {
+            margin-bottom: 30px;
+            padding: 15px;
+            background: rgba(10, 20, 40, 0.5);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-light);
+            font-size: 1.05em;
+        }
+
+        .control-group input[type=range] {
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, #0a1429, #1a2a5a);
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+
+        .control-group input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 0 10px rgba(0, 180, 255, 0.8);
+        }
+
+        .control-group input[type=range]::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 0 10px rgba(0, 180, 255, 0.8);
+        }
+
+        .value-span {
+            color: var(--primary-color);
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .formula-box {
+            background: linear-gradient(135deg, rgba(0, 180, 255, 0.1), rgba(108, 140, 255, 0.1));
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 25px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--primary-color);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .formula-box::before {
+            content: "公式：";
+            color: var(--secondary-color);
+            font-weight: normal;
+            margin-right: 10px;
+        }
+
+        #startEvalBtn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 20px;
+            box-shadow: 0 5px 20px rgba(0, 180, 255, 0.3);
+        }
+
+        #startEvalBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 180, 255, 0.5);
+            background: linear-gradient(135deg, #00ccff, #7d9bff);
+        }
+
+        /* Evaluation Section */
+        #evaluationSection {
+            display: none;
+            max-width: 900px;
+            width: 100%;
+            background: var(--bg-card);
+            padding: 40px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            margin-top: 30px;
+            position: relative;
+        }
+
+        #evaluationSection::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                var(--primary-color), 
+                transparent);
+        }
+
+        #evaluationSection h2 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2em;
+            background: linear-gradient(90deg, #00b4ff, #6c8cff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .question {
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+
+        .question h3 {
+            color: var(--text-light);
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            line-height: 1.5;
+        }
+
+        .options label {
+            display: block;
+            margin-bottom: 12px;
+            cursor: pointer;
+            padding: 12px 15px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            background: rgba(10, 20, 40, 0.5);
+            border: 1px solid transparent;
+        }
+
+        .options label:hover {
+            background: rgba(0, 180, 255, 0.1);
+            border-color: var(--border-color);
+            transform: translateX(5px);
+        }
+
+        .options input[type="radio"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+
+        #submitEvalBtn {
+            padding: 15px 40px;
+            background: linear-gradient(135deg, var(--success-color), #00cc88);
+            color: #0a0f2b;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+            margin: 30px auto;
+            box-shadow: 0 5px 20px rgba(0, 255, 157, 0.3);
+        }
+
+        #submitEvalBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 255, 157, 0.5);
+            background: linear-gradient(135deg, #00ffaa, #00dd99);
+        }
+
+        #resultArea {
+            margin-top: 40px;
+            text-align: center;
+            display: none;
+            padding: 30px;
+            background: rgba(10, 20, 40, 0.5);
+            border-radius: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        #rankBadge {
+            font-size: 1.8em;
+            font-weight: bold;
+            padding: 15px 40px;
+            border-radius: 12px;
+            color: white;
+            display: inline-block;
+            margin: 20px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .canvas-container, .controls-container {
+                min-width: 100%;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            #flowCanvas {
+                width: 100% !important;
+                height: auto !important;
+            }
+        }
+
+        /* 粒子效果增强 */
+        .particle-glow {
+            filter: drop-shadow(0 0 3px currentColor);
+        }
+
+        /* 工程师思维装饰元素 */
+        .engineering-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 180, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 180, 255, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景网格 -->
+    <div class="engineering-grid"></div>
+
+    <h1>雷诺数与流态交互实验室</h1>
+    <p class="subtitle">探索流速、管径和粘度如何决定流体是"层流"还是"湍流" | 工程思维可视化</p>
+
+    <div class="main-container" id="explorationMode">
+        
+        <div class="canvas-container">
+            <canvas id="flowCanvas" width="650" height="350"></canvas>
+            <div class="status-panel">
+                <div>当前雷诺数 (Re): <span id="reValueDisplay">Wait...</span></div>
+                <div id="flowRegimeDisplay">初始化中...</div>
+            </div>
+        </div>
+
+        <div class="controls-container">
+            <h3>实验参数控制</h3>
+            <div class="formula-box">
+                Re = (流速 × 管径) / 粘度
+            </div>
+
+            <div class="control-group">
+                <label for="velocityRange">流速 (V): <span id="velVal" class="value-span">50</span> m/s</label>
+                <input type="range" id="velocityRange" min="10" max="150" value="50" step="5">
+            </div>
+
+            <div class="control-group">
+                <label for="diameterRange">管径 (D): <span id="diaVal" class="value-span">40</span> mm</label>
+                <input type="range" id="diameterRange" min="10" max="80" value="40" step="2">
+            </div>
+
+            <div class="control-group">
+                <label for="viscosityRange">粘度 (ν): <span id="visVal" class="value-span">1.0</span> cSt</label>
+                <input type="range" id="viscosityRange" min="0.1" max="5.0" value="1.0" step="0.1">
+                <small style="color: var(--secondary-color); display: block; margin-top: 8px; font-style: italic;">
+                    (值越小，流体越"稀"，越容易湍流)
+                </small>
+            </div>
+
+            <div style="margin-top: 30px; text-align: center;">
+                <p style="color: var(--secondary-color); margin-bottom: 20px; font-size: 1.1em;">
+                    完成参数探索后，进入评估模式检验学习成果
+                </p>
+                <button id="startEvalBtn">进入评价模式 →</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="evaluationSection">
+        <h2>流体力学基础评估</h2>
+        <p style="text-align: center; color: var(--secondary-color); margin-bottom: 30px;">
+            请根据你在实验室中的观察回答以下问题，检验工程思维理解
+        </p>
+
+        <div class="question">
+            <h3>1. 当雷诺数 (Re) 非常高时（例如 > 4000），流体通常呈现什么状态？</h3>
+            <div class="options">
+                <label><input type="radio" name="q1" value="a"> A. 平滑、有序的层流</label>
+                <label><input type="radio" name="q1" value="b"> B. 混乱、无序的湍流</label>
+                <label><input type="radio" name="q1" value="c"> C. 流体停止流动</label>
+            </div>
+        </div>
+
+        <div class="question">
+            <h3>2. 如果你想让管道中的湍流恢复为层流，以下哪项操作最有效？</h3>
+            <div class="options">
+                <label><input type="radio" name="q2" value="a"> A. 增加流速 (V)</label>
+                <label><input type="radio" name="q2" value="b"> B. 增加管径 (D)</label>
+                <label><input type="radio" name="q2" value="c"> C. 增加流体的粘度 (ν)</label>
+            </div>
+        </div>
+
+        <div class="question">
+            <h3>3. 为什么高粘度的流体（如蜂蜜）通常比低粘度的流体（如水）更容易保持层流？</h3>
+            <div class="options">
+                <label><input type="radio" name="q3" value="a"> A. 因为高粘度会降低雷诺数，抑制扰动。</label>
+                <label><input type="radio" name="q3" value="b"> B. 因为高粘度流体密度更大。</label>
+                <label><input type="radio" name="q3" value="c"> C. 粘度与流态无关，只与速度有关。</label>
+            </div>
+        </div>
+
+        <button id="submitEvalBtn">提交答案并查看评级</button>
+
+        <div id="resultArea">
+            <h3>评估结果</h3>
+            <p>你的得分: <span id="scoreSpan">0</span> / 3</p>
+            <div id="rankBadge">评级计算中...</div>
+            <br><br>
+            <button onclick="location.reload()" style="
+                padding: 12px 30px;
+                background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 1.1em;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            ">重新开始实验</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Constants & Thresholds ---
+        const RE_LAMINAR_LIMIT = 2100;
+        const RE_TURBULENT_LIMIT = 4000;
+        const RE_SCALE_FACTOR = 20;
+        const CANVAS_HEIGHT = 350;
+        const DIAMETER_VISUAL_MULTIPLIER = 3.5;
+
+        // --- State Variables ---
+        let gameState = {
+            velocity: 50,
+            diameter: 40,
+            viscosity: 1.0,
+            re: 0,
+            regime: 'laminar',
+            isExploring: true,
+            visualPipeHeight: 0,
+            pipeTopY: 0,
+            pipeBottomY: 0
+        };
+
+        // --- DOM Elements ---
+        const canvas = document.getElementById('flowCanvas');
+        const ctx = canvas.getContext('2d');
+        const velocitySlider = document.getElementById('velocityRange');
+        const diameterSlider = document.getElementById('diameterRange');
+        const viscositySlider = document.getElementById('viscosityRange');
+        const velValSpan = document.getElementById('velVal');
+        const diaValSpan = document.getElementById('diaVal');
+        const visValSpan = document.getElementById('visVal');
+        const reValueDisplay = document.getElementById('reValueDisplay');
+        const flowRegimeDisplay = document.getElementById('flowRegimeDisplay');
+        const explorationModeDiv = document.getElementById('explorationMode');
+        const evaluationSectionDiv = document.getElementById('evaluationSection');
+        const startEvalBtn = document.getElementById('startEvalBtn');
+        const submitEvalBtn = document.getElementById('submitEvalBtn');
+        const resultArea = document.getElementById('resultArea');
+
+        // --- Particle System for Animation ---
+        let particles = [];
+        const numParticles = 250;
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = CANVAS_HEIGHT / 2;
+                this.history = [];
+                this.glow = 0;
+            }
+
+            reset() {
+                this.x = 0;
+                this.y = gameState.pipeTopY + (Math.random() * gameState.visualPipeHeight);
+                this.baseSpeed = Math.random() * 0.4 + 0.6;
+                this.size = Math.random() * 2.5 + 1.5;
+                this.history = [];
+                this.glow = Math.random() * 0.5 + 0.5;
+            }
+
+            update(calculatedSpeed, turbulenceFactor) {
+                const currentPipeHeight = gameState.visualPipeHeight;
+                const pipeTop = gameState.pipeTopY;
+                const pipeBottom = gameState.pipeBottomY;
+                const pipeCenterY = CANVAS_HEIGHT / 2;
+
+                // Laminar Component (Poiseuille Profile)
+                let distFromCenter = Math.abs(this.y - pipeCenterY) / (currentPipeHeight / 2);
+                distFromCenter = Math.min(distFromCenter, 1.0);
+                let profileFactor = (1 - Math.pow(distFromCenter, 2));
+                let laminarSpeed = calculatedSpeed * this.baseSpeed * (profileFactor + 0.05);
+
+                // Turbulent Component
+                let turbulentVx = 0;
+                let turbulentVy = 0;
+
+                if (turbulenceFactor > 0) {
+                    turbulentVx = (Math.random() - 0.5) * turbulenceFactor * calculatedSpeed * 1.2;
+                    turbulentVy = (Math.random() - 0.5) * turbulenceFactor * calculatedSpeed * 0.6;
+                    
+                    // Add some swirling motion in turbulent flow
+                    if (gameState.regime === 'turbulent') {
+                        turbulentVx += Math.sin(this.x * 0.02 + Date.now() * 0.001) * 0.3;
+                    }
+                }
+
+                this.x += laminarSpeed + turbulentVx;
+                this.y += turbulentVy;
+
+                // Boundary checks
+                if (this.y <= pipeTop + 2) this.y = pipeTop + 3;
+                if (this.y >= pipeBottom - 2) this.y = pipeBottom - 3;
+
+                if (this.x > canvas.width) {
+                    this.reset();
+                    this.x = 0;
+                }
+
+                this.history.push({x: this.x, y: this.y});
+                let maxHistory = Math.max(2, 15 - turbulenceFactor * 18);
+                if(this.history.length > maxHistory) {
+                    this.history.shift();
+                }
+            }
+
+            draw(ctx, regime) {
+                if(this.y < gameState.pipeTopY - 5 || this.y > gameState.pipeBottomY + 5) return;
+
+                // Draw trail
+                if (regime === 'laminar' && this.history.length > 1) {
+                    ctx.beginPath();
+                    ctx.moveTo(this.history[0].x, this.history[0].y);
+                    
+                    let gradient = ctx.createLinearGradient(
+                        this.history[0].x, this.history[0].y,
+                        this.history[this.history.length-1].x, this.history[this.history.length-1].y
+                    );
+                    
+                    if (regime === 'laminar') {
+                        gradient.addColorStop(0, 'rgba(0, 180, 255, 0.15)');
+                        gradient.addColorStop(1, 'rgba(108, 140, 255, 0.05)');
+                    } else if (regime === 'transition') {
+                        gradient.addColorStop(0, 'rgba(255, 204, 0, 0.2)');
+                        gradient.addColorStop(1, 'rgba(255, 204, 0, 0.05)');
+                    }
+                    
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = this.size * 0.7;
+                    ctx.lineCap = 'round';
+                    
+                    for(let i = 1; i < this.history.length; i++) {
+                        ctx.lineTo(this.history[i].x, this.history[i].y);
+                    }
+                    ctx.stroke();
+                }
+
+                // Draw particle
+                ctx.beginPath();
+                
+                // Different colors based on regime
+                let color;
+                let glowColor;
+                if (regime === 'laminar') {
+                    color = `rgba(0, 180, 255, ${this.glow})`;
+                    glowColor = 'rgba(0, 180, 255, 0.3)';
+                } else if (regime === 'turbulent') {
+                    color = `rgba(255, 51, 102, ${this.glow})`;
+                    glowColor = 'rgba(255, 51, 102, 0.3)';
+                } else {
+                    color = `rgba(255, 204, 0, ${this.glow})`;
+                    glowColor = 'rgba(255, 204, 0, 0.3)';
+                }
+                
+                // Glow effect
+                ctx.shadowColor = glowColor;
+                ctx.shadowBlur = regime === 'laminar' ? 8 : 5;
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                
+                // Reset shadow
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // --- Core Logic & Calculations ---
+        function updateVisualGeometry() {
+            gameState.visualPipeHeight = gameState.diameter * DIAMETER_VISUAL_MULTIPLIER;
+            const canvasMidY = CANVAS_HEIGHT / 2;
+            gameState.pipeTopY = canvasMidY - (gameState.visualPipeHeight / 2);
+            gameState.pipeBottomY = canvasMidY + (gameState.visualPipeHeight / 2);
+
+            if(particles.length > 0) {
+                particles.forEach(p => {
+                    if(p.y < gameState.pipeTopY || p.y > gameState.pipeBottomY) {
+                        p.reset();
+                    }
+                });
+            }
+        }
+
+        function calculateReynolds() {
+            gameState.re = Math.round((gameState.velocity * gameState.diameter) / gameState.viscosity * RE_SCALE_FACTOR);
+            updateStatusDisplay();
+        }
+
+        function updateStatusDisplay() {
+            reValueDisplay.textContent = gameState.re.toLocaleString();
+            
+            if (gameState.re < RE_LAMINAR_LIMIT) {
+                gameState.regime = 'laminar';
+                flowRegimeDisplay.textContent = "层流 (Laminar)";
+                flowRegimeDisplay.style.background = "linear-gradient(135deg, var(--success-color), #00cc88)";
+                flowRegimeDisplay.style.borderColor = "rgba(0, 255, 157, 0.3)";
+            } else if (gameState.re > RE_TURBULENT_LIMIT) {
+                gameState.regime = 'turbulent';
+                flowRegimeDisplay.textContent = "湍流 (Turbulent)";
+                flowRegimeDisplay.style.background = "linear-gradient(135deg, var(--danger-color), #ff6699)";
+                flowRegimeDisplay.style.borderColor = "rgba(255, 51, 102, 0.3)";
+            } else {
+                gameState.regime = 'transition';
+                flowRegimeDisplay.textContent = "过渡流 (Transition)";
+                flowRegimeDisplay.style.background = "linear-gradient(135deg, var(--warning-color), #ffdd44)";
+                flowRegimeDisplay.style.color = "#0a0f2b";
+                flowRegimeDisplay.style.borderColor = "rgba(255, 204, 0, 0.3)";
+            }
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            if (!gameState.isExploring) return;
+
+            // Clear canvas with gradient
+            let gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+            gradient.addColorStop(0, "#0a1429");
+            gradient.addColorStop(1, "#1a264a");
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw pipe walls with 3D effect
+            ctx.fillStyle = "#1a244a";
+            
+            // Top wall with depth
+            ctx.fillRect(0, 0, canvas.width, gameState.pipeTopY);
+            // Bottom wall with depth
+            ctx.fillRect(0, gameState.pipeBottomY, canvas.width, CANVAS_HEIGHT - gameState.pipeBottomY);
+            
+            // Wall highlights
+            ctx.beginPath();
+            ctx.strokeStyle = "rgba(0, 180, 255, 0.2)";
+            ctx.lineWidth = 2;
+            ctx.moveTo(0, gameState.pipeTopY);
+            ctx.lineTo(canvas.width, gameState.pipeTopY);
+            ctx.moveTo(0, gameState.pipeBottomY);
+            ctx.lineTo(canvas.width, gameState.pipeBottomY);
+            ctx.stroke();
+            
+            // Inner wall glow
+            ctx.beginPath();
+            ctx.strokeStyle = "rgba(0, 180, 255, 0.05)";
+            ctx.lineWidth = 8;
+            ctx.moveTo(0, gameState.pipeTopY);
+            ctx.lineTo(canvas.width, gameState.pipeTopY);
+            ctx.moveTo(0, gameState.pipeBottomY);
+            ctx.lineTo(canvas.width, gameState.pipeBottomY);
+            ctx.stroke();
+
+            // Determine animation parameters
+            let visualSpeed = gameState.velocity / 6;
+            let turbulenceFactor = 0;
+            
+            if (gameState.regime === 'turbulent') {
+                turbulenceFactor = Math.min(2.5, (gameState.re - RE_TURBULENT_LIMIT) / 3000 + 0.8);
+            } else if (gameState.regime === 'transition') {
+                turbulenceFactor = (gameState.re - RE_LAMINAR_LIMIT) / (RE_TURBULENT_LIMIT - RE_LAMINAR_LIMIT) * 0.8;
+            }
+
+            // Update and draw particles
+            particles.forEach(p => {
+                p.update(visualSpeed, turbulenceFactor);
+                p.draw(ctx, gameState.regime);
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- Initialization ---
+        function init() {
+            updateVisualGeometry();
+            
+            particles = [];
+            for (let i = 0; i < numParticles; i++) {
+                const p = new Particle();
+                p.reset();
+                particles.push(p);
+            }
+            
+            calculateReynolds();
+            animate();
+        }
+
+        // --- Event Handlers ---
+        function handleSliderChange(e, prop, spanId) {
+            const value = parseFloat(e.target.value);
+            gameState[prop] = value;
+            document.getElementById(spanId).textContent = value;
+            
+            if(prop === 'diameter') {
+                updateVisualGeometry();
+            }
+            
+            calculateReynolds();
+        }
+
+        // --- Event Listeners ---
+        velocitySlider.addEventListener('input', (e) => handleSliderChange(e, 'velocity', 'velVal'));
+        diameterSlider.addEventListener('input', (e) => handleSliderChange(e, 'diameter', 'diaVal'));
+        viscositySlider.addEventListener('input', (e) => handleSliderChange(e, 'viscosity', 'visVal'));
+
+        startEvalBtn.addEventListener('click', () => {
+            gameState.isExploring = false;
+            explorationModeDiv.style.display = 'none';
+            evaluationSectionDiv.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        submitEvalBtn.addEventListener('click', () => {
+            let score = 0;
+            const q1 = document.querySelector('input[name="q1"]:checked');
+            const q2 = document.querySelector('input[name="q2"]:checked');
+            const q3 = document.querySelector('input[name="q3"]:checked');
+
+            if (q1 && q1.value === 'b') score++;
+            if (q2 && q2.value === 'c') score++;
+            if (q3 && q3.value === 'a') score++;
+
+            document.getElementById('scoreSpan').textContent = score;
+            
+            const rankBadge = document.getElementById('rankBadge');
+            if (score === 3) {
+                rankBadge.textContent = "卓越工程师";
+                rankBadge.style.background = "linear-gradient(135deg, #00ff9d, #00cc88)";
+                rankBadge.style.color = "#0a0f2b";
+            } else if (score === 2) {
+                rankBadge.textContent = "资深工程师";
+                rankBadge.style.background = "linear-gradient(135deg, #ffcc00, #ffaa00)";
+                rankBadge.style.color = "#0a0f2b";
+            } else if (score === 1) {
+                rankBadge.textContent = "初级工程师";
+                rankBadge.style.background = "linear-gradient(135deg, #ff3366, #ff6699)";
+            } else {
+                rankBadge.textContent = "见习工程师";
+                rankBadge.style.background = "linear-gradient(135deg, #6c8cff, #8a9eff)";
+            }
+
+            submitEvalBtn.style.display = 'none';
+            resultArea.style.display = 'block';
+            resultArea.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // Initialize on load
+        window.addEventListener('load', init);
+    </script>
+
+<!-- 底部信息栏 -->
+<div style="
+    text-align: center;
+    padding: 20px 30px;
+    margin-top: 40px;
+    color: #e6f7ff;
+    font-size: 0.9rem;
+    border-top: 2px solid rgba(0, 180, 255, 0.5);
+    background: linear-gradient(135deg, rgba(10, 15, 43, 0.95), rgba(18, 26, 58, 0.9));
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    /* 新增以下，确保完全宽度 */
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+">    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+    
+    <p style="font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; color: #00b4ff;">
+        雷诺数与流态交互实验室 © 2025 | 流体力学实验系统 | 版本 1.0 |
+    
+    <style="margin-bottom: 12px; color: #cbd5e1;">
+        <strong>邮箱:</strong> xgyanger@qq.com
+    </p>
+    
+    <div style="margin-top: 15px;">
+        <span style="color: #ffcc00; font-weight: bold; font-size: 1rem;">
+            版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+        </span>
+    </div>
+</div>
+
+</body>
+</html>

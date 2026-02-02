@@ -1,0 +1,2047 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<title>量纲一致性敲地鼠游戏</title>
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+  background: linear-gradient(135deg, #0a1929 0%, #0d2b50 100%);
+  color: #e5e7eb;
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h1 {
+  color: #38bdf8;
+  text-align: center;
+  margin-bottom: 10px;
+  text-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+  font-size: 2.8rem;
+  letter-spacing: 1px;
+  background: linear-gradient(90deg, #38bdf8, #0ea5e9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  text-align: center;
+  color: #93c5fd;
+  margin-bottom: 30px;
+  font-size: 1.2rem;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+}
+
+.card {
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 20px;
+  padding: 25px;
+  margin-top: 20px;
+  box-shadow: 0 0 40px rgba(56, 189, 248, 0.2);
+  border: 2px solid rgba(56, 189, 248, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, #38bdf8, #0ea5e9, #38bdf8);
+  z-index: 1;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
+  background: rgba(30, 41, 59, 0.8);
+  padding: 15px;
+  border-radius: 15px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.level-info h2 {
+  color: #38bdf8;
+  margin: 0;
+  font-size: 1.8rem;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+}
+
+.level-info p {
+  margin: 8px 0 0 0;
+  color: #cbd5e1;
+  font-size: 1.1rem;
+}
+
+.stats {
+  display: flex;
+  gap: 20px;
+}
+
+.stat-box {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  padding: 12px 18px;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  min-width: 100px;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-box::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #38bdf8, #0ea5e9);
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #38bdf8;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #94a3b8;
+  margin-top: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#gameArea {
+  position: relative;
+  height: 500px;
+  background: linear-gradient(to bottom, #2d7a2d, #1a5f23);
+  border-radius: 15px;
+  overflow: hidden;
+  margin-bottom: 25px;
+  border: 2px solid rgba(56, 189, 248, 0.3);
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
+}
+
+/* 草地背景 */
+.grass {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(60, 130, 60, 0.3) 2px, transparent 2px),
+    radial-gradient(circle at 30% 40%, rgba(60, 130, 60, 0.3) 2px, transparent 2px),
+    radial-gradient(circle at 70% 60%, rgba(60, 130, 60, 0.3) 2px, transparent 2px),
+    radial-gradient(circle at 90% 80%, rgba(60, 130, 60, 0.3) 2px, transparent 2px);
+  background-size: 100px 100px;
+  z-index: 0;
+}
+
+/* 地洞样式 */
+.hole-container {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  z-index: 2;
+}
+
+.hole {
+  position: absolute;
+  width: 100px;
+  height: 60px;
+  background: radial-gradient(ellipse at center, #2c1a0a 0%, #1a1005 70%, #0d0803 100%);
+  border-radius: 50% 50% 45% 45%;
+  border: 8px solid #8B4513;
+  box-shadow: 
+    inset 0 15px 30px rgba(0, 0, 0, 0.8),
+    0 5px 15px rgba(0, 0, 0, 0.6),
+    0 0 0 5px rgba(90, 50, 20, 0.3);
+  bottom: 30px;
+  left: 10px;
+  z-index: 1;
+}
+
+.hole::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 30px;
+  background: radial-gradient(ellipse at top, rgba(139, 69, 19, 0.5) 0%, transparent 70%);
+  top: -5px;
+  left: 0;
+  border-radius: 50%;
+}
+
+/* 地鼠样式 */
+.mole {
+  position: absolute;
+  width: 100px;
+  height: 130px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 3;
+  transform-origin: bottom center;
+  bottom: 30px;
+  left: 10px;
+}
+
+.mole-body {
+  position: absolute;
+  width: 90px;
+  height: 80px;
+  background: linear-gradient(to bottom, #8B4513, #654321);
+  border-radius: 50% 50% 40% 40%;
+  box-shadow: 
+    0 5px 15px rgba(0, 0, 0, 0.5),
+    inset 0 -5px 10px rgba(0, 0, 0, 0.3);
+  bottom: 0;
+  left: 5px;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.mole-body::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 30px;
+  background: radial-gradient(ellipse at top, rgba(255, 200, 100, 0.2) 0%, transparent 70%);
+  top: 5px;
+  left: 0;
+  border-radius: 50%;
+}
+
+.mole-face {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 45px;
+  background: #D2691E;
+  border-radius: 40% 40% 50% 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.2);
+  z-index: 3;
+}
+
+.mole-eyes {
+  display: flex;
+  gap: 12px;
+  margin-top: 5px;
+}
+
+.mole-eye {
+  width: 14px;
+  height: 18px;
+  background: white;
+  border-radius: 50% 50% 50% 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+.mole-eye::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #333;
+  border-radius: 50%;
+  top: 5px;
+  left: 3px;
+}
+
+.mole-eye::before {
+  content: "";
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  top: 7px;
+  left: 8px;
+  z-index: 2;
+}
+
+.mole-nose {
+  width: 18px;
+  height: 12px;
+  background: #A0522D;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.mole-ears {
+  position: absolute;
+  top: 35px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  z-index: 1;
+}
+
+.mole-ear {
+  width: 20px;
+  height: 25px;
+  background: #8B4513;
+  border-radius: 50%;
+}
+
+.mole-ear.left {
+  transform: rotate(-20deg);
+}
+
+.mole-ear.right {
+  transform: rotate(20deg);
+}
+
+.mole-paws {
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  z-index: 1;
+}
+
+.mole-paw {
+  width: 20px;
+  height: 15px;
+  background: #8B4513;
+  border-radius: 50%;
+}
+
+/* 地鼠头顶标签 - 选项面板（已修改为白色字体） */
+.mole-label {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 41, 59, 0.95);
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 2px solid #38bdf8;
+  color: white; /* 改为白色字体 */
+  font-size: 14px;
+  white-space: nowrap;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  z-index: 10;
+  min-width: 120px;
+  text-align: center;
+  transition: all 1s ease-in-out; /* 添加平滑过渡效果 */
+}
+
+.mole-label::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 8px;
+  border-style: solid;
+  border-color: #38bdf8 transparent transparent transparent;
+}
+
+.mole-name {
+  font-weight: bold;
+  color: #ffffff; /* 改为白色字体 */
+  font-size: 16px;
+  margin-bottom: 3px;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.7); /* 添加文字阴影增强可读性 */
+}
+
+.mole-dim {
+  font-size: 12px;
+  color: #ffffff; /* 改为白色字体 */
+  font-family: monospace;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.7); /* 添加文字阴影增强可读性 */
+}
+
+/* 标签交替显示效果 */
+.mole-label.dimmed {
+  opacity: 0.3;
+  filter: blur(1px);
+  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.mole-label.dimmed .mole-name,
+.mole-label.dimmed .mole-dim {
+  color: rgba(255, 255, 255, 0.5);
+  text-shadow: none;
+}
+
+.mole-label.highlighted {
+  opacity: 1;
+  filter: blur(0);
+}
+
+/* 锤子样式 */
+.hammer {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  pointer-events: none;
+  z-index: 100;
+  transform-origin: top left;
+  display: none;
+}
+
+.hammer-img {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-45deg);
+  filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.7));
+}
+
+/* 功能按钮区域 - 圆形按钮样式（已增强立体感） */
+.function-buttons {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.function-btn {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+  /* 增强立体感：增加多重阴影和厚度效果 */
+  box-shadow: 
+    0 8px 20px rgba(56, 189, 248, 0.6), /* 外阴影 */
+    inset 0 4px 8px rgba(255, 255, 255, 0.3), /* 上内阴影 - 高光效果 */
+    inset 0 -4px 8px rgba(0, 0, 0, 0.3), /* 下内阴影 - 深度效果 */
+    0 0 0 4px rgba(56, 189, 248, 0.2); /* 外边框效果 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  padding: 10px;
+  text-align: center;
+}
+
+.function-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0px;
+  background: linear-gradient(90deg, #38bdf8, #0ea5e9, #38bdf8);
+  z-index: 1;
+}
+
+.function-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.function-btn:hover::after {
+  left: 100%;
+}
+
+.function-btn:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 
+    0 12px 30px rgba(56, 189, 248, 0.8),
+    inset 0 4px 8px rgba(255, 255, 255, 0.3),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 4px rgba(56, 189, 248, 0.4); /* 增强外边框效果 */
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.function-btn:active {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 
+    0 4px 15px rgba(56, 189, 248, 0.5),
+    inset 0 2px 4px rgba(255, 255, 255, 0.2),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.4); /* 按下时内阴影更明显 */
+  transition: all 0.1s;
+}
+
+.function-btn:disabled {
+  background: #6b7280;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.2),
+    inset 0 2px 4px rgba(255, 255, 255, 0.1),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.function-btn:disabled:hover {
+  transform: none;
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.2),
+    inset 0 2px 4px rgba(255, 255, 255, 0.1),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.function-btn:disabled::after {
+  display: none;
+}
+
+.btn-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+  z-index: 2;
+  width: 100%;
+}
+
+.btn-line1 {
+  font-size: 16px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-line2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 各个按钮的特定样式 */
+#confirmBtn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 
+    0 8px 20px rgba(16, 185, 129, 0.6),
+    inset 0 4px 8px rgba(255, 255, 255, 0.3),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+#confirmBtn:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  box-shadow: 
+    0 12px 30px rgba(16, 185, 129, 0.8),
+    inset 0 4px 8px rgba(255, 255, 255, 0.3),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 4px rgba(16, 185, 129, 0.4);
+}
+
+#clearBtn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 
+    0 8px 20px rgba(245, 158, 11, 0.6),
+    inset 0 4px 8px rgba(255, 255, 255, 0.3),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 10px rgba(245, 158, 11, 0.2);
+}
+
+#clearBtn:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  box-shadow: 
+    0 12px 30px rgba(245, 158, 11, 0.8),
+    inset 0 4px 8px rgba(255, 255, 255, 0.3),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 4px rgba(245, 158, 11, 0.4);
+}
+
+#nextLevelBtn {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  box-shadow: 
+    0 8px 20px rgba(139, 92, 246, 0.6),
+    inset 0 4px 8px rgba(255, 255, 255, 0.3),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 4px rgba(139, 92, 246, 0.2);
+}
+
+#nextLevelBtn:hover {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  box-shadow: 
+    0 12px 30px rgba(139, 92, 246, 0.8),
+    inset 0 4px 8px rgba(255, 255, 255, 0.3),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 4px rgba(139, 92, 246, 0.4);
+}
+
+/* 工程师反馈区域 */
+.engineer-feedback {
+  margin-top: 20px;
+  padding: 15px 20px;
+  border-radius: 15px;
+  display: none;
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.engineer-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+/* ====== 优化后的工程师卡通形象 ====== */
+.engineer {
+  position: relative;
+  width: 180px;
+  height: 200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border-radius: 15px;
+  padding: 10px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+/* 背景简约科技网格 */
+.engineer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(rgba(203, 213, 225, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(203, 213, 225, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  border-radius: 15px;
+  z-index: 0;
+}
+
+.engineer * {
+  z-index: 1;
+  position: relative;
+}
+
+/* 工程师身体 - 简单协调的比例 */
+.engineer-body {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 头部 - 协调圆润 */
+.engineer-head {
+  width: 70px;
+  height: 70px;
+  background: #f8d799;
+  border-radius: 50%;
+  position: relative;
+  margin-top: 5px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+  z-index: 3;
+}
+
+/* 安全帽 - 更形象的改进版 */
+.engineer-helmet {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 50px;
+  background: #fbbf24;
+  border-radius: 30px 30px 5px 5px;
+  z-index: 2;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+/* 安全帽前沿 */
+.engineer-helmet::before {
+  content: "";
+  position: absolute;
+  top: 40px;
+  left: 0px;
+  right: 0px;
+  height: 8px;
+  background: #fbbf24;
+  border-radius: 0px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 安全帽反光条 */
+.engineer-helmet::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: 1px;
+  right: 1px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 3px;
+}
+
+/* 安全帽顶部 */
+.engineer-helmet-top {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 10px;
+  background: #fbbf24;
+  border-radius: 5px 5px 0 0;
+}
+
+/* 面部特征 - 友好表情 */
+.engineer-face {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 30px;
+}
+
+.engineer-eyes {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.engineer-eye {
+  width: 12px;
+  height: 15px;
+  background: #1a1a1a;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+.engineer-eye::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 5px;
+  height: 5px;
+  background: white;
+  border-radius: 50%;
+}
+
+/* 微笑表情 */
+.engineer-smile {
+  width: 30px;
+  height: 12px;
+  margin: 0 auto;
+  background: transparent;
+  border-bottom: 3px solid #1a1a1a;
+  border-radius: 0 0 15px 15px;
+}
+
+/* 身体 - 工装上衣 */
+.engineer-torso {
+  width: 80px;
+  height: 50px;
+  background: #2563eb;
+  border-radius: 15px 15px 8px 8px;
+  margin-top: -15px;
+  position: relative;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+  z-index: 2;
+}
+
+/* 工装口袋 */
+.engineer-pocket {
+  position: absolute;
+  top: 20px;
+  left: 30%;
+  transform: translateX(-50%);
+  width: 25px;
+  height: 35px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.engineer-pocket::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 5px;
+  right: 5px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-50%);
+}
+
+/* 手臂 - 协调动态姿势，带浅灰色工装袖 */
+.engineer-arms {
+  position: absolute;
+  top: 70px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px;
+  z-index: 1;
+}
+
+.engineer-arm {
+  width: 12px;
+  height: 55px;
+  position: relative;
+}
+
+/* 手臂工装袖 - 浅灰色 */
+.engineer-arm-sleeve {
+  width: 100%;
+  height: 30px;
+  background: #9ca3af; /* 浅灰色 */
+  border-radius: 6px;
+  position: absolute;
+  top: 0;
+}
+
+/* 手臂手部皮肤 */
+.engineer-arm-skin {
+  width: 100%;
+  height: 15px;
+  background: #f8d799;
+  border-radius: 0 0 6px 6px;
+  position: absolute;
+  bottom: 0;
+}
+
+/* 手部 */
+.engineer-hand {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 10px;
+  background: #f8d799;
+  border-radius: 50% 50% 0 0;
+}
+
+/* 手臂方向 */
+.engineer-arm.left {
+  margin-left: 5px;
+  transform: rotate(-15deg);
+}
+
+.engineer-arm.right {
+  margin-right: 5px;
+  transform: rotate(15deg);
+}
+
+/* 右手工具 - 小型测量尺 */
+.engineer-tool {
+  position: absolute;
+  bottom: -12px;
+  right: -15px;
+  width: 40px;
+  height: 8px;
+  background: linear-gradient(to right, #94a3b8, #cbd5e1);
+  border-radius: 2px;
+  transform: rotate(15deg);
+  box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+}
+
+.engineer-tool::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 5px;
+  right: 5px;
+  height: 2px;
+  background: #475569;
+}
+
+.engineer-tool::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 10px;
+  width: 2px;
+  height: 12px;
+  background: #475569;
+}
+
+/* 左手图纸 - 简洁工程图 */
+.engineer-blueprint {
+  position: absolute;
+  bottom: -20px;
+  left: -5px;
+  width: 35px;
+  height: 45px;
+  background: #f8fafc;
+  border-radius: 4px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  border: 1px solid #cbd5e1;
+  transform: rotate(-10deg);
+}
+
+.engineer-blueprint::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
+  background: 
+    linear-gradient(to right, #e2e8f0 1px, transparent 1px) 0 0 / 8px 8px,
+    linear-gradient(to bottom, #e2e8f0 1px, transparent 1px) 0 0 / 8px 8px,
+    #f8fafc;
+  border-radius: 2px;
+}
+
+/* 图纸上的简单线条 */
+.blueprint-line {
+  position: absolute;
+  background: #3b82f6;
+}
+
+.blueprint-line-1 {
+  top: 15px;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+}
+
+.blueprint-line-2 {
+  top: 25px;
+  left: 10px;
+  width: 1px;
+  height: 10px;
+}
+
+.blueprint-line-3 {
+  top: 25px;
+  right: 10px;
+  width: 1px;
+  height: 10px;
+}
+
+/* 腿部 - 工装裤 */
+.engineer-legs {
+  display: flex;
+  gap: 25px;
+  margin-top: 5px;
+  z-index: 1;
+}
+
+.engineer-leg {
+  width: 25px;
+  height: 45px;
+  background: #1e40af;
+  border-radius: 0 0 8px 8px;
+  position: relative;
+}
+
+/* 劳保鞋 */
+.engineer-shoe {
+  position: absolute;
+  bottom: -15px;
+  left: 0;
+  width: 100%;
+  height: 18px;
+  background: #8B4513;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.engineer-dialog {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.9);
+  padding: 20px;
+  border-radius: 15px;
+  border: 2px solid rgba(56, 189, 248, 0.5);
+  position: relative;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.engineer-dialog::before {
+  content: "";
+  position: absolute;
+  top: 40px;
+  left: -20px;
+  border-width: 10px;
+  border-style: solid;
+  border-color: transparent rgba(56, 189, 248, 0.5) transparent transparent;
+}
+
+.dialog-text {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #e5e7eb;
+}
+
+.dialog-title {
+  color: #38bdf8;
+  font-weight: bold;
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dialog-title::before {
+  content: "👷‍♂️";
+}
+
+/* 正面反馈样式 */
+.correct-feedback {
+  color: #22c55e;
+  font-weight: bold;
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.correct-feedback::before {
+  content: "✅";
+}
+
+/* 提示样式 */
+.hint-text {
+  color: #fbbf24;
+  font-style: italic;
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(251, 191, 36, 0.1);
+  border-radius: 8px;
+  border-left: 3px solid #fbbf24;
+}
+
+.game-over {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.game-over h2 {
+  color: #38bdf8;
+  font-size: 2.5rem;
+  text-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+  margin-bottom: 20px;
+}
+
+.game-over p {
+  font-size: 1.3rem;
+  margin: 15px 0;
+  color: #cbd5e1;
+}
+
+#restartBtn {
+  padding: 15px 30px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 25px;
+  box-shadow: 0 5px 15px rgba(56, 189,248, 0.4);
+}
+
+#restartBtn:hover {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(56, 189, 248, 0.6);
+}
+
+/* 动画 */
+@keyframes moleJump {
+  0% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-50px) scale(1.05) rotate(2deg); }
+  70% { transform: translateY(-20px) scale(1.02) rotate(-1deg); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes moleShake {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  50% { transform: rotate(-15deg); }
+  75% { transform: rotate(10deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes hammerHit {
+  0% { transform: rotate(-45deg); }
+  50% { transform: rotate(-90deg); }
+  100% { transform: rotate(-45deg); }
+}
+
+@keyframes popOut {
+  0% { transform: translateY(100px) scale(0.5); opacity: 0; }
+  70% { transform: translateY(-10px) scale(1.1); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes engineerNod {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes engineerTalk {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes toolMove {
+  0% { transform: rotate(15deg); }
+  50% { transform: rotate(18deg); }
+  100% { transform: rotate(15deg); }
+}
+
+@keyframes buttonBounce {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8px) scale(1.05); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* 地鼠状态样式 */
+.mole-hit {
+  animation: moleShake 0.4s ease-in-out !important;
+}
+
+.mole-selected .mole-body {
+  background: linear-gradient(to bottom, #f9a8d4, #ec4899, #be185d);
+}
+
+.mole-selected .mole-label {
+  background: linear-gradient(135deg, #f9a8d4, #ec4899);
+  border-color: #ec4899;
+}
+
+.mole-selected .mole-label {
+  background: rgba(30, 64, 175, 0.95);
+  border-color: #3b82f6;
+}
+
+.mole-selected .mole-ear,
+.mole-selected .mole-paw {
+  background: #1d4ed8;
+}
+
+/* 正确判断后的状态 - 绿色 */
+.mole-correct {
+  filter: brightness(1.3) saturate(1.5);
+}
+
+.mole-correct .mole-body {
+  background: linear-gradient(to bottom, #10b981, #059669);
+}
+
+.mole-correct .mole-label {
+  background: rgba(16, 185, 129, 0.95);
+  border-color: #10b981;
+}
+
+/* 错误判断后的状态 - 红色 */
+.mole-wrong {
+  filter: brightness(0.7) saturate(0.5) hue-rotate(300deg);
+}
+
+.mole-wrong .mole-body {
+  background: linear-gradient(to bottom, #ef4444, #b91c1c);
+}
+
+.mole-wrong .mole-label {
+  background: rgba(185, 28, 28, 0.95);
+  border-color: #ef4444;
+}
+
+/* 隐藏状态 */
+.mole-hide {
+  transform: translateY(100px) !important;
+  opacity: 0 !important;
+  transition: transform 0.6s, opacity 0.6s;
+}
+
+.engineer-nod {
+  animation: engineerNod 1s ease-in-out infinite;
+}
+
+.engineer-talk {
+  animation: engineerTalk 0.8s ease-in-out infinite;
+}
+
+.tool-move {
+  animation: toolMove 1.2s ease-in-out infinite;
+}
+
+.button-bounce {
+  animation: buttonBounce 0.5s ease-in-out;
+}
+
+/* 得分动画 */
+.score-pop {
+  position: absolute;
+  color: #38bdf8;
+  font-weight: bold;
+  font-size: 24px;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+  z-index: 1000;
+  pointer-events: none;
+  animation: floatUp 1s ease-out forwards;
+}
+
+@keyframes floatUp {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-100px); opacity: 0; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>量纲一致性敲地鼠游戏</h1>
+  <p class="subtitle">目标：敲击正确的物理量地鼠（对应目标物理量的量纲），然后点击确认按钮提交答案</p>
+
+  <div class="card">
+    <div class="game-header">
+      <div class="level-info">
+        <h2 id="levelTitle">第 1 关｜冷却时间 t</h2>
+        <p id="question">选择所有可能影响冷却时间 t 的物理量地鼠，然后点击确认</p>
+      </div>
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-value" id="score">100</div>
+          <div class="stat-label">得分</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="lives">3</div>
+          <div class="stat-label">生命值</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="correctCount">0/2</div>
+          <div class="stat-label">正确数</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="wrongStreak">0</div>
+          <div class="stat-label">连续错误</div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="gameArea">
+      <!-- 草地背景 -->
+      <div class="grass"></div>
+      
+      <!-- 地鼠洞和地鼠将通过JS动态生成 -->
+      <div class="hammer" id="hammer">
+        <div class="hammer-img">🔨</div>
+      </div>
+      
+      <!-- 功能按钮区域 - 放在游戏面板内 -->
+      <div class="function-buttons">
+        <button id="confirmBtn" class="function-btn">
+          <div class="btn-text">
+            <div class="btn-line1">✅ 确认</div>
+            <div class="btn-line2" id="confirmText">选择</div>
+          </div>
+        </button>
+        <button id="clearBtn" class="function-btn">
+          <div class="btn-text">
+            <div class="btn-line1">🔄 清除</div>
+            <div class="btn-line2">选择</div>
+          </div>
+        </button>
+        <button id="nextLevelBtn" class="function-btn" style="display:none">
+          <div class="btn-text">
+            <div class="btn-line1">⏩ 进入</div>
+            <div class="btn-line2">下一关</div>
+          </div>
+        </button>
+      </div>
+    </div>
+    
+    <!-- 工程师反馈区域 -->
+    <div class="engineer-feedback" id="feedback">
+      <div class="engineer-container">
+        <div class="engineer" id="engineer">
+          <div class="engineer-body">
+            <!-- 安全帽 -->
+            <div class="engineer-helmet">
+              <div class="engineer-helmet-top"></div>
+            </div>
+            
+            <!-- 头部 -->
+            <div class="engineer-head">
+              <div class="engineer-face">
+                <div class="engineer-eyes">
+                  <div class="engineer-eye"></div>
+                  <div class="engineer-eye"></div>
+                </div>
+                <div class="engineer-smile"></div>
+              </div>
+            </div>
+            
+            <!-- 身体 -->
+            <div class="engineer-torso">
+              <div class="engineer-pocket"></div>
+            </div>
+            
+            <!-- 手臂 - 带有浅灰色工装袖 -->
+            <div class="engineer-arms">
+              <div class="engineer-arm left">
+                <div class="engineer-arm-sleeve"></div>
+                <div class="engineer-arm-skin"></div>
+                <div class="engineer-hand"></div>
+                <div class="engineer-blueprint">
+                  <div class="blueprint-line blueprint-line-1"></div>
+                  <div class="blueprint-line blueprint-line-2"></div>
+                  <div class="blueprint-line blueprint-line-3"></div>
+                </div>
+              </div>
+              
+              <div class="engineer-arm right">
+                <div class="engineer-arm-sleeve"></div>
+                <div class="engineer-arm-skin"></div>
+                <div class="engineer-hand"></div>
+                <div class="engineer-tool"></div>
+              </div>
+            </div>
+            
+            <!-- 腿部 -->
+            <div class="engineer-legs">
+              <div class="engineer-leg">
+                <div class="engineer-shoe"></div>
+              </div>
+              <div class="engineer-leg">
+                <div class="engineer-shoe"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="engineer-dialog">
+          <div class="dialog-title">工程师点评</div>
+          <div id="feedbackContent">
+            <!-- 反馈内容将通过JS动态生成 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const levels = [
+  {
+    title: "第 1 关｜冷却时间 t",
+    question: "选择所有可能影响冷却时间 t 的物理量地鼠，然后点击确认",
+    options: [
+      {name:"特征长度 L", dim:"L"},
+      {name:"热扩散率 α", dim:"L² T⁻¹"},
+      {name:"温差 ΔT", dim:"Θ"},
+      {name:"质量 m", dim:"M"}
+    ],
+    correct: [0,1],
+    explain: "在传热建模中，时间尺度通常由 L²/α 决定。温差和质量虽然与传热有关，但不能单独决定时间尺度。"
+  },
+  {
+    title: "第 2 关｜动能 Ek",
+    question: "选择可能组成动能 Ek 的物理量地鼠，然后点击确认",
+    options: [
+      {name:"质量 m", dim:"M"},
+      {name:"速度 v", dim:"L T⁻¹"},
+      {name:"长度 L", dim:"L"},
+      {name:"温度 T", dim:"Θ"}
+    ],
+    correct: [0,1],
+    explain: "能量判断不靠公式，先看是否能拼出 ML²T⁻²。动能是运动物体具有的能量，只与质量和速度相关。"
+  },
+  {
+    title: "第 3 关｜无量纲准数",
+    question: "选择可能组成无量纲准数 的物理量地鼠，然后点击确认",
+    options: [
+      {name:"密度 ρ", dim:"M L⁻³"},
+      {name:"速度 v", dim:"L T⁻¹"},
+      {name:"特征长度 L", dim:"L"},
+      {name:"粘度 μ", dim:"M L⁻¹ T⁻¹"}
+    ],
+    correct: [0,1,2,3],
+    explain: "雷诺数 Re = ρvL/μ，是一个无量纲数，用于判断流动状态。这四个量都是构成雷诺数所必需的。"
+  },
+  {
+    title: "第 4 关｜对流换热系数 h",
+    question: "选择可能组成对流换热系数 h 的物理量地鼠，然后点击确认",
+    options: [
+      {name:"流速 v", dim:"L T⁻¹"},
+      {name:"导热系数 k", dim:"M L T⁻³ Θ⁻¹"},
+      {name:"特征长度 L", dim:"L"},
+      {name:"密度 ρ", dim:"M L⁻³"}
+    ],
+    correct: [1,2],
+    explain: "对流换热系数 h 的量纲为 [M T⁻³ Θ⁻¹]，可由 k/L 组合得到。流速 v 和密度 ρ 通过无量纲数影响 h，但无法直接组合出 h 的量纲。"
+  },
+  {
+    title: "第 5 关｜努塞尔数 Nu",
+    question: "选择组成 Nu = hL/k 所需的物理量地鼠，然后点击确认",
+    options: [
+      {name:"h", dim:"M T⁻³ Θ⁻¹"},
+      {name:"L", dim:"L"},
+      {name:"k", dim:"M L T⁻³ Θ⁻¹"},
+      {name:"ρ", dim:"M L⁻³"}
+    ],
+    correct: [0,1,2],
+    explain: "努塞尔数 Nu = hL/k，是表征对流换热强弱的重要无量纲数。通过对比对流和导热，判断对流是否真正增强了传热。"
+  }
+];
+
+let currentLevel = 0;
+let score = 100;
+let lives = 3;
+let selectedMoles = []; // 当前选中的地鼠索引
+let wrongStreak = 0; // 连续错误次数
+let gameActive = true;
+let isChecking = false; // 是否正在检查答案
+let labelInterval = null; // 标签交替显示的定时器
+
+const levelTitle = document.getElementById('levelTitle');
+const question = document.getElementById('question');
+const gameArea = document.getElementById('gameArea');
+const feedback = document.getElementById('feedback');
+const feedbackContent = document.getElementById('feedbackContent');
+const engineer = document.getElementById('engineer');
+const confirmBtn = document.getElementById('confirmBtn');
+const clearBtn = document.getElementById('clearBtn');
+const nextLevelBtn = document.getElementById('nextLevelBtn');
+const scoreEl = document.getElementById('score');
+const livesEl = document.getElementById('lives');
+const correctCountEl = document.getElementById('correctCount');
+const wrongStreakEl = document.getElementById('wrongStreak');
+const hammer = document.getElementById('hammer');
+const confirmText = document.getElementById('confirmText');
+
+// 创建地鼠洞和地鼠
+function createMoles() {
+  // 清除游戏区域，只保留草地、锤子和功能按钮
+  const grass = document.querySelector('.grass');
+  const functionButtons = document.querySelector('.function-buttons');
+  gameArea.innerHTML = '';
+  gameArea.appendChild(grass);
+  gameArea.appendChild(hammer);
+  gameArea.appendChild(functionButtons);
+  
+  const level = levels[currentLevel];
+  const options = level.options;
+  const correctCount = level.correct.length;
+  
+  // 重置选择状态
+  selectedMoles = [];
+  updateConfirmButton();
+  
+  // 更新正确数显示
+  correctCountEl.textContent = `0/${correctCount}`;
+  wrongStreakEl.textContent = wrongStreak;
+  
+  // 隐藏下一关按钮
+  nextLevelBtn.style.display = 'none';
+  
+  // 创建地鼠洞的位置（调整到更靠下的位置）
+  const positions = [
+    {x: 10, y: 40},
+    {x: 30, y: 30},
+    {x: 50, y: 40},
+    {x: 70, y: 30},
+    {x: 90, y: 40},
+    {x: 20, y: 50}
+  ];
+  
+  // 为每个选项创建一个地鼠洞和地鼠
+  options.forEach((option, index) => {
+    const pos = positions[index % positions.length];
+    
+    // 创建地鼠容器（包含洞和地鼠）
+    const holeContainer = document.createElement('div');
+    holeContainer.className = 'hole-container';
+    holeContainer.style.left = `${pos.x}%`;
+    holeContainer.style.bottom = `${pos.y}%`;
+    
+    // 创建地鼠洞
+    const hole = document.createElement('div');
+    hole.className = 'hole';
+    holeContainer.appendChild(hole);
+    
+    // 创建地鼠
+    const mole = document.createElement('div');
+    mole.className = 'mole';
+    mole.dataset.index = index;
+    mole.dataset.correct = level.correct.includes(index);
+    mole.dataset.selected = false;
+    
+    // 地鼠内容
+    mole.innerHTML = `
+      <div class="mole-ears">
+        <div class="mole-ear left"></div>
+        <div class="mole-ear right"></div>
+      </div>
+      <div class="mole-body">
+        <div class="mole-face">
+          <div class="mole-eyes">
+            <div class="mole-eye"></div>
+            <div class="mole-eye"></div>
+          </div>
+          <div class="mole-nose"></div>
+        </div>
+      </div>
+      <div class="mole-paws">
+        <div class="mole-paw"></div>
+        <div class="mole-paw"></div>
+      </div>
+      <div class="mole-label">
+        <div class="mole-name">${option.name}</div>
+        <div class="mole-dim">[${option.dim}]</div>
+      </div>
+    `;
+    
+    // 添加地鼠动画
+    const animationDelay = Math.random() * 2 + 1;
+    mole.style.animation = `moleJump ${Math.random() * 1.5 + 1.5}s infinite ${animationDelay}s, popOut 0.8s ease-out`;
+    
+    // 添加点击事件
+    mole.addEventListener('click', handleMoleClick);
+    
+    holeContainer.appendChild(mole);
+    gameArea.appendChild(holeContainer);
+  });
+  
+  // 启动标签交替显示效果
+  startLabelAlternating();
+}
+
+// 开始标签交替显示效果
+function startLabelAlternating() {
+  // 清除之前的定时器
+  if (labelInterval) {
+    clearInterval(labelInterval);
+  }
+  
+  // 获取所有地鼠标签
+  const labels = document.querySelectorAll('.mole-label');
+  
+  if (labels.length === 0) return;
+  
+  // 初始状态：奇数索引的标签暗淡，偶数索引的标签高亮
+  labels.forEach((label, index) => {
+    if (index % 2 === 0) {
+      label.classList.add('highlighted');
+      label.classList.remove('dimmed');
+    } else {
+      label.classList.add('dimmed');
+      label.classList.remove('highlighted');
+    }
+  });
+  
+  // 设置定时器，每3秒切换一次显示状态
+  labelInterval = setInterval(() => {
+    labels.forEach((label, index) => {
+      if (label.classList.contains('highlighted')) {
+        label.classList.remove('highlighted');
+        label.classList.add('dimmed');
+      } else {
+        label.classList.remove('dimmed');
+        label.classList.add('highlighted');
+      }
+    });
+  }, 3000);
+}
+
+// 处理地鼠点击
+function handleMoleClick(event) {
+  if (!gameActive || isChecking) return;
+  
+  const mole = event.currentTarget;
+  const index = parseInt(mole.dataset.index);
+  
+  // 显示锤子敲击效果
+  showHammerHit(event.clientX, event.clientY);
+  
+  // 切换选中状态
+  if (mole.dataset.selected === 'true') {
+    // 取消选中
+    mole.classList.remove('mole-selected');
+    mole.dataset.selected = false;
+    
+    // 从选中列表中移除
+    const idx = selectedMoles.indexOf(index);
+    if (idx !== -1) {
+      selectedMoles.splice(idx, 1);
+    }
+  } else {
+    // 选中
+    mole.classList.add('mole-selected');
+    mole.dataset.selected = true;
+    
+    // 添加到选中列表
+    if (!selectedMoles.includes(index)) {
+      selectedMoles.push(index);
+    }
+  }
+  
+  updateConfirmButton();
+}
+
+// 处理功能按钮点击
+function handleFunctionButtonClick(event) {
+  const button = event.currentTarget;
+  
+  // 显示锤子敲击效果
+  const rect = button.getBoundingClientRect();
+  showHammerHit(rect.left + rect.width/2, rect.top + rect.height/2);
+  
+  // 添加按钮弹跳动画
+  button.classList.add('button-bounce');
+  setTimeout(() => {
+    button.classList.remove('button-bounce');
+  }, 500);
+}
+
+// 更新确认按钮状态
+function updateConfirmButton() {
+  if (selectedMoles.length > 0) {
+    confirmBtn.disabled = false;
+    confirmText.textContent = `(${selectedMoles.length}个)`;
+  } else {
+    confirmBtn.disabled = true;
+    confirmText.textContent = '选择';
+  }
+}
+
+// 处理确认按钮点击
+function handleConfirmClick() {
+  if (!gameActive || isChecking || selectedMoles.length === 0) return;
+  
+  isChecking = true;
+  confirmBtn.disabled = true;
+  clearBtn.disabled = true;
+  
+  const level = levels[currentLevel];
+  const correctIndices = level.correct;
+  
+  // 对选中的地鼠进行排序，方便比较
+  const sortedSelected = [...selectedMoles].sort((a, b) => a - b);
+  const sortedCorrect = [...correctIndices].sort((a, b) => a - b);
+  
+  // 检查是否完全正确
+  const isCorrect = sortedSelected.length === sortedCorrect.length && 
+                   sortedSelected.every((value, index) => value === sortedCorrect[index]);
+  
+  // 显示所有选中地鼠的判断结果
+  document.querySelectorAll('.mole').forEach(mole => {
+    const index = parseInt(mole.dataset.index);
+    if (selectedMoles.includes(index)) {
+      if (correctIndices.includes(index)) {
+        mole.classList.add('mole-correct');
+      } else {
+        mole.classList.add('mole-wrong');
+      }
+    }
+  });
+  
+  // 延迟后显示反馈
+  setTimeout(() => {
+    if (isCorrect) {
+      // 正确
+      handleCorrectAnswer();
+    } else {
+      // 错误
+      handleWrongAnswer();
+    }
+    isChecking = false;
+    clearBtn.disabled = false;
+  }, 1500);
+}
+
+// 处理正确答案
+function handleCorrectAnswer() {
+  const level = levels[currentLevel];
+  const correctCount = level.correct.length;
+  
+  // 更新正确数显示
+  correctCountEl.textContent = `${correctCount}/${correctCount}`;
+  
+  // 增加分数
+  score += 50;
+  scoreEl.textContent = score;
+  
+  // 重置连续错误计数
+  wrongStreak = 0;
+  wrongStreakEl.textContent = wrongStreak;
+  
+  // 显示下一关按钮
+  nextLevelBtn.style.display = 'flex';
+  
+  // 停止标签交替显示
+  if (labelInterval) {
+    clearInterval(labelInterval);
+    labelInterval = null;
+  }
+  
+  // 延迟后隐藏正确的地鼠
+  setTimeout(() => {
+    document.querySelectorAll('.mole').forEach(mole => {
+      const index = parseInt(mole.dataset.index);
+      if (level.correct.includes(index)) {
+        mole.classList.add('mole-hide');
+      }
+    });
+    
+    // 显示工程师反馈
+    showEngineerFeedback(true, level.explain);
+    gameActive = false;
+  }, 1000);
+}
+
+// 处理错误答案
+function handleWrongAnswer() {
+  // 减少生命值
+  lives--;
+  livesEl.textContent = lives;
+  
+  // 减少分数
+  score = Math.max(0, score - 30);
+  scoreEl.textContent = score;
+  
+  // 增加连续错误计数
+  wrongStreak++;
+  wrongStreakEl.textContent = wrongStreak;
+  
+  // 显示提示
+  let hintText = "";
+  if (wrongStreak >= 3) {
+    const level = levels[currentLevel];
+    const targetDim = getTargetDimension(level.title);
+    hintText = `<div class="hint-text">💡 提示：尝试从量纲一致性角度分析。${targetDim}</div>`;
+  }
+  
+  // 显示工程师反馈
+  showEngineerFeedback(false, 
+    `选择错误！请仔细思考量纲关系。${hintText}`,
+    true // 显示重试按钮
+  );
+  
+  // 延迟后重置地鼠状态
+  setTimeout(() => {
+    resetMoles();
+    
+    // 检查游戏是否结束
+    if (lives <= 0) {
+      setTimeout(() => {
+        gameOver();
+      }, 1000);
+    }
+  }, 2000);
+}
+
+// 获取目标物理量的量纲提示
+function getTargetDimension(title) {
+  if (title.includes('冷却时间 t')) {
+    return "目标物理量是时间 t，量纲为 [T]。看看哪些选项的量纲组合能得到时间量纲。";
+  } else if (title.includes('动能 Ek')) {
+    return "目标物理量是能量 Ek，量纲为 [ML²T⁻²]。看看哪些选项的量纲组合能得到能量量纲。";
+  } else if (title.includes('雷诺数 Re')) {
+    return "目标物理量是雷诺数 Re，这是一个无量纲数。需要选择所有能构成无量纲组合的物理量。";
+  } else if (title.includes('对流换热系数 h')) {
+    return "目标物理量是对流换热系数 h，量纲为 [MT⁻³Θ⁻¹]。看看哪些选项的量纲组合能得到这个量纲。";
+  } else if (title.includes('努塞尔数 Nu')) {
+    return "目标物理量是努塞尔数 Nu，这是一个无量纲数。需要选择构成 Nu = hL/k 的物理量。";
+  }
+  return "";
+}
+
+// 重置地鼠状态
+function resetMoles() {
+  document.querySelectorAll('.mole').forEach(mole => {
+    mole.classList.remove('mole-selected', 'mole-correct', 'mole-wrong');
+    mole.dataset.selected = false;
+  });
+  
+  selectedMoles = [];
+  updateConfirmButton();
+  feedback.style.display = 'none';
+  
+  // 恢复标签交替显示
+  startLabelAlternating();
+}
+
+// 显示工程师反馈
+function showEngineerFeedback(isCorrect, explainText, showRetry = false) {
+  if (isCorrect) {
+    feedbackContent.innerHTML = `
+      <div class="correct-feedback">恭喜！答案正确！</div>
+      <div class="dialog-text">${explainText}</div>
+    `;
+    engineer.classList.add('engineer-nod', 'engineer-talk');
+    // 工具动画
+    const tool = document.querySelector('.engineer-tool');
+    if (tool) {
+      tool.classList.add('tool-move');
+    }
+  } else {
+    let retryBtn = '';
+    if (showRetry) {
+      retryBtn = `<button class="retry-btn" id="retryBtn" style="padding:10px 20px;border-radius:8px;border:none;background:linear-gradient(135deg, #f59e0b, #d97706);color:white;font-weight:bold;cursor:pointer;margin-top:15px;">🔄 重新选择</button>`;
+    }
+    
+    feedbackContent.innerHTML = `
+      <div class="dialog-text" style="color:#ef4444">${explainText}</div>
+      ${retryBtn}
+    `;
+    
+    engineer.classList.remove('engineer-nod', 'engineer-talk');
+    const tool = document.querySelector('.engineer-tool');
+    if (tool) {
+      tool.classList.remove('tool-move');
+    }
+    
+    // 添加重试按钮事件
+    if (showRetry) {
+      setTimeout(() => {
+        const retryBtn = document.getElementById('retryBtn');
+        if (retryBtn) {
+          retryBtn.addEventListener('click', () => {
+            resetMoles();
+            feedback.style.display = 'none';
+          });
+        }
+      }, 100);
+    }
+  }
+  feedback.style.display = 'block';
+}
+
+// 显示锤子敲击效果
+function showHammerHit(x, y) {
+  hammer.style.left = `${x - 40}px`;
+  hammer.style.top = `${y - 40}px`;
+  hammer.style.display = 'block';
+  
+  // 添加敲击动画
+  const hammerImg = hammer.querySelector('.hammer-img');
+  hammerImg.style.animation = 'hammerHit 0.3s ease-in-out';
+  
+  setTimeout(() => {
+    hammer.style.display = 'none';
+    hammerImg.style.animation = '';
+  }, 300);
+}
+
+// 游戏结束
+function gameOver() {
+  gameActive = false;
+  
+  // 停止标签交替显示
+  if (labelInterval) {
+    clearInterval(labelInterval);
+    labelInterval = null;
+  }
+  
+  gameArea.innerHTML = `
+    <div class="game-over">
+      <h2>游戏结束</h2>
+      <p>你的最终得分：<span style="color:#38bdf8;font-weight:bold">${score}</span></p>
+      <p>你通过了 <span style="color:#38bdf8;font-weight:bold">${currentLevel}</span> 关</p>
+      <button id="restartBtn" class="function-btn" style="width:auto;height:auto;padding:15px 30px;border-radius:10px;margin-top:20px;">重新开始游戏</button>
+    </div>
+  `;
+  
+  document.getElementById('restartBtn').addEventListener('click', restartGame);
+}
+
+// 重新开始游戏
+function restartGame() {
+  currentLevel = 0;
+  score = 100;
+  lives = 3;
+  wrongStreak = 0;
+  gameActive = true;
+  
+  // 更新显示
+  scoreEl.textContent = score;
+  livesEl.textContent = lives;
+  wrongStreakEl.textContent = wrongStreak;
+  feedback.style.display = 'none';
+  engineer.classList.remove('engineer-nod', 'engineer-talk');
+  const tool = document.querySelector('.engineer-tool');
+  if (tool) {
+    tool.classList.remove('tool-move');
+  }
+  nextLevelBtn.style.display = 'none';
+  
+  // 重新加载关卡
+  loadLevel();
+}
+
+// 加载关卡
+function loadLevel() {
+  const level = levels[currentLevel];
+  
+  levelTitle.textContent = level.title;
+  question.textContent = level.question;
+  feedback.style.display = 'none';
+  engineer.classList.remove('engineer-nod', 'engineer-talk');
+  const tool = document.querySelector('.engineer-tool');
+  if (tool) {
+    tool.classList.remove('tool-move');
+  }
+  
+  // 重置连续错误计数
+  wrongStreak = 0;
+  wrongStreakEl.textContent = wrongStreak;
+  
+  createMoles();
+}
+
+// 下一关
+function handleNextLevelClick() {
+  currentLevel++;
+  
+  if (currentLevel < levels.length) {
+    loadLevel();
+    gameActive = true;
+  } else {
+    // 通关
+    gameArea.innerHTML = `
+      <div class="game-over">
+        <h2>🎉 通关成功！</h2>
+        <p>你已掌握量纲分析的工程直觉（白银工程师）</p>
+        <p>最终得分：<span style="color:#38bdf8;font-weight:bold">${score}</span></p>
+        <button id="restartBtn" class="function-btn" style="width:auto;height:auto;padding:15px 30px;border-radius:10px;margin-top:20px;">重新开始游戏</button>
+      </div>
+    `;
+    
+    document.getElementById('restartBtn').addEventListener('click', restartGame);
+  }
+}
+
+// 确认按钮点击事件
+confirmBtn.addEventListener('click', handleConfirmClick);
+confirmBtn.addEventListener('click', handleFunctionButtonClick);
+
+// 清除按钮点击事件
+clearBtn.addEventListener('click', resetMoles);
+clearBtn.addEventListener('click', handleFunctionButtonClick);
+
+// 下一关按钮点击事件
+nextLevelBtn.addEventListener('click', handleNextLevelClick);
+nextLevelBtn.addEventListener('click', handleFunctionButtonClick);
+
+// 初始化游戏
+loadLevel();
+
+// 添加锤子跟随鼠标效果
+document.addEventListener('mousemove', (e) => {
+  if (!gameActive) return;
+  
+  hammer.style.left = `${e.clientX - 40}px`;
+  hammer.style.top = `${e.clientY - 40}px`;
+});
+</script>
+
+ <!-- 底部信息栏 -->
+    <div style="
+        text-align: center;
+        padding: 20px 30px;
+        margin-top: 40px;
+        color: #93c5fd;
+        font-size: 0.9rem;
+        border-top: 2px solid rgba(56, 189, 248, 0.5);
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9));
+        border-radius: 15px 15px 0 0;
+        box-shadow: 0 -10px 30px rgba(56, 189, 248, 0.1);
+        position: relative;
+        overflow: hidden;
+    ">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #38bdf8, #0ea5e9, #38bdf8);"></div>
+        
+        <p style="font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; color: #38bdf8;">
+            量纲一致性敲地鼠游戏 &copy; 2025 | 工程直觉训练系统 V2.1
+
+            <span style="color: #38bdf8;">工程科学素养提升工具</span> | 
+            邮箱: xgyanger@qq.com
+        </p>
+        
+        <div style="
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        ">
+            <span style="color: #fbbf24; display: flex; align-items: center; gap: 5px;">
+                <span style="font-size: 1.2em;">🎮</span> 游戏类型: 教育益智
+            </span>
+            <span style="color: #34d399; display: flex; align-items: center; gap: 5px;">
+                <span style="font-size: 1.2em;">🎯</span> 适用对象: 工科学生/工程师
+            </span>
+            <span style="color: #a78bfa; display: flex; align-items: center; gap: 5px;">
+                <span style="font-size: 1.2em;">📊</span> 学习目标: 量纲分析能力
+            </span>
+        </div>
+        
+ 
+        
+        <div style="margin-top: 15px; display: flex; justify-content: center; gap: 15px;">
+            <span style="color: #ff9e00; font-weight: bold; font-size: 1rem;">
+                版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+            </span>
+        </div>
+    </div>
+
+</body>
+</html>

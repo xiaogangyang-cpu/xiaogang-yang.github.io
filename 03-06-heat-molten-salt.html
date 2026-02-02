@@ -1,0 +1,2842 @@
+d<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光热发电熔盐接收控制模拟器 - 增强版</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+        }
+
+        :root {
+            --primary-dark: #0a0e17;
+            --secondary-dark: #121a2a;
+            --accent-orange: #ff7b25;
+            --accent-cyan: #00d4ff;
+            --accent-amber: #ffaa00;
+            --text-primary: #e6f1ff;
+            --text-secondary: #a8b2d1;
+            --glass-bg: rgba(16, 24, 40, 0.75);
+            --glass-border: rgba(255, 123, 37, 0.15);
+            --success-green: #00ff9d;
+            --warning-yellow: #ffcc00;
+            --danger-red: #ff4757;
+            --shadow-glow: 0 0 15px rgba(255, 123, 37, 0.5);
+            --sky-blue: #1a6aa9;
+            --desert-brown: #c19a6b;
+            --mirror-silver: #d4d4d4;
+            --test-blue: #4a6fa5;
+        }
+
+        body {
+            background: linear-gradient(to bottom, #0c1b3a, #0a0e17);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 30%, rgba(26, 106, 169, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 70%, rgba(255, 123, 37, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 2200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        /* 头部样式 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-glow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-orange), var(--accent-cyan));
+        }
+
+        .title-section h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, var(--accent-orange), var(--accent-cyan));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+        }
+
+        .title-section .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        .system-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .system-pressure {
+            background: linear-gradient(135deg, #4a6fa5, #2a4a7a);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            box-shadow: 0 0 15px rgba(74, 111, 165, 0.5);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pressure-explanation {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            max-width: 300px;
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .level-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .level-indicator {
+            background: linear-gradient(135deg, var(--accent-cyan), #0099cc);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+            font-size: 1.1rem;
+        }
+
+        .level-target {
+            color: var(--accent-amber);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .level-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .progress-bar {
+            width: 200px;
+            height: 8px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-orange), var(--accent-cyan));
+            border-radius: 4px;
+            width: 0%;
+            transition: width 1s ease;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.1rem;
+        }
+
+        .status-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: var(--success-green);
+            box-shadow: 0 0 10px var(--success-green);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.warning {
+            background-color: var(--warning-yellow);
+            box-shadow: 0 0 10px var(--warning-yellow);
+        }
+
+        .status-dot.danger {
+            background-color: var(--danger-red);
+            box-shadow: 0 0 10px var(--danger-red);
+            animation: blink 1s infinite;
+        }
+
+        .status-dot.testing {
+            background-color: var(--test-blue);
+            box-shadow: 0 0 10px var(--test-blue);
+            animation: testing-pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @keyframes testing-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* 三栏主体布局 */
+        .main-content {
+            display: flex;
+            gap: 25px;
+            height: 70vh;
+        }
+
+        /* 左栏：光热塔可视化区域 */
+        .visualization-panel {
+            flex: 1.5;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            padding: 20px;
+            box-shadow: var(--shadow-glow);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .visualization-title {
+            font-size: 1.5rem;
+            color: var(--accent-cyan);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+            padding-bottom: 8px;
+        }
+
+        .solar-field {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(to bottom, #1a6aa9, #0c1b3a);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+   .sky {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 40%;
+    /* 天空渐变，包含向沙漠的过渡 */
+    background: linear-gradient(
+        to bottom,
+        #1a6aa9 0%,
+        #0c1b3a 65%,
+        rgba(193, 154, 107, 0.4) 85%,
+        rgba(212, 180, 131, 0.2) 95%,
+        transparent 100%
+    );
+    z-index: 1;
+}
+
+.desert {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70%;
+    /* 沙漠渐变，包含向天空的过渡 */
+    background: linear-gradient(
+        to top,
+        #8b7355 0%,
+        #c19a6b 25%,
+        rgba(212, 180, 131, 0.8) 40%,
+        rgba(212, 180, 131, 0.4) 60%,
+        rgba(212, 180, 131, 0.1) 80%,
+        transparent 100%
+    );
+    z-index: 2;
+}
+
+/* 添加模糊混合层 */
+.desert::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 80px;  /* 混合区域 */
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(139, 115, 85, 0.5)
+    );
+    filter: blur(12px);
+    z-index: 3;
+    pointer-events: none;  /* 不干扰交互 */
+}
+
+
+
+        /* 定日镜阵列 */
+        .heliostat {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: var(--mirror-silver);
+            border-radius: 2px;
+            transform-origin: center;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+            z-index: 3;
+            transition: transform 0.5s, box-shadow 0.5s;
+        }
+
+        /* 光热塔 */
+        .solar-tower {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 200px;
+            background: linear-gradient(to top, #f0f0f0, #ffffff, #f0f0f0);
+            z-index: 4;
+            border-radius: 5px 5px 0 0;
+        }
+
+        .tower-top {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 40px;
+            background-color: #ffffff;
+            border-radius: 10px 10px 10px 10px;
+        }
+
+        .energy-beam {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 120px;
+            background: linear-gradient(to top, transparent, var(--accent-amber), var(--accent-orange));
+            box-shadow: 0 0 30px var(--accent-amber);
+            z-index: 5;
+            opacity: 0.8;
+            animation: beam-pulse 2s infinite;
+        }
+
+        @keyframes beam-pulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        /* 中栏：调控面板 */
+        .control-panel {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: var(--shadow-glow);
+            overflow-y: auto;
+        }
+
+        .panel-title {
+            font-size: 1.4rem;
+            color: var(--accent-cyan);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+            padding-bottom: 8px;
+        }
+
+        .panel-title i {
+            font-size: 1.2rem;
+        }
+
+        .control-group {
+            background: rgba(10, 14, 23, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid var(--accent-orange);
+        }
+
+        .control-group h3 {
+            color: var(--accent-cyan);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-item {
+            margin-bottom: 20px;
+        }
+
+        .control-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .control-value {
+            color: var(--accent-amber);
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .slider {
+            flex: 1;
+            height: 10px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: linear-gradient(90deg, var(--accent-orange), var(--accent-cyan));
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--text-primary);
+            cursor: pointer;
+            border: 3px solid var(--accent-amber);
+            box-shadow: 0 0 10px rgba(255, 170, 0, 0.8);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--text-primary);
+            cursor: pointer;
+            border: 3px solid var(--accent-amber);
+            box-shadow: 0 0 10px rgba(255, 170, 0, 0.8);
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .control-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, var(--accent-orange), #ff5e00);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 10px rgba(255, 123, 37, 0.3);
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(255, 123, 37, 0.5);
+        }
+
+        .control-btn:active {
+            transform: translateY(1px);
+        }
+
+        .control-btn.cyan {
+            background: linear-gradient(135deg, var(--accent-cyan), #0099cc);
+        }
+
+        .control-btn.warning {
+            background: linear-gradient(135deg, var(--warning-yellow), #ff9900);
+        }
+
+        .control-btn.test {
+            background: linear-gradient(135deg, var(--test-blue), #2a4a7a);
+        }
+
+        .control-btn.success {
+            background: linear-gradient(135deg, var(--success-green), #00cc7a);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .control-btn:disabled:hover {
+            transform: none;
+            box-shadow: 0 4px 10px rgba(255, 123, 37, 0.3);
+        }
+
+        /* 右栏：状态面板 */
+        .status-panel {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            padding: 25px;
+            box-shadow: var(--shadow-glow);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .status-display {
+            background: rgba(10, 14, 23, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 123, 37, 0.2);
+        }
+
+        .gauge-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .gauge {
+            background: rgba(10, 14, 23, 0.8);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid rgba(255, 123, 37, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .gauge.danger {
+            border-color: var(--danger-red);
+            box-shadow: 0 0 15px rgba(255, 71, 87, 0.3);
+            animation: warning-pulse 1.5s infinite;
+        }
+
+        @keyframes warning-pulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 71, 87, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(255, 71, 87, 0.6); }
+        }
+
+        .gauge-title {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .gauge-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            font-family: 'Courier New', monospace;
+            margin-bottom: 5px;
+        }
+
+        .gauge-unit {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-left: 3px;
+        }
+
+        .gauge-bar {
+            width: 100%;
+            height: 15px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 8px;
+            position: relative;
+        }
+
+        .gauge-fill {
+            height: 100%;
+            border-radius: 8px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-orange));
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .gauge-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* 压力解释卡片 */
+        .pressure-info-card {
+            background: rgba(10, 14, 23, 0.7);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(74, 111, 165, 0.5);
+            margin-bottom: 15px;
+        }
+
+        .pressure-info-title {
+            color: #4a6fa5;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pressure-info-content {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .pressure-ranges {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .pressure-range {
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        .pressure-range.low {
+            background: rgba(0, 212, 255, 0.1);
+            border-left: 3px solid var(--accent-cyan);
+        }
+
+        .pressure-range.normal {
+            background: rgba(0, 255, 157, 0.1);
+            border-left: 3px solid var(--success-green);
+        }
+
+        .pressure-range.high {
+            background: rgba(255, 204, 0, 0.1);
+            border-left: 3px solid var(--warning-yellow);
+        }
+
+        .pressure-range.danger {
+            background: rgba(255, 71, 87, 0.1);
+            border-left: 3px solid var(--danger-red);
+        }
+
+        /* 关卡目标显示 */
+        .level-target-display {
+            background: rgba(10, 14, 23, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .target-title {
+            font-size: 1.2rem;
+            color: var(--accent-cyan);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .target-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .target-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .target-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--danger-red);
+        }
+
+        .target-indicator.achieved {
+            background-color: var(--success-green);
+            box-shadow: 0 0 8px var(--success-green);
+        }
+
+        .target-text {
+            color: var(--text-secondary);
+            flex: 1;
+        }
+
+        .target-value {
+            color: var(--accent-amber);
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .stability-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stability-bar {
+            flex: 1;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .stability-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-orange), var(--accent-cyan));
+            border-radius: 5px;
+            width: 0%;
+            transition: width 1s ease;
+        }
+
+        /* 稳定性测试区域 */
+        .stability-test-display {
+            background: rgba(10, 14, 23, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(74, 111, 165, 0.5);
+            margin-top: 10px;
+        }
+
+        .test-title {
+            font-size: 1.2rem;
+            color: var(--test-blue);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .test-status {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .test-status.testing {
+            color: var(--test-blue);
+            background: rgba(74, 111, 165, 0.1);
+        }
+
+        .test-status.success {
+            color: var(--success-green);
+            background: rgba(0, 255, 157, 0.1);
+        }
+
+        .test-status.failed {
+            color: var(--danger-red);
+            background: rgba(255, 71, 87, 0.1);
+        }
+
+        .test-countdown {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .countdown-bar {
+            flex: 1;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .countdown-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--test-blue), #2a4a7a);
+            border-radius: 5px;
+            width: 100%;
+            transition: width 1s ease;
+        }
+
+        #countdownText {
+            color: var(--test-blue);
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+            min-width: 50px;
+        }
+
+        /* 警告面板 */
+        .alert-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 71, 87, 0.3);
+            padding: 15px;
+            box-shadow: 0 0 20px rgba(255, 71, 87, 0.2);
+            display: none;
+        }
+
+        .alert-panel.active {
+            display: block;
+            animation: alert-appear 0.5s ease;
+        }
+
+        @keyframes alert-appear {
+            0% { opacity: 0; transform: translateY(-20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .alert-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: var(--danger-red);
+            font-size: 1.1rem;
+        }
+
+        .alert-content {
+            color: var(--text-secondary);
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+
+        /* 日志面板 */
+        .log-panel {
+            flex: 1;
+            background: rgba(10, 14, 23, 0.7);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-title {
+            font-size: 1.1rem;
+            color: var(--accent-amber);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .log-content {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .log-time {
+            color: var(--accent-cyan);
+            margin-right: 10px;
+        }
+
+        .log-message.warning {
+            color: var(--warning-yellow);
+        }
+
+        .log-message.danger {
+            color: var(--danger-red);
+        }
+
+        .log-message.success {
+            color: var(--success-green);
+        }
+
+        .log-message.info {
+            color: var(--accent-cyan);
+        }
+
+        .log-message.test {
+            color: var(--test-blue);
+        }
+
+        /* 工程提示区域 */
+        .engineering-tips {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            padding: 20px;
+            box-shadow: var(--shadow-glow);
+            margin-top: 10px;
+        }
+
+        .tips-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+
+        .tips-title {
+            font-size: 1.3rem;
+            color: var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        .tips-content {
+            display: none;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .tips-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        .tip-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(10, 14, 23, 0.5);
+            border-radius: 10px;
+            border-left: 4px solid var(--accent-amber);
+        }
+
+        .tip-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .tip-title {
+            font-size: 1.1rem;
+            color: var(--accent-amber);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tip-formula {
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            color: var(--accent-cyan);
+            border-left: 3px solid var(--accent-orange);
+        }
+
+        /* 评估面板 */
+        .evaluation-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            padding: 25px;
+            box-shadow: var(--shadow-glow);
+            margin-top: 20px;
+            display: none;
+        }
+
+        .evaluation-panel.active {
+            display: block;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            0% { opacity: 0; transform: translateY(30px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .evaluation-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            color: var(--accent-cyan);
+            font-size: 1.5rem;
+        }
+
+        .evaluation-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .evaluation-grade {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(255, 123, 37, 0.1));
+            border-radius: 12px;
+            border: 1px solid rgba(255, 123, 37, 0.3);
+        }
+
+        .grade-title {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .grade-value {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--accent-orange), var(--accent-cyan), var(--accent-amber));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .grade-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .evaluation-feedback {
+            padding: 20px;
+            background: rgba(10, 14, 23, 0.7);
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-cyan);
+        }
+
+        .feedback-title {
+            font-size: 1.2rem;
+            color: var(--accent-cyan);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feedback-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .next-level-btn {
+            display: block;
+            margin: 20px auto 0;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, var(--accent-orange), #ff5e00);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(255, 123, 37, 0.4);
+        }
+
+        .next-level-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 123, 37, 0.6);
+        }
+
+        .next-level-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .next-level-btn:disabled:hover {
+            transform: none;
+            box-shadow: 0 4px 15px rgba(255, 123, 37, 0.4);
+        }
+
+        /* 底部 */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            margin-top: 10px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1400px) {
+            .main-content {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .visualization-panel {
+                height: 300px;
+            }
+            
+            .gauge-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .pressure-ranges {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+            
+            .level-info {
+                align-items: center;
+            }
+            
+            .control-btn {
+                min-width: 100%;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <div class="title-section">
+                <h1>光热发电熔盐控制接收器</h1>
+                <div class="subtitle">增强版多级温度挑战模拟器</div>
+            </div>
+            
+            <div class="system-info">
+                <div class="system-pressure">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>系统压力: <span id="currentPressure">2.5</span> MPa</span>
+                </div>
+                <div class="pressure-explanation">
+                    系统压力表示熔盐循环管路中的压力状态，过高压力有管路爆裂风险
+                </div>
+            </div>
+            
+            <div class="level-info">
+                <div class="level-indicator" id="levelIndicator">温度挑战: 300°C</div>
+                <div class="level-target" id="levelTarget">目标: 稳定在300±10°C</div>
+                <div class="level-progress">
+                    <span>稳定性</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                    </div>
+                    <span id="progressText">0%</span>
+                </div>
+            </div>
+            
+            <div class="status-indicator">
+                <div class="status-dot" id="systemStatusDot"></div>
+                <span id="systemStatusText">系统状态: 待启动</span>
+            </div>
+        </div>
+
+        <!-- 主内容区：三栏布局 -->
+        <div class="main-content">
+            <!-- 左栏：光热塔可视化 -->
+            <div class="visualization-panel">
+                <div class="visualization-title">
+                    <i class="fas fa-solar-panel"></i>
+                    光热电站实景模拟
+                </div>
+                <div class="solar-field" id="solarField">
+                    <div class="sky"></div>
+                    <div class="desert"></div>
+                    <!-- 定日镜阵列将通过JS动态生成 -->
+                    <div class="solar-tower">
+                        <div class="tower-top"></div>
+                        <div class="energy-beam" id="energyBeam"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中栏：调控面板 -->
+            <div class="control-panel">
+                <div class="panel-title">
+                    <i class="fas fa-sliders-h"></i>
+                    实时调控面板
+                </div>
+
+                <div class="control-group">
+                    <h3><i class="fas fa-sun"></i> 光场控制模块</h3>
+                    <div class="control-item">
+                        <div class="control-label">
+                            <span>定日镜数量</span>
+                            <span class="control-value" id="heliostatCountValue">2000面</span>
+                        </div>
+                        <div class="slider-container">
+                            <input type="range" min="0" max="4000" step="100" value="2000" class="slider" id="heliostatCountSlider">
+                            <span>0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--text-secondary); margin-top: 5px;">
+                            <span>能量输入: <span id="energyInputValue">中等</span></span>
+                            <span>4000面</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-item">
+                        <div class="control-label">
+                            <span>定日镜聚焦率</span>
+                            <span class="control-value" id="focusValue">50%</span>
+                        </div>
+                        <div class="slider-container">
+                            <input type="range" min="10" max="100" value="50" class="slider" id="focusSlider">
+                        </div>
+                    </div>
+                    
+                    <div class="control-item">
+                        <div class="control-label">
+                            <span>太阳辐射强度</span>
+                            <span class="control-value" id="radiationValue">750 W/m²</span>
+                        </div>
+                        <div class="slider-container">
+                            <input type="range" min="300" max="1200" value="750" class="slider" id="radiationSlider">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3><i class="fas fa-fire"></i> 热管理模块</h3>
+                    <div class="control-item">
+                        <div class="control-label">
+                            <span>熔盐流速</span>
+                            <span class="control-value" id="flowValue">1.8 m³/h</span>
+                        </div>
+                        <div class="slider-container">
+                            <input type="range" min="0.5" max="5" step="0.1" value="1.8" class="slider" id="flowSlider">
+                        </div>
+                    </div>
+                    <div class="control-item">
+                        <div class="control-label">
+                            <span>换热器功率</span>
+                            <span class="control-value" id="heatExchangerValue">75%</span>
+                        </div>
+                        <div class="slider-container">
+                            <input type="range" min="10" max="100" value="75" class="slider" id="heatExchangerSlider">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3><i class="fas fa-cogs"></i> 系统操作</h3>
+                    <div class="button-group">
+                        <button class="control-btn" id="startBtn">
+                            <i class="fas fa-play"></i>启动系统
+                        </button>
+                        <button class="control-btn cyan" id="optimizeBtn">
+                            <i class="fas fa-bolt"></i>自动优化
+                        </button>
+                        <button class="control-btn warning" id="emergencyBtn">
+                            <i class="fas fa-exclamation-triangle"></i>紧急冷却
+                        </button>
+                        <button class="control-btn test" id="stabilityTestBtn" disabled>
+                            <i class="fas fa-hourglass-half"></i>稳定性测试
+                        </button>
+                        <button class="control-btn" id="evaluateBtn" disabled>
+                            <i class="fas fa-chart-bar"></i>挑战评估
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右栏：状态面板 -->
+            <div class="status-panel">
+                <!-- 压力信息卡片 -->
+                <div class="pressure-info-card">
+                    <div class="pressure-info-title">
+                        <i class="fas fa-info-circle"></i>
+                        系统压力说明
+                    </div>
+                    <div class="pressure-info-content">
+                        系统压力表示熔盐循环管路中的压力状态，受温度、流速和换热器功率影响。
+                    </div>
+                    <div class="pressure-ranges">
+                        <div class="pressure-range low">
+                            <strong>低压</strong><br>&lt; 2.0MPa<br>效率低
+                        </div>
+                        <div class="pressure-range normal">
+                            <strong>正常</strong><br>2.5-4.0MPa<br>运行稳定
+                        </div>
+                        <div class="pressure-range high">
+                            <strong>高压</strong><br>4.0-4.8MPa<br>需要关注
+                        </div>
+                        <div class="pressure-range danger">
+                            <strong>危险</strong><br>&gt; 4.8MPa<br>爆裂风险
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 状态显示 -->
+                <div class="status-display">
+                    <div class="panel-title">
+                        <i class="fas fa-chart-line"></i>
+                        实时状态监控
+                    </div>
+                    <div class="gauge-container">
+                        <div class="gauge" id="tempGauge">
+                            <div class="gauge-title">熔盐温度</div>
+                            <div class="gauge-value">250<span class="gauge-unit">°C</span></div>
+                            <div class="gauge-bar">
+                                <div class="gauge-fill" id="tempFill" style="width: 50%;"></div>
+                            </div>
+                        </div>
+                        <div class="gauge" id="pressureGauge">
+                            <div class="gauge-title">系统压力</div>
+                            <div class="gauge-value">2.5<span class="gauge-unit">MPa</span></div>
+                            <div class="gauge-bar">
+                                <div class="gauge-fill" id="pressureFill" style="width: 25%;"></div>
+                            </div>
+                        </div>
+                        <div class="gauge" id="efficiencyGauge">
+                            <div class="gauge-title">热转换效率</div>
+                            <div class="gauge-value">45<span class="gauge-unit">%</span></div>
+                            <div class="gauge-bar">
+                                <div class="gauge-fill" id="efficiencyFill" style="width: 45%;"></div>
+                            </div>
+                        </div>
+                        <div class="gauge" id="powerGauge">
+                            <div class="gauge-title">输出功率</div>
+                            <div class="gauge-value">18<span class="gauge-unit">MW</span></div>
+                            <div class="gauge-bar">
+                                <div class="gauge-fill" id="powerFill" style="width: 36%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 关卡目标 -->
+                <div class="level-target-display">
+                    <div class="target-title">
+                        <i class="fas fa-bullseye"></i>
+                        当前挑战目标
+                    </div>
+                    <div class="target-list" id="targetList">
+                        <div class="target-item">
+                            <div class="target-indicator" id="tempTargetIndicator"></div>
+                            <div class="target-text">熔盐温度:</div>
+                            <div class="target-value" id="tempTargetValue">300±10°C</div>
+                        </div>
+                        <div class="target-item">
+                            <div class="target-indicator" id="pressureTargetIndicator"></div>
+                            <div class="target-text">系统压力:</div>
+                            <div class="target-value" id="pressureTargetValue">&lt; 4.0MPa</div>
+                        </div>
+                        <div class="target-item">
+                            <div class="target-indicator" id="efficiencyTargetIndicator"></div>
+                            <div class="target-text">热效率:</div>
+                            <div class="target-value" id="efficiencyTargetValue">&gt; 50%</div>
+                        </div>
+                        <div class="target-item">
+                            <div class="target-indicator" id="powerTargetIndicator"></div>
+                            <div class="target-text">输出功率:</div>
+                            <div class="target-value" id="powerTargetValue">&gt; 20MW</div>
+                        </div>
+                    </div>
+                    <div class="stability-indicator">
+                        <span>稳定时间:</span>
+                        <div class="stability-bar">
+                            <div class="stability-fill" id="stabilityFill" style="width: 0%;"></div>
+                        </div>
+                        <span id="stabilityText">0/5秒</span>
+                    </div>
+                </div>
+
+                <!-- 稳定性测试区域 -->
+                <div class="stability-test-display">
+                    <div class="test-title">
+                        <i class="fas fa-hourglass-half"></i>
+                        稳定性测试
+                    </div>
+                    <div class="test-status" id="testStatus">
+                        等待条件满足：温度达到目标±3°C内
+                    </div>
+                    <div class="test-countdown">
+                        <div class="countdown-bar">
+                            <div class="countdown-fill" id="countdownFill" style="width: 100%;"></div>
+                        </div>
+                        <span id="countdownText">60秒</span>
+                    </div>
+                    <div class="button-group">
+                        <button class="control-btn test" id="startTestBtn" disabled>
+                            <i class="fas fa-play"></i>开始测试
+                        </button>
+                        <button class="control-btn warning" id="cancelTestBtn" disabled>
+                            <i class="fas fa-stop"></i>取消测试
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 警告面板 -->
+                <div class="alert-panel" id="alertPanel">
+                    <div class="alert-header">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span id="alertTitle">系统待启动</span>
+                    </div>
+                    <div class="alert-content" id="alertContent">
+                        请点击"启动系统"按钮开始温度挑战模拟。
+                    </div>
+                </div>
+
+                <!-- 日志面板 -->
+                <div class="log-panel">
+                    <div class="log-title">
+                        <i class="fas fa-terminal"></i>
+                        实时系统日志
+                    </div>
+                    <div class="log-content" id="logContent">
+                        <div class="log-entry">
+                            <span class="log-time">10:00:00</span>
+                            <span class="log-message">系统初始化完成，等待启动指令</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-time">10:00:05</span>
+                            <span class="log-message">当前挑战：将系统稳定在300°C ±10°C范围内</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-time">10:00:10</span>
+                            <span class="log-message info">提示：定日镜数量决定总能量输入，影响升温能力</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 工程提示 -->
+        <div class="engineering-tips">
+            <div class="tips-header" id="tipsToggle">
+                <div class="tips-title">
+                    <i class="fas fa-lightbulb"></i>
+                    工程原理提示
+                </div>
+                <div class="toggle-icon" id="toggleIcon">
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+            </div>
+            <div class="tips-content" id="tipsContent">
+                <div class="tip-section">
+                    <div class="tip-title">
+                        <i class="fas fa-sun"></i>
+                        能量输入公式
+                    </div>
+                    <div class="tip-formula">
+                        总能量 = 太阳辐射 × 定日镜数量 × 聚焦率 × 反射效率
+                    </div>
+                    <p><strong>定日镜数量</strong>：决定总反射面积，直接影响能量输入上限</p>
+                    <p><strong>聚焦率</strong>：决定每面定日镜的能量集中程度</p>
+                    <p><strong>关键策略</strong>：高温挑战需要增加定日镜数量提供足够能量输入</p>
+                </div>
+                
+                <div class="tip-section">
+                    <div class="tip-title">
+                        <i class="fas fa-tachometer-alt"></i>
+                        系统压力管理
+                    </div>
+                    <p><strong>压力来源</strong>：熔盐热膨胀 + 循环泵压力 + 蒸汽压力</p>
+                    <p><strong>压力控制</strong>：</p>
+                    <p>• 温度每升高100°C，压力增加约0.8-1.2MPa</p>
+                    <p>• 增加熔盐流速可降低压力</p>
+                    <p>• 降低换热器功率可减少蒸汽产生，降低压力</p>
+                    <p><strong>安全阈值</strong>：压力＞4.8MPa时存在爆管风险</p>
+                </div>
+                
+                <div class="tip-section">
+                    <div class="tip-title">
+                        <i class="fas fa-fire"></i>
+                        多级挑战策略
+                    </div>
+                    <p><strong>300°C挑战</strong>：2000面定日镜足够，关注基础控制</p>
+                    <p><strong>350°C挑战</strong>：建议2500-3000面，注意压力上升</p>
+                    <p><strong>400°C挑战</strong>：需要3000-3500面，平衡能量与压力</p>
+                    <p><strong>450°C极限挑战</strong>：需要3500-4000面，精细控制压力</p>
+                </div>
+
+                <div class="tip-section">
+                    <div class="tip-title">
+                        <i class="fas fa-hourglass-half"></i>
+                        稳定性测试说明
+                    </div>
+                    <p><strong>测试条件</strong>：当温度达到目标温度±3°C范围内时，可以启动稳定性测试</p>
+                    <p><strong>测试要求</strong>：在60秒内保持温度在目标±3°C范围内</p>
+                    <p><strong>通过标准</strong>：60秒内温度波动不超过±3°C，且系统压力在安全范围内</p>
+                    <p><strong>测试奖励</strong>：通过测试后可直接进入下一挑战，无需等待5秒稳定</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 评估面板 -->
+        <div class="evaluation-panel" id="evaluationPanel">
+            <div class="evaluation-header">
+                <i class="fas fa-award"></i>
+                工程师挑战评估报告
+            </div>
+            <div class="evaluation-content">
+                <div class="evaluation-grade">
+                    <div class="grade-title">工程师等级评定</div>
+                    <div class="grade-value" id="gradeValue">-</div>
+                    <div class="grade-subtitle" id="gradeSubtitle">等待评估</div>
+                </div>
+                
+                <div class="evaluation-feedback">
+                    <div class="feedback-title">
+                        <i class="fas fa-comment-alt"></i>
+                        挑战表现分析
+                    </div>
+                    <div class="feedback-content" id="feedbackContent">
+                        <p>完成挑战后，系统将根据以下维度进行评估：</p>
+                        <p>1. 温度控制精度 (±5°C内为优秀)</p>
+                        <p>2. 系统稳定性 (波动越小越好)</p>
+                        <p>3. 效率表现 (热转换效率)</p>
+                        <p>4. 安全操作 (系统压力控制)</p>
+                        <p>5. 响应速度 (达到稳定的时间)</p>
+                    </div>
+                </div>
+                
+                <button class="next-level-btn" id="nextLevelBtn" disabled>
+                    <i class="fas fa-arrow-right"></i>
+                    进入下一挑战
+                </button>
+            </div>
+        </div>
+
+
+    <script>
+        // 系统状态对象
+        const systemState = {
+            isRunning: false,
+            status: 'idle', // idle, stable, warning, danger, testing
+            temperature: 250,
+            pressure: 2.5,
+            efficiency: 45,
+            powerOutput: 18,
+            heliostatCount: 2000,
+            focusRate: 50,
+            radiation: 750,
+            flowRate: 1.8,
+            heatExchangerPower: 75,
+            lastUpdate: new Date(),
+            
+            // 多级挑战系统
+            currentLevel: 1,
+            targetTemperature: 300,
+            temperatureTolerance: 10,
+            stabilityTime: 0, // 稳定时间（秒）
+            requiredStabilityTime: 5, // 需要稳定5秒
+            isStable: false,
+            levelCompleted: false,
+            
+            // 稳定性测试系统
+            stabilityTest: {
+                isActive: false,
+                countdown: 60, // 60秒倒计时
+                originalCountdown: 60,
+                success: false,
+                failed: false,
+                temperatureWithinRange: true,
+                startTime: null,
+                timer: null
+            },
+            
+            // 挑战序列
+            challenges: [
+                { level: 1, targetTemp: 300, tempTolerance: 10, maxPressure: 4.0, minEfficiency: 50, minPower: 20, name: "基础温度控制", recommendedHeliostats: 2000 },
+                { level: 2, targetTemp: 350, tempTolerance: 10, maxPressure: 4.2, minEfficiency: 55, minPower: 25, name: "中等温度挑战", recommendedHeliostats: 2500 },
+                { level: 3, targetTemp: 400, tempTolerance: 10, maxPressure: 4.5, minEfficiency: 60, minPower: 30, name: "高温运行测试", recommendedHeliostats: 3000 },
+                { level: 4, targetTemp: 450, tempTolerance: 10, maxPressure: 5.0, minEfficiency: 65, minPower: 35, name: "极限温度挑战", recommendedHeliostats: 3500 }
+            ],
+            
+            // 性能评估数据
+            performanceMetrics: {
+                temperatureAccuracy: 0,
+                stabilityScore: 0,
+                efficiencyScore: 0,
+                safetyScore: 0,
+                responseTime: 0,
+                totalScore: 0
+            }
+        };
+
+        // DOM元素引用
+        const systemStatusDot = document.getElementById('systemStatusDot');
+        const systemStatusText = document.getElementById('systemStatusText');
+        const currentPressure = document.getElementById('currentPressure');
+        const alertPanel = document.getElementById('alertPanel');
+        const alertTitle = document.getElementById('alertTitle');
+        const alertContent = document.getElementById('alertContent');
+        const logContent = document.getElementById('logContent');
+        const solarField = document.getElementById('solarField');
+        const energyBeam = document.getElementById('energyBeam');
+        
+        // 控制滑块
+        const heliostatCountSlider = document.getElementById('heliostatCountSlider');
+        const focusSlider = document.getElementById('focusSlider');
+        const radiationSlider = document.getElementById('radiationSlider');
+        const flowSlider = document.getElementById('flowSlider');
+        const heatExchangerSlider = document.getElementById('heatExchangerSlider');
+        
+        // 控制按钮
+        const startBtn = document.getElementById('startBtn');
+        const optimizeBtn = document.getElementById('optimizeBtn');
+        const emergencyBtn = document.getElementById('emergencyBtn');
+        const stabilityTestBtn = document.getElementById('stabilityTestBtn');
+        const evaluateBtn = document.getElementById('evaluateBtn');
+        const startTestBtn = document.getElementById('startTestBtn');
+        const cancelTestBtn = document.getElementById('cancelTestBtn');
+        const nextLevelBtn = document.getElementById('nextLevelBtn');
+        
+        // 显示元素
+        const heliostatCountValue = document.getElementById('heliostatCountValue');
+        const energyInputValue = document.getElementById('energyInputValue');
+        const focusValue = document.getElementById('focusValue');
+        const radiationValue = document.getElementById('radiationValue');
+        const flowValue = document.getElementById('flowValue');
+        const heatExchangerValue = document.getElementById('heatExchangerValue');
+        const levelIndicator = document.getElementById('levelIndicator');
+        const levelTarget = document.getElementById('levelTarget');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        
+        // 仪表填充
+        const tempFill = document.getElementById('tempFill');
+        const pressureFill = document.getElementById('pressureFill');
+        const efficiencyFill = document.getElementById('efficiencyFill');
+        const powerFill = document.getElementById('powerFill');
+        
+        // 仪表容器
+        const tempGauge = document.getElementById('tempGauge');
+        const pressureGauge = document.getElementById('pressureGauge');
+        
+        // 目标指示器
+        const tempTargetIndicator = document.getElementById('tempTargetIndicator');
+        const pressureTargetIndicator = document.getElementById('pressureTargetIndicator');
+        const efficiencyTargetIndicator = document.getElementById('efficiencyTargetIndicator');
+        const powerTargetIndicator = document.getElementById('powerTargetIndicator');
+        const tempTargetValue = document.getElementById('tempTargetValue');
+        const pressureTargetValue = document.getElementById('pressureTargetValue');
+        const efficiencyTargetValue = document.getElementById('efficiencyTargetValue');
+        const powerTargetValue = document.getElementById('powerTargetValue');
+        
+        // 稳定性指示器
+        const stabilityFill = document.getElementById('stabilityFill');
+        const stabilityText = document.getElementById('stabilityText');
+        
+        // 稳定性测试元素
+        const testStatus = document.getElementById('testStatus');
+        const countdownFill = document.getElementById('countdownFill');
+        const countdownText = document.getElementById('countdownText');
+        
+        // 工程提示
+        const tipsToggle = document.getElementById('tipsToggle');
+        const toggleIcon = document.getElementById('toggleIcon');
+        const tipsContent = document.getElementById('tipsContent');
+        
+        // 评估面板
+        const evaluationPanel = document.getElementById('evaluationPanel');
+        const gradeValue = document.getElementById('gradeValue');
+        const gradeSubtitle = document.getElementById('gradeSubtitle');
+        const feedbackContent = document.getElementById('feedbackContent');
+
+        // 创建定日镜阵列
+        function createHeliostatField() {
+            const fieldWidth = solarField.offsetWidth;
+            const fieldHeight = solarField.offsetHeight;
+            const centerX = fieldWidth / 2;
+            const centerY = fieldHeight * 0.7;
+            
+            // 清除现有的定日镜
+            const existingHeliostats = document.querySelectorAll('.heliostat');
+            existingHeliostats.forEach(el => el.remove());
+            
+            // 根据当前定日镜数量确定显示密度
+            const displayCount = Math.min(systemState.heliostatCount, 1000);
+            const displayFactor = systemState.heliostatCount > 0 ? Math.min(1, 1000 / systemState.heliostatCount) : 0;
+            
+            // 创建同心圆排列的定日镜
+            const rings = 6;
+            
+            for (let ring = 0; ring < rings; ring++) {
+                const radius = 50 + ring * 35;
+                const count = Math.floor(displayCount * (ring + 1) / (rings * 2));
+                
+                for (let i = 0; i < count; i++) {
+                    // 随机决定是否显示（根据显示因子）
+                    if (Math.random() > displayFactor) continue;
+                    
+                    const angle = (i / count) * Math.PI * 2;
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle) * 0.5;
+                    
+                    if (x > 15 && x < fieldWidth - 15 && y > 40 && y < fieldHeight - 40) {
+                        const heliostat = document.createElement('div');
+                        heliostat.className = 'heliostat';
+                        heliostat.style.left = `${x}px`;
+                        heliostat.style.top = `${y}px`;
+                        
+                        const rotation = angle * (180 / Math.PI) + 90;
+                        heliostat.style.transform = `rotate(${rotation}deg)`;
+                        
+                        solarField.appendChild(heliostat);
+                    }
+                }
+            }
+        }
+
+        // 更新定日镜方向
+        function updateHeliostats() {
+            const heliostats = document.querySelectorAll('.heliostat');
+            const focusRate = systemState.focusRate;
+            
+            heliostats.forEach((heliostat, index) => {
+                // 根据聚焦率调整亮度和阴影
+                const brightness = 0.4 + (focusRate / 100) * 0.6;
+                const shadowIntensity = focusRate / 100;
+                
+                heliostat.style.backgroundColor = `rgba(212, 212, 212, ${brightness})`;
+                heliostat.style.boxShadow = `0 0 ${8 * shadowIntensity}px rgba(255, 255, 255, ${0.3 + shadowIntensity * 0.5})`;
+                
+                // 如果系统正在运行，添加轻微晃动效果
+                if (systemState.isRunning && Math.random() > 0.7) {
+                    const rotation = parseFloat(heliostat.style.transform.replace('rotate(', '').replace('deg)', '')) || 0;
+                    const newRotation = rotation + (Math.random() - 0.5) * 2;
+                    heliostat.style.transform = `rotate(${newRotation}deg)`;
+                }
+            });
+            
+            // 更新能量光束
+            if (systemState.isRunning && systemState.temperature > 250) {
+                const beamHeight = 30 + (systemState.temperature - 250)/10;
+                energyBeam.style.height = `${beamHeight}px`;
+                
+                // 根据温度调整光束颜色
+                if (systemState.temperature > 400) {
+                    energyBeam.style.background = 'linear-gradient(to top, transparent, var(--danger-red), var(--accent-orange))';
+                    energyBeam.style.boxShadow = '0 0 30px var(--danger-red)';
+                    energyBeam.style.opacity = `${0.8 + (systemState.focusRate / 100) * 0.2}`;
+                } else if (systemState.temperature > 350) {
+                    energyBeam.style.background = 'linear-gradient(to top, transparent, var(--warning-yellow), var(--accent-orange))';
+                    energyBeam.style.boxShadow = '0 0 30px var(--warning-yellow)';
+                    energyBeam.style.opacity = `${0.6 + (systemState.focusRate / 100) * 0.3}`;
+                } else {
+                    energyBeam.style.background = 'linear-gradient(to top, transparent, var(--accent-amber), var(--accent-orange))';
+                    energyBeam.style.boxShadow = '0 0 30px var(--accent-amber)';
+                    energyBeam.style.opacity = `${0.4 + (systemState.focusRate / 100) * 0.4}`;
+                }
+                
+                // 根据定日镜数量调整光束宽度
+                const beamWidth = 50 + (systemState.heliostatCount / 4000) * 12;
+                energyBeam.style.width = `${beamWidth}px`;
+                energyBeam.style.display = 'block';
+            } else {
+                energyBeam.style.display = 'none';
+            }
+        }
+
+        // 检查是否可以进行稳定性测试
+        function checkStabilityTestCondition() {
+            const challenge = systemState.challenges[systemState.currentLevel - 1];
+            const tempDiff = Math.abs(systemState.temperature - challenge.targetTemp);
+            
+            // 检查温度是否在目标±3°C范围内
+            const isInTestRange = tempDiff <= 3;
+            
+            // 检查系统是否正在运行且不是在测试中
+            const canStartTest = systemState.isRunning && 
+                                !systemState.stabilityTest.isActive && 
+                                !systemState.stabilityTest.success;
+            
+            // 检查压力是否在安全范围内
+            const isPressureSafe = systemState.pressure <= challenge.maxPressure;
+            
+            return isInTestRange && canStartTest && isPressureSafe;
+        }
+
+        // 更新稳定性测试状态
+        function updateStabilityTestStatus() {
+            const canStartTest = checkStabilityTestCondition();
+            
+            // 更新测试按钮状态
+            startTestBtn.disabled = !canStartTest;
+            stabilityTestBtn.disabled = !canStartTest;
+            
+            // 更新测试状态显示
+            if (systemState.stabilityTest.isActive) {
+                testStatus.textContent = `测试中: ${systemState.stabilityTest.countdown}秒`;
+                testStatus.className = 'test-status testing';
+                countdownFill.style.width = `${(systemState.stabilityTest.countdown / systemState.stabilityTest.originalCountdown) * 100}%`;
+                countdownText.textContent = `${systemState.stabilityTest.countdown}秒`;
+                
+                // 检查测试是否失败
+                if (!systemState.stabilityTest.temperatureWithinRange) {
+                    testStatus.textContent = '测试失败: 温度超出范围';
+                    testStatus.className = 'test-status failed';
+                    systemState.stabilityTest.failed = true;
+                    stopStabilityTest();
+                    addLogEntry('稳定性测试失败: 温度超出±3°C范围', 'danger');
+                }
+                
+                // 检查测试是否成功
+                if (systemState.stabilityTest.countdown <= 0) {
+                    testStatus.textContent = '测试通过!';
+                    testStatus.className = 'test-status success';
+                    systemState.stabilityTest.success = true;
+                    systemState.levelCompleted = true;
+                    evaluateBtn.disabled = false;
+                    stopStabilityTest();
+                    addLogEntry('稳定性测试通过! 系统在60秒内保持稳定', 'success');
+                    addLogEntry('可以直接进入下一挑战或点击"挑战评估"查看表现', 'warning');
+                    
+                    // 自动进入下一关
+                    setTimeout(() => {
+                        nextLevel();
+                    }, 2000);
+                }
+            } else if (systemState.stabilityTest.success) {
+                testStatus.textContent = '测试已通过';
+                testStatus.className = 'test-status success';
+                startTestBtn.disabled = true;
+                stabilityTestBtn.disabled = true;
+                cancelTestBtn.disabled = true;
+            } else if (systemState.stabilityTest.failed) {
+                testStatus.textContent = '测试失败，请重新调整系统';
+                testStatus.className = 'test-status failed';
+                startTestBtn.disabled = false;
+                stabilityTestBtn.disabled = false;
+            } else if (canStartTest) {
+                testStatus.textContent = '条件满足: 可以开始稳定性测试';
+                testStatus.className = 'test-status';
+                startTestBtn.disabled = false;
+                stabilityTestBtn.disabled = false;
+            } else {
+                testStatus.textContent = '等待条件满足：温度达到目标±3°C内';
+                testStatus.className = 'test-status';
+                startTestBtn.disabled = true;
+                stabilityTestBtn.disabled = true;
+            }
+            
+            // 更新取消按钮状态
+            cancelTestBtn.disabled = !systemState.stabilityTest.isActive;
+        }
+
+        // 开始稳定性测试
+        function startStabilityTest() {
+            if (!checkStabilityTestCondition()) {
+                addLogEntry('无法开始稳定性测试: 条件不满足', 'warning');
+                return;
+            }
+            
+            systemState.stabilityTest.isActive = true;
+            systemState.stabilityTest.success = false;
+            systemState.stabilityTest.failed = false;
+            systemState.stabilityTest.countdown = 60;
+            systemState.stabilityTest.originalCountdown = 60;
+            systemState.stabilityTest.temperatureWithinRange = true;
+            systemState.stabilityTest.startTime = new Date();
+            
+            // 更新系统状态
+            systemState.status = 'testing';
+            systemStatusDot.className = 'status-dot testing';
+            systemStatusText.textContent = '系统状态: 稳定性测试中';
+            
+            addLogEntry('开始60秒稳定性测试', 'test');
+            addLogEntry('请在60秒内保持温度在目标±3°C范围内', 'warning');
+            
+            // 启动测试计时器
+            systemState.stabilityTest.timer = setInterval(() => {
+                if (systemState.stabilityTest.isActive) {
+                    systemState.stabilityTest.countdown--;
+                    
+                    // 检查温度是否仍在范围内
+                    const challenge = systemState.challenges[systemState.currentLevel - 1];
+                    const tempDiff = Math.abs(systemState.temperature - challenge.targetTemp);
+                    systemState.stabilityTest.temperatureWithinRange = tempDiff <= 3;
+                    
+                    updateStabilityTestStatus();
+                    
+                    // 每秒添加日志
+                    if (systemState.stabilityTest.countdown % 10 === 0 && systemState.stabilityTest.countdown > 0) {
+                        addLogEntry(`稳定性测试剩余: ${systemState.stabilityTest.countdown}秒`, 'test');
+                    }
+                }
+            }, 1000);
+            
+            updateStabilityTestStatus();
+        }
+
+        // 停止稳定性测试
+        function stopStabilityTest() {
+            if (systemState.stabilityTest.timer) {
+                clearInterval(systemState.stabilityTest.timer);
+                systemState.stabilityTest.timer = null;
+            }
+            
+            systemState.stabilityTest.isActive = false;
+            
+            // 恢复系统状态
+            if (!systemState.stabilityTest.success && !systemState.stabilityTest.failed) {
+                systemState.status = 'warning';
+                systemStatusDot.className = 'status-dot warning';
+                systemStatusText.textContent = '系统状态: 调节中';
+                addLogEntry('稳定性测试已取消', 'warning');
+            }
+            
+            updateStabilityTestStatus();
+        }
+
+        // 更新系统状态显示
+        function updateSystemStatus() {
+            const challenge = systemState.challenges[systemState.currentLevel - 1];
+            
+            // 检查是否在目标温度范围内
+            const isInTargetRange = Math.abs(systemState.temperature - challenge.targetTemp) <= challenge.tempTolerance;
+            const isPressureSafe = systemState.pressure <= challenge.maxPressure;
+            const isEfficiencyGood = systemState.efficiency >= challenge.minEfficiency;
+            const isPowerGood = systemState.powerOutput >= challenge.minPower;
+            
+            // 更新目标指示器
+            tempTargetIndicator.className = isInTargetRange ? 'target-indicator achieved' : 'target-indicator';
+            pressureTargetIndicator.className = isPressureSafe ? 'target-indicator achieved' : 'target-indicator';
+            efficiencyTargetIndicator.className = isEfficiencyGood ? 'target-indicator achieved' : 'target-indicator';
+            powerTargetIndicator.className = isPowerGood ? 'target-indicator achieved' : 'target-indicator';
+            
+            // 检查所有条件是否满足（用于原有的5秒稳定）
+            const allConditionsMet = isInTargetRange && isPressureSafe && isEfficiencyGood && isPowerGood;
+            
+            // 更新原有的5秒稳定性（如果不在测试中）
+            if (!systemState.stabilityTest.isActive && systemState.isRunning && allConditionsMet) {
+                systemState.stabilityTime += 0.5;
+                
+                if (systemState.stabilityTime > systemState.requiredStabilityTime) {
+                    systemState.stabilityTime = systemState.requiredStabilityTime;
+                    systemState.isStable = true;
+                    
+                    if (!systemState.levelCompleted) {
+                        systemState.levelCompleted = true;
+                        evaluateBtn.disabled = false;
+                        addLogEntry(`挑战完成！系统已在目标温度稳定运行${systemState.requiredStabilityTime}秒`, 'success');
+                        addLogEntry('点击"挑战评估"按钮查看您的表现', 'warning');
+                    }
+                }
+            } else if (!systemState.stabilityTest.isActive && systemState.isRunning && !allConditionsMet) {
+                systemState.stabilityTime = Math.max(0, systemState.stabilityTime - 1);
+                systemState.isStable = false;
+                systemState.levelCompleted = false;
+                evaluateBtn.disabled = true;
+            }
+            
+            // 更新稳定性显示
+            const stabilityPercent = (systemState.stabilityTime / systemState.requiredStabilityTime) * 100;
+            stabilityFill.style.width = `${stabilityPercent}%`;
+            stabilityText.textContent = `${systemState.stabilityTime.toFixed(1)}/${systemState.requiredStabilityTime}秒`;
+            
+            // 更新进度条
+            progressFill.style.width = `${stabilityPercent}%`;
+            progressText.textContent = `${Math.round(stabilityPercent)}%`;
+            
+            // 检查稳定性测试条件
+            updateStabilityTestStatus();
+            
+            // 根据温度确定系统状态（如果不是在测试中）
+            if (!systemState.stabilityTest.isActive) {
+                if (systemState.temperature > challenge.targetTemp + 30) {
+                    systemState.status = 'danger';
+                    systemStatusDot.className = 'status-dot danger';
+                    systemStatusText.textContent = '系统状态: 严重过热';
+                    alertPanel.classList.add('active');
+                    alertTitle.textContent = '系统警告：严重过热';
+                    alertContent.textContent = `当前温度${systemState.temperature.toFixed(1)}°C远高于目标温度${challenge.targetTemp}°C，请立即降低聚焦率或增加熔盐流速！`;
+                    tempGauge.classList.add('danger');
+                } else if (systemState.temperature > challenge.targetTemp + 15) {
+                    systemState.status = 'warning';
+                    systemStatusDot.className = 'status-dot warning';
+                    systemStatusText.textContent = '系统状态: 高温警告';
+                    alertPanel.classList.add('active');
+                    alertTitle.textContent = '系统警告：温度偏高';
+                    alertContent.textContent = `当前温度${systemState.temperature.toFixed(1)}°C高于目标温度${challenge.targetTemp}°C，建议降低聚焦率或增加熔盐流速。`;
+                    tempGauge.classList.remove('danger');
+                } else if (systemState.temperature < challenge.targetTemp - 30) {
+                    systemState.status = 'danger';
+                    systemStatusDot.className = 'status-dot danger';
+                    systemStatusText.textContent = '系统状态: 温度过低';
+                    alertPanel.classList.add('active');
+                    alertTitle.textContent = '系统警告：温度过低';
+                    alertContent.textContent = `当前温度${systemState.temperature.toFixed(1)}°C远低于目标温度${challenge.targetTemp}°C，发电效率严重下降，请提高定日镜数量或聚焦率！`;
+                    tempGauge.classList.remove('danger');
+                } else if (isInTargetRange && systemState.isStable) {
+                    systemState.status = 'stable';
+                    systemStatusDot.className = 'status-dot';
+                    systemStatusText.textContent = '系统状态: 稳定运行';
+                    alertPanel.classList.remove('active');
+                    tempGauge.classList.remove('danger');
+                } else if (systemState.isRunning) {
+                    systemState.status = 'warning';
+                    systemStatusDot.className = 'status-dot warning';
+                    systemStatusText.textContent = '系统状态: 调节中';
+                    alertPanel.classList.remove('active');
+                    tempGauge.classList.remove('danger');
+                } else {
+                    systemState.status = 'idle';
+                    systemStatusDot.className = 'status-dot';
+                    systemStatusText.textContent = '系统状态: 待启动';
+                    alertPanel.classList.add('active');
+                    alertTitle.textContent = '系统待启动';
+                    alertContent.textContent = '请点击"启动系统"按钮开始温度挑战模拟。';
+                    tempGauge.classList.remove('danger');
+                }
+            }
+            
+            // 根据压力确定压力表状态
+            if (systemState.pressure > challenge.maxPressure) {
+                pressureGauge.classList.add('danger');
+                if (Math.random() > 0.9) {
+                    addLogEntry(`警告：系统压力${systemState.pressure.toFixed(1)}MPa超过安全阈值${challenge.maxPressure}MPa`, 'danger');
+                }
+            } else if (systemState.pressure > challenge.maxPressure * 0.9) {
+                pressureGauge.classList.add('danger');
+            } else if (systemState.pressure > challenge.maxPressure * 0.8) {
+                pressureGauge.classList.remove('danger');
+            } else {
+                pressureGauge.classList.remove('danger');
+            }
+            
+            // 更新头部压力显示 - 修复：确保压力值实时更新
+            currentPressure.textContent = systemState.pressure.toFixed(1);
+        }
+
+        // 更新UI显示值
+        function updateUI() {
+            // 更新控制值显示
+            heliostatCountValue.textContent = `${systemState.heliostatCount}面`;
+            focusValue.textContent = `${systemState.focusRate}%`;
+            radiationValue.textContent = `${systemState.radiation} W/m²`;
+            flowValue.textContent = `${systemState.flowRate.toFixed(1)} m³/h`;
+            heatExchangerValue.textContent = `${systemState.heatExchangerPower}%`;
+            
+            // 更新能量输入指示
+            const energyInput = (systemState.heliostatCount / 4000) * (systemState.focusRate / 100) * (systemState.radiation / 1000);
+            if (energyInput > 0.8) {
+                energyInputValue.textContent = "极高";
+                energyInputValue.style.color = "var(--danger-red)";
+            } else if (energyInput > 0.6) {
+                energyInputValue.textContent = "高";
+                energyInputValue.style.color = "var(--warning-yellow)";
+            } else if (energyInput > 0.4) {
+                energyInputValue.textContent = "中等";
+                energyInputValue.style.color = "var(--accent-amber)";
+            } else if (energyInput > 0.2) {
+                energyInputValue.textContent = "低";
+                energyInputValue.style.color = "var(--accent-cyan)";
+            } else {
+                energyInputValue.textContent = "极低";
+                energyInputValue.style.color = "var(--text-secondary)";
+            }
+            
+            // 更新仪表填充
+            const challenge = systemState.challenges[systemState.currentLevel - 1];
+            tempFill.style.width = `${(systemState.temperature / 500) * 100}%`;
+            pressureFill.style.width = `${(systemState.pressure / 6) * 100}%`;
+            efficiencyFill.style.width = `${systemState.efficiency}%`;
+            powerFill.style.width = `${(systemState.powerOutput / 50) * 100}%`;
+            
+            // 更新仪表数值
+            document.querySelector('#tempGauge .gauge-value').innerHTML = `${Math.round(systemState.temperature)}<span class="gauge-unit">°C</span>`;
+            document.querySelector('#pressureGauge .gauge-value').innerHTML = `${systemState.pressure.toFixed(1)}<span class="gauge-unit">MPa</span>`;
+            document.querySelector('#efficiencyGauge .gauge-value').innerHTML = `${Math.round(systemState.efficiency)}<span class="gauge-unit">%</span>`;
+            document.querySelector('#powerGauge .gauge-value').innerHTML = `${Math.round(systemState.powerOutput)}<span class="gauge-unit">MW</span>`;
+            
+            // 更新挑战目标显示
+            levelIndicator.textContent = `温度挑战: ${challenge.targetTemp}°C`;
+            levelTarget.textContent = `目标: 稳定在${challenge.targetTemp}±${challenge.tempTolerance}°C`;
+            
+            tempTargetValue.textContent = `${challenge.targetTemp}±${challenge.tempTolerance}°C`;
+            pressureTargetValue.textContent = `< ${challenge.maxPressure}MPa`;
+            efficiencyTargetValue.textContent = `> ${challenge.minEfficiency}%`;
+            powerTargetValue.textContent = `> ${challenge.minPower}MW`;
+            
+            // 更新定日镜
+            createHeliostatField();
+            updateHeliostats();
+            
+            // 更新系统状态
+            updateSystemStatus();
+        }
+
+        // 添加日志条目
+        function addLogEntry(message, type = 'normal') {
+            const now = new Date();
+            const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            
+            const timeSpan = document.createElement('span');
+            timeSpan.className = 'log-time';
+            timeSpan.textContent = timeString;
+            
+            const messageSpan = document.createElement('span');
+            messageSpan.className = `log-message ${type}`;
+            messageSpan.textContent = message;
+            
+            logEntry.appendChild(timeSpan);
+            logEntry.appendChild(messageSpan);
+            
+            logContent.prepend(logEntry);
+            
+            // 保持日志条目不超过15个
+            if (logContent.children.length > 15) {
+                logContent.removeChild(logContent.lastChild);
+            }
+        }
+
+        // 模拟物理模型更新 - 修复压力计算
+        function updatePhysicalModel() {
+            if (!systemState.isRunning) return;
+            
+            const challenge = systemState.challenges[systemState.currentLevel - 1];
+            
+            // 定日镜数量因子（归一化到0-1.5，4000面时为1.5）
+            const heliostatFactor = (systemState.heliostatCount / 4000) * 1.5;
+            
+            // 温度变化模型
+            const tempChange = (
+                (systemState.focusRate / 100) * 
+                (systemState.radiation / 1000) * 
+                heliostatFactor * 25 -
+                (systemState.flowRate * 8) * 0.6 +
+                (systemState.heatExchangerPower / 100) * 3
+            );
+            
+            // 添加随机扰动
+            const randomFactor = (Math.random() - 0.5) * 6;
+            systemState.temperature += (tempChange + randomFactor) / 20;
+            
+            // 压力变化模型：与温度、流速和定日镜数量相关 - 修复压力计算
+            const pressureChange = (
+                ((systemState.temperature - 250) / 150) * 0.8 - // 温度影响
+                (systemState.flowRate * 0.4) + // 流速降低压力
+                (heliostatFactor / 1.5) * 0.3 + // 定日镜数量增加压力
+                (systemState.heatExchangerPower / 100) * 0.5 // 换热器功率增加压力
+            );
+            systemState.pressure += pressureChange / 30;
+            
+            // 效率变化模型
+            const efficiencyChange = (
+                (systemState.heatExchangerPower / 10) * 0.7 -
+                Math.max(0, systemState.temperature - challenge.targetTemp) * 0.15 +
+                (systemState.focusRate / 100) * 5 -
+                (1 - heliostatFactor) * 10
+            );
+            systemState.efficiency += efficiencyChange / 20;
+            
+            // 功率输出模型：与温度、效率、定日镜数量相关
+            systemState.powerOutput = (
+                (systemState.efficiency / 100) * 
+                (systemState.radiation / 25) * 
+                (systemState.focusRate / 100) * 
+                heliostatFactor *
+                (0.5 + systemState.temperature / 1000)
+            );
+            
+            // 确保值在合理范围内
+            systemState.temperature = Math.max(200, Math.min(500, systemState.temperature));
+            systemState.pressure = Math.max(1.0, Math.min(6.0, systemState.pressure));
+            systemState.efficiency = Math.max(20, Math.min(85, systemState.efficiency));
+            systemState.powerOutput = Math.max(5, Math.min(60, systemState.powerOutput));
+            
+            systemState.lastUpdate = new Date();
+        }
+
+        // 性能评估
+        function evaluatePerformance() {
+            const challenge = systemState.challenges[systemState.currentLevel - 1];
+            
+            // 计算性能指标
+            const tempError = Math.abs(systemState.temperature - challenge.targetTemp);
+            systemState.performanceMetrics.temperatureAccuracy = Math.max(0, 100 - (tempError * 10));
+            
+            systemState.performanceMetrics.stabilityScore = Math.min(100, systemState.stabilityTime * 20);
+            
+            const efficiencyAboveTarget = systemState.efficiency - challenge.minEfficiency;
+            systemState.performanceMetrics.efficiencyScore = 60 + Math.min(40, efficiencyAboveTarget * 4);
+            
+            const pressureMargin = challenge.maxPressure - systemState.pressure;
+            systemState.performanceMetrics.safetyScore = 60 + Math.min(40, pressureMargin * 20);
+            
+            const responseTime = systemState.stabilityTime;
+            systemState.performanceMetrics.responseTime = responseTime;
+            const responseScore = Math.max(0, 100 - responseTime * 5);
+            
+            const heliostatEfficiency = Math.min(100, (systemState.heliostatCount / challenge.recommendedHeliostats) * 80 + 20);
+            
+            // 计算总分
+            systemState.performanceMetrics.totalScore = Math.round(
+                systemState.performanceMetrics.temperatureAccuracy * 0.25 +
+                systemState.performanceMetrics.stabilityScore * 0.2 +
+                systemState.performanceMetrics.efficiencyScore * 0.2 +
+                systemState.performanceMetrics.safetyScore * 0.2 +
+                responseScore * 0.1 +
+                heliostatEfficiency * 0.05
+            );
+            
+            // 确定等级
+            let grade, subtitle, feedback = [];
+            const totalScore = systemState.performanceMetrics.totalScore;
+            
+            if (totalScore >= 90) {
+                grade = "A+";
+                subtitle = "卓越工程师";
+                feedback = [
+                    "✓ 温度控制极其精确，稳定性优秀",
+                    "✓ 定日镜数量使用合理，能量输入高效",
+                    "✓ 系统压力控制完美，安全系数高",
+                    "✓ 响应速度快，展现了卓越的控制能力",
+                    "✓ 完全掌握光热发电系统运行原理"
+                ];
+            } else if (totalScore >= 80) {
+                grade = "A";
+                subtitle = "优秀工程师";
+                feedback = [
+                    "✓ 温度控制精确，稳定性良好",
+                    "✓ 定日镜数量配置合理",
+                    "✓ 热转换效率较高",
+                    "✓ 系统压力控制得当，运行安全",
+                    "✓ 对光热发电系统有深入理解"
+                ];
+            } else if (totalScore >= 70) {
+                grade = "B+";
+                subtitle = "良好工程师";
+                feedback = [
+                    "✓ 温度控制基本准确，稳定性合格",
+                    "✓ 定日镜数量使用基本合理",
+                    "✓ 热转换效率达到要求",
+                    "✓ 系统压力在安全范围内",
+                    "○ 可在温度波动控制上进一步优化"
+                ];
+            } else if (totalScore >= 60) {
+                grade = "B";
+                subtitle = "合格工程师";
+                feedback = [
+                    "○ 温度控制达到基本要求",
+                    "○ 定日镜数量可能过多或过少",
+                    "○ 热转换效率勉强达标",
+                    "○ 系统压力接近上限，需注意安全",
+                    "○ 需要加强对系统响应的理解"
+                ];
+            } else if (totalScore >= 50) {
+                grade = "C";
+                subtitle = "需改进工程师";
+                feedback = [
+                    "⚠ 温度控制波动较大",
+                    "⚠ 定日镜数量配置不当",
+                    "⚠ 热转换效率偏低",
+                    "⚠ 系统压力控制需要改进",
+                    "⚠ 需要更多练习来掌握系统特性"
+                ];
+            } else {
+                grade = "D";
+                subtitle = "需重新学习";
+                feedback = [
+                    "✗ 温度控制未能达到目标",
+                    "✗ 定日镜数量配置严重不当",
+                    "✗ 热转换效率不达标",
+                    "✗ 系统压力存在安全隐患",
+                    "✗ 建议重新学习系统原理再尝试"
+                ];
+            }
+            
+            // 添加稳定性测试相关反馈
+            if (systemState.stabilityTest.success) {
+                feedback.push("✓ 稳定性测试通过，展现了优秀的控制能力");
+            }
+            
+            // 添加定日镜使用反馈
+            if (systemState.heliostatCount < challenge.recommendedHeliostats * 0.7) {
+                feedback.push("⚠ 定日镜数量不足，难以提供足够能量");
+            } else if (systemState.heliostatCount > challenge.recommendedHeliostats * 1.3) {
+                feedback.push("⚠ 定日镜数量过多，可能造成能量浪费");
+            } else {
+                feedback.push("✓ 定日镜数量配置合理");
+            }
+            
+            // 添加具体数据反馈
+            feedback.push(`温度精度: ${systemState.performanceMetrics.temperatureAccuracy.toFixed(1)}分`);
+            feedback.push(`稳定性: ${systemState.performanceMetrics.stabilityScore.toFixed(1)}分`);
+            feedback.push(`效率: ${systemState.performanceMetrics.efficiencyScore.toFixed(1)}分`);
+            feedback.push(`安全性: ${systemState.performanceMetrics.safetyScore.toFixed(1)}分`);
+            feedback.push(`定日镜使用: ${Math.round(heliostatEfficiency)}分`);
+            feedback.push(`总分: ${totalScore}分`);
+            
+            // 更新评估面板
+            gradeValue.textContent = grade;
+            gradeSubtitle.textContent = subtitle;
+            
+            feedbackContent.innerHTML = '';
+            feedback.forEach(item => {
+                const p = document.createElement('p');
+                p.textContent = item;
+                feedbackContent.appendChild(p);
+            });
+            
+            // 显示评估面板
+            evaluationPanel.classList.add('active');
+            
+            // 启用下一关按钮
+            if (systemState.currentLevel < systemState.challenges.length) {
+                nextLevelBtn.disabled = false;
+            } else {
+                nextLevelBtn.textContent = "完成所有挑战";
+                nextLevelBtn.disabled = false;
+            }
+            
+            // 添加日志
+            addLogEntry(`挑战${systemState.currentLevel}评估完成: ${grade} (${subtitle})`, 'warning');
+            
+            return { totalScore, grade, feedback };
+        }
+
+        // 进入下一关
+        function nextLevel() {
+            if (systemState.currentLevel < systemState.challenges.length) {
+                systemState.currentLevel++;
+                
+                // 重置关卡状态
+                const challenge = systemState.challenges[systemState.currentLevel - 1];
+                systemState.targetTemperature = challenge.targetTemp;
+                systemState.temperatureTolerance = challenge.tempTolerance;
+                systemState.stabilityTime = 0;
+                systemState.isStable = false;
+                systemState.levelCompleted = false;
+                
+                // 重置稳定性测试
+                systemState.stabilityTest.isActive = false;
+                systemState.stabilityTest.success = false;
+                systemState.stabilityTest.failed = false;
+                systemState.stabilityTest.countdown = 60;
+                
+                // 根据新关卡推荐调整定日镜数量
+                const recommendedHeliostats = challenge.recommendedHeliostats;
+                systemState.heliostatCount = recommendedHeliostats;
+                heliostatCountSlider.value = systemState.heliostatCount;
+                
+                // 根据新关卡调整其他参数
+                if (systemState.currentLevel === 2) {
+                    systemState.focusRate = 60;
+                    systemState.radiation = 850;
+                    systemState.flowRate = 2.2;
+                    focusSlider.value = systemState.focusRate;
+                    radiationSlider.value = systemState.radiation;
+                    flowSlider.value = systemState.flowRate;
+                    addLogEntry(`进入挑战2: 目标温度${challenge.targetTemp}°C`, 'warning');
+                    addLogEntry(`推荐定日镜数量: ${recommendedHeliostats}面`, 'info');
+                } else if (systemState.currentLevel === 3) {
+                    systemState.focusRate = 70;
+                    systemState.radiation = 950;
+                    systemState.flowRate = 2.8;
+                    focusSlider.value = systemState.focusRate;
+                    radiationSlider.value = systemState.radiation;
+                    flowSlider.value = systemState.flowRate;
+                    addLogEntry(`进入挑战3: 目标温度${challenge.targetTemp}°C`, 'warning');
+                    addLogEntry(`推荐定日镜数量: ${recommendedHeliostats}面`, 'info');
+                    addLogEntry('注意：高温挑战需要更多定日镜提供能量', 'warning');
+                } else if (systemState.currentLevel === 4) {
+                    systemState.focusRate = 80;
+                    systemState.radiation = 1050;
+                    systemState.flowRate = 3.2;
+                    focusSlider.value = systemState.focusRate;
+                    radiationSlider.value = systemState.radiation;
+                    flowSlider.value = systemState.flowRate;
+                    addLogEntry(`进入最终挑战: 目标温度${challenge.targetTemp}°C`, 'danger');
+                    addLogEntry(`推荐定日镜数量: ${recommendedHeliostats}面`, 'info');
+                    addLogEntry('警告：极限温度需要精细控制压力和能量平衡', 'danger');
+                }
+                
+                // 禁用评估按钮直到完成挑战
+                evaluateBtn.disabled = true;
+                nextLevelBtn.disabled = true;
+                
+                // 隐藏评估面板
+                evaluationPanel.classList.remove('active');
+                
+                // 更新UI
+                updateUI();
+                
+                // 添加日志
+                addLogEntry(`开始新的温度挑战：${challenge.name}`, 'warning');
+                addLogEntry(`目标：将系统稳定在${challenge.targetTemp}±${challenge.tempTolerance}°C`, 'warning');
+            } else {
+                addLogEntry(`恭喜！您已完成所有温度挑战，成为光热发电控制专家！`, 'success');
+                nextLevelBtn.textContent = "重新开始";
+                nextLevelBtn.onclick = restartGame;
+            }
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            systemState.currentLevel = 1;
+            systemState.isRunning = false;
+            
+            // 重置所有参数
+            systemState.temperature = 250;
+            systemState.pressure = 2.5;
+            systemState.efficiency = 45;
+            systemState.powerOutput = 18;
+            systemState.heliostatCount = 2000;
+            systemState.focusRate = 50;
+            systemState.radiation = 750;
+            systemState.flowRate = 1.8;
+            systemState.heatExchangerPower = 75;
+            systemState.stabilityTime = 0;
+            systemState.isStable = false;
+            systemState.levelCompleted = false;
+            
+            // 重置稳定性测试
+            systemState.stabilityTest.isActive = false;
+            systemState.stabilityTest.success = false;
+            systemState.stabilityTest.failed = false;
+            systemState.stabilityTest.countdown = 60;
+            
+            // 重置控制滑块
+            heliostatCountSlider.value = systemState.heliostatCount;
+            focusSlider.value = systemState.focusRate;
+            radiationSlider.value = systemState.radiation;
+            flowSlider.value = systemState.flowRate;
+            heatExchangerSlider.value = systemState.heatExchangerPower;
+            
+            // 重置按钮状态
+            startBtn.innerHTML = '<i class="fas fa-play"></i>启动系统';
+            startBtn.style.background = 'linear-gradient(135deg, var(--accent-orange), #ff5e00)';
+            evaluateBtn.disabled = true;
+            nextLevelBtn.disabled = true;
+            nextLevelBtn.textContent = "进入下一挑战";
+            nextLevelBtn.onclick = nextLevel;
+            
+            // 隐藏评估面板
+            evaluationPanel.classList.remove('active');
+            
+            // 更新UI
+            updateUI();
+            
+            // 添加日志
+            addLogEntry("游戏重新开始，返回第一挑战", 'warning');
+            addLogEntry("当前挑战：将系统稳定在300°C ±10°C范围内", 'warning');
+            addLogEntry("建议定日镜数量：2000面", 'info');
+        }
+
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 定日镜数量滑块
+            heliostatCountSlider.addEventListener('input', function() {
+                systemState.heliostatCount = parseInt(this.value);
+                updateUI();
+                if (systemState.isRunning) {
+                    addLogEntry(`定日镜数量调整为 ${systemState.heliostatCount}面`);
+                    
+                    const challenge = systemState.challenges[systemState.currentLevel - 1];
+                    if (systemState.heliostatCount < challenge.recommendedHeliostats * 0.7) {
+                        addLogEntry('提示：定日镜数量可能不足，难以达到目标温度', 'warning');
+                    } else if (systemState.heliostatCount > challenge.recommendedHeliostats * 1.3) {
+                        addLogEntry('提示：定日镜数量过多，注意控制压力', 'warning');
+                    }
+                }
+            });
+            
+            // 聚焦率滑块
+            focusSlider.addEventListener('input', function() {
+                systemState.focusRate = parseInt(this.value);
+                updateUI();
+                if (systemState.isRunning) {
+                    addLogEntry(`定日镜聚焦率调整为 ${systemState.focusRate}%`);
+                }
+            });
+            
+            // 辐射强度滑块
+            radiationSlider.addEventListener('input', function() {
+                systemState.radiation = parseInt(this.value);
+                updateUI();
+                if (systemState.isRunning) {
+                    addLogEntry(`太阳辐射强度变化: ${systemState.radiation} W/m²`, 'warning');
+                }
+            });
+            
+            // 流速滑块
+            flowSlider.addEventListener('input', function() {
+                systemState.flowRate = parseFloat(this.value);
+                updateUI();
+                if (systemState.isRunning) {
+                    addLogEntry(`熔盐流速调整为 ${systemState.flowRate.toFixed(1)} m³/h`);
+                }
+            });
+            
+            // 热交换器功率滑块
+            heatExchangerSlider.addEventListener('input', function() {
+                systemState.heatExchangerPower = parseInt(this.value);
+                updateUI();
+                if (systemState.isRunning) {
+                    addLogEntry(`换热器功率调整为 ${systemState.heatExchangerPower}%`);
+                }
+            });
+            
+            // 启动/停止按钮
+            startBtn.addEventListener('click', function() {
+                systemState.isRunning = !systemState.isRunning;
+                
+                if (systemState.isRunning) {
+                    this.innerHTML = '<i class="fas fa-pause"></i>暂停系统';
+                    this.style.background = 'linear-gradient(135deg, var(--danger-red), #ff2e43)';
+                    addLogEntry('系统已启动，开始温度挑战');
+                    addLogEntry(`当前目标：稳定在${systemState.targetTemperature}±${systemState.temperatureTolerance}°C`, 'warning');
+                } else {
+                    this.innerHTML = '<i class="fas fa-play"></i>启动系统';
+                    this.style.background = 'linear-gradient(135deg, var(--accent-orange), #ff5e00)';
+                    addLogEntry('系统已暂停');
+                    
+                    // 如果正在测试，停止测试
+                    if (systemState.stabilityTest.isActive) {
+                        stopStabilityTest();
+                    }
+                }
+                
+                updateUI();
+            });
+            
+            // 自动优化按钮
+            optimizeBtn.addEventListener('click', function() {
+                if (!systemState.isRunning) {
+                    addLogEntry('请先启动系统再使用优化功能', 'warning');
+                    return;
+                }
+                
+                const challenge = systemState.challenges[systemState.currentLevel - 1];
+                
+                // 根据当前温度和目标温度的差异进行优化
+                const tempDiff = challenge.targetTemp - systemState.temperature;
+                
+                // 优化定日镜数量
+                if (tempDiff > 30) {
+                    systemState.heliostatCount = Math.min(4000, systemState.heliostatCount + 500);
+                } else if (tempDiff > 15) {
+                    systemState.heliostatCount = Math.min(4000, systemState.heliostatCount + 200);
+                } else if (tempDiff < -30) {
+                    systemState.heliostatCount = Math.max(0, systemState.heliostatCount - 500);
+                } else if (tempDiff < -15) {
+                    systemState.heliostatCount = Math.max(0, systemState.heliostatCount - 200);
+                }
+                
+                // 优化聚焦率
+                if (tempDiff > 20) {
+                    systemState.focusRate = Math.min(100, systemState.focusRate + 15);
+                } else if (tempDiff > 10) {
+                    systemState.focusRate = Math.min(100, systemState.focusRate + 10);
+                } else if (tempDiff < -20) {
+                    systemState.focusRate = Math.max(10, systemState.focusRate - 15);
+                } else if (tempDiff < -10) {
+                    systemState.focusRate = Math.max(10, systemState.focusRate - 10);
+                }
+                
+                // 优化流速（基于压力）
+                if (systemState.pressure > challenge.maxPressure * 0.9) {
+                    systemState.flowRate = Math.min(5, systemState.flowRate + 0.5);
+                } else if (systemState.pressure < challenge.maxPressure * 0.6) {
+                    systemState.flowRate = Math.max(0.5, systemState.flowRate - 0.3);
+                }
+                
+                // 优化热交换器功率
+                systemState.heatExchangerPower = Math.min(100, Math.max(10, 75 + (challenge.targetTemp - 300) / 5));
+                
+                // 更新滑块值
+                heliostatCountSlider.value = systemState.heliostatCount;
+                focusSlider.value = systemState.focusRate;
+                flowSlider.value = systemState.flowRate;
+                heatExchangerSlider.value = systemState.heatExchangerPower;
+                
+                updateUI();
+                addLogEntry('执行自动优化调整', 'warning');
+                addLogEntry(`定日镜数量: ${systemState.heliostatCount}面，聚焦率: ${systemState.focusRate}%`, 'info');
+            });
+            
+            // 紧急冷却按钮
+            emergencyBtn.addEventListener('click', function() {
+                if (!systemState.isRunning) {
+                    addLogEntry('系统未运行，无需紧急冷却', 'warning');
+                    return;
+                }
+                
+                // 模拟紧急冷却
+                systemState.focusRate = 30;
+                systemState.flowRate = 4.5;
+                systemState.heliostatCount = Math.max(0, systemState.heliostatCount - 1000);
+                systemState.heatExchangerPower = 100;
+                
+                heliostatCountSlider.value = systemState.heliostatCount;
+                focusSlider.value = systemState.focusRate;
+                flowSlider.value = systemState.flowRate;
+                heatExchangerSlider.value = systemState.heatExchangerPower;
+                
+                updateUI();
+                addLogEntry('紧急冷却已启动！定日镜减少，聚焦率降至30%，流速增至4.5m³/h', 'danger');
+                
+                // 如果正在测试，停止测试
+                if (systemState.stabilityTest.isActive) {
+                    stopStabilityTest();
+                }
+            });
+            
+            // 稳定性测试按钮（主按钮）
+            stabilityTestBtn.addEventListener('click', startStabilityTest);
+            
+            // 开始测试按钮（测试区域）
+            startTestBtn.addEventListener('click', startStabilityTest);
+            
+            // 取消测试按钮
+            cancelTestBtn.addEventListener('click', function() {
+                if (systemState.stabilityTest.isActive) {
+                    stopStabilityTest();
+                }
+            });
+            
+            // 挑战评估按钮
+            evaluateBtn.addEventListener('click', function() {
+                if (!systemState.levelCompleted) {
+                    addLogEntry('请先完成当前挑战再进行评估', 'warning');
+                    return;
+                }
+                evaluatePerformance();
+            });
+            
+            // 下一关按钮
+            nextLevelBtn.addEventListener('click', nextLevel);
+            
+            // 工程提示切换
+            tipsToggle.addEventListener('click', function() {
+                tipsContent.classList.toggle('active');
+                toggleIcon.classList.toggle('rotated');
+            });
+        }
+
+        // 初始化系统
+        function initSystem() {
+            createHeliostatField();
+            updateUI();
+            initEventListeners();
+            
+            // 初始显示工程提示
+            tipsContent.classList.add('active');
+            toggleIcon.classList.add('rotated');
+            
+            // 启动系统更新循环
+            setInterval(() => {
+                if (systemState.isRunning) {
+                    updatePhysicalModel();
+                    updateUI();
+                    
+                    // 随机添加一些日志条目模拟系统运行
+                    if (Math.random() > 0.8) {
+                        const messages = [
+                            '熔盐循环正常，温度稳定',
+                            '定日镜跟踪系统运行正常',
+                            '发电机组输出功率稳定',
+                            '换热器温度差在正常范围内',
+                            '环境温度监测: 28°C',
+                            '镜面清洁度: 92%，反射效率良好'
+                        ];
+                        addLogEntry(messages[Math.floor(Math.random() * messages.length)]);
+                    }
+                    
+                    // 定期报告温度状态
+                    if (Math.random() > 0.9) {
+                        const challenge = systemState.challenges[systemState.currentLevel - 1];
+                        const tempDiff = systemState.temperature - challenge.targetTemp;
+                        
+                        if (Math.abs(tempDiff) < challenge.tempTolerance) {
+                            addLogEntry(`温度稳定在目标范围: ${systemState.temperature.toFixed(1)}°C`, 'success');
+                        } else if (tempDiff > 0) {
+                            addLogEntry(`温度偏高: ${systemState.temperature.toFixed(1)}°C (目标: ${challenge.targetTemp}°C)`, 'warning');
+                        } else {
+                            addLogEntry(`温度偏低: ${systemState.temperature.toFixed(1)}°C (目标: ${challenge.targetTemp}°C)`, 'warning');
+                        }
+                    }
+                    
+                    // 定期报告压力状态
+                    if (Math.random() > 0.9 && systemState.pressure > 4.0) {
+                        addLogEntry(`系统压力较高: ${systemState.pressure.toFixed(1)}MPa，建议增加熔盐流速`, 'warning');
+                    }
+                    
+                    // 检查稳定性测试条件
+                    updateStabilityTestStatus();
+                }
+            }, 500);
+            
+            // 初始日志
+            addLogEntry('光热发电温度挑战模拟器初始化完成');
+            addLogEntry('第一挑战：将系统稳定在300°C ±10°C范围内', 'warning');
+            addLogEntry('提示：使用定日镜数量滑块调整总能量输入', 'info');
+            addLogEntry('新增稳定性测试功能：温度达到±3°C内可启动60秒测试', 'info');
+            
+            // 窗口大小调整时重新创建定日镜
+            window.addEventListener('resize', createHeliostatField);
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initSystem);
+        
+        // 为后续扩展预留的接口
+        window.updateState = function(newState) {
+            Object.assign(systemState, newState);
+            updateUI();
+        };
+        
+        window.renderUI = function() {
+            updateUI();
+        };
+        
+        window.getSystemState = function() {
+            return {...systemState};
+        };
+    </script>
+
+<!-- 底部信息栏 -->
+<div style="
+    text-align: center;
+    padding: 20px 30px;
+    margin-top: 40px;
+    color: #e6f7ff;
+    font-size: 0.9rem;
+    border-top: 2px solid rgba(0, 180, 255, 0.5);
+    background: linear-gradient(135deg, rgba(10, 15, 43, 0.95), rgba(18, 26, 58, 0.9));
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+">
+    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+    
+    <p style="font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; color: #00b4ff;">
+        光热-熔盐接收模拟器 © 2025 | 传热交互仿真系统 | 版本 1.0 |
+      <style="margin-bottom: 12px; color: #cbd5e1;">
+        <strong>邮箱:</strong> xgyanger@qq.com
+    </p>
+    
+    <div style="margin-top: 15px;">
+        <span style="color: #ffcc00; font-weight: bold; font-size: 1.1rem;">
+            版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+        </span>
+    </div>
+</div>
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>一维热传导模拟器 - 探索与评测</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0c1a3a 0%, #1a2b5c 100%);
+            color: #f5f5f5;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(41, 128, 185, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(142, 68, 173, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(52, 152, 219, 0.1) 0%, transparent 50%);
+            z-index: -1;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, rgba(20, 40, 80, 0.9), rgba(30, 60, 114, 0.9));
+            border-radius: 18px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(100, 149, 237, 0.3);
+            box-shadow: 
+                0 15px 35px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(to right, #3498db, #9b59b6, #2ecc71);
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            background: linear-gradient(to right, #64b3f4, #ff7e5f, #feb47b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        
+        .subtitle {
+            font-size: 1.25rem;
+            color: #c8d6e5;
+            max-width: 1200px;
+            margin: 0 auto;
+            line-height: 1.7;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        
+        .page {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .page.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .controls-panel, .simulation-panel, .test-panel {
+            background: linear-gradient(135deg, rgba(25, 45, 90, 0.85), rgba(35, 55, 100, 0.85));
+            border-radius: 18px;
+            padding: 30px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(100, 149, 237, 0.25);
+            box-shadow: 
+                0 12px 30px rgba(0, 0, 0, 0.35),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .controls-panel::before, .simulation-panel::before, .test-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(to right, #3498db, #9b59b6);
+        }
+        
+        .controls-panel {
+            flex: 1;
+            min-width: 320px;
+        }
+        
+        .simulation-panel {
+            flex: 2;
+            min-width: 520px;
+        }
+        
+        .test-panel {
+            width: 100%;
+        }
+        
+        .panel-title {
+            font-size: 1.6rem;
+            margin-bottom: 25px;
+            color: #64b3f4;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+        }
+        
+        .panel-title i {
+            font-size: 1.4rem;
+            color: #ff9a3c;
+        }
+        
+        .control-group {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .control-label {
+            display: block;
+            margin-bottom: 12px;
+            font-size: 1.15rem;
+            color: #dfe6e9;
+            font-weight: 600;
+        }
+        
+        .material-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .material-option {
+            background: linear-gradient(135deg, rgba(40, 60, 110, 0.7), rgba(50, 70, 120, 0.7));
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .material-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(to right, #3498db, #9b59b6);
+            transform: translateY(-100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .material-option:hover {
+            background: linear-gradient(135deg, rgba(50, 80, 140, 0.8), rgba(60, 90, 150, 0.8));
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            border-color: rgba(100, 149, 237, 0.4);
+        }
+        
+        .material-option:hover::before {
+            transform: translateY(0);
+        }
+        
+        .material-option.active {
+            background: linear-gradient(135deg, rgba(41, 128, 185, 0.3), rgba(52, 152, 219, 0.3));
+            border-color: #3498db;
+            box-shadow: 
+                0 10px 25px rgba(52, 152, 219, 0.3),
+                inset 0 0 20px rgba(52, 152, 219, 0.2);
+        }
+        
+        .material-option.active::before {
+            transform: translateY(0);
+            background: linear-gradient(to right, #3498db, #2980b9);
+        }
+        
+        .material-icon {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            color: #ff9a3c;
+            transition: transform 0.3s ease;
+        }
+        
+        .material-option:hover .material-icon {
+            transform: scale(1.1);
+        }
+        
+        .material-name {
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        
+        .material-k {
+            font-size: 0.95rem;
+            color: #a4b0be;
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .slider-value {
+            min-width: 80px;
+            text-align: center;
+            font-weight: 700;
+            background: linear-gradient(135deg, rgba(41, 128, 185, 0.1), rgba(52, 152, 219, 0.1));
+            padding: 10px 15px;
+            border-radius: 10px;
+            color: #64b3f4;
+            border: 1px solid rgba(100, 149, 237, 0.3);
+            font-family: 'Courier New', monospace;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 10px;
+            -webkit-appearance: none;
+            background: linear-gradient(to right, rgba(52, 152, 219, 0.2), rgba(155, 89, 182, 0.2));
+            border-radius: 12px;
+            outline: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: linear-gradient(to bottom, #64b3f4, #3498db);
+            cursor: pointer;
+            box-shadow: 
+                0 3px 10px rgba(0, 0, 0, 0.4),
+                0 0 0 3px rgba(100, 149, 237, 0.2);
+            transition: all 0.2s ease;
+            border: 2px solid white;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 
+                0 5px 15px rgba(52, 152, 219, 0.5),
+                0 0 0 3px rgba(100, 149, 237, 0.3);
+        }
+        
+        .temperature-display {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+        
+        .temp-label {
+            font-size: 0.95rem;
+            color: #a4b0be;
+            font-weight: 600;
+        }
+        
+        .temp-value {
+            font-weight: 700;
+            color: #64b3f4;
+        }
+        
+        .metal-bar-container {
+            margin: 50px 0;
+            position: relative;
+        }
+        
+        .metal-bar {
+            height: 90px;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            border: 3px solid rgba(100, 149, 237, 0.3);
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.5),
+                inset 0 0 20px rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .temperature-gradient {
+            height: 100%;
+            width: 100%;
+            transition: background 1.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .bar-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        .heat-source {
+            position: absolute;
+            top: -60px;
+            width: 70px;
+            height: 50px;
+            background: linear-gradient(to bottom, #ff7e5f, #feb47b);
+            border-radius: 50% 50% 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            left: 0;
+            box-shadow: 0 8px 20px rgba(255, 126, 95, 0.6);
+            z-index: 10;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            font-size: 1.2rem;
+        }
+        
+        .cool-end {
+            position: absolute;
+            top: -60px;
+            width: 70px;
+            height: 50px;
+            background: linear-gradient(to bottom, #64b3f4, #3498db);
+            border-radius: 50% 50% 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            right: 0;
+            box-shadow: 0 8px 20px rgba(100, 179, 244, 0.6);
+            z-index: 10;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            font-size: 1.2rem;
+        }
+        
+        .formula-panel {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(20, 40, 80, 0.4));
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 40px;
+            border: 1px solid rgba(100, 149, 237, 0.2);
+        }
+        
+        .formula-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: #ff9a3c;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .formula {
+            font-size: 1.8rem;
+            text-align: center;
+            margin: 25px 0;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            font-family: 'Cambria Math', serif;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+            color: #64b3f4;
+            font-weight: 600;
+        }
+        
+        .formula-explanation {
+            line-height: 1.7;
+            color: #dfe6e9;
+            font-size: 1.1rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .parameter-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .parameter-table th, .parameter-table td {
+            padding: 15px 20px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .parameter-table th {
+            color: #ff9a3c;
+            font-weight: 700;
+            background: rgba(0, 0, 0, 0.3);
+            font-size: 1.1rem;
+        }
+        
+        .parameter-table tr {
+            background: rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .parameter-table tr:nth-child(even) {
+            background: rgba(0, 0, 0, 0.15);
+        }
+        
+        .parameter-table tr:hover {
+            background: rgba(52, 152, 219, 0.15);
+            transform: translateX(5px);
+        }
+        
+        .heat-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 30px 0;
+            font-size: 1.3rem;
+            color: #ff9a3c;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 12px;
+        }
+        
+        .heat-flow i {
+            margin: 0 20px;
+            font-size: 2rem;
+            animation: pulse 2s infinite;
+            color: #ff7e5f;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 25px;
+            gap: 40px;
+            flex-wrap: wrap;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: 600;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 测试部分样式 */
+        .test-intro {
+            background: linear-gradient(135deg, rgba(41, 128, 185, 0.2), rgba(52, 152, 219, 0.2));
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .test-question {
+            margin-bottom: 30px;
+            padding-bottom: 25px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .question-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #3498db, #9b59b6);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 36px;
+            font-weight: bold;
+            margin-right: 15px;
+            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.4);
+        }
+        
+        .question-text {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #dfe6e9;
+            line-height: 1.6;
+            display: inline-block;
+            width: calc(100% - 60px);
+            vertical-align: top;
+        }
+        
+        .options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 15px;
+        }
+        
+        .option {
+            background: linear-gradient(135deg, rgba(40, 60, 110, 0.7), rgba(50, 70, 120, 0.7));
+            border-radius: 12px;
+            padding: 18px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: #3498db;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .option:hover {
+            background: linear-gradient(135deg, rgba(50, 80, 140, 0.8), rgba(60, 90, 150, 0.8));
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .option:hover::before {
+            transform: translateX(0);
+        }
+        
+        .option.selected {
+            background: linear-gradient(135deg, rgba(41, 128, 185, 0.4), rgba(52, 152, 219, 0.4));
+            border-color: #3498db;
+            box-shadow: 
+                0 8px 20px rgba(52, 152, 219, 0.3),
+                inset 0 0 15px rgba(52, 152, 219, 0.2);
+        }
+        
+        .option.selected::before {
+            transform: translateX(0);
+        }
+        
+        .option.correct {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.4), rgba(39, 174, 96, 0.4));
+            border-color: #2ecc71;
+            box-shadow: 
+                0 8px 20px rgba(46, 204, 113, 0.3),
+                inset 0 0 15px rgba(46, 204, 113, 0.2);
+        }
+        
+        .option.correct::before {
+            background: #2ecc71;
+            transform: translateX(0);
+        }
+        
+        .option.incorrect {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.4), rgba(192, 57, 43, 0.4));
+            border-color: #e74c3c;
+            box-shadow: 
+                0 8px 20px rgba(231, 76, 60, 0.3),
+                inset 0 0 15px rgba(231, 76, 60, 0.2);
+        }
+        
+        .option.incorrect::before {
+            background: #e74c3c;
+            transform: translateX(0);
+        }
+        
+        .option-label {
+            font-weight: 700;
+            margin-right: 10px;
+            color: #64b3f4;
+            font-size: 1.1rem;
+        }
+        
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 50px;
+            padding-top: 25px;
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn {
+            padding: 15px 35px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.7s ease;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(52, 152, 219, 0.5);
+        }
+        
+        .btn:active {
+            transform: translateY(-2px);
+        }
+        
+        .btn-next {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            box-shadow: 0 8px 20px rgba(46, 204, 113, 0.3);
+        }
+        
+        .btn-next:hover {
+            box-shadow: 0 15px 30px rgba(46, 204, 113, 0.5);
+        }
+        
+        .btn-back {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            box-shadow: 0 8px 20px rgba(155, 89, 182, 0.3);
+        }
+        
+        .btn-back:hover {
+            box-shadow: 0 15px 30px rgba(155, 89, 182, 0.5);
+        }
+        
+        .btn-submit {
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            box-shadow: 0 8px 20px rgba(230, 126, 34, 0.3);
+        }
+        
+        .btn-submit:hover {
+            box-shadow: 0 15px 30px rgba(230, 126, 34, 0.5);
+        }
+        
+        .btn-reset {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3);
+        }
+        
+        .btn-reset:hover {
+            box-shadow: 0 15px 30px rgba(231, 76, 60, 0.5);
+        }
+        
+        .btn-review {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+        
+        .result-panel {
+            background: linear-gradient(135deg, rgba(20, 40, 80, 0.9), rgba(30, 60, 114, 0.9));
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: 40px;
+            text-align: center;
+            display: none;
+            border: 2px solid rgba(100, 149, 237, 0.3);
+            box-shadow: 
+                0 20px 50px rgba(0, 0, 0, 0.5),
+                inset 0 0 30px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.8s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .result-title {
+            font-size: 2.2rem;
+            margin-bottom: 20px;
+            color: #64b3f4;
+            font-weight: 800;
+            background: linear-gradient(to right, #64b3f4, #ff9a3c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .engineer-level {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 30px 0;
+            padding: 25px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(20, 40, 80, 0.4));
+            border: 3px solid;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .engineer-level::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            z-index: -1;
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .level-beginner {
+            color: #f39c12;
+            border-color: #f39c12;
+            text-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+        }
+        
+        .level-engineer {
+            color: #3498db;
+            border-color: #3498db;
+            text-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+        }
+        
+        .level-expert {
+            color: #2ecc71;
+            border-color: #2ecc71;
+            text-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+        }
+        
+        .result-description {
+            font-size: 1.2rem;
+            line-height: 1.7;
+            max-width: 800px;
+            margin: 0 auto 30px;
+            color: #dfe6e9;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .score-display {
+            font-size: 1.5rem;
+            margin: 20px 0;
+            color: #ff9a3c;
+            font-weight: 700;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px 30px;
+            border-radius: 12px;
+            display: inline-block;
+            border: 2px solid rgba(255, 154, 60, 0.3);
+        }
+        
+        .correct-answers {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 30px;
+            text-align: left;
+        }
+        
+        .correct-answers h4 {
+            color: #64b3f4;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        
+        .answer-item {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .answer-item:last-child {
+            border-bottom: none;
+        }
+        
+        .page-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .page-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.4s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .page-dot.active {
+            background: #64b3f4;
+            transform: scale(1.3);
+            box-shadow: 0 0 15px rgba(100, 179, 244, 0.7);
+        }
+        
+        .page-dot:hover:not(.active) {
+            background: rgba(100, 179, 244, 0.5);
+            transform: scale(1.1);
+        }
+        
+        .exploration-tips {
+            background: linear-gradient(135deg, rgba(41, 128, 185, 0.2), rgba(52, 152, 219, 0.2));
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-top: 25px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .exploration-tips h4 {
+            color: #ff9a3c;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .exploration-tips p {
+            margin-bottom: 10px;
+            color: #dfe6e9;
+        }
+        
+        .exploration-tips p:last-child {
+            margin-bottom: 0;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 25px;
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+            color: #a4b0be;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 1100px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .controls-panel, .simulation-panel {
+                min-width: 100%;
+            }
+            
+            .options {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .panel-title {
+                font-size: 1.4rem;
+            }
+            
+            .material-selector {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .btn {
+                padding: 12px 25px;
+                font-size: 1.1rem;
+            }
+            
+            .engineer-level {
+                font-size: 2.2rem;
+                padding: 20px;
+            }
+        }
+        
+        /* 评测结果动画 */
+        .result-panel.show {
+            display: block;
+        }
+        
+        .correct-answer-explanation {
+            font-size: 0.95rem;
+            color: #a4b0be;
+            margin-top: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-fire"></i> 一维热传导模拟器</h1>
+            <p class="subtitle">探索不同材料在一维热传导中的温度梯度变化，理解傅里叶热传导定律，并完成工程师评级测试。</p>
+        </header>
+        
+        <div class="page-indicator">
+            <div class="page-dot active" data-page="1"></div>
+            <div class="page-dot" data-page="2"></div>
+        </div>
+        
+        <!-- 页面1：模拟探索 -->
+        <div class="page active" id="page1">
+            <div class="content">
+                <div class="controls-panel">
+                    <h2 class="panel-title"><i class="fas fa-sliders-h"></i> 控制面板</h2>
+                    
+                    <div class="control-group">
+                        <label class="control-label">选择材料类型:</label>
+                        <div class="material-selector" id="materialSelector">
+                            <!-- 材质选项将通过JavaScript动态生成 -->
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">热端温度 (T₁): <span id="hotTempValue" class="slider-value">100°C</span></label>
+                        <div class="slider-container">
+                            <input type="range" id="hotTempSlider" min="50" max="500" value="100" step="10">
+                        </div>
+                        <div class="temperature-display">
+                            <span class="temp-label">低温端</span>
+                            <span class="temp-label">高温端</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">冷端温度 (T₂): <span id="coldTempValue" class="slider-value">0°C</span></label>
+                        <div class="slider-container">
+                            <input type="range" id="coldTempSlider" min="-50" max="100" value="0" step="5">
+                        </div>
+                        <div class="temperature-display">
+                            <span class="temp-label">极冷</span>
+                            <span class="temp-label">常温</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">材料长度: <span id="lengthValue" class="slider-value">1.0 m</span></label>
+                        <div class="slider-container">
+                            <input type="range" id="lengthSlider" min="0.5" max="3.0" value="1.0" step="0.1">
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">材料直径: <span id="diameterValue" class="slider-value">0.05 m</span></label>
+                        <div class="slider-container">
+                            <input type="range" id="diameterSlider" min="0.01" max="0.2" value="0.05" step="0.01">
+                        </div>
+                    </div>
+                    
+                    <div class="exploration-tips">
+                        <h4><i class="fas fa-lightbulb"></i> 探索提示</h4>
+                        <p>1. 尝试不同材料，观察热导率(k)如何影响温度梯度和热流量。</p>
+                        <p>2. 比较金属和塑料/橡胶的传热性能差异。</p>
+                        <p>3. 思考哪些材料适合散热器，哪些适合保温。</p>
+                        <p>4. 调整长度和直径，理解热阻的概念。</p>
+                    </div>
+                </div>
+                
+                <div class="simulation-panel">
+                    <h2 class="panel-title"><i class="fas fa-temperature-high"></i> 热传导模拟</h2>
+                    
+                    <div class="metal-bar-container">
+                        <div class="heat-source" id="heatSource">T₁</div>
+                        <div class="cool-end" id="coolEnd">T₂</div>
+                        <div class="metal-bar">
+                            <div class="temperature-gradient" id="temperatureGradient"></div>
+                        </div>
+                        <div class="bar-labels">
+                            <span id="hotLabel">T₁ = 100°C</span>
+                            <span id="coldLabel">T₂ = 0°C</span>
+                        </div>
+                    </div>
+                    
+                    <div class="heat-flow">
+                        <span>热量流动方向</span>
+                        <i class="fas fa-long-arrow-alt-right"></i>
+                        <span>高温 → 低温</span>
+                    </div>
+                    
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ff7e5f;"></div>
+                            <span>高温 (T₁)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #64b3f4;"></div>
+                            <span>低温 (T₂)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: linear-gradient(to right, #ff7e5f, #64b3f4);"></div>
+                            <span>温度梯度</span>
+                        </div>
+                    </div>
+                    
+                    <div class="formula-panel">
+                        <h3 class="formula-title"><i class="fas fa-calculator"></i> 热传导公式</h3>
+                        <div class="formula" id="formula">
+                            q = -k × (dT/dx)
+                        </div>
+                        <p class="formula-explanation" id="formulaExplanation">
+                            傅里叶热传导定律：热流密度 (q) 与温度梯度 (dT/dx) 成正比，比例系数为热导率 (k)，负号表示热量从高温流向低温。
+                        </p>
+                        
+                        <h3 class="formula-title" style="margin-top: 25px;"><i class="fas fa-chart-line"></i> 当前参数</h3>
+                        <table class="parameter-table">
+                            <thead>
+                                <tr>
+                                    <th>参数</th>
+                                    <th>值</th>
+                                    <th>单位</th>
+                                    <th>描述</th>
+                                </tr>
+                            </thead>
+                            <tbody id="parameterTable">
+                                <!-- 参数将通过JavaScript动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="navigation-buttons">
+                <div></div> <!-- 占位 -->
+                <button class="btn btn-next" id="nextButton">
+                    <i class="fas fa-arrow-right"></i> 完成探索，开始评测
+                </button>
+            </div>
+        </div>
+        
+        <!-- 页面2：工程师评测 -->
+        <div class="page" id="page2">
+            <div class="test-panel">
+                <h2 class="panel-title"><i class="fas fa-graduation-cap"></i> 工程师评级测试</h2>
+                
+                <div class="test-intro">
+                    <p style="margin-bottom: 15px; line-height: 1.7;">你已经完成了热传导模拟探索，现在回答以下6道选择题来测试你对热传导原理的理解。</p>
+                    <p><strong>测试说明：</strong>根据你的表现，将获得工程师评级：初级工程师(0-2分)、工程师(3-4分)或专业工程师(5-6分)。</p>
+                </div>
+                
+                <div class="test-question" id="question1">
+                    <div class="question-number">1</div>
+                    <div class="question-text">根据傅里叶热传导定律，热流密度(q)与什么成正比？</div>
+                    <div class="options">
+                        <div class="option" data-value="A">
+                            <span class="option-label">A.</span> 温度(T)
+                        </div>
+                        <div class="option" data-value="B">
+                            <span class="option-label">B.</span> 温度梯度(dT/dx)
+                        </div>
+                        <div class="option" data-value="C">
+                            <span class="option-label">C.</span> 材料长度(L)
+                        </div>
+                        <div class="option" data-value="D">
+                            <span class="option-label">D.</span> 横截面积(A)
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="test-question" id="question2">
+                    <div class="question-number">2</div>
+                    <div class="question-text">如果你需要设计一个高效的散热器，应该选择什么材料？</div>
+                    <div class="options">
+                        <div class="option" data-value="A">
+                            <span class="option-label">A.</span> 高热导率材料（如银、铜）
+                        </div>
+                        <div class="option" data-value="B">
+                            <span class="option-label">B.</span> 低热导率材料（如橡胶、塑料）
+                        </div>
+                        <div class="option" data-value="C">
+                            <span class="option-label">C.</span> 中等热导率材料（如钢）
+                        </div>
+                        <div class="option" data-value="D">
+                            <span class="option-label">D.</span> 材料的热导率不重要
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="test-question" id="question3">
+                    <div class="question-number">3</div>
+                    <div class="question-text">保持温差不变，将材料长度加倍，热流量(Q)会如何变化？</div>
+                    <div class="options">
+                        <div class="option" data-value="A">
+                            <span class="option-label">A.</span> 加倍
+                        </div>
+                        <div class="option" data-value="B">
+                            <span class="option-label">B.</span> 减半
+                        </div>
+                        <div class="option" data-value="C">
+                            <span class="option-label">C.</span> 不变
+                        </div>
+                        <div class="option" data-value="D">
+                            <span class="option-label">D.</span> 变为四倍
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="test-question" id="question4">
+                    <div class="question-number">4</div>
+                    <div class="question-text">对于相同的温差和尺寸，哪种材料的热流量(Q)最大？</div>
+                    <div class="options">
+                        <div class="option" data-value="A">
+                            <span class="option-label">A.</span> 橡胶 (k=0.16 W/m·K)
+                        </div>
+                        <div class="option" data-value="B">
+                            <span class="option-label">B.</span> 塑料 (k=0.33 W/m·K)
+                        </div>
+                        <div class="option" data-value="C">
+                            <span class="option-label">C.</span> 钢 (k=50 W/m·K)
+                        </div>
+                        <div class="option" data-value="D">
+                            <span class="option-label">D.</span> 铜 (k=401 W/m·K)
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="test-question" id="question5">
+                    <div class="question-number">5</div>
+                    <div class="question-text">热阻(R)的公式是什么？</div>
+                    <div class="options">
+                        <div class="option" data-value="A">
+                            <span class="option-label">A.</span> R = kA/L
+                        </div>
+                        <div class="option" data-value="B">
+                            <span class="option-label">B.</span> R = L/(kA)
+                        </div>
+                        <div class="option" data-value="C">
+                            <span class="option-label">C.</span> R = k/L
+                        </div>
+                        <div class="option" data-value="D">
+                            <span class="option-label">D.</span> R = A/(kL)
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="test-question" id="question6">
+                    <div class="question-number">6</div>
+                    <div class="question-text">在模拟器中，如果你将热端温度从100°C增加到200°C，其他条件不变，热流量会如何变化？</div>
+                    <div class="options">
+                        <div class="option" data-value="A">
+                            <span class="option-label">A.</span> 增加约一倍
+                        </div>
+                        <div class="option" data-value="B">
+                            <span class="option-label">B.</span> 减少
+                        </div>
+                        <div class="option" data-value="C">
+                            <span class="option-label">C.</span> 不变
+                        </div>
+                        <div class="option" data-value="D">
+                            <span class="option-label">D.</span> 增加超过一倍
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: center; gap: 25px; margin-top: 40px;">
+                    <button class="btn btn-submit" id="submitTest">
+                        <i class="fas fa-paper-plane"></i> 提交测试
+                    </button>
+                    <button class="btn btn-reset" id="resetTest">
+                        <i class="fas fa-redo"></i> 重置答案
+                    </button>
+                    <button class="btn btn-review" id="reviewAnswers" style="display: none;">
+                        <i class="fas fa-search"></i> 查看答案详解
+                    </button>
+                </div>
+                
+                <div class="result-panel" id="resultPanel">
+                    <h3 class="result-title">测试结果</h3>
+                    <div class="score-display">得分: <span id="scoreValue">0</span>/6</div>
+                    <div class="engineer-level" id="engineerLevel">初级工程师</div>
+                    <p class="result-description" id="resultDescription"></p>
+                    
+                    <div class="correct-answers" id="correctAnswersPanel" style="display: none;">
+                        <h4><i class="fas fa-check-circle"></i> 正确答案及解析</h4>
+                        <div class="answer-item">
+                            <strong>1. 根据傅里叶热传导定律，热流密度(q)与什么成正比？</strong>
+                            <p>正确答案: B. 温度梯度(dT/dx)</p>
+                            <p class="correct-answer-explanation">傅里叶定律指出：q = -k(dT/dx)，热流密度与温度梯度成正比，与热导率k成正比。</p>
+                        </div>
+                        <div class="answer-item">
+                            <strong>2. 如果你需要设计一个高效的散热器，应该选择什么材料？</strong>
+                            <p>正确答案: A. 高热导率材料（如银、铜）</p>
+                            <p class="correct-answer-explanation">散热器需要快速传递热量，因此需要高热导率材料。</p>
+                        </div>
+                        <div class="answer-item">
+                            <strong>3. 保持温差不变，将材料长度加倍，热流量(Q)会如何变化？</strong>
+                            <p>正确答案: B. 减半</p>
+                            <p class="correct-answer-explanation">热流量Q = kA(ΔT/L)，当L加倍时，热流量减半。</p>
+                        </div>
+                        <div class="answer-item">
+                            <strong>4. 对于相同的温差和尺寸，哪种材料的热流量(Q)最大？</strong>
+                            <p>正确答案: D. 铜 (k=401 W/m·K)</p>
+                            <p class="correct-answer-explanation">热流量与热导率k成正比，铜的热导率最高。</p>
+                        </div>
+                        <div class="answer-item">
+                            <strong>5. 热阻(R)的公式是什么？</strong>
+                            <p>正确答案: B. R = L/(kA)</p>
+                            <p class="correct-answer-explanation">热阻定义为单位热流量下的温差，R = ΔT/Q = L/(kA)。</p>
+                        </div>
+                        <div class="answer-item">
+                            <strong>6. 在模拟器中，如果你将热端温度从100°C增加到200°C，其他条件不变，热流量会如何变化？</strong>
+                            <p>正确答案: A. 增加约一倍</p>
+                            <p class="correct-answer-explanation">热流量与温差ΔT成正比，ΔT从100K增加到200K，所以热流量约增加一倍。</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: center; gap: 25px; margin-top: 35px;">
+                        <button class="btn btn-back" id="retryTest">
+                            <i class="fas fa-redo"></i> 重新测试
+                        </button>
+                        <button class="btn btn-next" id="backToSimulation">
+                            <i class="fas fa-arrow-left"></i> 返回模拟器
+                        </button>
+                        <button class="btn" id="showAnswers">
+                            <i class="fas fa-search"></i> 查看答案详解
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="navigation-buttons">
+                <button class="btn btn-back" id="backButton">
+                    <i class="fas fa-arrow-left"></i> 返回模拟器
+                </button>
+                <div></div> <!-- 占位 -->
+            </div>
+        </div>
+    
+
+
+
+
+<!-- 底部信息栏 -->
+<div style="
+    text-align: center;
+    padding: 20px 30px;
+    margin-top: 40px;
+    color: #e6f7ff;
+    font-size: 0.9rem;
+    border-top: 2px solid rgba(0, 180, 255, 0.5);
+    background: linear-gradient(135deg, rgba(10, 15, 43, 0.95), rgba(18, 26, 58, 0.9));
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    /* 新增以下，确保完全宽度 */
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+">    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+        
+    <p style="font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; color: #00b4ff;">
+
+一维傅里叶热传导模拟器© 2025 | 工程师传热评级测试系统 | 版本1.0  |  
+    <style="margin-bottom: 12px; color: #cbd5e1;">
+        <strong>邮箱:</strong> xgyanger@qq.com
+    <div style="margin-top: 15px;">
+        <span style="color: #ffcc00; font-weight: bold; font-size: 1rem;">
+            版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+        </span>
+    </div>
+        </footer>
+    </div>
+
+    <script>
+        // 材料数据（包含塑料和橡胶）
+        const materials = [
+            { id: 'copper', name: '铜', k: 401, color: '#e58e26', icon: 'fas fa-bolt', description: '优良导热体' },
+            { id: 'aluminum', name: '铝', k: 237, color: '#bdc3c7', icon: 'fas fa-plane', description: '轻质导热体' },
+            { id: 'steel', name: '钢', k: 50, color: '#95a5a6', icon: 'fas fa-industry', description: '常见结构材料' },
+            { id: 'plastic', name: '塑料', k: 0.33, color: '#9b59b6', icon: 'fas fa-prescription-bottle', description: '隔热材料' },
+            { id: 'rubber', name: '橡胶', k: 0.16, color: '#16a085', icon: 'fas fa-tire', description: '优良绝缘体' },
+            { id: 'silver', name: '银', k: 429, color: '#bdc3c7', icon: 'fas fa-gem', description: '最佳导热体' }
+        ];
+        
+        // 当前选中的材质
+        let currentMaterial = materials[0];
+        
+        // 测试答案（新增2道题）
+        const correctAnswers = {
+            'question1': 'B',
+            'question2': 'A',
+            'question3': 'B',
+            'question4': 'D',
+            'question5': 'B',
+            'question6': 'A'
+        };
+        
+        // 测试结果描述
+        const levelDescriptions = {
+            'beginner': {
+                title: '初级工程师',
+                description: '你对热传导原理有基本了解，但还需要进一步学习和实践。建议多使用模拟器探索不同材料的热传导特性，重点关注热导率(k)对热流量的影响，以及长度变化对热阻的影响。'
+            },
+            'engineer': {
+                title: '工程师',
+                description: '你对热传导原理有较好的理解，能够应用傅里叶定律分析简单问题。可以进一步学习复杂边界条件、瞬态热传导等高级主题，以及不同材料组合的热设计。'
+            },
+            'expert': {
+                title: '专业工程师',
+                description: '恭喜！你对热传导原理有深入理解，能够准确分析材料特性对热传导的影响。你已具备解决实际工程中热管理问题的能力，可以考虑学习更高级的热力学和传热学课程！'
+            }
+        };
+        
+        // 页面管理
+        let currentPage = 1;
+        
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化材质选择器
+            initMaterialSelector();
+            
+            // 初始化滑块事件
+            initSliders();
+            
+            // 初始化热传导模拟
+            updateSimulation();
+            
+            // 初始化测试系统
+            initTestSystem();
+            
+            // 初始化页面切换
+            initPageNavigation();
+            
+            // 添加查看答案按钮事件
+            document.getElementById('showAnswers').addEventListener('click', function() {
+                const answersPanel = document.getElementById('correctAnswersPanel');
+                if (answersPanel.style.display === 'none' || answersPanel.style.display === '') {
+                    answersPanel.style.display = 'block';
+                    this.innerHTML = '<i class="fas fa-eye-slash"></i> 隐藏答案详解';
+                } else {
+                    answersPanel.style.display = 'none';
+                    this.innerHTML = '<i class="fas fa-search"></i> 查看答案详解';
+                }
+                
+                // 滚动到答案详解
+                if (answersPanel.style.display === 'block') {
+                    answersPanel.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+        
+        // 初始化材质选择器
+        function initMaterialSelector() {
+            const materialSelector = document.getElementById('materialSelector');
+            
+            materials.forEach(material => {
+                const materialOption = document.createElement('div');
+                materialOption.className = 'material-option';
+                if (material.id === currentMaterial.id) {
+                    materialOption.classList.add('active');
+                }
+                
+                materialOption.innerHTML = `
+                    <div class="material-icon"><i class="${material.icon}"></i></div>
+                    <div class="material-name">${material.name}</div>
+                    <div class="material-k">k = ${material.k} W/m·K</div>
+                `;
+                
+                materialOption.addEventListener('click', () => {
+                    // 移除所有active类
+                    document.querySelectorAll('.material-option').forEach(opt => {
+                        opt.classList.remove('active');
+                    });
+                    
+                    // 设置当前选中材质
+                    materialOption.classList.add('active');
+                    currentMaterial = material;
+                    
+                    // 更新模拟
+                    updateSimulation();
+                });
+                
+                materialSelector.appendChild(materialOption);
+            });
+        }
+        
+        // 初始化滑块事件
+        function initSliders() {
+            // 热端温度滑块
+            const hotTempSlider = document.getElementById('hotTempSlider');
+            const hotTempValue = document.getElementById('hotTempValue');
+            
+            hotTempSlider.addEventListener('input', function() {
+                const coldTemp = parseInt(document.getElementById('coldTempSlider').value);
+                const hotTemp = parseInt(this.value);
+                
+                // 确保热端温度不低于冷端温度
+                if (hotTemp <= coldTemp) {
+                    this.value = coldTemp + 10;
+                }
+                
+                hotTempValue.textContent = this.value + '°C';
+                updateSimulation();
+            });
+            
+            // 冷端温度滑块
+            const coldTempSlider = document.getElementById('coldTempSlider');
+            const coldTempValue = document.getElementById('coldTempValue');
+            
+            coldTempSlider.addEventListener('input', function() {
+                const hotTemp = parseInt(document.getElementById('hotTempSlider').value);
+                const coldTemp = parseInt(this.value);
+                
+                // 确保冷端温度不高于热端温度
+                if (coldTemp >= hotTemp) {
+                    this.value = hotTemp - 10;
+                }
+                
+                coldTempValue.textContent = this.value + '°C';
+                updateSimulation();
+            });
+            
+            // 长度滑块
+            const lengthSlider = document.getElementById('lengthSlider');
+            const lengthValue = document.getElementById('lengthValue');
+            
+            lengthSlider.addEventListener('input', function() {
+                lengthValue.textContent = this.value + ' m';
+                updateSimulation();
+            });
+            
+            // 直径滑块
+            const diameterSlider = document.getElementById('diameterSlider');
+            const diameterValue = document.getElementById('diameterValue');
+            
+            diameterSlider.addEventListener('input', function() {
+                diameterValue.textContent = this.value + ' m';
+                updateSimulation();
+            });
+        }
+        
+        // 更新热传导模拟
+        function updateSimulation() {
+            // 获取当前参数
+            const hotTemp = parseInt(document.getElementById('hotTempSlider').value);
+            const coldTemp = parseInt(document.getElementById('coldTempSlider').value);
+            const length = parseFloat(document.getElementById('lengthSlider').value);
+            const diameter = parseFloat(document.getElementById('diameterSlider').value);
+            const k = currentMaterial.k;
+            
+            // 更新热源和冷端显示
+            document.getElementById('heatSource').textContent = `T₁ = ${hotTemp}°C`;
+            document.getElementById('coolEnd').textContent = `T₂ = ${coldTemp}°C`;
+            document.getElementById('hotLabel').textContent = `T₁ = ${hotTemp}°C`;
+            document.getElementById('coldLabel').textContent = `T₂ = ${coldTemp}°C`;
+            
+            // 更新温度梯度显示
+            updateTemperatureGradient(hotTemp, coldTemp);
+            
+            // 更新公式显示
+            updateFormulaDisplay(hotTemp, coldTemp, length, k);
+            
+            // 更新参数表格
+            updateParameterTable(hotTemp, coldTemp, length, diameter, k);
+        }
+        
+        // 更新温度梯度显示
+        function updateTemperatureGradient(hotTemp, coldTemp) {
+            const temperatureGradient = document.getElementById('temperatureGradient');
+            
+            // 创建线性渐变背景
+            let gradientColors;
+            
+            if (hotTemp > coldTemp) {
+                // 正常热传导：高温到低温
+                gradientColors = `linear-gradient(to right, #ff7e5f, #ff9a8b, #ffbdbd, #a8d8ff, #64b3f4)`;
+            } else {
+                // 如果冷端温度高于热端，则反转梯度
+                gradientColors = `linear-gradient(to right, #64b3f4, #a8d8ff, #ffbdbd, #ff9a8b, #ff7e5f)`;
+            }
+            
+            temperatureGradient.style.background = gradientColors;
+        }
+        
+        // 更新公式显示
+        function updateFormulaDisplay(hotTemp, coldTemp, length, k) {
+            const formulaElement = document.getElementById('formula');
+            const explanationElement = document.getElementById('formulaExplanation');
+            
+            // 计算温度梯度和热流密度
+            const dT = hotTemp - coldTemp;
+            const dTdx = dT / length; // 温度梯度 (K/m)
+            const q = k * Math.abs(dTdx); // 热流密度 (W/m²)
+            const area = Math.PI * Math.pow(parseFloat(document.getElementById('diameterSlider').value) / 2, 2);
+            const heatFlowRate = q * area; // 热流量 (W)
+            
+            // 格式化数值显示
+            const kFormatted = k < 10 ? k.toFixed(2) : Math.round(k);
+            const qFormatted = q < 10 ? q.toFixed(2) : q.toFixed(1);
+            
+            // 更新公式显示
+            formulaElement.innerHTML = `
+                q = -k × (dT/dx) = -${kFormatted} × (${dT.toFixed(1)}/${length.toFixed(2)})<br>
+                <span style="font-size: 1.2rem;">q = ${qFormatted} W/m²</span>
+            `;
+            
+            // 更新解释文本
+            let directionText = "热量从高温端流向低温端";
+            if (dT < 0) {
+                directionText = "热量从低温端流向高温端";
+            }
+            
+            // 添加材料对比提示
+            let materialTip = "";
+            if (k < 1) {
+                materialTip = "当前材料热导率很低，是良好的隔热材料。";
+            } else if (k > 100) {
+                materialTip = "当前材料热导率很高，是优良的导热材料。";
+            }
+            
+            explanationElement.innerHTML = `
+                <strong>傅里叶热传导定律：</strong>热流密度 (q) 与温度梯度 (dT/dx) 成正比，比例系数为热导率 (k)。<br>
+                <strong>当前计算：</strong>温度差 ΔT = ${dT.toFixed(1)} K，温度梯度 dT/dx = ${dTdx.toFixed(1)} K/m。<br>
+                <strong>热流密度：</strong>q = ${qFormatted} W/m²，<strong>总热流量：</strong>Q = ${heatFlowRate.toFixed(2)} W。<br>
+                <strong>方向：</strong>${directionText}。<br>
+                <strong>材料特性：</strong>${materialTip}
+            `;
+        }
+        
+        // 更新参数表格
+        function updateParameterTable(hotTemp, coldTemp, length, diameter, k) {
+            const parameterTable = document.getElementById('parameterTable');
+            
+            // 计算相关参数
+            const dT = hotTemp - coldTemp;
+            const dTdx = dT / length;
+            const q = k * Math.abs(dTdx);
+            const area = Math.PI * Math.pow(diameter / 2, 2);
+            const heatFlowRate = q * area;
+            const thermalResistance = length / (k * area);
+            
+            // 格式化数值
+            const kFormatted = k < 10 ? k.toFixed(2) : Math.round(k);
+            const qFormatted = q < 10 ? q.toFixed(3) : q.toFixed(1);
+            const areaFormatted = area.toFixed(6);
+            const heatFlowFormatted = heatFlowRate < 0.01 ? heatFlowRate.toFixed(5) : heatFlowRate.toFixed(2);
+            const resistanceFormatted = thermalResistance.toFixed(4);
+            
+            parameterTable.innerHTML = `
+                <tr>
+                    <td>材质</td>
+                    <td>${currentMaterial.name}</td>
+                    <td>-</td>
+                    <td>${currentMaterial.description}</td>
+                </tr>
+                <tr>
+                    <td>热导率 (k)</td>
+                    <td>${kFormatted}</td>
+                    <td>W/m·K</td>
+                    <td>材料导热能力</td>
+                </tr>
+                <tr>
+                    <td>热端温度 (T₁)</td>
+                    <td>${hotTemp}</td>
+                    <td>°C</td>
+                    <td>高温端温度</td>
+                </tr>
+                <tr>
+                    <td>冷端温度 (T₂)</td>
+                    <td>${coldTemp}</td>
+                    <td>°C</td>
+                    <td>低温端温度</td>
+                </tr>
+                <tr>
+                    <td>温度差 (ΔT)</td>
+                    <td>${dT.toFixed(1)}</td>
+                    <td>K</td>
+                    <td>驱动热传导的温差</td>
+                </tr>
+                <tr>
+                    <td>材料长度 (L)</td>
+                    <td>${length.toFixed(2)}</td>
+                    <td>m</td>
+                    <td>热传导路径长度</td>
+                </tr>
+                <tr>
+                    <td>材料直径 (D)</td>
+                    <td>${diameter.toFixed(3)}</td>
+                    <td>m</td>
+                    <td>横截面直径</td>
+                </tr>
+                <tr>
+                    <td>横截面积 (A)</td>
+                    <td>${areaFormatted}</td>
+                    <td>m²</td>
+                    <td>A = π(D/2)²</td>
+                </tr>
+                <tr>
+                    <td>温度梯度 (dT/dx)</td>
+                    <td>${dTdx.toFixed(1)}</td>
+                    <td>K/m</td>
+                    <td>单位长度温度变化率</td>
+                </tr>
+                <tr>
+                    <td>热流密度 (q)</td>
+                    <td>${qFormatted}</td>
+                    <td>W/m²</td>
+                    <td>单位面积热流量</td>
+                </tr>
+                <tr>
+                    <td>热流量 (Q)</td>
+                    <td>${heatFlowFormatted}</td>
+                    <td>W</td>
+                    <td>总热传导速率</td>
+                </tr>
+                <tr>
+                    <td>热阻 (R)</td>
+                    <td>${resistanceFormatted}</td>
+                    <td>K/W</td>
+                    <td>R = L/(kA)</td>
+                </tr>
+            `;
+        }
+        
+        // 初始化测试系统
+        function initTestSystem() {
+            // 为每个选项添加点击事件
+            document.querySelectorAll('.option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const question = this.closest('.test-question');
+                    const options = question.querySelectorAll('.option');
+                    
+                    // 移除该问题所有选项的选择状态
+                    options.forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    // 设置当前选项为选中状态
+                    this.classList.add('selected');
+                });
+            });
+            
+            // 提交测试按钮
+            document.getElementById('submitTest').addEventListener('click', function() {
+                submitTest();
+            });
+            
+            // 重置测试按钮
+            document.getElementById('resetTest').addEventListener('click', function() {
+                resetTest();
+            });
+            
+            // 重新测试按钮
+            document.getElementById('retryTest').addEventListener('click', function() {
+                resetTest();
+                document.getElementById('resultPanel').style.display = 'none';
+                document.getElementById('correctAnswersPanel').style.display = 'none';
+                document.getElementById('showAnswers').innerHTML = '<i class="fas fa-search"></i> 查看答案详解';
+            });
+            
+            // 返回模拟器按钮
+            document.getElementById('backToSimulation').addEventListener('click', function() {
+                goToPage(1);
+            });
+        }
+        
+        // 初始化页面导航
+        function initPageNavigation() {
+            // 下一步按钮
+            document.getElementById('nextButton').addEventListener('click', function() {
+                goToPage(2);
+            });
+            
+            // 返回按钮
+            document.getElementById('backButton').addEventListener('click', function() {
+                goToPage(1);
+            });
+            
+            // 页面指示器点击
+            document.querySelectorAll('.page-dot').forEach(dot => {
+                dot.addEventListener('click', function() {
+                    const pageNum = parseInt(this.getAttribute('data-page'));
+                    goToPage(pageNum);
+                });
+            });
+        }
+        
+        // 切换页面
+        function goToPage(pageNum) {
+            // 更新当前页面
+            currentPage = pageNum;
+            
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // 显示目标页面
+            document.getElementById(`page${pageNum}`).classList.add('active');
+            
+            // 更新页面指示器
+            document.querySelectorAll('.page-dot').forEach(dot => {
+                if (parseInt(dot.getAttribute('data-page')) === pageNum) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+            
+            // 滚动到顶部
+            window.scrollTo(0, 0);
+        }
+        
+        // 提交测试
+        function submitTest() {
+            let score = 0;
+            const questions = document.querySelectorAll('.test-question');
+            let allAnswered = true;
+            
+            // 检查是否所有问题都已回答
+            questions.forEach(question => {
+                const selectedOption = question.querySelector('.option.selected');
+                if (!selectedOption) {
+                    allAnswered = false;
+                }
+            });
+            
+            if (!allAnswered) {
+                alert('请先回答所有问题再提交测试！');
+                return;
+            }
+            
+            // 检查每个问题的答案
+            questions.forEach(question => {
+                const questionId = question.id;
+                const selectedOption = question.querySelector('.option.selected');
+                
+                if (selectedOption) {
+                    const userAnswer = selectedOption.getAttribute('data-value');
+                    const correctAnswer = correctAnswers[questionId];
+                    
+                    // 清除之前的正确/错误标记
+                    const options = question.querySelectorAll('.option');
+                    options.forEach(opt => {
+                        opt.classList.remove('correct', 'incorrect');
+                    });
+                    
+                    // 标记正确答案
+                    const correctOption = question.querySelector(`.option[data-value="${correctAnswer}"]`);
+                    correctOption.classList.add('correct');
+                    
+                    // 检查用户答案
+                    if (userAnswer === correctAnswer) {
+                        score++;
+                        selectedOption.classList.add('correct');
+                    } else {
+                        selectedOption.classList.add('incorrect');
+                    }
+                }
+            });
+            
+            // 计算得分并显示结果
+            displayTestResult(score);
+        }
+        
+        // 显示测试结果
+        function displayTestResult(score) {
+            const resultPanel = document.getElementById('resultPanel');
+            const scoreValue = document.getElementById('scoreValue');
+            const engineerLevel = document.getElementById('engineerLevel');
+            const resultDescription = document.getElementById('resultDescription');
+            
+            // 设置得分
+            scoreValue.textContent = score;
+            
+            // 确定工程师等级
+            let level, levelClass;
+            if (score <= 2) {
+                level = levelDescriptions.beginner;
+                levelClass = 'level-beginner';
+            } else if (score <= 4) {
+                level = levelDescriptions.engineer;
+                levelClass = 'level-engineer';
+            } else {
+                level = levelDescriptions.expert;
+                levelClass = 'level-expert';
+            }
+            
+            // 更新显示
+            engineerLevel.textContent = level.title;
+            engineerLevel.className = `engineer-level ${levelClass}`;
+            resultDescription.textContent = level.description;
+            
+            // 显示结果面板
+            resultPanel.style.display = 'block';
+            
+            // 滚动到结果面板
+            resultPanel.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // 重置测试
+        function resetTest() {
+            // 清除所有选择
+            document.querySelectorAll('.option').forEach(option => {
+                option.classList.remove('selected', 'correct', 'incorrect');
+            });
+            
+            // 隐藏结果面板
+            document.getElementById('resultPanel').style.display = 'none';
+            document.getElementById('correctAnswersPanel').style.display = 'none';
+            document.getElementById('showAnswers').innerHTML = '<i class="fas fa-search"></i> 查看答案详解';
+        }
+    </script>
+</body>
+</html>

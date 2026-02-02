@@ -1,0 +1,3620 @@
+使用HTML5 Canvas和JavaScript实现<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>传递现象相似性游戏 - 增强版</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0c2461 0%, #1e3799 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* 学生信息输入模块 */
+        .login-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(12, 36, 97, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+        }
+        
+        .login-box {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            width: 500px;
+            max-width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 2px solid #4bcffa;
+            text-align: center;
+        }
+        
+        .login-title {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #4bcffa;
+        }
+        
+        .login-subtitle {
+            font-size: 1.2rem;
+            color: #d2dae2;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4bcffa;
+            font-size: 1.1rem;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(75, 207, 250, 0.5);
+            border-radius: 10px;
+            color: white;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #4bcffa;
+            box-shadow: 0 0 15px rgba(75, 207, 250, 0.5);
+        }
+        
+        .login-button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #575fcf 0%, #4bcffa 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+        
+        .login-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(75, 207, 250, 0.4);
+        }
+        
+        .login-note {
+            margin-top: 20px;
+            color: #d2dae2;
+            font-size: 0.9rem;
+        }
+        
+        /* 隐藏游戏内容直到登录完成 */
+        .game-content {
+            display: none;
+        }
+        
+        .game-content.active {
+            display: block;
+        }
+        
+        /* 原有的游戏样式保持不变... */
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            color: #4bcffa;
+            text-shadow: 0 2px 10px rgba(75, 207, 250, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #d2dae2;
+            max-width: 900px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .level-selector {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .level-btn {
+            padding: 14px 28px;
+            background: rgba(30, 30, 46, 0.8);
+            border: none;
+            border-radius: 50px;
+            color: #fff;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        
+        .level-btn.active {
+            background: #575fcf;
+            border-color: #4bcffa;
+            box-shadow: 0 5px 20px rgba(87, 95, 207, 0.5);
+        }
+        
+        .level-btn:hover:not(.active) {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(75, 207, 250, 0.3);
+            border-color: rgba(75, 207, 250, 0.5);
+        }
+        
+        .level-btn.locked {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        
+        .level-btn.locked:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: transparent;
+        }
+        
+        .lock-icon {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            color: #ffd32a;
+        }
+        
+        .game-area {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            min-height: 600px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .level-content {
+            display: none;
+        }
+        
+        .level-content.active {
+            display: block;
+        }
+        
+        .level-title {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #4bcffa;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .level-description {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            color: #d2dae2;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .progress-bar {
+            flex: 1;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4bcffa, #575fcf);
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-text {
+            font-size: 1rem;
+            color: #ffd32a;
+            min-width: 120px;
+        }
+        
+        .unlock-message {
+            background: rgba(76, 209, 55, 0.2);
+            border-left: 4px solid #4cd137;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .unlock-message.show {
+            display: block;
+        }
+        
+        /* 第一关样式 */
+        .level1-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 1100px) {
+            .level1-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .level1-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .phenomenon-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .phenomenon-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .phenomenon-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #ffd32a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .phenomenon-formula {
+            font-size: 1.8rem;
+            text-align: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            color: #ffd32a;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .phenomenon-explanation {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #d2dae2;
+            margin-bottom: 20px;
+        }
+        
+        .curve-container {
+            height: 280px;
+            width: 100%;
+            margin: 15px 0;
+            position: relative;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .control-label {
+            font-size: 1rem;
+            color: #4bcffa;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .control-value {
+            font-weight: bold;
+            color: #ffd32a;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            background: linear-gradient(to right, #1e3799, #575fcf);
+            border-radius: 4px;
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #4bcffa;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(75, 207, 250, 0.8);
+        }
+        
+        .gradient-info {
+            font-size: 0.9rem;
+            color: #ffd32a;
+            margin-top: 5px;
+            text-align: center;
+        }
+        
+        /* 第二关样式 */
+        .level2-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 900px) {
+            .level2-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .comparison-chart {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            height: 450px;
+        }
+        
+        .comparison-title {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: #ffd32a;
+            text-align: center;
+        }
+        
+        .comparison-controls {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+        }
+        
+        .control-section {
+            margin-bottom: 25px;
+        }
+        
+        .control-section-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #4bcffa;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .comparison-slider-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr 60px;
+            gap: 15px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+        
+        .comparison-label {
+            font-size: 1rem;
+            color: #d2dae2;
+        }
+        
+        .comparison-value {
+            font-weight: bold;
+            color: #ffd32a;
+            text-align: center;
+        }
+        
+        .similarity-message {
+            background: rgba(76, 209, 55, 0.2);
+            border-left: 4px solid #4cd137;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .similarity-message.show {
+            display: block;
+        }
+        
+        /* 第三关样式 */
+        .level3-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 900px) {
+            .level3-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .scaling-chart {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            height: 450px;
+        }
+        
+        .scaling-controls {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+        }
+        
+        .scaling-slider-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr 80px;
+            gap: 15px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+        
+        .similarity-criteria {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .criteria-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #ffd32a;
+        }
+        
+        .criteria-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .criteria-name {
+            color: #d2dae2;
+        }
+        
+        .criteria-value {
+            color: #4bcffa;
+            font-weight: bold;
+        }
+        
+        .scaling-message {
+            background: rgba(76, 209, 55, 0.2);
+            border-left: 4px solid #4cd137;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .scaling-message.show {
+            display: block;
+        }
+        
+        /* 第四关样式 */
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .test-instructions {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .test-question {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .question-text {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #ffd32a;
+        }
+        
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .option {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .option:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .option.selected {
+            background: rgba(75, 207, 250, 0.2);
+            border-color: #4bcffa;
+        }
+        
+        .option.correct {
+            background: rgba(76, 209, 55, 0.2);
+            border-color: #4cd137;
+        }
+        
+        .option.incorrect {
+            background: rgba(255, 71, 87, 0.2);
+            border-color: #ff4757;
+        }
+        
+        .option-label {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .option-text {
+            flex: 1;
+            color: #d2dae2;
+        }
+        
+        .test-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        
+        .test-button {
+            padding: 12px 25px;
+            background: #575fcf;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .test-button:hover {
+            background: #4bcffa;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(75, 207, 250, 0.4);
+        }
+        
+        .test-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .test-results {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            display: none;
+        }
+        
+        .test-results.show {
+            display: block;
+        }
+        
+        .score-display {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ffd32a;
+            margin: 20px 0;
+        }
+        
+        .engineer-level {
+            font-size: 2rem;
+            font-weight: bold;
+            padding: 15px 30px;
+            border-radius: 10px;
+            display: inline-block;
+            margin: 20px 0;
+        }
+        
+        .level-1 {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+        }
+        
+        .level-2 {
+            background: linear-gradient(135deg, #2196F3 0%, #0D47A1 100%);
+        }
+        
+        .level-3 {
+            background: linear-gradient(135deg, #FF9800 0%, #E65100 100%);
+        }
+        
+        .level-comment {
+            font-size: 1.2rem;
+            color: #d2dae2;
+            line-height: 1.6;
+            margin-top: 20px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .test-question-counter {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            color: #4bcffa;
+        }
+        
+        /* 通用样式 */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .color-momentum {
+            background-color: #ff5252;
+        }
+        
+        .color-mass {
+            background-color: #448aff;
+        }
+        
+        .color-heat {
+            background-color: #69f0ae;
+        }
+        
+        .color-original {
+            background-color: #ff5252;
+        }
+        
+        .color-scaled {
+            background-color: #448aff;
+        }
+        
+        .insight-box {
+            background: rgba(87, 95, 207, 0.2);
+            border-left: 4px solid #575fcf;
+            padding: 20px;
+            border-radius: 0 10px 10px 0;
+            margin-top: 30px;
+        }
+        
+        .insight-title {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #4bcffa;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #d2dae2;
+            font-size: 0.9rem;
+        }
+
+        /* 新增的控制面板样式 */
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-btn {
+            padding: 12px 20px;
+            background: rgba(30, 30, 46, 0.9);
+            border: 2px solid #4bcffa;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        .control-btn:hover {
+            background: #575fcf;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(75, 207, 250, 0.4);
+        }
+
+        /* 数据导出面板样式 */
+        .export-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(12, 36, 97, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            width: 600px;
+            max-width: 90%;
+            z-index: 2000;
+            display: none;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 2px solid #4bcffa;
+        }
+
+        .export-panel.active {
+            display: block;
+        }
+
+        .export-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #4bcffa;
+            text-align: center;
+        }
+
+        .export-options {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .export-option {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .export-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #4bcffa;
+        }
+
+        .export-option.selected {
+            background: rgba(75, 207, 250, 0.2);
+            border-color: #4bcffa;
+        }
+
+        .option-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: #ffd32a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .option-description {
+            color: #d2dae2;
+            line-height: 1.5;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .close-panel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .close-panel:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* 学习记录样式 */
+        .learning-record {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            display: none;
+        }
+
+        .learning-record.active {
+            display: block;
+        }
+
+        .record-title {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: #4bcffa;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .record-data {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .record-item {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .record-label {
+            font-size: 0.9rem;
+            color: #d2dae2;
+            margin-bottom: 5px;
+        }
+
+        .record-value {
+            font-size: 1.2rem;
+            color: #ffd32a;
+            font-weight: bold;
+        }
+
+        /* 实验报告样式 */
+        .report-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+            color: #333;
+            display: none;
+        }
+
+        .report-container.active {
+            display: block;
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #1e3799;
+            padding-bottom: 20px;
+        }
+
+        .report-title {
+            font-size: 2.5rem;
+            color: #1e3799;
+            margin-bottom: 10px;
+        }
+
+        .report-subtitle {
+            color: #666;
+            font-size: 1.2rem;
+        }
+
+        .report-section {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: #1e3799;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .report-table th,
+        .report-table td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .report-table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+            color: #1e3799;
+        }
+
+        .report-chart {
+            width: 100%;
+            height: 300px;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* 遮罩层 */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1500;
+            display: none;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        /* 导出按钮样式 */
+        .export-button {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .export-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .export-button.secondary {
+            background: linear-gradient(135deg, #2196F3 0%, #0D47A1 100%);
+        }
+
+        /* 提示消息 */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(76, 209, 55, 0.9);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        .toast.active {
+            display: flex;
+            animation: slideIn 0.5s ease;
+        }
+
+        .toast.error {
+            background: rgba(255, 71, 87, 0.9);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 学生信息输入模块 -->
+    <div class="login-container" id="login-container">
+        <div class="login-box">
+            <h1 class="login-title"><i class="fas fa-user-graduate"></i> 学生信息录入</h1>
+            <p class="login-subtitle">请填写您的个人信息，以便记录学习数据和生成实验报告</p>
+            
+            <div class="form-group">
+                <label for="student-name" class="form-label">姓名</label>
+                <input type="text" id="student-name" class="form-input" placeholder="请输入您的姓名" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="student-id" class="form-label">学号</label>
+                <input type="text" id="student-id" class="form-input" placeholder="请输入您的学号" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="student-class" class="form-label">班级</label>
+                <input type="text" id="student-class" class="form-input" placeholder="请输入您的班级（可选）">
+            </div>
+            
+            <button class="login-button" id="start-game">
+                <i class="fas fa-play-circle"></i> 开始学习
+            </button>
+            
+            <p class="login-note">
+                <i class="fas fa-info-circle"></i> 
+                您的信息将仅用于学习记录和实验报告生成，不会被用于其他用途。
+            </p>
+        </div>
+    </div>
+
+    <!-- 控制面板 -->
+    <div class="control-panel">
+        <button class="control-btn" id="show-learning-record">
+            <i class="fas fa-chart-bar"></i> 学习记录
+        </button>
+        <button class="control-btn" id="show-export-panel">
+            <i class="fas fa-file-export"></i> 导出数据
+        </button>
+        <button class="control-btn" id="generate-report">
+            <i class="fas fa-file-pdf"></i> 实验报告
+        </button>
+        <button class="control-btn" id="save-progress">
+            <i class="fas fa-save"></i> 保存进度
+        </button>
+    </div>
+
+    <!-- 数据导出面板 -->
+    <div class="export-panel" id="export-panel">
+        <button class="close-panel" id="close-export-panel">×</button>
+        <h2 class="export-title"><i class="fas fa-download"></i> 导出选项</h2>
+        
+        <div class="export-options">
+            <div class="export-option" data-type="json">
+                <div class="option-title">
+                    <i class="fas fa-code"></i> JSON 数据
+                </div>
+                <div class="option-description">
+                    导出完整的实验数据，可用于在其他分析工具中进一步处理或导入到其他应用程序中。
+                </div>
+            </div>
+            
+            <div class="export-option" data-type="csv">
+                <div class="option-title">
+                    <i class="fas fa-table"></i> CSV 表格
+                </div>
+                <div class="option-description">
+                    导出表格格式的数据，可以直接在Excel、Google Sheets等表格软件中打开和分析。
+                </div>
+            </div>
+            
+            <div class="export-option" data-type="screenshot">
+                <div class="option-title">
+                    <i class="fas fa-camera"></i> 实验截图
+                </div>
+                <div class="option-description">
+                    截取当前实验屏幕，生成高质量图片，可用于实验报告或演示文档。
+                </div>
+            </div>
+            
+            <div class="export-option" data-type="report">
+                <div class="option-title">
+                    <i class="fas fa-file-alt"></i> 完整报告
+                </div>
+                <div class="option-description">
+                    生成包含所有实验数据、图表和分析的完整实验报告文档。
+                </div>
+            </div>
+        </div>
+        
+        <div class="export-buttons">
+            <button class="export-button" id="export-selected">
+                <i class="fas fa-download"></i> 导出选中内容
+            </button>
+            <button class="export-button secondary" id="export-all">
+                <i class="fas fa-download"></i> 导出所有数据
+            </button>
+        </div>
+    </div>
+
+    <!-- 学习记录面板 -->
+    <div class="learning-record" id="learning-record">
+        <h3 class="record-title"><i class="fas fa-chart-line"></i> 学习记录分析</h3>
+        
+        <div class="record-data">
+            <div class="record-item">
+                <div class="record-label">学生姓名</div>
+                <div class="record-value" id="student-name-display">-</div>
+            </div>
+            <div class="record-item">
+                <div class="record-label">学号</div>
+                <div class="record-value" id="student-id-display">-</div>
+            </div>
+            <div class="record-item">
+                <div class="record-label">总学习时间</div>
+                <div class="record-value" id="total-time">0分钟</div>
+            </div>
+            <div class="record-item">
+                <div class="record-label">关卡完成度</div>
+                <div class="record-value" id="level-completion">0%</div>
+            </div>
+        </div>
+        
+        <div class="record-data">
+            <div class="record-item">
+                <div class="record-label">参数调节次数</div>
+                <div class="record-value" id="parameter-adjustments">0次</div>
+            </div>
+            <div class="record-item">
+                <div class="record-label">最高测试得分</div>
+                <div class="record-value" id="highest-score">0分</div>
+            </div>
+            <div class="record-item">
+                <div class="record-label">完成关卡数</div>
+                <div class="record-value" id="completed-levels">0/4</div>
+            </div>
+            <div class="record-item">
+                <div class="record-label">获得成就数</div>
+                <div class="record-value" id="achievement-count">0个</div>
+            </div>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-text">学习进度: <span id="learning-progress-text">0%</span></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="learning-progress-fill" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <div class="insight-box">
+            <div class="insight-title"><i class="fas fa-graduation-cap"></i> 学习建议</div>
+            <p id="learning-suggestion">继续探索各个关卡，尝试调整不同的参数，观察传递现象的变化规律。</p>
+        </div>
+    </div>
+
+    <!-- 遮罩层 -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- 提示消息 -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toast-message">操作成功！</span>
+    </div>
+
+    <!-- 原有的游戏容器 -->
+    <div class="container game-content" id="game-content">
+        <header>
+            <h1><i class="fas fa-atom"></i> 传递现象相似性游戏</h1>
+            <p class="subtitle">探索动量、质量和热量传递的相似本质。通过四个关卡，深入理解三种传递现象背后的统一规律，掌握相似放大原理，并通过测试检验您的理解程度。</p>
+        </header>
+        
+        <div class="game-container">
+            <div class="level-selector">
+                <button class="level-btn active" data-level="1">
+                    <i class="fas fa-chart-line"></i> 第一关：通量曲线
+                </button>
+                <button class="level-btn locked" data-level="2" id="level2-btn">
+                    <i class="fas fa-exchange-alt"></i> 第二关：相似性对比
+                    <i class="fas fa-lock lock-icon"></i>
+                </button>
+                <button class="level-btn locked" data-level="3" id="level3-btn">
+                    <i class="fas fa-expand-arrows-alt"></i> 第三关：相似放大
+                    <i class="fas fa-lock lock-icon"></i>
+                </button>
+                <button class="level-btn locked" data-level="4" id="level4-btn">
+                    <i class="fas fa-graduation-cap"></i> 第四关：知识测试
+                    <i class="fas fa-lock lock-icon"></i>
+                </button>
+            </div>
+            
+            <div class="game-area">
+                <!-- 第一关：通量曲线 -->
+                <div id="level-1" class="level-content active">
+                    <h2 class="level-title"><i class="fas fa-chart-line"></i> 第一关：通量曲线</h2>
+                    <p class="level-description">本关卡分别展示动量、质量和热量传递的通量曲线。剪切力(τ)、扩散通量(J)和热通量(q)与梯度的关系曲线。曲线上显示切线，切线斜率表示传递系数。调整梯度和传递系数，观察曲线的变化。</p>
+                    
+                    <div class="progress-container">
+                        <div class="progress-text">参数调节进度: <span id="level1-progress-text">0%</span></div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="level1-progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="unlock-message" id="level1-unlock-message">
+                        <p><i class="fas fa-unlock"></i> 恭喜！您已调节了超过80%的参数，第二关已解锁！</p>
+                    </div>
+                    
+                    <div class="level1-container">
+                        <!-- 动量传递 -->
+                        <div class="phenomenon-card">
+                            <h3 class="phenomenon-title"><i class="fas fa-tachometer-alt"></i> 动量传递</h3>
+                            <div class="phenomenon-formula">τ = -μ (du/dy)</div>
+                            <p class="phenomenon-explanation">
+                                <strong>牛顿粘性定律：</strong><br>
+                                剪切力τ与速度梯度du/dy成正比，比例系数为动力粘度μ。负号表示动量从高速区域向低速区域传递。
+                            </p>
+                            <div class="curve-container" id="momentum-curve"></div>
+                            <div class="gradient-info" id="momentum-gradient-info">在速度梯度=1.0处，切线斜率=1.0</div>
+                            <div class="controls">
+                                <div class="control-group">
+                                    <div class="control-label">
+                                        <span>速度梯度 (du/dy):</span>
+                                        <span class="control-value" id="momentum-gradient-value">1.0</span>
+                                    </div>
+                                    <input type="range" class="slider" id="momentum-gradient-slider" min="0.1" max="3" step="0.1" value="1.0">
+                                </div>
+                                <div class="control-group">
+                                    <div class="control-label">
+                                        <span>动力粘度 (μ):</span>
+                                        <span class="control-value" id="momentum-viscosity-value">1.0</span>
+                                    </div>
+                                    <input type="range" class="slider" id="momentum-viscosity-slider" min="0.1" max="3" step="0.1" value="1.0">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 质量传递 -->
+                        <div class="phenomenon-card">
+                            <h3 class="phenomenon-title"><i class="fas fa-wind"></i> 质量传递</h3>
+                            <div class="phenomenon-formula">J = -D (dC/dx)</div>
+                            <p class="phenomenon-explanation">
+                                <strong>菲克第一定律：</strong><br>
+                                扩散通量J与浓度梯度dC/dx成正比，比例系数为扩散系数D。负号表示质量从高浓度区域向低浓度区域传递。
+                            </p>
+                            <div class="curve-container" id="mass-curve"></div>
+                            <div class="gradient-info" id="mass-gradient-info">在浓度梯度=1.0处，切线斜率=1.0</div>
+                            <div class="controls">
+                                <div class="control-group">
+                                    <div class="control-label">
+                                        <span>浓度梯度 (dC/dx):</span>
+                                        <span class="control-value" id="mass-gradient-value">1.0</span>
+                                    </div>
+                                    <input type="range" class="slider" id="mass-gradient-slider" min="0.1" max="3" step="0.1" value="1.0">
+                                </div>
+                                <div class="control-group">
+                                    <div class="control-label">
+                                        <span>扩散系数 (D):</span>
+                                        <span class="control-value" id="mass-diffusion-value">1.0</span>
+                                    </div>
+                                    <input type="range" class="slider" id="mass-diffusion-slider" min="0.1" max="3" step="0.1" value="1.0">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 热量传递 -->
+                        <div class="phenomenon-card">
+                            <h3 class="phenomenon-title"><i class="fas fa-thermometer-half"></i> 热量传递</h3>
+                            <div class="phenomenon-formula">q = -k (dT/dx)</div>
+                            <p class="phenomenon-explanation">
+                                <strong>傅里叶定律：</strong><br>
+                                热通量q与温度梯度dT/dx成正比，比例系数为导热系数k。负号表示热量从高温区域向低温区域传递。
+                            </p>
+                            <div class="curve-container" id="heat-curve"></div>
+                            <div class="gradient-info" id="heat-gradient-info">在温度梯度=1.0处，切线斜率=1.0</div>
+                            <div class="controls">
+                                <div class="control-group">
+                                    <div class="control-label">
+                                        <span>温度梯度 (dT/dx):</span>
+                                        <span class="control-value" id="heat-gradient-value">1.0</span>
+                                    </div>
+                                    <input type="range" class="slider" id="heat-gradient-slider" min="0.1" max="3" step="0.1" value="1.0">
+                                </div>
+                                <div class="control-group">
+                                    <div class="control-label">
+                                        <span>导热系数 (k):</span>
+                                        <span class="control-value" id="heat-conductivity-value">1.0</span>
+                                    </div>
+                                    <input type="range" class="slider" id="heat-conductivity-slider" min="0.1" max="3" step="0.1" value="1.0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-box">
+                        <div class="insight-title"><i class="fas fa-lightbulb"></i> 关键观察</div>
+                        <p>三种传递现象具有相同的数学形式：通量 = -传递系数 × 梯度。所有曲线都是通过原点的直线，切线斜率等于传递系数。这就是传递现象的相似本质！</p>
+                    </div>
+                </div>
+                
+                <!-- 第二关：相似性对比 -->
+                <div id="level-2" class="level-content">
+                    <h2 class="level-title"><i class="fas fa-exchange-alt"></i> 第二关：相似性对比</h2>
+                    <p class="level-description">本关卡将三种传递现象放在同一坐标系中进行对比。调整梯度（驱动力）和传递系数，观察三条曲线是否重叠。当三条曲线完全重叠时，证明三种传递现象具有相同的数学本质。</p>
+                    
+                    <div class="progress-container">
+                        <div class="progress-text">曲线重合度: <span id="level2-progress-text">0%</span></div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="level2-progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="unlock-message" id="level2-unlock-message">
+                        <p><i class="fas fa-unlock"></i> 恭喜！三条曲线已完全重合，第三关已解锁！</p>
+                    </div>
+                    
+                    <div class="level2-container">
+                        <div class="comparison-chart">
+                            <h3 class="comparison-title">三种传递现象对比</h3>
+                            <div class="curve-container" id="comparison-curve"></div>
+                            <div class="legend">
+                                <div class="legend-item">
+                                    <div class="legend-color color-momentum"></div>
+                                    <span>动量传递 (τ)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color color-mass"></div>
+                                    <span>质量传递 (J)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color color-heat"></div>
+                                    <span>热量传递 (q)</span>
+                                </div>
+                            </div>
+                            <div class="similarity-message" id="similarity-message">
+                                <p><i class="fas fa-check-circle"></i> 恭喜！三条曲线完全重叠，证明三种传递现象具有相似的数学本质！</p>
+                            </div>
+                        </div>
+                        
+                        <div class="comparison-controls">
+                            <div class="control-section">
+                                <h3 class="control-section-title"><i class="fas fa-sliders-h"></i> 梯度调整（驱动力）</h3>
+                                <div class="comparison-slider-container">
+                                    <span class="comparison-label">速度梯度 (du/dy):</span>
+                                    <input type="range" class="slider" id="comp-momentum-gradient" min="0.1" max="3" step="0.1" value="1.0">
+                                    <span class="comparison-value" id="comp-momentum-gradient-value">1.0</span>
+                                </div>
+                                <div class="comparison-slider-container">
+                                    <span class="comparison-label">浓度梯度 (dC/dx):</span>
+                                    <input type="range" class="slider" id="comp-mass-gradient" min="0.1" max="3" step="0.1" value="1.5">
+                                    <span class="comparison-value" id="comp-mass-gradient-value">1.5</span>
+                                </div>
+                                <div class="comparison-slider-container">
+                                    <span class="comparison-label">温度梯度 (dT/dx):</span>
+                                    <input type="range" class="slider" id="comp-heat-gradient" min="0.1" max="3" step="0.1" value="0.8">
+                                    <span class="comparison-value" id="comp-heat-gradient-value">0.8</span>
+                                </div>
+                            </div>
+                            
+                            <div class="control-section">
+                                <h3 class="control-section-title"><i class="fas fa-cogs"></i> 传递系数调整</h3>
+                                <div class="comparison-slider-container">
+                                    <span class="comparison-label">动力粘度 (μ):</span>
+                                    <input type="range" class="slider" id="comp-viscosity" min="0.1" max="3" step="0.1" value="1.0">
+                                    <span class="comparison-value" id="comp-viscosity-value">1.0</span>
+                                </div>
+                                <div class="comparison-slider-container">
+                                    <span class="comparison-label">扩散系数 (D):</span>
+                                    <input type="range" class="slider" id="comp-diffusion" min="0.1" max="3" step="0.1" value="1.2">
+                                    <span class="comparison-value" id="comp-diffusion-value">1.2</span>
+                                </div>
+                                <div class="comparison-slider-container">
+                                    <span class="comparison-label">导热系数 (k):</span>
+                                    <input type="range" class="slider" id="comp-conductivity" min="0.1" max="3" step="0.1" value="0.9">
+                                    <span class="comparison-value" id="comp-conductivity-value">0.9</span>
+                                </div>
+                            </div>
+                            
+                            <div class="insight-box" style="margin-top: 20px;">
+                                <div class="insight-title"><i class="fas fa-lightbulb"></i> 重叠条件</div>
+                                <p>当 μ·(du/dy) = D·(dC/dx) = k·(dT/dx) 时，三条曲线完全重合。这表明三种传递现象在数学本质上是相似的，都遵循"通量 = -系数 × 梯度"的统一规律。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 第三关：相似放大 -->
+                <div id="level-3" class="level-content">
+                    <h2 class="level-title"><i class="fas fa-expand-arrows-alt"></i> 第三关：相似放大</h2>
+                    <p class="level-description">本关卡通过相似准则（雷诺数Re、佩克莱数Pe）预测放大效果。当几何尺寸放大时，调整相关参数以保持相似准则不变，从而确保传递现象的相似性。</p>
+                    
+                    <div class="progress-container">
+                        <div class="progress-text">曲线重合度: <span id="level3-progress-text">0%</span></div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="level3-progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="unlock-message" id="level3-unlock-message">
+                        <p><i class="fas fa-unlock"></i> 恭喜！您已成功实现相似放大，第四关已解锁！</p>
+                    </div>
+                    
+                    <div class="level3-container">
+                        <div class="scaling-chart">
+                            <h3 class="comparison-title">相似放大对比</h3>
+                            <div class="curve-container" id="scaling-curve"></div>
+                            <div class="legend">
+                                <div class="legend-item">
+                                    <div class="legend-color color-original"></div>
+                                    <span>原始系统 (L=1)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color color-scaled"></div>
+                                    <span>放大系统 (L'=2)</span>
+                                </div>
+                            </div>
+                            <div class="scaling-message" id="scaling-message">
+                                <p><i class="fas fa-check-circle"></i> 恭喜！两个系统的无量纲分布曲线重合，说明放大后传递现象保持相似！</p>
+                            </div>
+                        </div>
+                        
+                        <div class="scaling-controls">
+                            <div class="control-section">
+                                <h3 class="control-section-title"><i class="fas fa-ruler"></i> 放大参数</h3>
+                                <div class="scaling-slider-container">
+                                    <span class="comparison-label">几何放大倍数 (L'/L):</span>
+                                    <input type="range" class="slider" id="scale-factor" min="1" max="5" step="0.5" value="2">
+                                    <span class="comparison-value" id="scale-factor-value">2.0</span>
+                                </div>
+                                <div class="scaling-slider-container">
+                                    <span class="comparison-label">保持Re数不变:</span>
+                                    <input type="checkbox" id="keep-re" checked style="justify-self: start;">
+                                    <span></span>
+                                </div>
+                                <div class="scaling-slider-container">
+                                    <span class="comparison-label">保持Pe数不变:</span>
+                                    <input type="checkbox" id="keep-pe" checked style="justify-self: start;">
+                                    <span></span>
+                                </div>
+                            </div>
+                            
+                            <div class="control-section">
+                                <h3 class="control-section-title"><i class="fas fa-sliders-h"></i> 放大系统参数</h3>
+                                <div class="scaling-slider-container">
+                                    <span class="comparison-label">速度调整 (U'/U):</span>
+                                    <input type="range" class="slider" id="velocity-ratio" min="0.1" max="3" step="0.1" value="1.0">
+                                    <span class="comparison-value" id="velocity-ratio-value">1.0</span>
+                                </div>
+                                <div class="scaling-slider-container">
+                                    <span class="comparison-label">粘度调整 (μ'/μ):</span>
+                                    <input type="range" class="slider" id="viscosity-ratio" min="0.1" max="3" step="0.1" value="1.0">
+                                    <span class="comparison-value" id="viscosity-ratio-value">1.0</span>
+                                </div>
+                                <div class="scaling-slider-container">
+                                    <span class="comparison-label">扩散系数调整 (D'/D):</span>
+                                    <input type="range" class="slider" id="diffusion-ratio" min="0.1" max="3" step="0.1" value="1.0">
+                                    <span class="comparison-value" id="diffusion-ratio-value">1.0</span>
+                                </div>
+                            </div>
+                            
+                            <div class="similarity-criteria">
+                                <h3 class="criteria-title">相似准则</h3>
+                                <div class="criteria-item">
+                                    <span class="criteria-name">雷诺数 Re = ρUL/μ</span>
+                                    <span class="criteria-value" id="re-value">1000</span>
+                                </div>
+                                <div class="criteria-item">
+                                    <span class="criteria-name">佩克莱数 Pe = UL/D</span>
+                                    <span class="criteria-value" id="pe-value">500</span>
+                                </div>
+                                <div class="criteria-item">
+                                    <span class="criteria-name">放大系统 Re'</span>
+                                    <span class="criteria-value" id="re-scaled-value">2000</span>
+                                </div>
+                                <div class="criteria-item">
+                                    <span class="criteria-name">放大系统 Pe'</span>
+                                    <span class="criteria-value" id="pe-scaled-value">1000</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-box">
+                        <div class="insight-title"><i class="fas fa-lightbulb"></i> 工程应用</div>
+                        <p>在化工过程放大中，保持无量纲数（Re、Pe）不变是确保传递现象相似的关键。当两个系统的无量纲分布曲线重合时，表明放大系统与原始系统具有相似的传递行为。</p>
+                    </div>
+                </div>
+                
+                <!-- 第四关：知识测试 -->
+                <div id="level-4" class="level-content">
+                    <h2 class="level-title"><i class="fas fa-graduation-cap"></i> 第四关：知识测试</h2>
+                    <p class="level-description">请回答以下关于传递现象相似性的问题。完成所有题目后，系统将根据您的得分评定工程师等级。</p>
+                    
+                    <div class="test-container">
+                        <div class="test-instructions">
+                            <p><i class="fas fa-info-circle"></i> 本测试包含4道题目，每题25分，满分100分。请仔细阅读题目并选择正确答案。</p>
+                        </div>
+                        
+                        <div id="test-questions">
+                            <!-- 题目将动态生成 -->
+                        </div>
+                        
+                        <div class="test-navigation">
+                            <button class="test-button" id="prev-btn" disabled>
+                                <i class="fas fa-arrow-left"></i> 上一题
+                            </button>
+                            <div class="test-question-counter" id="question-counter">题目 1/4</div>
+                            <button class="test-button" id="next-btn">
+                                下一题 <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="test-navigation" style="justify-content: center; margin-top: 20px;">
+                            <button class="test-button" id="submit-test">
+                                <i class="fas fa-paper-plane"></i> 提交答案
+                            </button>
+                        </div>
+                        
+                        <div class="test-results" id="test-results">
+                            <h3><i class="fas fa-award"></i> 测试结果</h3>
+                            <div class="score-display" id="score-display">得分: 0/100</div>
+                            <div class="engineer-level" id="engineer-level">助理工程师</div>
+                            <div class="level-comment" id="level-comment"></div>
+                            <button class="test-button" id="retry-test" style="margin-top: 30px;">
+                                <i class="fas fa-redo"></i> 重新测试
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>传递现象相似性游戏 | 动量、质量和热量传递的相似本质 | 版本1.0 | 设计用于工程教育 | 邮箱: xgyanger@qq.com</p>
+            <p>版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.</p>
+        </div>
+    </div>
+
+    <!-- 引入Plotly.js用于绘制图表 -->
+    <script src="https://cdn.plot.ly/plotly-2.20.0.min.js"></script>
+    <!-- 引入html2canvas用于截图 -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    
+    <script>
+        // 学生信息
+        const studentInfo = {
+            name: '',
+            id: '',
+            class: '',
+            loginTime: null
+        };
+
+        // 游戏状态管理
+        const gameState = {
+            currentLevel: 1,
+            level1: {
+                adjustedSliders: new Set(), // 记录已调节的滑块ID
+                totalSliders: 6,
+                unlocked: false
+            },
+            level2: {
+                curvesOverlapped: false,
+                unlocked: false
+            },
+            level3: {
+                scalingAchieved: false,
+                unlocked: false
+            },
+            level4: {
+                unlocked: false
+            },
+            testAnswers: {},
+            testQuestions: [
+                {
+                    id: 1,
+                    question: "动量、质量和热量传递的相似本质是什么？",
+                    options: [
+                        { id: "A", text: "它们都涉及能量传递" },
+                        { id: "B", text: "它们都遵循'通量 = -系数 × 梯度'的数学形式" },
+                        { id: "C", text: "它们都只发生在流体中" },
+                        { id: "D", text: "它们都与温度有关" }
+                    ],
+                    correct: "B"
+                },
+                {
+                    id: 2,
+                    question: "在相似放大中，为了保持传递现象的相似性，应该保持什么不变？",
+                    options: [
+                        { id: "A", text: "几何尺寸" },
+                        { id: "B", text: "操作温度" },
+                        { id: "C", text: "无量纲数（如雷诺数、佩克莱数）" },
+                        { id: "D", text: "所有物理参数都不变" }
+                    ],
+                    correct: "C"
+                },
+                {
+                    id: 3,
+                    question: "牛顿粘性定律、菲克第一定律和傅里叶定律的相似性体现在哪里？",
+                    options: [
+                        { id: "A", text: "它们都是实验定律" },
+                        { id: "B", text: "它们都具有相同的形式：通量与梯度成正比" },
+                        { id: "C", text: "它们都适用于所有物质" },
+                        { id: "D", text: "它们都是19世纪提出的" }
+                    ],
+                    correct: "B"
+                },
+                {
+                    id: 4,
+                    question: "如果几何尺寸放大2倍，要保持雷诺数不变，速度应该如何调整？",
+                    options: [
+                        { id: "A", text: "速度不变" },
+                        { id: "B", text: "速度减小为原来的1/2" },
+                        { id: "C", text: "速度增大为原来的2倍" },
+                        { id: "D", text: "速度减小为原来的1/4" }
+                    ],
+                    correct: "B"
+                }
+            ],
+            currentQuestion: 1
+        };
+
+        // 学习数据记录器
+        class LearningDataRecorder {
+            constructor() {
+                this.startTime = Date.now();
+                this.data = {
+                    studentInfo: {
+                        name: '',
+                        id: '',
+                        class: '',
+                        loginTime: null
+                    },
+                    sessionStart: this.startTime,
+                    sessionEnd: null,
+                    totalTime: 0,
+                    levelData: {
+                        1: { 
+                            startTime: null,
+                            endTime: null,
+                            duration: 0,
+                            parameterChanges: 0,
+                            finalValues: {},
+                            progress: 0
+                        },
+                        2: { 
+                            startTime: null,
+                            endTime: null,
+                            duration: 0,
+                            parameterChanges: 0,
+                            finalValues: {},
+                            progress: 0
+                        },
+                        3: { 
+                            startTime: null,
+                            endTime: null,
+                            duration: 0,
+                            parameterChanges: 0,
+                            finalValues: {},
+                            progress: 0
+                        },
+                        4: { 
+                            startTime: null,
+                            endTime: null,
+                            duration: 0,
+                            testAttempts: 0,
+                            highestScore: 0,
+                            answers: {}
+                        }
+                    },
+                    achievements: [],
+                    exportHistory: []
+                };
+                
+                this.loadFromLocalStorage();
+            }
+            
+            setStudentInfo(name, id, className) {
+                this.data.studentInfo.name = name;
+                this.data.studentInfo.id = id;
+                this.data.studentInfo.class = className || '';
+                this.data.studentInfo.loginTime = new Date().toISOString();
+                
+                // 更新显示
+                document.getElementById('student-name-display').textContent = name;
+                document.getElementById('student-id-display').textContent = id;
+                
+                this.saveToLocalStorage();
+            }
+            
+            recordLevelStart(level) {
+                this.data.levelData[level].startTime = Date.now();
+                this.saveToLocalStorage();
+            }
+            
+            recordLevelEnd(level) {
+                const levelData = this.data.levelData[level];
+                if (levelData.startTime) {
+                    levelData.endTime = Date.now();
+                    levelData.duration = levelData.endTime - levelData.startTime;
+                    this.saveToLocalStorage();
+                }
+            }
+            
+            recordParameterChange(level, parameter, value) {
+                const levelData = this.data.levelData[level];
+                levelData.parameterChanges++;
+                levelData.finalValues[parameter] = value;
+                this.saveToLocalStorage();
+                this.updateLearningRecordDisplay();
+            }
+            
+            recordTestResult(score, answers) {
+                const levelData = this.data.levelData[4];
+                levelData.testAttempts++;
+                if (score > levelData.highestScore) {
+                    levelData.highestScore = score;
+                }
+                levelData.answers = answers;
+                this.saveToLocalStorage();
+                this.updateLearningRecordDisplay();
+            }
+            
+            recordProgress(level, progress) {
+                this.data.levelData[level].progress = progress;
+                this.saveToLocalStorage();
+                this.updateLearningRecordDisplay();
+            }
+            
+            recordAchievement(achievement) {
+                if (!this.data.achievements.some(a => a.name === achievement)) {
+                    this.data.achievements.push({
+                        name: achievement,
+                        timestamp: Date.now()
+                    });
+                    this.showToast(`🎉 获得成就: ${achievement}`);
+                    this.saveToLocalStorage();
+                }
+            }
+            
+            recordExport(type) {
+                this.data.exportHistory.push({
+                    type: type,
+                    timestamp: Date.now(),
+                    dataSize: this.getDataSize()
+                });
+                this.saveToLocalStorage();
+            }
+            
+            getDataSize() {
+                return JSON.stringify(this.data).length;
+            }
+            
+            calculateLearningProgress() {
+                let totalProgress = 0;
+                let completedLevels = 0;
+                
+                for (let level = 1; level <= 4; level++) {
+                    const levelData = this.data.levelData[level];
+                    if (levelData.progress > 0) {
+                        totalProgress += levelData.progress;
+                        if (levelData.progress >= 80) completedLevels++;
+                    }
+                }
+                
+                return {
+                    overall: Math.min(100, Math.round(totalProgress / 4)),
+                    completedLevels: completedLevels
+                };
+            }
+            
+            getLearningTime() {
+                const now = Date.now();
+                const totalSeconds = Math.floor((now - this.startTime) / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                return minutes;
+            }
+            
+            getParameterChangesCount() {
+                let count = 0;
+                for (let level = 1; level <= 4; level++) {
+                    count += this.data.levelData[level].parameterChanges || 0;
+                }
+                return count;
+            }
+            
+            getExportData(type = 'all') {
+                const exportData = {
+                    metadata: {
+                        exportTime: new Date().toISOString(),
+                        studentInfo: this.data.studentInfo,
+                        totalLearningTime: this.getLearningTime() + '分钟'
+                    },
+                    gameState: gameState,
+                    learningData: this.data
+                };
+                
+                // 移除循环引用
+                const cleanData = JSON.parse(JSON.stringify(exportData));
+                
+                switch(type) {
+                    case 'json':
+                        return JSON.stringify(cleanData, null, 2);
+                        
+                    case 'csv':
+                        return this.convertToCSV(cleanData);
+                        
+                    default:
+                        return cleanData;
+                }
+            }
+            
+            convertToCSV(data) {
+                // 修复CSV乱码问题 - 添加UTF-8 BOM
+                const BOM = "\uFEFF";
+                
+                // 创建CSV内容
+                let csv = BOM + '项目,值\n';
+                
+                // 添加学生信息
+                csv += `学生姓名,${data.metadata.studentInfo.name}\n`;
+                csv += `学号,${data.metadata.studentInfo.id}\n`;
+                csv += `班级,${data.metadata.studentInfo.class}\n`;
+                csv += `登录时间,${new Date(data.metadata.studentInfo.loginTime).toLocaleString('zh-CN')}\n`;
+                csv += `导出时间,${new Date(data.metadata.exportTime).toLocaleString('zh-CN')}\n`;
+                csv += `总学习时间,${data.metadata.totalLearningTime}\n`;
+                
+                // 添加关卡数据
+                csv += '\n关卡完成情况\n关卡,完成度,参数调节次数,学习时间(秒)\n';
+                for (let level = 1; level <= 4; level++) {
+                    const levelData = data.learningData.levelData[level];
+                    csv += `${level},${levelData.progress || 0}%,${levelData.parameterChanges || 0},${levelData.duration ? Math.round(levelData.duration/1000) : 0}\n`;
+                }
+                
+                // 添加测试结果
+                csv += '\n测试结果\n尝试次数,最高得分\n';
+                const testData = data.learningData.levelData[4];
+                csv += `${testData.testAttempts || 0},${testData.highestScore || 0}\n`;
+                
+                // 添加成就
+                csv += '\n获得成就\n';
+                data.learningData.achievements.forEach(achievement => {
+                    const date = new Date(achievement.timestamp).toLocaleString('zh-CN');
+                    csv += `${achievement.name},${date}\n`;
+                });
+                
+                return csv;
+            }
+            
+            saveToLocalStorage() {
+                try {
+                    localStorage.setItem('transferPhenomenaLearningData', JSON.stringify(this.data));
+                    localStorage.setItem('transferPhenomenaGameState', JSON.stringify(gameState));
+                } catch (e) {
+                    console.warn('无法保存到本地存储:', e);
+                }
+            }
+            
+            loadFromLocalStorage() {
+                try {
+                    const savedData = localStorage.getItem('transferPhenomenaLearningData');
+                    const savedState = localStorage.getItem('transferPhenomenaGameState');
+                    
+                    if (savedData) {
+                        const parsedData = JSON.parse(savedData);
+                        // 合并数据，但保持当前会话时间
+                        const currentStartTime = this.startTime;
+                        Object.assign(this.data, parsedData);
+                        this.startTime = currentStartTime;
+                    }
+                    
+                    if (savedState) {
+                        const parsedState = JSON.parse(savedState);
+                        // 恢复游戏状态，但保持当前关卡和滑块状态
+                        const currentLevel = gameState.currentLevel;
+                        const currentAnswers = gameState.testAnswers;
+                        Object.assign(gameState, parsedState);
+                        gameState.currentLevel = currentLevel;
+                        gameState.testAnswers = currentAnswers;
+                    }
+                } catch (e) {
+                    console.warn('无法从本地存储加载数据:', e);
+                }
+            }
+            
+            clearLocalStorage() {
+                localStorage.removeItem('transferPhenomenaLearningData');
+                localStorage.removeItem('transferPhenomenaGameState');
+                this.showToast('学习记录已清除', 'error');
+            }
+            
+            updateLearningRecordDisplay() {
+                const progress = this.calculateLearningProgress();
+                
+                document.getElementById('total-time').textContent = this.getLearningTime() + '分钟';
+                document.getElementById('level-completion').textContent = progress.overall + '%';
+                document.getElementById('parameter-adjustments').textContent = this.getParameterChangesCount() + '次';
+                document.getElementById('highest-score').textContent = this.data.levelData[4].highestScore + '分';
+                document.getElementById('completed-levels').textContent = `${progress.completedLevels}/4`;
+                document.getElementById('achievement-count').textContent = this.data.achievements.length + '个';
+                
+                document.getElementById('learning-progress-text').textContent = progress.overall + '%';
+                document.getElementById('learning-progress-fill').style.width = progress.overall + '%';
+                
+                // 更新学习建议
+                this.updateLearningSuggestion(progress);
+            }
+            
+            updateLearningSuggestion(progress) {
+                const suggestionElement = document.getElementById('learning-suggestion');
+                let suggestion = '';
+                
+                if (progress.overall < 25) {
+                    suggestion = '建议从第一关开始，逐步了解三种传递现象的基本规律。';
+                } else if (progress.overall < 50) {
+                    suggestion = '很好！继续探索第二关，尝试让三条曲线重合，理解相似本质。';
+                } else if (progress.overall < 75) {
+                    suggestion = '不错！尝试第三关的相似放大，理解工程放大的关键原理。';
+                } else if (progress.overall < 90) {
+                    suggestion = '几乎完成！通过第四关测试检验您的理解程度。';
+                } else {
+                    suggestion = '恭喜！您已全面掌握传递现象的相似原理。可以尝试导出数据进行分析。';
+                }
+                
+                suggestionElement.textContent = suggestion;
+            }
+            
+            showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                const toastMessage = document.getElementById('toast-message');
+                
+                toastMessage.textContent = message;
+                toast.className = 'toast';
+                toast.classList.add('active');
+                if (type === 'error') {
+                    toast.classList.add('error');
+                }
+                
+                setTimeout(() => {
+                    toast.classList.remove('active');
+                }, 3000);
+            }
+        }
+
+        // 导出管理器
+        class ExportManager {
+            constructor(recorder) {
+                this.recorder = recorder;
+                this.selectedExportType = 'json';
+                this.initExportPanel();
+            }
+            
+            initExportPanel() {
+                // 显示导出面板
+                document.getElementById('show-export-panel').addEventListener('click', () => {
+                    this.showExportPanel();
+                });
+                
+                // 关闭导出面板
+                document.getElementById('close-export-panel').addEventListener('click', () => {
+                    this.hideExportPanel();
+                });
+                
+                // 选择导出类型
+                document.querySelectorAll('.export-option').forEach(option => {
+                    option.addEventListener('click', () => {
+                        this.selectExportType(option.dataset.type);
+                    });
+                });
+                
+                // 导出选中内容
+                document.getElementById('export-selected').addEventListener('click', () => {
+                    this.exportSelected();
+                });
+                
+                // 导出所有数据
+                document.getElementById('export-all').addEventListener('click', () => {
+                    this.exportAll();
+                });
+                
+                // 点击遮罩层关闭面板
+                document.getElementById('overlay').addEventListener('click', () => {
+                    this.hideExportPanel();
+                });
+            }
+            
+            showExportPanel() {
+                document.getElementById('export-panel').classList.add('active');
+                document.getElementById('overlay').classList.add('active');
+                this.selectExportType('json'); // 默认选择JSON
+            }
+            
+            hideExportPanel() {
+                document.getElementById('export-panel').classList.remove('active');
+                document.getElementById('overlay').classList.remove('active');
+            }
+            
+            selectExportType(type) {
+                this.selectedExportType = type;
+                
+                // 移除所有选中状态
+                document.querySelectorAll('.export-option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                
+                // 添加选中状态到当前选项
+                const selectedOption = document.querySelector(`.export-option[data-type="${type}"]`);
+                if (selectedOption) {
+                    selectedOption.classList.add('selected');
+                }
+            }
+            
+            exportSelected() {
+                switch(this.selectedExportType) {
+                    case 'json':
+                        this.exportJSON();
+                        break;
+                    case 'csv':
+                        this.exportCSV();
+                        break;
+                    case 'screenshot':
+                        this.exportScreenshot();
+                        break;
+                    case 'report':
+                        this.generateReport();
+                        break;
+                }
+                this.recorder.recordExport(this.selectedExportType);
+            }
+            
+            exportAll() {
+                this.exportJSON();
+                setTimeout(() => this.exportCSV(), 500);
+                setTimeout(() => this.exportScreenshot(), 1000);
+                setTimeout(() => this.generateReport(), 1500);
+                this.recorder.recordExport('all');
+            }
+            
+            exportJSON() {
+                const data = this.recorder.getExportData('json');
+                const studentName = this.recorder.data.studentInfo.name || '未知学生';
+                const studentId = this.recorder.data.studentInfo.id || '未知学号';
+                const filename = `${studentName}_${studentId}_传递现象实验数据.json`;
+                this.downloadFile(data, filename, 'application/json;charset=utf-8');
+                this.recorder.showToast('JSON数据导出成功！');
+            }
+            
+            exportCSV() {
+                const data = this.recorder.getExportData('csv');
+                const studentName = this.recorder.data.studentInfo.name || '未知学生';
+                const studentId = this.recorder.data.studentInfo.id || '未知学号';
+                const filename = `${studentName}_${studentId}_传递现象实验数据.csv`;
+                // 修复CSV乱码问题 - 使用UTF-8编码
+                this.downloadFile(data, filename, 'text/csv;charset=utf-8');
+                this.recorder.showToast('CSV数据导出成功！');
+            }
+            
+            exportScreenshot() {
+                const container = document.querySelector('.container');
+                const studentName = this.recorder.data.studentInfo.name || '未知学生';
+                const studentId = this.recorder.data.studentInfo.id || '未知学号';
+                
+                html2canvas(container, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#0c2461'
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `${studentName}_${studentId}_传递现象实验截图.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    this.recorder.showToast('实验截图导出成功！');
+                }).catch(error => {
+                    console.error('截图失败:', error);
+                    this.recorder.showToast('截图失败，请重试', 'error');
+                });
+            }
+            
+            generateReport() {
+                this.generatePDFReport();
+            }
+            
+            generatePDFReport() {
+                // 由于浏览器限制，我们无法直接生成PDF，但可以生成一个可打印的HTML报告
+                const reportHTML = this.createReportHTML();
+                
+                // 在新窗口打开报告
+                const reportWindow = window.open('', '_blank');
+                reportWindow.document.write(reportHTML);
+                reportWindow.document.close();
+                
+                // 提示用户可以打印为PDF
+                setTimeout(() => {
+                    reportWindow.print();
+                }, 500);
+                
+                this.recorder.showToast('实验报告已生成，正在打印...');
+            }
+            
+            createReportHTML() {
+                const progress = this.recorder.calculateLearningProgress();
+                const learningTime = this.recorder.getLearningTime();
+                const studentInfo = this.recorder.data.studentInfo;
+                
+                return `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>传递现象相似性实验报告 - ${studentInfo.name} ${studentInfo.id}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
+                        .header { text-align: center; margin-bottom: 40px; border-bottom: 3px solid #1e3799; padding-bottom: 20px; }
+                        .title { font-size: 28px; color: #1e3799; margin-bottom: 10px; }
+                        .subtitle { color: #666; font-size: 16px; }
+                        .section { margin-bottom: 30px; page-break-inside: avoid; }
+                        .section-title { font-size: 20px; color: #1e3799; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ddd; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
+                        th { background-color: #f5f5f5; font-weight: bold; color: #1e3799; }
+                        .chart { width: 100%; height: 300px; margin: 20px 0; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+                        .summary { background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+                        .footer { margin-top: 50px; text-align: center; color: #666; font-size: 14px; border-top: 1px solid #ddd; padding-top: 20px; }
+                        .student-info { background-color: #f0f8ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+                        .info-row { display: flex; margin-bottom: 8px; }
+                        .info-label { font-weight: bold; width: 120px; color: #1e3799; }
+                        .info-value { flex: 1; }
+                        @media print {
+                            body { margin: 20px; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1 class="title">传递现象相似性实验报告</h1>
+                        <div class="subtitle">生成时间：${new Date().toLocaleString('zh-CN')}</div>
+                    </div>
+                    
+                    <div class="student-info">
+                        <div class="info-row">
+                            <div class="info-label">学生姓名：</div>
+                            <div class="info-value">${studentInfo.name}</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">学号：</div>
+                            <div class="info-value">${studentInfo.id}</div>
+                        </div>
+                        ${studentInfo.class ? `
+                        <div class="info-row">
+                            <div class="info-label">班级：</div>
+                            <div class="info-value">${studentInfo.class}</div>
+                        </div>
+                        ` : ''}
+                        <div class="info-row">
+                            <div class="info-label">登录时间：</div>
+                            <div class="info-value">${new Date(studentInfo.loginTime).toLocaleString('zh-CN')}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary">
+                        <h2 class="section-title">实验概要</h2>
+                        <table>
+                            <tr>
+                                <th>总学习时间</th>
+                                <th>关卡完成度</th>
+                                <th>参数调节次数</th>
+                                <th>最高测试得分</th>
+                            </tr>
+                            <tr>
+                                <td>${learningTime}分钟</td>
+                                <td>${progress.overall}%</td>
+                                <td>${this.recorder.getParameterChangesCount()}次</td>
+                                <td>${this.recorder.data.levelData[4].highestScore}分</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div class="section">
+                        <h2 class="section-title">关卡详细数据</h2>
+                        <table>
+                            <tr>
+                                <th>关卡</th>
+                                <th>完成度</th>
+                                <th>学习时间</th>
+                                <th>参数调节次数</th>
+                                <th>关键参数</th>
+                            </tr>
+                            ${[1,2,3,4].map(level => {
+                                const levelData = this.recorder.data.levelData[level];
+                                return `
+                                <tr>
+                                    <td>第${level}关</td>
+                                    <td>${levelData.progress || 0}%</td>
+                                    <td>${levelData.duration ? Math.round(levelData.duration/1000) : 0}秒</td>
+                                    <td>${levelData.parameterChanges || 0}次</td>
+                                    <td>${level === 4 ? `测试尝试: ${levelData.testAttempts || 0}次` : 
+                                          Object.keys(levelData.finalValues || {}).length > 0 ? 
+                                          Object.keys(levelData.finalValues).slice(0, 2).join(', ') + '...' : 
+                                          '无'}</td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </table>
+                    </div>
+                    
+                    <div class="section">
+                        <h2 class="section-title">测试题目与答案</h2>
+                        <table>
+                            <tr>
+                                <th>题目</th>
+                                <th>学生答案</th>
+                                <th>正确答案</th>
+                                <th>得分</th>
+                            </tr>
+                            ${this.recorder.data.levelData[4].answers ? 
+                              Object.entries(this.recorder.data.levelData[4].answers).map(([qId, answer]) => {
+                                const question = gameState.testQuestions.find(q => q.id == qId);
+                                const isCorrect = answer === question.correct;
+                                return `
+                                <tr>
+                                    <td>${qId}. ${question.question.substring(0, 30)}...</td>
+                                    <td>${answer}</td>
+                                    <td>${question.correct}</td>
+                                    <td>${isCorrect ? '25' : '0'}</td>
+                                </tr>
+                                `;
+                              }).join('') : 
+                              `<tr><td colspan="4">暂无测试数据</td></tr>`}
+                        </table>
+                    </div>
+                    
+                    <div class="section">
+                        <h2 class="section-title">学习成就</h2>
+                        <table>
+                            <tr>
+                                <th>成就名称</th>
+                                <th>获得时间</th>
+                            </tr>
+                            ${this.recorder.data.achievements.length > 0 ? 
+                              this.recorder.data.achievements.map(achievement => `
+                                <tr>
+                                    <td>${achievement.name}</td>
+                                    <td>${new Date(achievement.timestamp).toLocaleString('zh-CN')}</td>
+                                </tr>
+                              `).join('') : 
+                              `<tr><td colspan="2">暂无成就</td></tr>`}
+                        </table>
+                    </div>
+                    
+                    <div class="section">
+                        <h2 class="section-title">关键发现</h2>
+                        <div style="line-height: 1.6;">
+                            <p>1. <strong>相似本质：</strong>动量、质量和热量传递都遵循"通量 = -系数 × 梯度"的相同数学形式。</p>
+                            <p>2. <strong>传递系数：</strong>粘度μ、扩散系数D和导热系数k分别表征三种传递现象的传递能力。</p>
+                            <p>3. <strong>相似放大：</strong>保持无量纲数（雷诺数Re、佩克莱数Pe）不变是实现工程放大的关键。</p>
+                            <p>4. <strong>应用价值：</strong>理解传递现象的相似性有助于简化工程分析和设备放大设计。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="footer">
+                        <p>传递现象相似性实验报告 | 生成于传递现象教学工具</p>
+                        <p>© ${new Date().getFullYear()} 工程教育实验报告</p>
+                    </div>
+                    
+                    <div class="no-print">
+                        <button onclick="window.print()" style="padding: 10px 20px; background: #1e3799; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;">
+                            打印为PDF
+                        </button>
+                    </div>
+                </body>
+                </html>
+                `;
+            }
+            
+            downloadFile(content, filename, contentType) {
+                try {
+                    // 修复CSV乱码问题 - 确保使用正确的编码
+                    const blob = new Blob([content], { type: contentType });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error('文件下载失败:', error);
+                    this.recorder.showToast('文件下载失败，请重试', 'error');
+                }
+            }
+        }
+
+        // 初始化学习记录器和导出管理器
+        let learningRecorder;
+        let exportManager;
+
+        // 初始化登录界面
+        function initLogin() {
+            const loginContainer = document.getElementById('login-container');
+            const startButton = document.getElementById('start-game');
+            const studentNameInput = document.getElementById('student-name');
+            const studentIdInput = document.getElementById('student-id');
+            
+            startButton.addEventListener('click', () => {
+                const name = studentNameInput.value.trim();
+                const id = studentIdInput.value.trim();
+                const className = document.getElementById('student-class').value.trim();
+                
+                if (!name || !id) {
+                    alert('请填写姓名和学号！');
+                    return;
+                }
+                
+                // 保存学生信息
+                studentInfo.name = name;
+                studentInfo.id = id;
+                studentInfo.class = className;
+                studentInfo.loginTime = new Date().toISOString();
+                
+                // 清除本地存储，确保每次登录都是新的学习记录
+                localStorage.removeItem('transferPhenomenaLearningData');
+                localStorage.removeItem('transferPhenomenaGameState');
+                
+                // 初始化学习记录器并设置学生信息
+                learningRecorder = new LearningDataRecorder();
+                learningRecorder.setStudentInfo(name, id, className);
+                
+                // 初始化导出管理器
+                exportManager = new ExportManager(learningRecorder);
+                
+                // 隐藏登录界面
+                loginContainer.style.display = 'none';
+                
+                // 显示游戏内容
+                document.getElementById('game-content').classList.add('active');
+                
+                // 初始化游戏
+                initGame();
+                
+                // 显示欢迎消息
+                learningRecorder.showToast(`欢迎，${name}同学！开始学习传递现象的相似本质。`);
+            });
+            
+            // 按回车键触发开始按钮
+            studentIdInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    startButton.click();
+                }
+            });
+        }
+
+        // 初始化游戏
+        function initGame() {
+            // 设置关卡切换
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const level = parseInt(btn.dataset.level);
+                    if (!btn.classList.contains('locked')) {
+                        switchLevel(level);
+                    }
+                });
+            });
+
+            // 初始化第一关
+            initLevel1();
+            
+            // 初始化第二关
+            initLevel2();
+            
+            // 初始化第三关
+            initLevel3();
+            
+            // 初始化第四关
+            initLevel4();
+            
+            // 初始化控制面板
+            initControlPanel();
+            
+            // 默认显示第一关
+            switchLevel(1);
+            
+            // 记录第一关开始
+            learningRecorder.recordLevelStart(1);
+            
+            // 更新学习记录显示
+            setTimeout(() => {
+                learningRecorder.updateLearningRecordDisplay();
+            }, 100);
+        }
+
+        // 初始化控制面板
+        function initControlPanel() {
+            // 显示学习记录
+            document.getElementById('show-learning-record').addEventListener('click', () => {
+                const recordPanel = document.getElementById('learning-record');
+                recordPanel.classList.toggle('active');
+                learningRecorder.updateLearningRecordDisplay();
+            });
+            
+            // 生成报告
+            document.getElementById('generate-report').addEventListener('click', () => {
+                exportManager.showExportPanel();
+                exportManager.selectExportType('report');
+            });
+            
+            // 保存进度
+            document.getElementById('save-progress').addEventListener('click', () => {
+                learningRecorder.saveToLocalStorage();
+                learningRecorder.showToast('游戏进度已保存！');
+            });
+            
+            // 每30秒自动保存一次
+            setInterval(() => {
+                learningRecorder.saveToLocalStorage();
+            }, 30000);
+        }
+
+        // 检查成就
+        function checkAchievements() {
+            const progress = learningRecorder.calculateLearningProgress();
+            
+            // 解锁第一关成就
+            if (progress.completedLevels >= 1 && !learningRecorder.data.achievements.some(a => a.name === '新手传递者')) {
+                learningRecorder.recordAchievement('新手传递者');
+            }
+            
+            // 解锁第二关成就
+            if (gameState.level2.curvesOverlapped && !learningRecorder.data.achievements.some(a => a.name === '曲线大师')) {
+                learningRecorder.recordAchievement('曲线大师');
+            }
+            
+            // 解锁第三关成就
+            if (gameState.level3.scalingAchieved && !learningRecorder.data.achievements.some(a => a.name === '放大专家')) {
+                learningRecorder.recordAchievement('放大专家');
+            }
+            
+            // 测试高分成就
+            const testScore = learningRecorder.data.levelData[4].highestScore;
+            if (testScore >= 90 && !learningRecorder.data.achievements.some(a => a.name === '学霸工程师')) {
+                learningRecorder.recordAchievement('学霸工程师');
+            }
+            
+            // 全关卡完成成就
+            if (progress.completedLevels === 4 && !learningRecorder.data.achievements.some(a => a.name === '全能传递者')) {
+                learningRecorder.recordAchievement('全能传递者');
+            }
+        }
+
+        // 切换关卡
+        function switchLevel(level) {
+            // 记录当前关卡结束
+            if (gameState.currentLevel) {
+                learningRecorder.recordLevelEnd(gameState.currentLevel);
+            }
+            
+            // 记录关卡进度
+            if (gameState.currentLevel === 1) {
+                const adjustedCount = gameState.level1.adjustedSliders.size;
+                const total = gameState.level1.totalSliders;
+                const percentage = Math.round((adjustedCount / total) * 100);
+                learningRecorder.recordProgress(1, percentage);
+            }
+            
+            // 更新按钮状态
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (parseInt(btn.dataset.level) === level) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // 隐藏所有关卡内容
+            document.querySelectorAll('.level-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 显示当前关卡
+            document.getElementById(`level-${level}`).classList.add('active');
+            
+            // 记录新关卡开始
+            learningRecorder.recordLevelStart(level);
+            
+            // 更新游戏状态
+            gameState.currentLevel = level;
+            
+            // 调整图表大小
+            setTimeout(() => {
+                if (level === 1) {
+                    resizeCharts(['momentum-curve', 'mass-curve', 'heat-curve']);
+                } else if (level === 2) {
+                    updateComparisonChart();
+                } else if (level === 3) {
+                    updateScalingChart();
+                }
+            }, 100);
+            
+            // 检查成就
+            checkAchievements();
+        }
+
+        // 解锁关卡
+        function unlockLevel(level) {
+            if (level === 2) {
+                gameState.level1.unlocked = true;
+                const btn = document.getElementById('level2-btn');
+                btn.classList.remove('locked');
+                btn.querySelector('.lock-icon').style.display = 'none';
+            } else if (level === 3) {
+                gameState.level2.unlocked = true;
+                const btn = document.getElementById('level3-btn');
+                btn.classList.remove('locked');
+                btn.querySelector('.lock-icon').style.display = 'none';
+            } else if (level === 4) {
+                gameState.level3.unlocked = true;
+                const btn = document.getElementById('level4-btn');
+                btn.classList.remove('locked');
+                btn.querySelector('.lock-icon').style.display = 'none';
+            }
+        }
+
+        // 第一关：通量曲线
+        function initLevel1() {
+            // 定义所有滑块
+            const sliders = [
+                { id: 'momentum-gradient-slider', valueId: 'momentum-gradient-value' },
+                { id: 'momentum-viscosity-slider', valueId: 'momentum-viscosity-value' },
+                { id: 'mass-gradient-slider', valueId: 'mass-gradient-value' },
+                { id: 'mass-diffusion-slider', valueId: 'mass-diffusion-value' },
+                { id: 'heat-gradient-slider', valueId: 'heat-gradient-value' },
+                { id: 'heat-conductivity-slider', valueId: 'heat-conductivity-value' }
+            ];
+            
+            // 为每个滑块添加事件监听
+            sliders.forEach(slider => {
+                const element = document.getElementById(slider.id);
+                const valueElement = document.getElementById(slider.valueId);
+                
+                element.addEventListener('input', () => {
+                    const value = parseFloat(element.value);
+                    valueElement.textContent = value.toFixed(1);
+                    
+                    // 记录滑块已被调节
+                    if (!gameState.level1.adjustedSliders.has(slider.id)) {
+                        gameState.level1.adjustedSliders.add(slider.id);
+                        updateLevel1Progress();
+                    }
+                    
+                    // 记录参数变化
+                    const parameterName = slider.id.replace('-slider', '');
+                    learningRecorder.recordParameterChange(1, parameterName, value);
+                    
+                    // 更新对应的图表
+                    if (slider.id.includes('momentum')) {
+                        updateMomentumChart();
+                    } else if (slider.id.includes('mass')) {
+                        updateMassChart();
+                    } else if (slider.id.includes('heat')) {
+                        updateHeatChart();
+                    }
+                });
+            });
+            
+            // 初始绘制图表
+            updateMomentumChart();
+            updateMassChart();
+            updateHeatChart();
+            
+            // 初始化进度
+            updateLevel1Progress();
+        }
+
+        // 更新第一关进度
+        function updateLevel1Progress() {
+            const adjustedCount = gameState.level1.adjustedSliders.size;
+            const total = gameState.level1.totalSliders;
+            const percentage = Math.round((adjustedCount / total) * 100);
+            
+            // 更新进度显示
+            document.getElementById('level1-progress-text').textContent = `${percentage}%`;
+            document.getElementById('level1-progress-fill').style.width = `${percentage}%`;
+            
+            // 记录进度
+            learningRecorder.recordProgress(1, percentage);
+            
+            // 如果调节了80%以上的参数，解锁第二关
+            if (percentage >= 80 && !gameState.level1.unlocked) {
+                document.getElementById('level1-unlock-message').classList.add('show');
+                unlockLevel(2);
+                gameState.level1.unlocked = true;
+                learningRecorder.recordAchievement('参数调节师');
+            }
+        }
+
+        // 绘制动量传递图表
+        function updateMomentumChart() {
+            const gradient = parseFloat(document.getElementById('momentum-gradient-slider').value);
+            const viscosity = parseFloat(document.getElementById('momentum-viscosity-slider').value);
+            
+            // 生成数据点
+            const x = [];
+            const y = [];
+            const tangentX = [];
+            const tangentY = [];
+            
+            for (let i = 0; i <= 30; i++) {
+                const g = i * 0.1;
+                const f = viscosity * g;
+                x.push(g);
+                y.push(f);
+                
+                // 切线数据（在gradient点处）
+                if (Math.abs(g - gradient) < 0.15) {
+                    tangentX.push(g);
+                    tangentY.push(viscosity * gradient + viscosity * (g - gradient));
+                }
+            }
+            
+            // 切线斜率信息
+            document.getElementById('momentum-gradient-info').textContent = 
+                `在速度梯度=${gradient.toFixed(1)}处，切线斜率=μ=${viscosity.toFixed(1)}`;
+            
+            // 绘制图表
+            const data = [
+                {
+                    x: x,
+                    y: y,
+                    mode: 'lines',
+                    name: '剪切力 τ',
+                    line: { color: '#ff5252', width: 3 }
+                },
+                {
+                    x: tangentX,
+                    y: tangentY,
+                    mode: 'lines',
+                    name: '切线 (斜率=μ)',
+                    line: { color: '#ffd32a', width: 2, dash: 'dash' }
+                },
+                {
+                    x: [gradient],
+                    y: [viscosity * gradient],
+                    mode: 'markers',
+                    name: '当前点',
+                    marker: { color: '#ff5252', size: 10 }
+                }
+            ];
+            
+            const layout = {
+                title: '剪切力 vs 速度梯度',
+                xaxis: { 
+                    title: '速度梯度 (du/dy)', 
+                    range: [0, 3],
+                    gridcolor: 'rgba(255, 255, 255, 0.1)',
+                    zerolinecolor: 'rgba(255, 255, 255, 0.3)'
+                },
+                yaxis: { 
+                    title: '剪切力 (τ)', 
+                    range: [0, 9],
+                    gridcolor: 'rgba(255, 255, 255, 0.1)',
+                    zerolinecolor: 'rgba(255, 255, 255, 0.3)'
+                },
+                showlegend: true,
+                legend: { x: 0.02, y: 0.98 },
+                margin: { t: 40, r: 30, b: 50, l: 60 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#d2dae2' },
+                hovermode: 'closest'
+            };
+            
+            const config = {
+                displayModeBar: false,
+                responsive: true
+            };
+            
+            Plotly.react('momentum-curve', data, layout, config);
+        }
+
+        // 绘制质量传递图表
+        function updateMassChart() {
+            const gradient = parseFloat(document.getElementById('mass-gradient-slider').value);
+            const diffusion = parseFloat(document.getElementById('mass-diffusion-slider').value);
+            
+            // 生成数据点
+            const x = [];
+            const y = [];
+            const tangentX = [];
+            const tangentY = [];
+            
+            for (let i = 0; i <= 30; i++) {
+                const g = i * 0.1;
+                const f = diffusion * g;
+                x.push(g);
+                y.push(f);
+                
+                // 切线数据（在gradient点处）
+                if (Math.abs(g - gradient) < 0.15) {
+                    tangentX.push(g);
+                    tangentY.push(diffusion * gradient + diffusion * (g - gradient));
+                }
+            }
+            
+            // 切线斜率信息
+            document.getElementById('mass-gradient-info').textContent = 
+                `在浓度梯度=${gradient.toFixed(1)}处，切线斜率=D=${diffusion.toFixed(1)}`;
+            
+            // 绘制图表
+            const data = [
+                {
+                    x: x,
+                    y: y,
+                    mode: 'lines',
+                    name: '扩散通量 J',
+                    line: { color: '#448aff', width: 3 }
+                },
+                {
+                    x: tangentX,
+                    y: tangentY,
+                    mode: 'lines',
+                    name: '切线 (斜率=D)',
+                    line: { color: '#ffd32a', width: 2, dash: 'dash' }
+                },
+                {
+                    x: [gradient],
+                    y: [diffusion * gradient],
+                    mode: 'markers',
+                    name: '当前点',
+                    marker: { color: '#448aff', size: 10 }
+                }
+            ];
+            
+            const layout = {
+                title: '扩散通量 vs 浓度梯度',
+                xaxis: { 
+                    title: '浓度梯度 (dC/dx)', 
+                    range: [0, 3],
+                    gridcolor: 'rgba(255, 255, 255, 0.1)',
+                    zerolinecolor: 'rgba(255, 255, 255, 0.3)'
+                },
+                yaxis: { 
+                    title: '扩散通量 (J)', 
+                    range: [0, 9],
+                    gridcolor: 'rgba(255, 255, 255, 0.1)',
+                    zerolinecolor: 'rgba(255, 255, 255, 0.3)'
+                },
+                showlegend: true,
+                legend: { x: 0.02, y: 0.98 },
+                margin: { t: 40, r: 30, b: 50, l: 60 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#d2dae2' },
+                hovermode: 'closest'
+            };
+            
+            const config = {
+                displayModeBar: false,
+                responsive: true
+            };
+            
+            Plotly.react('mass-curve', data, layout, config);
+        }
+
+        // 绘制热量传递图表
+        function updateHeatChart() {
+            const gradient = parseFloat(document.getElementById('heat-gradient-slider').value);
+            const conductivity = parseFloat(document.getElementById('heat-conductivity-slider').value);
+            
+            // 生成数据点
+            const x = [];
+            const y = [];
+            const tangentX = [];
+            const tangentY = [];
+            
+            for (let i = 0; i <= 30; i++) {
+                const g = i * 0.1;
+                const f = conductivity * g;
+                x.push(g);
+                y.push(f);
+                
+                // 切线数据（在gradient点处）
+                if (Math.abs(g - gradient) < 0.15) {
+                    tangentX.push(g);
+                    tangentY.push(conductivity * gradient + conductivity * (g - gradient));
+                }
+            }
+            
+            // 切线斜率信息
+            document.getElementById('heat-gradient-info').textContent = 
+                `在温度梯度=${gradient.toFixed(1)}处，切线斜率=k=${conductivity.toFixed(1)}`;
+            
+            // 绘制图表
+            const data = [
+                {
+                    x: x,
+                    y: y,
+                    mode: 'lines',
+                    name: '热通量 q',
+                    line: { color: '#69f0ae', width: 3 }
+                },
+                {
+                    x: tangentX,
+                    y: tangentY,
+                    mode: 'lines',
+                    name: '切线 (斜率=k)',
+                    line: { color: '#ffd32a', width: 2, dash: 'dash' }
+                },
+                {
+                    x: [gradient],
+                    y: [conductivity * gradient],
+                    mode: 'markers',
+                    name: '当前点',
+                    marker: { color: '#69f0ae', size: 10 }
+                }
+            ];
+            
+            const layout = {
+                title: '热通量 vs 温度梯度',
+                xaxis: { 
+                    title: '温度梯度 (dT/dx)', 
+                    range: [0, 3],
+                    gridcolor: 'rgba(255, 255, 255, 0.1)',
+                    zerolinecolor: 'rgba(255, 255, 255, 0.3)'
+                },
+                yaxis: { 
+                    title: '热通量 (q)', 
+                    range: [0, 9],
+                    gridcolor: 'rgba(255, 255, 255, 0.1)',
+                    zerolinecolor: 'rgba(255, 255, 255, 0.3)'
+                },
+                showlegend: true,
+                legend: { x: 0.02, y: 0.98 },
+                margin: { t: 40, r: 30, b: 50, l: 60 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#d2dae2' },
+                hovermode: 'closest'
+            };
+            
+            const config = {
+                displayModeBar: false,
+                responsive: true
+            };
+            
+            Plotly.react('heat-curve', data, layout, config);
+        }
+
+        // 调整图表大小
+        function resizeCharts(chartIds) {
+            chartIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    Plotly.Plots.resize(element);
+                }
+            });
+        }
+
+        // 第二关：相似性对比
+        function initLevel2() {
+            // 获取所有滑块
+            const sliders = [
+                { id: 'comp-momentum-gradient', valueId: 'comp-momentum-gradient-value' },
+                { id: 'comp-mass-gradient', valueId: 'comp-mass-gradient-value' },
+                { id: 'comp-heat-gradient', valueId: 'comp-heat-gradient-value' },
+                { id: 'comp-viscosity', valueId: 'comp-viscosity-value' },
+                { id: 'comp-diffusion', valueId: 'comp-diffusion-value' },
+                { id: 'comp-conductivity', valueId: 'comp-conductivity-value' }
+            ];
+            
+            // 为每个滑块添加事件监听
+            sliders.forEach(slider => {
+                const element = document.getElementById(slider.id);
+                const valueElement = document.getElementById(slider.valueId);
+                
+                element.addEventListener('input', () => {
+                    const value = parseFloat(element.value);
+                    valueElement.textContent = value.toFixed(1);
+                    
+                    // 记录参数变化
+                    const parameterName = slider.id.replace('comp-', '');
+                    learningRecorder.recordParameterChange(2, parameterName, value);
+                    
+                    updateComparisonChart();
+                });
+            });
+            
+            // 初始绘制
+            updateComparisonChart();
+        }
+
+        // 更新对比图表和重合度
+        function updateComparisonChart() {
+            // 获取参数值
+            const momentumGradient = parseFloat(document.getElementById('comp-momentum-gradient').value);
+            const massGradient = parseFloat(document.getElementById('comp-mass-gradient').value);
+            const heatGradient = parseFloat(document.getElementById('comp-heat-gradient').value);
+            const viscosity = parseFloat(document.getElementById('comp-viscosity').value);
+            const diffusion = parseFloat(document.getElementById('comp-diffusion').value);
+            const conductivity = parseFloat(document.getElementById('comp-conductivity').value);
+            
+            // 生成数据点
+            const x = [];
+            const momentumY = [];
+            const massY = [];
+            const heatY = [];
+            
+            for (let i = 0; i <= 20; i++) {
+                const normalizedX = i * 0.05;
+                x.push(normalizedX);
+                
+                // 三种传递现象的通量（归一化）
+                momentumY.push(viscosity * momentumGradient * normalizedX);
+                massY.push(diffusion * massGradient * normalizedX);
+                heatY.push(conductivity * heatGradient * normalizedX);
+            }
+            
+            // 计算曲线重合度
+            let overlapScore = 0;
+            const tolerance = 0.05;
+            
+            for (let i = 0; i < x.length; i++) {
+                const avg = (momentumY[i] + massY[i] + heatY[i]) / 3;
+                const diff1 = Math.abs(momentumY[i] - avg);
+                const diff2 = Math.abs(massY[i] - avg);
+                const diff3 = Math.abs(heatY[i] - avg);
+                
+                if (diff1 < tolerance && diff2 < tolerance && diff3 < tolerance) {
+                    overlapScore++;
+                }
+            }
+            
+            const overlapPercentage = Math.round((overlapScore / x.length) * 100);
+            
+            // 更新进度显示
+            document.getElementById('level2-progress-text').textContent = `${overlapPercentage}%`;
+            document.getElementById('level2-progress-fill').style.width = `${overlapPercentage}%`;
+            
+            // 记录进度
+            learningRecorder.recordProgress(2, overlapPercentage);
+            
+            // 检查曲线是否完全重叠
+            const message = document.getElementById('similarity-message');
+            if (overlapPercentage === 100) {
+                message.classList.add('show');
+                if (!gameState.level2.unlocked) {
+                    document.getElementById('level2-unlock-message').classList.add('show');
+                    unlockLevel(3);
+                    gameState.level2.unlocked = true;
+                    gameState.level2.curvesOverlapped = true;
+                    learningRecorder.recordAchievement('曲线重合专家');
+                }
+            } else {
+                message.classList.remove('show');
+            }
+            
+            // 绘制图表
+            const data = [
+                {
+                    x: x,
+                    y: momentumY,
+                    mode: 'lines',
+                    name: '动量传递 (τ)',
+                    line: { color: '#ff5252', width: 3 }
+                },
+                {
+                    x: x,
+                    y: massY,
+                    mode: 'lines',
+                    name: '质量传递 (J)',
+                    line: { color: '#448aff', width: 3 }
+                },
+                {
+                    x: x,
+                    y: heatY,
+                    mode: 'lines',
+                    name: '热量传递 (q)',
+                    line: { color: '#69f0ae', width: 3 }
+                }
+            ];
+            
+            const layout = {
+                title: '三种传递现象对比',
+                xaxis: { 
+                    title: '无量纲梯度', 
+                    range: [0, 1],
+                    gridcolor: 'rgba(255, 255, 255, 0.1)',
+                    zerolinecolor: 'rgba(255, 255, 255, 0.3)'
+                },
+                yaxis: { 
+                    title: '无量纲通量', 
+                    range: [0, 3],
+                    gridcolor: 'rgba(255, 255, 255, 0.1)',
+                    zerolinecolor: 'rgba(255, 255, 255, 0.3)'
+                },
+                showlegend: true,
+                legend: { x: 0.02, y: 0.98 },
+                margin: { t: 40, r: 30, b: 50, l: 60 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#d2dae2' },
+                hovermode: 'closest'
+            };
+            
+            const config = {
+                displayModeBar: false,
+                responsive: true
+            };
+            
+            Plotly.react('comparison-curve', data, layout, config);
+        }
+
+        // 第三关：相似放大
+        function initLevel3() {
+            // 获取所有滑块和复选框
+            const scaleFactorSlider = document.getElementById('scale-factor');
+            const velocityRatioSlider = document.getElementById('velocity-ratio');
+            const viscosityRatioSlider = document.getElementById('viscosity-ratio');
+            const diffusionRatioSlider = document.getElementById('diffusion-ratio');
+            const keepReCheckbox = document.getElementById('keep-re');
+            const keepPeCheckbox = document.getElementById('keep-pe');
+            
+            // 更新数值显示
+            function updateValueDisplay() {
+                document.getElementById('scale-factor-value').textContent = scaleFactorSlider.value;
+                document.getElementById('velocity-ratio-value').textContent = velocityRatioSlider.value;
+                document.getElementById('viscosity-ratio-value').textContent = viscosityRatioSlider.value;
+                document.getElementById('diffusion-ratio-value').textContent = diffusionRatioSlider.value;
+                
+                // 记录参数变化
+                learningRecorder.recordParameterChange(3, 'scale-factor', parseFloat(scaleFactorSlider.value));
+                learningRecorder.recordParameterChange(3, 'velocity-ratio', parseFloat(velocityRatioSlider.value));
+                learningRecorder.recordParameterChange(3, 'viscosity-ratio', parseFloat(viscosityRatioSlider.value));
+                learningRecorder.recordParameterChange(3, 'diffusion-ratio', parseFloat(diffusionRatioSlider.value));
+                
+                // 计算并显示相似准则
+                updateSimilarityCriteria();
+                updateScalingChart();
+            }
+            
+            // 为滑块添加事件监听
+            scaleFactorSlider.addEventListener('input', updateValueDisplay);
+            velocityRatioSlider.addEventListener('input', updateValueDisplay);
+            viscosityRatioSlider.addEventListener('input', updateValueDisplay);
+            diffusionRatioSlider.addEventListener('input', updateValueDisplay);
+            
+            // 为复选框添加事件监听
+            keepReCheckbox.addEventListener('change', () => {
+                if (keepReCheckbox.checked) {
+                    keepPeCheckbox.checked = false;
+                    // 如果保持Re不变，自动调整速度
+                    const scale = parseFloat(scaleFactorSlider.value);
+                    const viscosityRatio = parseFloat(viscosityRatioSlider.value);
+                    const recommendedVelocity = viscosityRatio / scale;
+                    
+                    // 更新速度滑块
+                    velocityRatioSlider.value = Math.max(0.1, Math.min(3, recommendedVelocity)).toFixed(1);
+                }
+                updateValueDisplay();
+            });
+            
+            keepPeCheckbox.addEventListener('change', () => {
+                if (keepPeCheckbox.checked) {
+                    keepReCheckbox.checked = false;
+                    // 如果保持Pe不变，自动调整速度
+                    const scale = parseFloat(scaleFactorSlider.value);
+                    const diffusionRatio = parseFloat(diffusionRatioSlider.value);
+                    const recommendedVelocity = diffusionRatio / scale;
+                    
+                    // 更新速度滑块
+                    velocityRatioSlider.value = Math.max(0.1, Math.min(3, recommendedVelocity)).toFixed(1);
+                }
+                updateValueDisplay();
+            });
+            
+            // 初始更新
+            updateValueDisplay();
+        }
+
+        // 更新相似准则
+        function updateSimilarityCriteria() {
+            const scale = parseFloat(document.getElementById('scale-factor').value);
+            const velocityRatio = parseFloat(document.getElementById('velocity-ratio').value);
+            const viscosityRatio = parseFloat(document.getElementById('viscosity-ratio').value);
+            const diffusionRatio = parseFloat(document.getElementById('diffusion-ratio').value);
+            
+            // 原始系统值（假设）
+            const reOriginal = 1000;
+            const peOriginal = 500;
+            
+            // 计算放大系统的值
+            const reScaled = reOriginal * velocityRatio * scale / viscosityRatio;
+            const peScaled = peOriginal * velocityRatio * scale / diffusionRatio;
+            
+            // 更新显示
+            document.getElementById('re-value').textContent = reOriginal.toFixed(0);
+            document.getElementById('pe-value').textContent = peOriginal.toFixed(0);
+            document.getElementById('re-scaled-value').textContent = reScaled.toFixed(0);
+            document.getElementById('pe-scaled-value').textContent = peScaled.toFixed(0);
+        }
+
+        // 更新放大图表和重合度
+        function updateScalingChart() {
+            const scale = parseFloat(document.getElementById('scale-factor').value);
+            const velocityRatio = parseFloat(document.getElementById('velocity-ratio').value);
+            const keepRe = document.getElementById('keep-re').checked;
+            const keepPe = document.getElementById('keep-pe').checked;
+            
+            // 计算速度因子
+            let velocityFactor = 1.0;
+            
+            if (keepRe) {
+                const viscosityRatio = parseFloat(document.getElementById('viscosity-ratio').value);
+                velocityFactor = viscosityRatio / scale;
+            } else if (keepPe) {
+                const diffusionRatio = parseFloat(document.getElementById('diffusion-ratio').value);
+                velocityFactor = diffusionRatio / scale;
+            } else {
+                velocityFactor = velocityRatio;
+            }
+            
+            // 生成数据点
+            const x = [];
+            const originalY = [];
+            const scaledY = [];
+            
+            for (let i = 0; i <= 20; i++) {
+                const normalizedX = i * 0.05;
+                x.push(normalizedX);
+                
+                // 原始系统：无量纲速度 = 1 - 无量纲距离
+                originalY.push(1 - normalizedX);
+                
+                // 放大系统：无量纲速度 = (1 - 无量纲距离) * 速度因子
+                let scaledValue = (1 - normalizedX) * velocityFactor;
+                scaledValue = Math.max(0, Math.min(1, scaledValue));
+                scaledY.push(scaledValue);
+            }
+            
+            // 计算曲线重合度
+            let overlapScore = 0;
+            const tolerance = 0.05;
+            
+            for (let i = 0; i < x.length; i++) {
+                if (Math.abs(originalY[i] - scaledY[i]) < tolerance) {
+                    overlapScore++;
+                }
+            }
+            
+            const overlapPercentage = Math.round((overlapScore / x.length) * 100);
+            
+            // 更新进度显示
+            document.getElementById('level3-progress-text').textContent = `${overlapPercentage}%`;
+            document.getElementById('level3-progress-fill').style.width = `${overlapPercentage}%`;
+            
+            // 记录进度
+            learningRecorder.recordProgress(3, overlapPercentage);
+            
+            // 检查曲线是否完全重叠
+            const message = document.getElementById('scaling-message');
+            if (overlapPercentage === 100) {
+                message.classList.add('show');
+                if (!gameState.level3.unlocked) {
+                    document.getElementById('level3-unlock-message').classList.add('show');
+                    unlockLevel(4);
+                    gameState.level3.unlocked = true;
+                    gameState.level3.scalingAchieved = true;
+                    learningRecorder.recordAchievement('放大原理掌握');
+                }
+            } else {
+                message.classList.remove('show');
+            }
+            
+            // 绘制图表
+            const data = [
+                {
+                    x: x,
+                    y: originalY,
+                    mode: 'lines',
+                    name: '原始系统 (L=1)',
+                    line: { color: '#ff5252', width: 3 }
+                },
+                {
+                    x: x,
+                    y: scaledY,
+                    mode: 'lines',
+                    name: '放大系统 (L\'=' + scale + ')',
+                    line: { color: '#448aff', width: 3, dash: 'dash' }
+                }
+            ];
+            
+            const layout = {
+                title: '相似放大对比',
+                xaxis: { 
+                    title: '无量纲距离 (x/L)', 
+                    range: [0, 1],
+                    gridcolor: 'rgba(255, 255, 255, 0.1)',
+                    zerolinecolor: 'rgba(255, 255, 255, 0.3)'
+                },
+                yaxis: { 
+                    title: '无量纲速度 (u/U)', 
+                    range: [0, 1.2],
+                    gridcolor: 'rgba(255, 255, 255, 0.1)',
+                    zerolinecolor: 'rgba(255, 255, 255, 0.3)'
+                },
+                showlegend: true,
+                legend: { x: 0.02, y: 0.98 },
+                margin: { t: 40, r: 30, b: 50, l: 60 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#d2dae2' },
+                hovermode: 'closest'
+            };
+            
+            const config = {
+                displayModeBar: false,
+                responsive: true
+            };
+            
+            Plotly.react('scaling-curve', data, layout, config);
+        }
+
+        // 第四关：知识测试
+        function initLevel4() {
+            // 生成测试题目
+            generateTestQuestions();
+            
+            // 设置导航按钮事件
+            document.getElementById('prev-btn').addEventListener('click', showPreviousQuestion);
+            document.getElementById('next-btn').addEventListener('click', showNextQuestion);
+            document.getElementById('submit-test').addEventListener('click', submitTest);
+            document.getElementById('retry-test').addEventListener('click', retryTest);
+            
+            // 初始显示第一题
+            showQuestion(1);
+        }
+
+        // 生成测试题目
+        function generateTestQuestions() {
+            const container = document.getElementById('test-questions');
+            container.innerHTML = '';
+            
+            gameState.testQuestions.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'test-question';
+                questionDiv.id = `question-${q.id}`;
+                questionDiv.style.display = index === 0 ? 'block' : 'none';
+                
+                let optionsHtml = '';
+                q.options.forEach(option => {
+                    optionsHtml += `
+                        <div class="option" data-question="${q.id}" data-option="${option.id}">
+                            <div class="option-label">${option.id}</div>
+                            <div class="option-text">${option.text}</div>
+                        </div>
+                    `;
+                });
+                
+                questionDiv.innerHTML = `
+                    <div class="question-text">${q.id}. ${q.question}</div>
+                    <div class="options-container">
+                        ${optionsHtml}
+                    </div>
+                `;
+                
+                container.appendChild(questionDiv);
+            });
+            
+            // 为选项添加点击事件
+            document.querySelectorAll('.option').forEach(option => {
+                option.addEventListener('click', selectOption);
+            });
+        }
+
+        // 选择选项
+        function selectOption(e) {
+            const option = e.currentTarget;
+            const questionId = parseInt(option.dataset.question);
+            const optionId = option.dataset.option;
+            
+            // 保存答案
+            gameState.testAnswers[questionId] = optionId;
+            
+            // 清除同一问题中其他选项的选择状态
+            const questionDiv = document.getElementById(`question-${questionId}`);
+            questionDiv.querySelectorAll('.option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // 标记当前选项为选中状态
+            option.classList.add('selected');
+            
+            // 更新导航按钮状态
+            updateTestNavigation();
+        }
+
+        // 显示指定问题
+        function showQuestion(questionId) {
+            // 隐藏所有问题
+            document.querySelectorAll('.test-question').forEach(q => {
+                q.style.display = 'none';
+            });
+            
+            // 显示指定问题
+            document.getElementById(`question-${questionId}`).style.display = 'block';
+            
+            // 更新问题计数器
+            document.getElementById('question-counter').textContent = `题目 ${questionId}/${gameState.testQuestions.length}`;
+            
+            // 更新导航按钮状态
+            updateTestNavigation();
+            
+            // 恢复之前的选择（如果有）
+            const selectedOption = gameState.testAnswers[questionId];
+            if (selectedOption) {
+                const optionElement = document.querySelector(`.option[data-question="${questionId}"][data-option="${selectedOption}"]`);
+                if (optionElement) {
+                    optionElement.classList.add('selected');
+                }
+            }
+            
+            gameState.currentQuestion = questionId;
+        }
+
+        // 显示上一题
+        function showPreviousQuestion() {
+            if (gameState.currentQuestion > 1) {
+                showQuestion(gameState.currentQuestion - 1);
+            }
+        }
+
+        // 显示下一题
+        function showNextQuestion() {
+            if (gameState.currentQuestion < gameState.testQuestions.length) {
+                showQuestion(gameState.currentQuestion + 1);
+            }
+        }
+
+        // 更新测试导航状态
+        function updateTestNavigation() {
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            
+            prevBtn.disabled = gameState.currentQuestion === 1;
+            nextBtn.disabled = gameState.currentQuestion === gameState.testQuestions.length;
+        }
+
+        // 提交测试
+        function submitTest() {
+            // 检查是否所有题目都已回答
+            const answeredCount = Object.keys(gameState.testAnswers).length;
+            if (answeredCount < gameState.testQuestions.length) {
+                alert(`请回答所有问题。您已回答了 ${answeredCount}/${gameState.testQuestions.length} 题。`);
+                return;
+            }
+            
+            // 计算得分
+            let score = 0;
+            gameState.testQuestions.forEach(q => {
+                if (gameState.testAnswers[q.id] === q.correct) {
+                    score += 25;
+                    
+                    // 标记正确答案
+                    const correctOption = document.querySelector(`.option[data-question="${q.id}"][data-option="${q.correct}"]`);
+                    if (correctOption) {
+                        correctOption.classList.add('correct');
+                    }
+                } else {
+                    // 标记错误答案
+                    const userOption = document.querySelector(`.option[data-question="${q.id}"][data-option="${gameState.testAnswers[q.id]}"]`);
+                    if (userOption) {
+                        userOption.classList.add('incorrect');
+                    }
+                    
+                    // 标记正确答案
+                    const correctOption = document.querySelector(`.option[data-question="${q.id}"][data-option="${q.correct}"]`);
+                    if (correctOption) {
+                        correctOption.classList.add('correct');
+                    }
+                }
+            });
+            
+            // 显示所有题目（以便查看答案）
+            document.querySelectorAll('.test-question').forEach(q => {
+                q.style.display = 'block';
+            });
+            
+            // 隐藏导航和提交按钮
+            document.getElementById('prev-btn').style.display = 'none';
+            document.getElementById('next-btn').style.display = 'none';
+            document.getElementById('submit-test').style.display = 'none';
+            document.getElementById('question-counter').style.display = 'none';
+            
+            // 显示结果
+            showTestResults(score);
+            
+            // 记录测试结果
+            learningRecorder.recordTestResult(score, gameState.testAnswers);
+            learningRecorder.recordProgress(4, score);
+            
+            // 检查成就
+            checkAchievements();
+        }
+
+        // 显示测试结果
+        function showTestResults(score) {
+            const results = document.getElementById('test-results');
+            const scoreDisplay = document.getElementById('score-display');
+            const engineerLevel = document.getElementById('engineer-level');
+            const levelComment = document.getElementById('level-comment');
+            
+            // 设置得分
+            scoreDisplay.textContent = `得分: ${score}/100`;
+            
+            // 根据得分确定工程师等级
+            let level, levelClass, comment;
+            
+            if (score >= 90) {
+                level = "专业工程师";
+                levelClass = "level-3";
+                comment = "恭喜！您全面掌握了传递现象的相似本质和相似放大原理，能够运用相似准则解决复杂工程放大问题，具备高级工程分析能力。";
+            } else if (score >= 70) {
+                level = "工程师";
+                levelClass = "level-2";
+                comment = "很好！您理解了传递现象的相似性和基本放大原理，掌握了工程放大的核心概念，能够处理一般的放大设计问题。";
+            } else {
+                level = "助理工程师";
+                levelClass = "level-1";
+                comment = "不错！您已理解传递现象的基本概念。建议进一步探索前三关，加深对相似性和放大原理的理解，提升工程分析能力。";
+            }
+            
+            // 设置等级和评语
+            engineerLevel.textContent = level;
+            engineerLevel.className = `engineer-level ${levelClass}`;
+            levelComment.textContent = comment;
+            
+            // 显示结果
+            results.classList.add('show');
+        }
+
+        // 重新测试
+        function retryTest() {
+            // 重置测试状态
+            gameState.testAnswers = {};
+            gameState.currentQuestion = 1;
+            
+            // 重置题目显示
+            document.querySelectorAll('.test-question').forEach((q, index) => {
+                q.style.display = index === 0 ? 'block' : 'none';
+                
+                // 清除选项状态
+                q.querySelectorAll('.option').forEach(option => {
+                    option.classList.remove('selected', 'correct', 'incorrect');
+                });
+            });
+            
+            // 恢复导航和提交按钮
+            document.getElementById('prev-btn').style.display = 'block';
+            document.getElementById('next-btn').style.display = 'block';
+            document.getElementById('submit-test').style.display = 'block';
+            document.getElementById('question-counter').style.display = 'block';
+            
+            // 隐藏结果
+            document.getElementById('test-results').classList.remove('show');
+            
+            // 更新导航状态
+            updateTestNavigation();
+            showQuestion(1);
+        }
+
+        // 页面加载完成后初始化登录界面
+        window.addEventListener('DOMContentLoaded', initLogin);
+        
+        // 窗口调整大小时重新绘制图表
+        window.addEventListener('resize', () => {
+            if (gameState.currentLevel === 1) {
+                resizeCharts(['momentum-curve', 'mass-curve', 'heat-curve']);
+            } else if (gameState.currentLevel === 2) {
+                const chart = document.getElementById('comparison-curve');
+                if (chart) Plotly.Plots.resize(chart);
+            } else if (gameState.currentLevel === 3) {
+                const chart = document.getElementById('scaling-curve');
+                if (chart) Plotly.Plots.resize(chart);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,2764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微流控芯片工程思维阶梯 - 第二关：边界之界</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #0a1f44;
+            --secondary-color: #00d4ff;
+            --accent-color: #7b42f6;
+            --success-color: #00e676;
+            --warning-color: #ff9100;
+            --danger-color: #ff4081;
+            --dark-bg: #0c1220;
+            --card-bg: rgba(18, 28, 52, 0.9);
+            --text-color: #e0e0ff;
+            --text-secondary: #a0a8d6;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(28, 58, 173, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(123, 66, 246, 0.1) 0%, transparent 20%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 10px 0;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .logo-icon {
+            font-size: 2.2rem;
+            color: var(--secondary-color);
+            text-shadow: 0 0 15px rgba(0, 212, 255, 0.7);
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            background: linear-gradient(90deg, var(--secondary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            letter-spacing: 1px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 1200px;
+            margin: 0 auto 10px;
+            line-height: 1.2;
+        }
+        
+        .tagline {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(10, 31, 68, 0.7);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 30px;
+            font-size: 0.95rem;
+            color: var(--secondary-color);
+            margin-top: 5px;
+        }
+        
+        .game-container {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .level-selector {
+            display: none;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 0px;
+        }
+        
+        .level-btn {
+            padding: 15px 25px;
+            background: var(--card-bg);
+            border: 2px solid rgba(123, 66, 246, 0.3);
+            border-radius: 10px;
+            color: var(--text-color);
+            font-size: 1.4rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            max-width: 350px;
+            text-align: center;
+        }
+        
+        .level-btn.active {
+            background: linear-gradient(135deg, var(--accent-color), #3a0ca3);
+            border-color: var(--accent-color);
+            box-shadow: 0 5px 15px rgba(123, 66, 246, 0.4);
+        }
+        
+        .level-content {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 212, 255, 0.1);
+            margin-bottom: 25px;
+            min-height: 500px;
+        }
+        
+        .level-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+        }
+        
+        .level-title {
+            font-size: 1.8rem;
+            color: var(--secondary-color);
+        }
+        
+        .level-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+        
+        .level-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .level-indicator i {
+            color: var(--secondary-color);
+        }
+        
+        .challenge-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 25px;
+        }
+        
+        .parameter-controls, .simulation-view {
+            background: rgba(12, 18, 32, 0.7);
+            border-radius: 10px;
+            padding: 10px;
+            border: 1px solid rgba(0, 212, 255, 0.1);
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            color: var(--secondary-color);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title i {
+            font-size: 1.2rem;
+        }
+        
+        .param-group {
+            margin-bottom: 10px;
+        }
+        
+        .param-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+        
+        .param-value {
+            color: var(--secondary-color);
+            font-weight: 600;
+        }
+        
+        .slider-container {
+            width: 100%;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--secondary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.8);
+        }
+        
+        .ai-guidance {
+            background: rgba(10, 25, 47, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid var(--accent-color);
+            margin-top: 15px;
+        }
+        
+        .ai-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .ai-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-color), #3a0ca3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        
+        .ai-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        
+        .ai-role {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .ai-message {
+            line-height: 1.7;
+            color: var(--text-color);
+        }
+        
+        .highlight {
+            color: var(--secondary-color);
+            background: rgba(0, 212, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .simulation-view {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .chip-container {
+            width: 100%;
+            height: 300px;
+            background: rgba(5, 10, 25, 0.8);
+            border-radius: 8px;
+            position: relative;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+        }
+        
+        /* 右侧面板 */
+        .results-panel {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 212, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: fit-content;
+            min-height: 600px;
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .results-title {
+            font-size: 1.5rem;
+            color: var(--secondary-color);
+        }
+        
+        .results-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .result-item {
+            background: rgba(12, 18, 32, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+        
+        .result-item.laminar {
+            border-left-color: var(--success-color);
+        }
+        
+        .result-item.turbulent {
+            border-left-color: var(--danger-color);
+        }
+        
+        .result-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+        
+        .result-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        
+        .result-unit {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-left: 3px;
+        }
+        
+        /* 右侧AI指导面板 */
+        .right-ai-guidance {
+            background: rgba(10, 25, 47, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid var(--accent-color);
+            margin-top: auto;
+        }
+        
+        .control-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-color), #3a0ca3);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--secondary-color);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color), #00c853);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        /* 数字画像和评级部分样式 */
+        .content-wrapper {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .report-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 212, 255, 0.1);
+            margin-bottom: 5px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+        }
+        
+        .card-title {
+            font-size: 1.8rem;
+            color: var(--secondary-color);
+        }
+        
+        .card-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 15px;
+            background: linear-gradient(135deg, var(--accent-color), #3a0ca3);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .rating-badge {
+            font-size: 1.1rem;
+            padding: 8px 20px;
+        }
+        
+        /* 能力画像表格样式 */
+        .ability-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: rgba(12, 18, 32, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .ability-table th {
+            background: rgba(123, 66, 246, 0.2);
+            color: var(--secondary-color);
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+        }
+        
+        .ability-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.05);
+        }
+        
+        .ability-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .ability-dimension {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        
+        .ability-score {
+            font-weight: 700;
+            font-size: 1.0rem;
+        }
+        
+        .ability-level {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-align: center;
+            display: inline-block;
+        }
+        
+        .level-excellent {
+            background: rgba(0, 230, 118, 0.15);
+            color: #00e676;
+            border: 1px solid rgba(0, 230, 118, 0.3);
+        }
+        
+        .level-good {
+            background: rgba(77, 195, 247, 0.15);
+            color: #4fc3f7;
+            border: 1px solid rgba(77, 195, 247, 0.3);
+        }
+        
+        .level-qualified {
+            background: rgba(255, 145, 0, 0.15);
+            color: #ff9100;
+            border: 1px solid rgba(255, 145, 0, 0.3);
+        }
+        
+        .level-basic {
+            background: rgba(255, 64, 129, 0.15);
+            color: #ff4081;
+            border: 1px solid rgba(255, 64, 129, 0.3);
+        }
+        
+        /* 工程师评级样式 */
+        .rating-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 5px;
+            text-align: center;
+        }
+        
+        .rating-icon {
+            font-size: 2.5rem;
+            color: var(--secondary-color);
+            margin-bottom: 5px;
+        }
+        
+        .rating-title {
+            font-size: 2rem;
+            color: var(--secondary-color);
+            margin-bottom: 5px;
+        }
+        
+        .rating-level {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #ffd700, #ff9100);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin: 15px 0;
+        }
+        
+        .rating-score {
+            margin-top: 15px;
+
+font-size: 1.2rem;
+            color: var(--text-color);
+            margin-bottom: 10px;
+        }
+        
+        .rating-description {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            line-height: 1.2;
+            max-width: 1200px;
+            margin-top: 10px;
+        }
+        
+        .strengths-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        .strength-item {
+            background: rgba(0, 212, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: var(--text-color);
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .strength-item i {
+            color: var(--success-color);
+        }
+        
+        /* 综合能力评分样式 */
+        .score-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .score-card {
+            background: rgba(12, 18, 32, 0.7);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            border-top: 4px solid;
+        }
+        
+        .score-card.laminar {
+            border-top-color: var(--success-color);
+        }
+        
+        .score-card.boundary {
+            border-top-color: var(--accent-color);
+        }
+        
+        .score-card.optimization {
+            border-top-color: var(--secondary-color);
+        }
+        
+        .score-label {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+        
+        .score-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text-color);
+        }
+        
+        .score-total {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+        
+        /* 综合评估样式 */
+        .evaluation-container {
+            margin-top: 10px;
+        }
+        
+        .evaluation-title {
+            font-size: 1.3rem;
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .evaluation-item {
+            background: rgba(12, 18, 32, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--accent-color);
+        }
+        
+        .evaluation-label {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 5px;
+        }
+        
+        .evaluation-value {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+        
+        /* 改进建议样式 */
+        .suggestions-container {
+            margin-top: 10px;
+        }
+        
+        .suggestion-item {
+            background: rgba(10, 25, 47, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid var(--accent-color);
+            margin-bottom: 15px;
+        }
+        
+        .suggestion-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .suggestion-text {
+            font-size: 0.95rem;
+            color: var(--text-color);
+            line-height: 1.5;
+        }
+        
+        /* 页面切换按钮 - 移动到页面底部 */
+        .page-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0 20px 0;
+            padding-top: 20px;
+            border-top: 1px solid rgba(0, 212, 255, 0.1);
+        }
+        
+        .page-btn {
+            padding: 12px 30px;
+            background: rgba(10, 31, 68, 0.7);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 30px;
+            color: var(--text-color);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .page-btn.active {
+            background: linear-gradient(135deg, var(--accent-color), #3a0ca3);
+            border-color: var(--accent-color);
+            box-shadow: 0 5px 15px rgba(123, 66, 246, 0.4);
+        }
+        
+        .page-btn:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent-color);
+            box-shadow: 0 10px 20px rgba(123, 66, 246, 0.2);
+        }
+        
+        /* 雷达图容器 */
+        .radar-container {
+            height: 350px;
+            margin-top: 20px;
+            position: relative;
+        }
+        
+        /* 能力评估蛛网图容器 */
+        .spider-chart-container {
+            height: 350px;
+            margin: 20px 0;
+            position: relative;
+        }
+        
+        /* 评级页面布局 */
+        .rating-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .rating-left {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        /* 能力评估对比布局 */
+        .ability-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .comparison-item {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 212, 255, 0.1);
+        }
+        
+        /* 评估维度说明 - 已移除 */
+        
+        /* 关键提示建议全宽样式 */
+        .key-suggestions-container {
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        .key-suggestions-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(123, 66, 246, 0.5);
+        }
+        
+        .key-suggestions-icon {
+            font-size: 1.8rem;
+            color: var(--secondary-color);
+            background: rgba(0, 212, 255, 0.1);
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .key-suggestions-title {
+            font-size: 1.5rem;
+            color: var(--secondary-color);
+            background: linear-gradient(90deg, var(--secondary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .key-suggestions-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        .key-suggestions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .key-suggestion-card {
+            background: rgba(10, 25, 47, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .key-suggestion-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+            border-color: var(--accent-color);
+        }
+        
+        .key-suggestion-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--accent-color), var(--secondary-color));
+        }
+        
+        .key-suggestion-priority {
+            display: inline-block;
+            padding: 5px 15px;
+            background: linear-gradient(135deg, #ff4081, #ff9100);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 15px;
+        }
+        
+        .key-suggestion-priority.high {
+            background: linear-gradient(135deg, #ff4081, #ff9100);
+        }
+        
+        .key-suggestion-priority.medium {
+            background: linear-gradient(135deg, #ff9100, #ffd700);
+        }
+        
+        .key-suggestion-priority.low {
+            background: linear-gradient(135deg, #00d4ff, #00e676);
+        }
+        
+        .key-suggestion-card-title {
+            font-size: 1.4rem;
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .key-suggestion-card-title i {
+            font-size: 1.3rem;
+        }
+        
+        .key-suggestion-card-content {
+            font-size: 1rem;
+            color: var(--text-color);
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+        
+        .key-suggestion-action {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+        
+        .key-suggestion-action i {
+            transition: transform 0.3s ease;
+        }
+        
+        .key-suggestion-card:hover .key-suggestion-action i {
+            transform: translateX(5px);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 20px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(0, 212, 255, 0.1);
+        }
+        
+        /* 重新开始按钮样式 */
+        .restart-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(0, 212, 255, 0.1);
+        }
+        
+        .restart-btn {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 1024px) {
+            .game-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .challenge-area {
+                grid-template-columns: 1fr;
+            }
+            
+            .results-panel {
+                height: auto;
+                min-height: auto;
+            }
+            
+            .content-wrapper {
+                grid-template-columns: 1fr;
+            }
+            
+            .score-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .strengths-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .rating-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .ability-comparison {
+                grid-template-columns: 1fr;
+            }
+            
+            .dimension-explanation {
+                grid-template-columns: 1fr;
+            }
+            
+            .key-suggestions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .level-selector {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .level-btn {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            .report-card {
+                padding: 20px;
+            }
+            
+            .ability-table {
+                display: block;
+                overflow-x: auto;
+            }
+            
+            .page-toggle {
+                flex-wrap: wrap;
+            }
+            
+            .page-btn {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+            
+            .score-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .key-suggestions-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .key-suggestions-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+            
+            .key-suggestions-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-microchip"></i>
+                </div>
+                <h1>微流控芯片工程思维阶梯</h1>
+            </div>
+            <p class="subtitle">边界层效应探索与工程师能力评估</p>
+   
+
+        </header>
+        
+        <!-- 只保留第二关按钮 -->
+        <div class="level-selector">
+            <button class="level-btn active">
+                <i class="fas fa-border-style"></i> 第二关：边界之界
+            </button>
+        </div>
+        
+        <!-- 模拟探索部分 -->
+        <div id="simulation-section">
+            <div class="game-container">
+                <div class="main-content">
+                    <div class="level-content" id="level-content">
+                        <!-- 关卡内容将通过JavaScript动态加载 -->
+                    </div>
+                    
+                    <div class="control-buttons">
+                        <button class="btn btn-primary" id="submit-level">
+                            <i class="fas fa-check-circle"></i> 提交并查看评测结果
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 右侧面板 -->
+                <div class="results-panel">
+                    <div class="results-header">
+                        <h3 class="results-title">实时结果</h3>
+                        <div class="level-indicator">
+                            <i class="fas fa-layer-group"></i> <span id="current-level-indicator">第二关</span>
+                        </div>
+                    </div>
+                    
+                    <div class="results-content" id="results-content">
+                        <!-- 结果内容将通过JavaScript动态加载 -->
+                    </div>
+                    
+                    <!-- 右侧AI指导面板 -->
+                    <div class="right-ai-guidance">
+                        <div class="ai-header">
+                            <div class="ai-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div>
+                                <div class="ai-name">AI思维阶梯</div>
+                                <div class="ai-role">数智领航工程师</div>
+                            </div>
+                        </div>
+                        <div class="ai-message" id="ai-message">
+                            欢迎来到第二关：边界之界！我是您的AI思维阶梯助手。在本关中，您需要分析流体与通道壁面之间的边界层效应。请注意观察边界层厚度与流速、粘度的关系。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 能力画像部分（初始隐藏） -->
+        <div id="profile-section" style="display: none;">
+            <div class="content-wrapper">
+                <!-- 数智工程能力画像 -->
+                <div class="report-card">
+                    <div class="card-header">
+                        <div>
+                            <h2 class="card-title">数智工程能力画像</h2>
+                            <p class="card-subtitle">基于边界之界挑战中的决策路径分析</p>
+                        </div>
+                        <div class="badge">AI智能生成</div>
+                    </div>
+                    
+                    <table class="ability-table">
+                        <thead>
+                            <tr>
+                                <th>能力维度</th>
+                                <th>评估要点</th>
+                                <th>得分</th>
+                                <th>等级</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ability-table-body">
+                            <!-- 通过JavaScript动态生成 -->
+                        </tbody>
+                    </table>
+                    
+                    <!-- 雷达图 -->
+                    <div class="radar-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- 改进建议 -->
+                <div class="report-card">
+                    <div class="card-header">
+                        <div>
+                            <h2 class="card-title">改进建议</h2>
+                            <p class="card-subtitle">基于您当前能力的个性化成长建议</p>
+                        </div>
+                        <div class="badge">AI推荐</div>
+                    </div>
+                    
+                    <div class="suggestions-container" id="suggestions-container">
+                        <!-- 通过JavaScript动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 评级部分（初始隐藏） -->
+        <div id="rating-section" style="display: none;">
+            <div class="content-wrapper">
+                <!-- 工程师评级 -->
+                <div class="report-card">
+                    <div class="card-header">
+                        <div>
+                            <h2 class="card-title">微流控芯片工程能力综合测试报告</h2>
+                            <p class="card-subtitle">基于边界之界挑战的全面评估与工程师等级认证</p>
+                        </div>
+                        <div class="badge rating-badge">等级认证</div>
+                    </div>
+                    
+                    <div class="rating-container">
+                        <div class="rating-icon">
+                            <i class="fas fa-award"></i>
+                        </div>
+                        
+                        <h2 class="rating-title">微流控芯片工程能力认证</h2>
+                        
+                        <div class="rating-level" id="engineer-level">未评估</div>
+                        
+                        <div class="rating-description" id="rating-description">
+                            提交您的设计后，将根据边界层控制效果进行能力评估和等级认证。
+                        </div>
+                        
+                        <!-- 综合能力评分 -->
+                        <div class="score-cards">
+                            <div class="score-card laminar">
+                                <div class="score-label">层流控制能力</div>
+                                <div class="score-value" id="laminar-score">0</div>
+                                <div class="score-total">分</div>
+                            </div>
+                            <div class="score-card boundary">
+                                <div class="score-label">边界层分析</div>
+                                <div class="score-value" id="boundary-score">0</div>
+                                <div class="score-total">分</div>
+                            </div>
+                            <div class="score-card optimization">
+                                <div class="score-label">优化设计能力</div>
+                                <div class="score-value" id="optimization-score">0</div>
+                                <div class="score-total">分</div>
+                            </div>
+                        </div>
+                        
+                        <div class="rating-score">
+                            综合评分: <span id="overall-score">0</span>/300 (平均: <span id="average-score">0</span>分)
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 能力评估对比 -->
+                <div class="ability-comparison">
+                    <!-- 左侧：能力评估蛛网图 -->
+                    <div class="comparison-item">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title">能力评估蛛网图</h2>
+                                <p class="card-subtitle">边界之界挑战中的综合能力评估</p>
+                            </div>
+                            <div class="badge">可视化分析</div>
+                        </div>
+                        
+                        <div class="spider-chart-container">
+                            <canvas id="spiderChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- 右侧：综合评估 -->
+                    <div class="comparison-item">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title">综合评估</h2>
+                                <p class="card-subtitle">基于边界层分析的详细能力评估</p>
+                            </div>
+                            <div class="badge">详细分析</div>
+                        </div>
+                        
+                        <div class="evaluation-container">
+                            <div class="evaluation-title">
+                                <i class="fas fa-tasks"></i> 综合能力评估
+                            </div>
+                            
+                            <div id="detailed-evaluations">
+                                <!-- 通过JavaScript动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 后续学习建议 - 全宽部分 -->
+                <div class="key-suggestions-container">
+                    <div class="key-suggestions-header">
+                        <div class="key-suggestions-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div>
+                            <h2 class="key-suggestions-title">后续学习建议</h2>
+                            <p class="key-suggestions-subtitle">基于您的边界层分析表现，AI为您定制的后续学习路径</p>
+                        </div>
+                    </div>
+                    
+                    <div class="key-suggestions-grid" id="key-suggestions-grid">
+                        <!-- 通过JavaScript动态生成 -->
+                    </div>
+                </div>
+                
+                <!-- 重新开始按钮 -->
+                <div class="restart-container">
+                    <button class="btn btn-success restart-btn" id="restart-btn">
+                        <i class="fas fa-redo"></i> 重新开始模拟
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 页面切换按钮 - 移动到页面底部 -->
+        <div class="page-toggle">
+            <button class="page-btn active" id="simulation-btn">
+                <i class="fas fa-sliders-h"></i> 模拟探索
+            </button>
+            <button class="page-btn" id="profile-btn">
+                <i class="fas fa-chart-line"></i> 能力画像
+            </button>
+            <button class="page-btn" id="rating-btn">
+                <i class="fas fa-award"></i> 评级报告
+            </button>
+        </div>
+        
+
+<!-- 底部信息栏 -->
+<div style="
+    text-align: center;
+    padding: 20px 30px;
+    margin-top: 40px;
+    color: #e6f7ff;
+    font-size: 0.9rem;
+    border-top: 2px solid rgba(0, 180, 255, 0.5);
+    background: linear-gradient(135deg, rgba(10, 15, 43, 0.95), rgba(18, 26, 58, 0.9));
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    /* 新增以下，确保完全宽度 */
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+">    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+        
+    <p style="font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; color: #00b4ff;">
+
+微流控芯片工程思维阶梯© 2025 | 边界层效应探索与工程师能力评估系统 | 版本1.0  |  
+    <style="margin-bottom: 12px; color: #cbd5e1;">
+        <strong>邮箱:</strong> xgyanger@qq.com
+    <div style="margin-top: 15px;">
+        <span style="color: #ffcc00; font-weight: bold; font-size: 1rem;">
+            版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+        </span>
+    </div>
+
+        </footer>
+    </div>
+
+    <script>
+        // 游戏状态管理
+        const gameState = {
+            currentLevel: 2,
+            levels: {
+                2: {
+                    title: "边界之界",
+                    subtitle: "The Boundary Barrier",
+                    completed: false,
+                    params: {
+                        surfaceRoughness: 0.1, // 表面粗糙度 (μm)
+                        flowVelocity: 0.5,     // 流速 (mm/s)
+                        viscosity: 1.0,        // 粘度 (cP)
+                        density: 1.0,          // 密度 (g/cm³)
+                        channelLength: 100     // 通道长度 (μm)
+                    },
+                    results: {
+                        boundaryLayer: 12.5,   // 边界层厚度 (μm)
+                        shearStress: 0.85,     // 壁面剪切应力 (Pa)
+                        pressureLoss: 5.2,     // 压力损失 (kPa)
+                        flowRegime: "层流"     // 流动状态
+                    }
+                }
+            },
+            // 数智工程能力画像数据 - 初始化默认值
+            abilityProfile: {
+                modelingAccuracy: 50,      // 建模准确度
+                parameterSensitivity: 50,  // 参数敏感性
+                decisionTradeoff: 50,     // 决策权衡比
+                systemCognition: 50,       // 系统认知
+                innovationThinking: 50,    // 创新思维
+                overallScore: 50           // 综合得分
+            },
+            // 工程师评级数据 - 初始化默认值
+            engineerRating: {
+                level: "助理工程师",
+                description: "此认证证明持有人在微流控芯片设计、层流控制、边界层分析和优化方面具备基础能力，能够处理常规微流控芯片设计任务。",
+                laminarScore: 50,
+                boundaryScore: 50,
+                optimizationScore: 50,
+                totalScore: 150,
+                averageScore: 50,
+                evaluations: [
+                    {
+                        label: "总分",
+                        value: "300 / 500"
+                    },
+                    {
+                        label: "平均分",
+                        value: "50"
+                    },
+                    {
+                        label: "雷诺数控制表现",
+                        value: "优秀"
+                    },
+                    {
+                        label: "流动状态控制",
+                        value: "优秀"
+                    },
+                    {
+                        label: "工程权衡能力",
+                        value: "合格"
+                    }
+                ]
+            },
+            // 能力评估蛛网图数据 - 新增
+            spiderChartData: {
+                parameterControl: 50,      // 参数控制能力
+                systemDesign: 50,          // 系统设计
+                engineeringTradeoff: 50,   // 工程权衡
+                optimization: 50,          // 优化能力
+                effectAnalysis: 50,        // 效应分析
+                innovativeThinking: 50     // 创新思维
+            },
+            // 关键提示建议数据 - 更新为4项
+            keySuggestions: [
+                {
+                    priority: "high",
+                    title: "通道高宽比优化",
+                    icon: "fas fa-expand-arrows-alt",
+                    content: "在层流控制中，可进一步优化通道高宽比以降低临界雷诺数下的压降，提升流动效率。",
+                    action: "学习通道几何优化方法"
+                },
+                {
+                    priority: "high",
+                    title: "微尺度雷诺数分析",
+                    icon: "fas fa-wave-square",
+                    content: "建议增加对微流控尺度下雷诺数非线性响应的理解，掌握微尺度流动的特殊规律。",
+                    action: "研究微尺度流动特性"
+                },
+                {
+                    priority: "medium",
+                    title: "系统能耗平衡",
+                    icon: "fas fa-balance-scale",
+                    content: "学习如何平衡流动时间与系统能耗的关系，在效率和能耗间找到最佳平衡点。",
+                    action: "学习系统能耗优化方法"
+                },
+                {
+                    priority: "medium",
+                    title: "传质动力学深化",
+                    icon: "fas fa-atom",
+                    content: "建议深入学习亚微米级约束下的传质动力学，提升多参数耦合分析能力。",
+                    action: "学习高级传质理论"
+                }
+            ],
+            // 改进建议数据 - 更新为新的4项建议
+            improvementSuggestions: [
+                {
+                    title: "通道高宽比优化",
+                    text: "在层流控制中，可进一步优化通道高宽比以降低临界雷诺数下的压降，提升流动效率。"
+                },
+                {
+                    title: "微尺度雷诺数分析",
+                    text: "建议增加对微流控尺度下雷诺数非线性响应的理解，掌握微尺度流动的特殊规律。"
+                },
+                {
+                    title: "系统能耗平衡",
+                    text: "学习如何平衡流动时间与系统能耗的关系，在效率和能耗间找到最佳平衡点。"
+                },
+                {
+                    title: "传质动力学深化",
+                    text: "建议深入学习亚微米级约束下的传质动力学，提升多参数耦合分析能力。"
+                }
+            ],
+            // 跟踪参数调整次数
+            parameterChanges: 0,
+            // 记录每次调整的时间戳
+            parameterChangeTimestamps: []
+        };
+
+        // DOM元素
+        const levelContent = document.getElementById('level-content');
+        const resultsContent = document.getElementById('results-content');
+        const aiMessage = document.getElementById('ai-message');
+        const submitBtn = document.getElementById('submit-level');
+        const currentLevelIndicator = document.getElementById('current-level-indicator');
+        const restartBtn = document.getElementById('restart-btn');
+        
+        // 页面切换元素
+        const simulationSection = document.getElementById('simulation-section');
+        const profileSection = document.getElementById('profile-section');
+        const ratingSection = document.getElementById('rating-section');
+        const simulationBtn = document.getElementById('simulation-btn');
+        const profileBtn = document.getElementById('profile-btn');
+        const ratingBtn = document.getElementById('rating-btn');
+        const pageBtns = document.querySelectorAll('.page-btn');
+
+        // 页面切换功能
+        simulationBtn.addEventListener('click', function() {
+            showSection('simulation');
+        });
+
+        profileBtn.addEventListener('click', function() {
+            showSection('profile');
+        });
+
+        ratingBtn.addEventListener('click', function() {
+            showSection('rating');
+        });
+
+        // 重新开始按钮功能
+        restartBtn.addEventListener('click', function() {
+            resetGame();
+            showSection('simulation');
+            
+            // 显示重置成功消息
+            aiMessage.innerHTML = `
+                <div style="margin-bottom: 15px;">
+                    <strong>游戏已重置！</strong> 所有参数已恢复为初始值，您可以重新开始第二关：边界之界的挑战。
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <strong>当前状态：</strong> 所有参数已重置<br>
+                    <strong>目标：</strong> 控制边界层厚度在<span class="highlight">10-15μm</span>范围内<br>
+                    <strong>参数调整次数：</strong> <span id="param-changes-count">0</span> 次
+                </div>
+            `;
+        });
+
+        function showSection(section) {
+            // 隐藏所有部分
+            simulationSection.style.display = 'none';
+            profileSection.style.display = 'none';
+            ratingSection.style.display = 'none';
+            
+            // 移除所有按钮的active类
+            pageBtns.forEach(btn => btn.classList.remove('active'));
+            
+            if (section === 'simulation') {
+                simulationSection.style.display = 'block';
+                simulationBtn.classList.add('active');
+            } else if (section === 'profile') {
+                profileSection.style.display = 'block';
+                profileBtn.classList.add('active');
+                
+                // 初始化能力画像部分
+                initProfileSection();
+            } else if (section === 'rating') {
+                ratingSection.style.display = 'block';
+                ratingBtn.classList.add('active');
+                
+                // 初始化评级部分
+                initRatingSection();
+            }
+        }
+
+        // 重置游戏状态
+        function resetGame() {
+            // 重置关卡参数
+            gameState.levels[2].params = {
+                surfaceRoughness: 0.1,
+                flowVelocity: 0.5,
+                viscosity: 1.0,
+                density: 1.0,
+                channelLength: 100
+            };
+            
+            // 重置结果
+            gameState.levels[2].results = {
+                boundaryLayer: 12.5,
+                shearStress: 0.85,
+                pressureLoss: 5.2,
+                flowRegime: "层流"
+            };
+            
+            // 重置完成状态
+            gameState.levels[2].completed = false;
+            
+            // 重置参数调整次数
+            gameState.parameterChanges = 0;
+            gameState.parameterChangeTimestamps = [];
+            
+            // 重置能力画像数据
+            gameState.abilityProfile = {
+                modelingAccuracy: 61,
+                parameterSensitivity: 70,
+                decisionTradeoff: 100,
+                systemCognition: 70,
+                innovationThinking: 80,
+                overallScore: 76
+            };
+            
+            // 重置工程师评级数据
+            gameState.engineerRating = {
+                level: "助理工程师",
+                description: "此认证证明持有人在微流控芯片设计、层流控制、边界层分析和优化方面具备基础能力，能够处理常规微流控芯片设计任务。",
+                laminarScore: 55,
+                boundaryScore: 55,
+                optimizationScore: 55,
+                totalScore: 165,
+                averageScore: 55,
+                evaluations: [
+                    {
+                        label: "总分",
+                        value: "393.33 / 500"
+                    },
+                    {
+                        label: "平均分",
+                        value: "79"
+                    },
+                    {
+                        label: "雷诺数控制表现",
+                        value: "优秀"
+                    },
+                    {
+                        label: "流动状态控制",
+                        value: "优秀"
+                    },
+                    {
+                        label: "工程权衡能力",
+                        value: "合格"
+                    }
+                ]
+            };
+            
+            // 重置蛛网图数据
+            gameState.spiderChartData = {
+                parameterControl: 65,
+                systemDesign: 70,
+                engineeringTradeoff: 75,
+                optimization: 68,
+                effectAnalysis: 72,
+                innovativeThinking: 70
+            };
+            
+            // 重新加载关卡
+            loadLevel(gameState.currentLevel);
+            
+            // 重新计算结果
+            updateLevel2Results();
+            
+            console.log('游戏已重置');
+        }
+
+        // 初始化游戏
+        function initGame() {
+            loadLevel(gameState.currentLevel);
+            // 记录初始参数调整
+            gameState.parameterChangeTimestamps.push(Date.now());
+            
+            // 生成示例数据
+            calculateAbilityProfile();
+            calculateEngineerRating();
+            calculateSpiderChartData();
+            updateKeySuggestions();
+        }
+
+        // 加载关卡内容
+        function loadLevel(level) {
+            const levelData = gameState.levels[level];
+            currentLevelIndicator.textContent = `第${level}关: ${levelData.title}`;
+            
+            // 加载关卡内容
+            levelContent.innerHTML = generateLevelContent(level);
+            
+            // 加载结果面板
+            resultsContent.innerHTML = generateResultsContent(level);
+            
+            // 为关卡特定元素添加事件监听器
+            if (level === 2) {
+                setupLevel2Events();
+            }
+            
+            // 更新AI消息
+            updateAIMessage(level);
+            
+            // 初始化可视化
+            if (level === 2) {
+                initBoundaryLayerVisualization();
+            }
+        }
+
+        // 生成第二关内容
+        function generateLevelContent(level) {
+            const levelData = gameState.levels[level];
+            
+            if (level === 2) {
+                return `
+                    <div class="level-header">
+                        <div>
+                            <h2 class="level-title">${levelData.title}</h2>
+                            <p class="level-subtitle">${levelData.subtitle}</p>
+                        </div>
+                        <div class="level-indicator">
+                            <i class="fas fa-wave-square"></i> 边界层分析挑战
+                        </div>
+                    </div>
+                    
+                    <div class="challenge-area">
+                        <div class="parameter-controls">
+                            <h3 class="section-title"><i class="fas fa-sliders-h"></i> 参数调整</h3>
+                            
+                            <div class="param-group">
+                                <div class="param-label">
+                                    <span>表面粗糙度 (μm)</span>
+                                    <span class="param-value" id="surfaceRoughness-value">${levelData.params.surfaceRoughness}</span>
+                                </div>
+                                <div class="slider-container">
+                                    <input type="range" min="0.01" max="0.5" step="0.01" value="${levelData.params.surfaceRoughness}" class="param-slider" id="surfaceRoughness-slider">
+                                </div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">
+                                    增加粗糙度会增强边界层效应
+                                </div>
+                            </div>
+                            
+                            <div class="param-group">
+                                <div class="param-label">
+                                    <span>流速 v (mm/s)</span>
+                                    <span class="param-value" id="flowVelocity-value">${levelData.params.flowVelocity}</span>
+                                </div>
+                                <div class="slider-container">
+                                    <input type="range" min="0.1" max="2" step="0.1" value="${levelData.params.flowVelocity}" class="param-slider" id="flowVelocity-slider">
+                                </div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">
+                                    增加流速会减小边界层厚度
+                                </div>
+                            </div>
+                            
+                            <div class="param-group">
+                                <div class="param-label">
+                                    <span>流体粘度 μ (cP)</span>
+                                    <span class="param-value" id="viscosity-value">${levelData.params.viscosity}</span>
+                                </div>
+                                <div class="slider-container">
+                                    <input type="range" min="0.5" max="3" step="0.1" value="${levelData.params.viscosity}" class="param-slider" id="viscosity-slider">
+                                </div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">
+                                    增加粘度会增强边界层效应
+                                </div>
+                            </div>
+                            
+                            <div class="param-group">
+                                <div class="param-label">
+                                    <span>流体密度 ρ (g/cm³)</span>
+                                    <span class="param-value" id="density-value">${levelData.params.density}</span>
+                                </div>
+                                <div class="slider-container">
+                                    <input type="range" min="0.5" max="2" step="0.1" value="${levelData.params.density}" class="param-slider" id="density-slider">
+                                </div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">
+                                    密度影响运动粘度，间接影响边界层
+                                </div>
+                            </div>
+                            
+                            <div class="param-group">
+                                <div class="param-label">
+                                    <span>通道长度 (μm)</span>
+                                    <span class="param-value" id="channelLength-value">${levelData.params.channelLength}</span>
+                                </div>
+                                <div class="slider-container">
+                                    <input type="range" min="50" max="200" value="${levelData.params.channelLength}" class="param-slider" id="channelLength-slider">
+                                </div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">
+                                    增加长度会使边界层逐渐发展变厚
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="simulation-view">
+                            <h3 class="section-title"><i class="fas fa-border-all"></i> 边界层模拟</h3>
+                            <div class="chip-container" id="boundary-visualization">
+                                <!-- 边界层可视化将通过JavaScript绘制 -->
+                            </div>
+                            <div class="param-group">
+                                <div class="param-label">
+                                    <span>目标边界层: <span class="highlight">10-15 μm</span></span>
+                                    <span class="param-value">当前: <span id="boundaryLayer-value">${levelData.results.boundaryLayer}</span> μm</span>
+                                </div>
+                                <div style="height: 10px; background: linear-gradient(to right, #ff4081, #ff9100, #00e676); border-radius: 5px; margin-top: 10px; position: relative;">
+                                    <div id="boundary-layer-indicator" style="position: absolute; top: -5px; width: 10px; height: 20px; background: white; border-radius: 2px; transform: translateX(-50%); left: 50%;"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px;">
+                                    <span>5μm</span>
+                                    <span>12.5μm</span>
+                                    <span>20μm</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ai-guidance">
+                        <div class="ai-header">
+                            <div class="ai-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div>
+                                <div class="ai-name">AI思维阶梯</div>
+                                <div class="ai-role">边界层分析要点</div>
+                            </div>
+                        </div>
+                        <div class="ai-message">
+                            <strong>边界层厚度公式：</strong> δ ≈ 5.0 × √(ν·x/U) × (1 + k)<br>
+                            <strong>其中：</strong> ν = μ/ρ (运动粘度), x = 通道长度, U = 流速, k = 表面粗糙度系数<br>
+                            <strong>设计目标：</strong> 控制边界层厚度在<span class='highlight'>10-15μm</span>范围内<br>
+                            <strong>关键发现：</strong> 表面粗糙度直接影响边界层厚度，粗糙度越大，边界层越厚<br>
+                            <strong>调整策略：</strong> 使用较低的表面粗糙度(0.1-0.2μm)和适中的流速(0.5-1.0mm/s)可获得最佳边界层厚度
+                        </div>
+                    </div>
+                `;
+            }
+            
+            return '';
+        }
+
+        // 生成结果内容
+        function generateResultsContent(level) {
+            const levelData = gameState.levels[level];
+            
+            if (level === 2) {
+                return `
+                    <div class="result-item ${levelData.results.boundaryLayer >= 10 && levelData.results.boundaryLayer <= 15 ? 'laminar' : 'turbulent'}">
+                        <div class="result-label">边界层厚度</div>
+                        <div class="result-value">${levelData.results.boundaryLayer.toFixed(1)}</div>
+                        <div class="result-unit">μm</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">壁面剪切应力</div>
+                        <div class="result-value">${levelData.results.shearStress.toFixed(2)}</div>
+                        <div class="result-unit">Pa</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">压力损失</div>
+                        <div class="result-value">${levelData.results.pressureLoss.toFixed(1)}</div>
+                        <div class="result-unit">kPa</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">流动状态</div>
+                        <div class="result-value">${levelData.results.flowRegime}</div>
+                    </div>
+                `;
+            }
+            
+            return '';
+        }
+
+        // 更新AI消息
+        function updateAIMessage(level) {
+            if (level === 2) {
+                aiMessage.innerHTML = `
+                    <div style="margin-bottom: 15px;">
+                        <strong>欢迎来到第二关：边界之界！</strong> 我是您的AI思维阶梯助手。在本关中，您需要分析流体与通道壁面之间的边界层效应。
+                    </div>
+                    
+                    <div style="margin-top: 15px;">
+                        <strong>关键挑战：</strong> 表面粗糙度如何影响边界层厚度？这如何影响系统的整体压降？
+                        <br><br>
+                        <strong>设计目标：</strong> 控制边界层厚度在<span class="highlight">10-15μm</span>范围内。注意：边界层过薄会增加壁面剪切应力，而过厚会影响通道的有效截面积。
+                        <br><br>
+                        <strong>已调整参数：</strong> <span id="param-changes-count">${gameState.parameterChanges}</span> 次
+                    </div>
+                `;
+            }
+        }
+
+        // 设置第二关事件监听
+        function setupLevel2Events() {
+            const sliders = document.querySelectorAll('.param-slider');
+            
+            sliders.forEach(slider => {
+                slider.addEventListener('input', function() {
+                    const paramId = this.id.replace('-slider', '');
+                    const value = this.value;
+                    
+                    // 更新显示值
+                    const valueElement = document.getElementById(`${paramId}-value`);
+                    if (valueElement) {
+                        valueElement.textContent = value;
+                    }
+                    
+                    // 更新游戏状态
+                    gameState.levels[2].params[paramId] = parseFloat(value);
+                    
+                    // 记录参数调整
+                    gameState.parameterChanges++;
+                    gameState.parameterChangeTimestamps.push(Date.now());
+                    
+                    // 更新AI消息中的调整次数
+                    const paramChangesElement = document.getElementById('param-changes-count');
+                    if (paramChangesElement) {
+                        paramChangesElement.textContent = gameState.parameterChanges;
+                    }
+                    
+                    // 重新计算结果
+                    updateLevel2Results();
+                });
+            });
+        }
+
+        // 更新第二关结果
+        function updateLevel2Results() {
+            const params = gameState.levels[2].params;
+            
+            // 计算运动粘度
+            const kinematicViscosity = params.viscosity / params.density;
+            
+            // 计算边界层厚度 - 修正公式：表面粗糙度直接影响边界层厚度
+            // 基本公式：δ ≈ 5.0 × √(ν·x/U)
+            // 加入表面粗糙度影响：δ ≈ 5.0 × √(ν·x/U) × (1 + surfaceRoughness * 10)
+            // 表面粗糙度单位为μm，乘以10转换为适当系数
+            const boundaryLayerBase = 5.0 * Math.sqrt(kinematicViscosity * params.channelLength / (params.flowVelocity * 1000));
+            const boundaryLayer = boundaryLayerBase * (1 + params.surfaceRoughness * 10);
+            
+            // 计算壁面剪切应力 - 受表面粗糙度影响
+            const shearStressBase = params.viscosity * params.flowVelocity * 1000 / boundaryLayerBase;
+            const shearStress = shearStressBase * (1 + params.surfaceRoughness * 5);
+            
+            // 计算压力损失 - 受表面粗糙度显著影响
+            const pressureLossBase = 0.5 * params.density * Math.pow(params.flowVelocity, 2) * 
+                (0.316 / Math.pow(params.flowVelocity * params.channelLength / kinematicViscosity, 0.25)) * 
+                (params.channelLength / 100);
+            
+            const pressureLoss = pressureLossBase * (1 + params.surfaceRoughness * 15);
+            
+            // 确定流动状态
+            let flowRegime;
+            if (boundaryLayer >= 10 && boundaryLayer <= 15) {
+                flowRegime = "优化边界层";
+            } else if (boundaryLayer < 10) {
+                flowRegime = "薄边界层";
+            } else {
+                flowRegime = "厚边界层";
+            }
+            
+            // 更新游戏状态
+            gameState.levels[2].results.boundaryLayer = boundaryLayer;
+            gameState.levels[2].results.shearStress = shearStress;
+            gameState.levels[2].results.pressureLoss = pressureLoss;
+            gameState.levels[2].results.flowRegime = flowRegime;
+            
+            // 更新结果显示
+            updateResultsDisplay();
+            
+            // 更新可视化
+            updateBoundaryLayerVisualization(boundaryLayer);
+            
+            // 更新边界层指示器
+            updateBoundaryLayerIndicator(boundaryLayer);
+        }
+
+        // 更新结果显示
+        function updateResultsDisplay() {
+            const resultsContent = document.getElementById('results-content');
+            resultsContent.innerHTML = generateResultsContent(2);
+            
+            // 更新边界层显示值
+            const boundaryLayerValue = document.getElementById('boundaryLayer-value');
+            if (boundaryLayerValue) {
+                boundaryLayerValue.textContent = gameState.levels[2].results.boundaryLayer.toFixed(1);
+            }
+        }
+
+        // 提交第二关
+        submitBtn.addEventListener('click', function() {
+            const levelData = gameState.levels[2];
+            levelData.completed = true;
+            
+            // 计算能力画像和评级数据（基于最终参数）
+            calculateAbilityProfile();
+            calculateEngineerRating();
+            calculateSpiderChartData();
+            updateKeySuggestions();
+            
+            // 显示成功消息
+            const boundaryLayer = levelData.results.boundaryLayer;
+            let message = '';
+            if (boundaryLayer >= 10 && boundaryLayer <= 15) {
+                message = "优秀！您成功控制了边界层厚度，达到了优化设计目标。";
+            } else if (boundaryLayer < 10) {
+                message = "边界层过薄，壁面剪切应力较大，可能增加能耗。";
+            } else {
+                message = "边界层过厚，有效流动截面积减小，可能影响传质效率。";
+            }
+            
+            // 显示在AI消息区域
+            aiMessage.innerHTML = `<div style="color: var(--text-color); line-height: 1.6;">
+                ${message}<br><br>
+                <strong>边界层厚度：</strong> ${boundaryLayer.toFixed(1)}μm<br>
+                <strong>目标范围：</strong> 10-15μm<br>
+                <strong>参数调整次数：</strong> ${gameState.parameterChanges}次<br><br>
+                已为您生成能力画像与评级报告，请切换到"能力画像"或"评级报告"页面查看。
+            </div>`;
+            
+            // 切换到能力画像页面
+            showSection('profile');
+        });
+
+        // 计算能力画像数据
+        function calculateAbilityProfile() {
+            const levelData = gameState.levels[2];
+            const params = levelData.params;
+            const results = levelData.results;
+            
+            // 计算各能力维度得分
+            // 1. 建模准确度：系统边界与阻力判断
+            const boundaryLayerDiff = Math.abs(results.boundaryLayer - 12.5);
+            const modelingAccuracy = Math.max(40, 100 - boundaryLayerDiff * 6);
+            
+            // 2. 参数敏感性：表面粗糙度影响掌控
+            const roughnessImpact = params.surfaceRoughness > 0.15 ? 1.0 : 0.8;
+            const parameterSensitivity = Math.min(100, 50 + roughnessImpact * 40);
+            
+            // 3. 决策权衡比：边界层厚度与压降的工程取舍
+            const pressureDiff = Math.abs(results.pressureLoss - 4.5);
+            const decisionTradeoff = Math.max(60, 100 - pressureDiff * 5);
+            
+            // 4. 系统认知：多物理场耦合理解
+            const systemCognition = Math.min(100, 40 + 
+                (results.boundaryLayer >= 10 && results.boundaryLayer <= 15 ? 30 : 20) +
+                (results.shearStress < 1.0 ? 20 : 10) +
+                (results.pressureLoss < 6.0 ? 10 : 0));
+            
+            // 5. 创新思维：探索深度与参数优化
+            const explorationDepth = Math.min(5, Math.max(1, gameState.parameterChanges / 3));
+            const innovationThinking = Math.min(100, 50 + explorationDepth * 8 + (gameState.parameterChanges > 5 ? 20 : 0));
+            
+            // 更新能力画像数据
+            gameState.abilityProfile.modelingAccuracy = Math.round(modelingAccuracy);
+            gameState.abilityProfile.parameterSensitivity = Math.round(parameterSensitivity);
+            gameState.abilityProfile.decisionTradeoff = Math.round(decisionTradeoff);
+            gameState.abilityProfile.systemCognition = Math.round(systemCognition);
+            gameState.abilityProfile.innovationThinking = Math.round(innovationThinking);
+            gameState.abilityProfile.overallScore = Math.round(
+                (modelingAccuracy + parameterSensitivity + decisionTradeoff + systemCognition + innovationThinking) / 5
+            );
+            
+            console.log('能力画像数据已计算:', gameState.abilityProfile);
+        }
+
+        // 计算工程师评级数据
+        function calculateEngineerRating() {
+            const abilityProfile = gameState.abilityProfile;
+            const levelData = gameState.levels[2];
+            const results = levelData.results;
+            
+            // 计算各项得分
+            // 层流控制能力
+            const laminarScore = Math.round(
+                (abilityProfile.modelingAccuracy * 0.4 +
+                 abilityProfile.systemCognition * 0.3 +
+                 abilityProfile.decisionTradeoff * 0.3)
+            );
+            
+            // 边界层分析能力
+            const boundaryScore = Math.round(
+                (abilityProfile.parameterSensitivity * 0.5 +
+                 abilityProfile.modelingAccuracy * 0.3 +
+                 abilityProfile.systemCognition * 0.2)
+            );
+            
+            // 优化设计能力
+            const optimizationScore = Math.round(
+                (abilityProfile.decisionTradeoff * 0.4 +
+                 abilityProfile.innovationThinking * 0.3 +
+                 abilityProfile.parameterSensitivity * 0.3)
+            );
+            
+            // 计算总分和平均分
+            const totalScore = laminarScore + boundaryScore + optimizationScore;
+            const averageScore = Math.round(totalScore / 3);
+            
+            // 确定工程师等级
+            let level, description;
+            if (averageScore >= 85) {
+                level = "首席工程师";
+                description = "此认证证明持有人在微流控芯片设计、层流控制、边界层分析和优化方面具备卓越能力，能够处理复杂微流控系统设计任务，具备领导团队进行创新研发的能力。";
+            } else if (averageScore >= 75) {
+                level = "资深工程师";
+                description = "此认证证明持有人在微流控芯片设计、层流控制、边界层分析和优化方面具备专业能力，能够独立完成复杂微流控芯片设计任务，具备解决技术难题的能力。";
+            } else if (averageScore >= 65) {
+                level = "工程师";
+                description = "此认证证明持有人在微流控芯片设计、层流控制、边界层分析和优化方面具备良好能力，能够完成常规微流控芯片设计任务，具备进一步提升的潜力。";
+            } else if (averageScore >= 55) {
+                level = "助理工程师";
+                description = "此认证证明持有人在微流控芯片设计、层流控制、边界层分析和优化方面具备基础能力，能够处理常规微流控芯片设计任务。";
+            } else {
+                level = "技术员";
+                description = "此认证证明持有人对微流控芯片设计、层流控制、边界层分析和优化有基本了解，能够在指导下完成简单设计任务。";
+            }
+            
+            // 更新工程师评级数据
+            gameState.engineerRating.level = level;
+            gameState.engineerRating.description = description;
+            gameState.engineerRating.laminarScore = laminarScore;
+            gameState.engineerRating.boundaryScore = boundaryScore;
+            gameState.engineerRating.optimizationScore = optimizationScore;
+            gameState.engineerRating.totalScore = totalScore;
+            gameState.engineerRating.averageScore = averageScore;
+            
+            console.log('工程师评级数据已计算:', gameState.engineerRating);
+        }
+
+        // 计算能力评估蛛网图数据
+        function calculateSpiderChartData() {
+            const levelData = gameState.levels[2];
+            const params = levelData.params;
+            const results = levelData.results;
+            const abilityProfile = gameState.abilityProfile;
+            
+            // 参数控制能力：关键参数调节能力
+            const parameterControlScore = Math.max(40, Math.min(100, 
+                50 + abilityProfile.parameterSensitivity * 0.4 +
+                (params.surfaceRoughness < 0.2 ? 15 : 5) +
+                (params.flowVelocity > 0.3 && params.flowVelocity < 1.5 ? 15 : 5)
+            ));
+            
+            // 系统设计：多参数协调与系统架构能力
+            const systemDesignScore = Math.max(40, Math.min(100, 
+                50 + abilityProfile.systemCognition * 0.5 +
+                (results.boundaryLayer >= 10 && results.boundaryLayer <= 15 ? 20 : 10)
+            ));
+            
+            // 工程权衡：边界层厚度与压降的平衡
+            const engineeringTradeoffScore = Math.max(40, Math.min(100, 
+                50 + abilityProfile.decisionTradeoff * 0.5 -
+                Math.abs(results.pressureLoss - 4.5) * 3
+            ));
+            
+            // 优化能力：寻找最优解的能力
+            const optimizationScore = Math.max(40, Math.min(100, 
+                50 + abilityProfile.innovationThinking * 0.4 +
+                (gameState.parameterChanges >= 3 && gameState.parameterChanges <= 10 ? 20 : 10)
+            ));
+            
+            // 效应分析：机理理解能力
+            const effectAnalysisScore = Math.max(40, Math.min(100, 
+                50 + abilityProfile.modelingAccuracy * 0.4 +
+                (params.surfaceRoughness > 0.05 && params.surfaceRoughness < 0.3 ? 20 : 10)
+            ));
+            
+            // 创新思维：探索新方法的能力
+            const innovativeThinkingScore = Math.max(40, Math.min(100, 
+                50 + abilityProfile.innovationThinking * 0.5 +
+                (gameState.parameterChanges > 5 ? 15 : 5)
+            ));
+            
+            // 更新蛛网图数据
+            gameState.spiderChartData.parameterControl = Math.round(parameterControlScore);
+            gameState.spiderChartData.systemDesign = Math.round(systemDesignScore);
+            gameState.spiderChartData.engineeringTradeoff = Math.round(engineeringTradeoffScore);
+            gameState.spiderChartData.optimization = Math.round(optimizationScore);
+            gameState.spiderChartData.effectAnalysis = Math.round(effectAnalysisScore);
+            gameState.spiderChartData.innovativeThinking = Math.round(innovativeThinkingScore);
+            
+            console.log('能力评估蛛网图数据已计算:', gameState.spiderChartData);
+        }
+
+        // 更新关键提示建议
+        function updateKeySuggestions() {
+            const suggestionsGrid = document.getElementById('key-suggestions-grid');
+            if (!suggestionsGrid) return;
+            
+            suggestionsGrid.innerHTML = '';
+            gameState.keySuggestions.forEach(suggestion => {
+                const suggestionCard = document.createElement('div');
+                suggestionCard.className = 'key-suggestion-card';
+                suggestionCard.innerHTML = `
+                    <div class="key-suggestion-priority ${suggestion.priority}">
+                        ${suggestion.priority === "high" ? "高优先级" : 
+                          suggestion.priority === "medium" ? "中优先级" : "低优先级"}
+                    </div>
+                    <div class="key-suggestion-card-title">
+                        <i class="${suggestion.icon}"></i>
+                        <span>${suggestion.title}</span>
+                    </div>
+                    <div class="key-suggestion-card-content">
+                        ${suggestion.content}
+                    </div>
+                    <div class="key-suggestion-action">
+                        <span>${suggestion.action}</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                `;
+                suggestionsGrid.appendChild(suggestionCard);
+            });
+        }
+
+        // 初始化边界层可视化
+        function initBoundaryLayerVisualization() {
+            const container = document.getElementById('boundary-visualization');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            const canvas = document.createElement('canvas');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            container.appendChild(canvas);
+            
+            const ctx = canvas.getContext('2d');
+            
+            // 绘制边界层模拟
+            drawBoundaryLayerChip(ctx, canvas.width, canvas.height, gameState.levels[2].results.boundaryLayer);
+        }
+
+        // 绘制边界层芯片
+        function drawBoundaryLayerChip(ctx, width, height, boundaryLayer) {
+            // 清除画布
+            ctx.clearRect(0, 0, width, height);
+            
+            // 绘制芯片背景
+            ctx.fillStyle = 'rgba(5, 10, 25, 1)';
+            ctx.fillRect(0, 0, width, height);
+            
+            // 绘制芯片边框
+            ctx.strokeStyle = 'rgba(0, 212, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(10, 10, width - 20, height - 20);
+            
+            // 绘制芯片标题
+            ctx.fillStyle = 'rgba(0, 212, 255, 0.7)';
+            ctx.font = '14px Arial';
+            ctx.fillText('边界层分析 - 平板流动', 20, 30);
+            
+            // 绘制平板
+            const plateY = height * 0.6;
+            const plateWidth = width * 0.7;
+            const plateX = width * 0.15;
+            
+            // 平板
+            ctx.fillStyle = 'rgba(100, 100, 120, 0.8)';
+            ctx.fillRect(plateX, plateY, plateWidth, 10);
+            
+            // 平板表面纹理（表示粗糙度）
+            const surfaceRoughness = gameState.levels[2].params.surfaceRoughness;
+            const roughnessIntensity = surfaceRoughness * 50; // 放大粗糙度视觉效果
+            
+            ctx.fillStyle = 'rgba(150, 150, 170, 0.9)';
+            for (let i = 0; i < plateWidth; i += 5) {
+                const roughnessHeight = Math.random() * roughnessIntensity;
+                ctx.fillRect(plateX + i, plateY, 2, 2 + roughnessHeight);
+            }
+            
+            // 绘制边界层
+            const boundaryLayerHeight = Math.min((boundaryLayer / 30) * height * 0.4, height * 0.35);
+            
+            // 边界层渐变
+            const boundaryGradient = ctx.createLinearGradient(plateX, plateY, plateX, plateY - boundaryLayerHeight);
+            boundaryGradient.addColorStop(0, 'rgba(0, 212, 255, 0.8)');
+            boundaryGradient.addColorStop(1, 'rgba(0, 212, 255, 0.1)');
+            
+            // 绘制边界层区域
+            ctx.fillStyle = boundaryGradient;
+            ctx.beginPath();
+            ctx.moveTo(plateX, plateY);
+            
+            // 边界层发展曲线（受粗糙度影响）
+            for (let x = 0; x <= plateWidth; x += 10) {
+                const development = x / plateWidth;
+                const roughnessEffect = surfaceRoughness * 5 * development;
+                const yOffset = boundaryLayerHeight * Math.sqrt(development) * (1 + roughnessEffect);
+                ctx.lineTo(plateX + x, plateY - yOffset);
+            }
+            
+            ctx.lineTo(plateX + plateWidth, plateY);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 绘制速度剖面
+            const profileX = plateX + plateWidth * 0.7;
+            ctx.strokeStyle = 'rgba(0, 230, 118, 0.8)';
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            ctx.moveTo(profileX, plateY);
+            
+            // 抛物线速度剖面（受粗糙度影响）
+            for (let y = 0; y <= boundaryLayerHeight; y += 2) {
+                const normalizedY = y / boundaryLayerHeight;
+                const roughnessEffect = 1 - surfaceRoughness * 2; // 粗糙度减小近壁面速度
+                const velocity = (1 - Math.pow(normalizedY - 1, 2)) * roughnessEffect;
+                const xOffset = velocity * 30;
+                ctx.lineTo(profileX + xOffset, plateY - y);
+            }
+            
+            ctx.stroke();
+            
+            // 绘制速度箭头
+            for (let i = 0; i < 5; i++) {
+                const y = plateY - (i * boundaryLayerHeight / 4);
+                const normalizedY = (plateY - y) / boundaryLayerHeight;
+                const roughnessEffect = i === 0 ? (1 - surfaceRoughness * 2) : 1; // 近壁面受粗糙度影响大
+                const velocity = (1 - Math.pow(normalizedY - 1, 2)) * roughnessEffect;
+                const arrowLength = velocity * 25;
+                
+                drawArrow(ctx, profileX - 40, y, arrowLength, 0);
+            }
+            
+            // 绘制标签
+            ctx.fillStyle = 'rgba(0, 212, 255, 0.9)';
+            ctx.font = '12px Arial';
+            ctx.fillText('边界层', plateX + plateWidth * 0.3, plateY - boundaryLayerHeight - 10);
+            ctx.fillText('速度剖面', profileX + 40, plateY - boundaryLayerHeight / 2);
+            ctx.fillText(`厚度: ${boundaryLayer.toFixed(1)}μm`, plateX + plateWidth / 2 - 30, plateY + 25);
+            ctx.fillText(`粗糙度: ${surfaceRoughness.toFixed(2)}μm`, plateX + plateWidth / 2 - 35, plateY + 45);
+        }
+
+        // 绘制箭头
+        function drawArrow(ctx, x, y, length, angle) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(length, 0);
+            ctx.lineTo(length - 8, -4);
+            ctx.moveTo(length, 0);
+            ctx.lineTo(length - 8, 4);
+            ctx.strokeStyle = 'rgba(0, 212, 255, 0.9)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+
+        // 更新边界层可视化
+        function updateBoundaryLayerVisualization(boundaryLayer) {
+            const container = document.getElementById('boundary-visualization');
+            if (!container) return;
+            
+            const canvas = container.querySelector('canvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            drawBoundaryLayerChip(ctx, canvas.width, canvas.height, boundaryLayer);
+        }
+
+        // 更新边界层指示器
+        function updateBoundaryLayerIndicator(boundaryLayer) {
+            const indicator = document.getElementById('boundary-layer-indicator');
+            if (!indicator) return;
+            
+            // 将边界层厚度映射到0-100%位置
+            // 5μm对应0%，20μm对应100%，12.5μm对应50%
+            let position = ((boundaryLayer - 5) / (20 - 5)) * 100;
+            position = Math.max(0, Math.min(100, position)); // 限制在0-100%之间
+            
+            indicator.style.left = `${position}%`;
+            
+            // 根据位置改变颜色
+            if (position >= 30 && position <= 70) {
+                indicator.style.background = '#00e676'; // 绿色，在目标范围内
+            } else if (position >= 20 && position <= 80) {
+                indicator.style.background = '#ff9100'; // 橙色，接近目标范围
+            } else {
+                indicator.style.background = '#ff4081'; // 红色，远离目标范围
+            }
+        }
+
+        // 初始化能力画像部分
+        function initProfileSection() {
+            // 更新能力画像表格
+            updateAbilityTable();
+            
+            // 初始化雷达图
+            initRadarChart();
+            
+            // 更新改进建议
+            updateSuggestions();
+            
+            // 添加动画效果
+            animateValueChanges();
+        }
+
+        // 初始化评级部分
+        function initRatingSection() {
+            // 更新工程师评级
+            updateEngineerRating();
+            
+            // 更新详细评估
+            updateDetailedEvaluations();
+            
+            // 更新关键提示建议
+            updateKeySuggestions();
+            
+            // 初始化蛛网图
+            initSpiderChart();
+            
+            // 添加动画效果
+            animateValueChanges();
+        }
+
+        // 更新能力画像表格
+        function updateAbilityTable() {
+            const abilityTableBody = document.getElementById('ability-table-body');
+            if (!abilityTableBody) return;
+            
+            const abilityProfile = gameState.abilityProfile;
+            
+            // 能力维度配置
+            const abilityDimensions = [
+                {
+                    dimension: "建模准确度",
+                    evaluation: "系统边界与阻力判断",
+                    score: abilityProfile.modelingAccuracy,
+                    getLevel: (score) => {
+                        if (score >= 90) return {text: "卓越", class: "level-excellent"};
+                        if (score >= 80) return {text: "优秀", class: "level-excellent"};
+                        if (score >= 70) return {text: "良好", class: "level-good"};
+                        if (score >= 60) return {text: "合格", class: "level-qualified"};
+                        return {text: "基础", class: "level-basic"};
+                    }
+                },
+                {
+                    dimension: "参数敏感性",
+                    evaluation: "表面粗糙度影响掌控",
+                    score: abilityProfile.parameterSensitivity,
+                    getLevel: (score) => {
+                        if (score >= 85) return {text: "卓越", class: "level-excellent"};
+                        if (score >= 75) return {text: "优秀", class: "level-excellent"};
+                        if (score >= 65) return {text: "良好", class: "level-good"};
+                        if (score >= 55) return {text: "合格", class: "level-qualified"};
+                        return {text: "基础", class: "level-basic"};
+                    }
+                },
+                {
+                    dimension: "决策权衡比",
+                    evaluation: "边界层厚度与压降的工程取舍",
+                    score: abilityProfile.decisionTradeoff,
+                    getLevel: (score) => {
+                        if (score >= 90) return {text: "卓越", class: "level-excellent"};
+                        if (score >= 80) return {text: "优秀", class: "level-excellent"};
+                        if (score >= 70) return {text: "良好", class: "level-good"};
+                        if (score >= 60) return {text: "合格", class: "level-qualified"};
+                        return {text: "基础", class: "level-basic"};
+                    }
+                },
+                {
+                    dimension: "系统认知",
+                    evaluation: "多物理场耦合理解",
+                    score: abilityProfile.systemCognition,
+                    getLevel: (score) => {
+                        if (score >= 85) return {text: "卓越", class: "level-excellent"};
+                        if (score >= 75) return {text: "优秀", class: "level-excellent"};
+                        if (score >= 65) return {text: "良好", class: "level-good"};
+                        if (score >= 55) return {text: "合格", class: "level-qualified"};
+                        return {text: "基础", class: "level-basic"};
+                    }
+                },
+                {
+                    dimension: "创新思维",
+                    evaluation: "探索深度与参数优化设计",
+                    score: abilityProfile.innovationThinking,
+                    getLevel: (score) => {
+                        if (score >= 85) return {text: "卓越", class: "level-excellent"};
+                        if (score >= 75) return {text: "优秀", class: "level-excellent"};
+                        if (score >= 65) return {text: "良好", class: "level-good"};
+                        if (score >= 55) return {text: "合格", class: "level-qualified"};
+                        return {text: "基础", class: "level-basic"};
+                    }
+                }
+            ];
+            
+            // 生成表格行
+            abilityTableBody.innerHTML = '';
+            abilityDimensions.forEach(dim => {
+                const level = dim.getLevel(dim.score);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="ability-dimension">${dim.dimension}</td>
+                    <td>${dim.evaluation}</td>
+                    <td class="ability-score">${dim.score}/100</td>
+                    <td><span class="ability-level ${level.class}">${level.text}</span></td>
+                `;
+                abilityTableBody.appendChild(row);
+            });
+        }
+
+        // 初始化雷达图
+        function initRadarChart() {
+            const ctx = document.getElementById('radarChart');
+            if (!ctx) return;
+            
+            // 清除已有的图表
+            if (window.radarChartInstance) {
+                window.radarChartInstance.destroy();
+            }
+            
+            const radarData = {
+                labels: [
+                    '建模准确度',
+                    '参数敏感性', 
+                    '决策权衡比',
+                    '系统认知',
+                    '创新思维'
+                ],
+                datasets: [{
+                    label: '您的能力维度',
+                    data: [
+                        gameState.abilityProfile.modelingAccuracy,
+                        gameState.abilityProfile.parameterSensitivity,
+                        gameState.abilityProfile.decisionTradeoff,
+                        gameState.abilityProfile.systemCognition,
+                        gameState.abilityProfile.innovationThinking
+                    ],
+                    backgroundColor: 'rgba(0, 212, 255, 0.2)',
+                    borderColor: 'rgba(0, 212, 255, 0.8)',
+                    pointBackgroundColor: 'rgba(0, 212, 255, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(0, 212, 255, 1)',
+                    borderWidth: 2,
+                    pointRadius: 4
+                }, {
+                    label: '行业平均水平',
+                    data: [65, 62, 68, 63, 66],
+                    backgroundColor: 'rgba(123, 66, 246, 0.1)',
+                    borderColor: 'rgba(123, 66, 246, 0.5)',
+                    pointBackgroundColor: 'rgba(123, 66, 246, 0.7)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(123, 66, 246, 1)',
+                    borderWidth: 1,
+                    pointRadius: 3,
+                    borderDash: [5, 5]
+                }]
+            };
+            
+            // 雷达图配置
+            const config = {
+                type: 'radar',
+                data: radarData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            pointLabels: {
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                font: {
+                                    size: 13
+                                }
+                            },
+                            ticks: {
+                                backdropColor: 'transparent',
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                font: {
+                                    size: 10
+                                }
+                            },
+                            suggestedMin: 40,
+                            suggestedMax: 100
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                font: {
+                                    size: 13
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(10, 31, 68, 0.9)',
+                            titleColor: 'rgba(0, 212, 255, 0.9)',
+                            bodyColor: 'rgba(255, 255, 255, 0.9)',
+                            borderColor: 'rgba(0, 212, 255, 0.3)',
+                            borderWidth: 1
+                        }
+                    }
+                }
+            };
+            
+            // 创建雷达图
+            window.radarChartInstance = new Chart(ctx, config);
+        }
+
+        // 更新工程师评级
+        function updateEngineerRating() {
+            const rating = gameState.engineerRating;
+            
+            document.getElementById('engineer-level').textContent = rating.level;
+            document.getElementById('rating-description').textContent = rating.description;
+            document.getElementById('laminar-score').textContent = rating.laminarScore;
+            document.getElementById('boundary-score').textContent = rating.boundaryScore;
+            document.getElementById('optimization-score').textContent = rating.optimizationScore;
+            document.getElementById('overall-score').textContent = rating.totalScore;
+            document.getElementById('average-score').textContent = rating.averageScore;
+        }
+
+        // 更新详细评估
+        function updateDetailedEvaluations() {
+            const evaluationsContainer = document.getElementById('detailed-evaluations');
+            if (!evaluationsContainer) return;
+            
+            const evaluations = gameState.engineerRating.evaluations;
+            
+            evaluationsContainer.innerHTML = '';
+            evaluations.forEach(evalItem => {
+                const evaluationDiv = document.createElement('div');
+                evaluationDiv.className = 'evaluation-item';
+                evaluationDiv.innerHTML = `
+                    <div class="evaluation-label">${evalItem.label}</div>
+                    <div class="evaluation-value">${evalItem.value}</div>
+                `;
+                evaluationsContainer.appendChild(evaluationDiv);
+            });
+        }
+
+        // 初始化蛛网图
+        function initSpiderChart() {
+            const ctx = document.getElementById('spiderChart');
+            if (!ctx) return;
+            
+            // 清除已有的图表
+            if (window.spiderChartInstance) {
+                window.spiderChartInstance.destroy();
+            }
+            
+            const spiderData = {
+                labels: ['参数控制', '系统设计', '工程权衡', '优化能力', '效应分析', '创新思维'],
+                datasets: [{
+                    label: '您的能力评估',
+                    data: [
+                        gameState.spiderChartData.parameterControl,
+                        gameState.spiderChartData.systemDesign,
+                        gameState.spiderChartData.engineeringTradeoff,
+                        gameState.spiderChartData.optimization,
+                        gameState.spiderChartData.effectAnalysis,
+                        gameState.spiderChartData.innovativeThinking
+                    ],
+                    backgroundColor: 'rgba(123, 66, 246, 0.2)',
+                    borderColor: 'rgba(123, 66, 246, 0.8)',
+                    pointBackgroundColor: 'rgba(123, 66, 246, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(123, 66, 246, 1)',
+                    borderWidth: 2,
+                    pointRadius: 5
+                }, {
+                    label: '优秀工程师目标',
+                    data: [85, 80, 85, 80, 85, 80],
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    borderColor: 'rgba(0, 212, 255, 0.5)',
+                    pointBackgroundColor: 'rgba(0, 212, 255, 0.7)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(0, 212, 255, 1)',
+                    borderWidth: 1,
+                    pointRadius: 3,
+                    borderDash: [5, 5]
+                }]
+            };
+            
+            // 蛛网图配置
+            const config = {
+                type: 'radar',
+                data: spiderData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            pointLabels: {
+                                color: 'rgba(255, 255, 255, 0.9)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                backdropColor: 'transparent',
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                font: {
+                                    size: 10
+                                },
+                                stepSize: 20
+                            },
+                            suggestedMin: 40,
+                            suggestedMax: 100
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                font: {
+                                    size: 13
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(10, 31, 68, 0.9)',
+                            titleColor: 'rgba(123, 66, 246, 0.9)',
+                            bodyColor: 'rgba(255, 255, 255, 0.9)',
+                            borderColor: 'rgba(123, 66, 246, 0.3)',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw}分`;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            // 创建蛛网图
+            window.spiderChartInstance = new Chart(ctx, config);
+        }
+
+        // 更新改进建议
+        function updateSuggestions() {
+            const suggestionsContainer = document.getElementById('suggestions-container');
+            if (!suggestionsContainer) return;
+            
+            suggestionsContainer.innerHTML = '';
+            gameState.improvementSuggestions.forEach(suggestion => {
+                const suggestionDiv = document.createElement('div');
+                suggestionDiv.className = 'suggestion-item';
+                suggestionDiv.innerHTML = `
+                    <div class="suggestion-title">
+                        <i class="fas fa-lightbulb"></i> ${suggestion.title}
+                    </div>
+                    <div class="suggestion-text">${suggestion.text}</div>
+                `;
+                suggestionsContainer.appendChild(suggestionDiv);
+            });
+        }
+
+        // 数值变化动画
+        function animateValueChanges() {
+            const valueElements = document.querySelectorAll('.ability-score, .score-value, .rating-score span');
+            
+            valueElements.forEach(element => {
+                element.style.opacity = '0.7';
+                element.style.transform = 'scale(0.9)';
+                
+                setTimeout(() => {
+                    element.style.transition = 'all 0.5s ease';
+                    element.style.opacity = '1';
+                    element.style.transform = 'scale(1)';
+                }, 300);
+            });
+        }
+
+        // 初始化游戏
+        initGame();
+        
+        // 初始化第二关结果
+        updateLevel2Results();
+        
+        console.log('第二关页面已加载');
+        console.log('能力画像数据:', gameState.abilityProfile);
+        console.log('工程师评级数据:', gameState.engineerRating);
+        console.log('能力评估蛛网图数据:', gameState.spiderChartData);
+        console.log('关键提示建议数据:', gameState.keySuggestions);
+    </script>
+</body>
+</html>

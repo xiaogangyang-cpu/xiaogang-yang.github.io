@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>香蕉球（Magnus 效应）— 伯努利方程交互实验</title>
+  <style>
+    :root {
+      --primary-color: #3b82f6;
+      --primary-dark: #1d4ed8;
+      --primary-light: #60a5fa;
+      --secondary-color: #8b5cf6;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --danger-color: #ef4444;
+      --bg-dark: #0b1220;
+      --bg-card: #1e293b;
+      --bg-card-light: rgba(30, 41, 59, 0.7);
+      --text-primary: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+      --border-color: #334155;
+      --glow-blue: rgba(59, 130, 246, 0.3);
+      --glow-purple: rgba(139, 92, 246, 0.3);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: all 0.3s ease;
+    }
+    
+    body { 
+      margin: 0;
+      font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1f2e 100%);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    /* 背景装饰 */
+    .bg-pattern {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(239, 68, 68, 0.03) 0%, transparent 40%);
+      z-index: -1;
+    }
+    
+    /* 头部 */
+    .header {
+      text-align: center;
+      padding: 1.5rem 2rem;
+      background: linear-gradient(90deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8));
+      border-bottom: 1px solid var(--border-color);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      position: relative;
+      z-index: 10;
+    }
+    
+    .header h1 {
+      font-size: 2.2rem;
+      background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+    }
+    
+    .header p {
+      color: var(--text-secondary);
+      max-width: 800px;
+      margin: 0 auto;
+      font-size: 1.1rem;
+      line-height: 1.5;
+    }
+    
+    /* 主内容区 */
+    .main-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      padding: 2rem;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    
+    /* 左侧控制面板 */
+    .control-panel {
+      flex: 1;
+      min-width: 320px;
+      background: var(--bg-card-light);
+      border-radius: 16px;
+      padding: 1.5rem;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      height: fit-content;
+      position: relative;
+      z-index: 5;
+    }
+    
+    .control-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+    }
+    
+    .panel-header {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .panel-title {
+      font-size: 1.5rem;
+      color: var(--primary-light);
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    
+    .panel-subtitle {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    
+    /* 控制组 */
+    .control-group {
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 12px;
+      border: 1px solid rgba(71, 85, 105, 0.3);
+    }
+    
+    .control-group label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.75rem;
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+    
+    input[type=range] { 
+      width: 100%; 
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #1e293b, #334155);
+      outline: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      border: 1px solid #475569;
+    }
+    
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      background: var(--primary-color);
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 0 10px var(--glow-blue);
+      transition: all 0.2s;
+    }
+    
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 15px var(--glow-blue);
+    }
+    
+    .value-display {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    
+    .current-value {
+      color: var(--primary-light);
+      font-weight: 600;
+      font-family: 'Consolas', monospace;
+      font-size: 1.1rem;
+    }
+    
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: rgba(30, 41, 59, 0.5);
+      border-radius: 12px;
+      border: 1px solid rgba(71, 85, 105, 0.3);
+    }
+    
+    .toggle-group label {
+      margin: 0;
+      flex: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    
+    .toggle-group input[type="checkbox"] {
+      margin-right: 12px;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      accent-color: var(--primary-color);
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .action-btn {
+      flex: 1;
+      padding: 1rem;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+    
+    .action-btn:hover {
+      transform: translateY(-2px);
+    }
+    
+    #evaluateBtn {
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      color: white;
+      box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
+    }
+    
+    #evaluateBtn:hover {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+      box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5);
+    }
+    
+    #resetBtn {
+      background: rgba(71, 85, 105, 0.5);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+    
+    #resetBtn:hover {
+      background: rgba(71, 85, 105, 0.8);
+    }
+    
+    /* 画布区域 */
+    .canvas-container {
+      flex: 2;
+      min-width: 500px;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      position: relative;
+    }
+    
+    #c {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 600px;
+      background: linear-gradient(180deg, #0a1429 0%, #1a264a 100%);
+    }
+    
+    /* 可视化提示 */
+    .visualization-hint {
+      position: absolute;
+      bottom: 1.5rem;
+      left: 1.5rem;
+      background: rgba(15, 23, 42, 0.8);
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+      max-width: 300px;
+      backdrop-filter: blur(5px);
+      z-index: 5;
+    }
+    
+    .hint-title {
+      color: var(--primary-light);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1rem;
+    }
+    
+    .hint-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    
+    .hint-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 0.75rem;
+    }
+    
+    .hint-blue {
+      background-color: var(--primary-color);
+      box-shadow: 0 0 8px var(--glow-blue);
+    }
+    
+    .hint-red {
+      background-color: var(--danger-color);
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+    }
+    
+    .hint-purple {
+      background-color: var(--secondary-color);
+      box-shadow: 0 0 8px var(--glow-purple);
+    }
+    
+    /* 评测弹窗 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      backdrop-filter: blur(5px);
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 900px;
+      max-height: 90vh;
+      background: var(--bg-card);
+      border-radius: 20px;
+      z-index: 1001;
+      overflow: hidden;
+      border: 2px solid var(--primary-color);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    }
+    
+    .modal-header {
+      background: linear-gradient(90deg, var(--primary-dark), var(--primary-color));
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .modal-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin: 0;
+      color: white;
+    }
+    
+    .modal-subtitle {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.8);
+      margin-top: 0.5rem;
+    }
+    
+    .modal-content {
+      padding: 2rem;
+      overflow-y: auto;
+      max-height: 60vh;
+    }
+    
+    .evaluation-section {
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: rgba(30, 41, 59, 0.5);
+      border-radius: 12px;
+      border: 1px solid rgba(71, 85, 105, 0.3);
+    }
+    
+    .section-title {
+      font-size: 1.3rem;
+      color: var(--primary-light);
+      margin-top: 0;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .parameter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    
+    .parameter-card {
+      background: rgba(15, 23, 42, 0.7);
+      padding: 1rem;
+      border-radius: 10px;
+      border-left: 4px solid var(--primary-color);
+    }
+    
+    .param-name {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    
+    .param-value {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--primary-light);
+      font-family: 'Consolas', monospace;
+    }
+    
+    .formula-box {
+      background: rgba(15, 23, 42, 0.8);
+      padding: 1.5rem;
+      border-radius: 12px;
+      text-align: center;
+      margin: 1.5rem 0;
+      border: 1px dashed var(--primary-color);
+    }
+    
+    .formula {
+      font-family: 'Cambria Math', 'Times New Roman', serif;
+      font-size: 1.6rem;
+      color: var(--primary-light);
+      margin: 0.75rem 0;
+    }
+    
+    .formula-note {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 0.75rem;
+      font-style: italic;
+    }
+    
+    .explanation {
+      line-height: 1.6;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+    }
+    
+    .highlight {
+      color: var(--warning-color);
+      font-weight: 600;
+    }
+    
+    .trajectory-comparison {
+      display: flex;
+      justify-content: space-between;
+      margin: 1.5rem 0;
+      gap: 1.5rem;
+    }
+    
+    .trajectory-card {
+      flex: 1;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 1.5rem;
+      border-radius: 12px;
+      text-align: center;
+      border: 1px solid rgba(71, 85, 105, 0.3);
+    }
+    
+    .trajectory-title {
+      font-size: 1.1rem;
+      color: var(--primary-light);
+      margin-bottom: 1rem;
+    }
+    
+    .trajectory-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin: 0.75rem 0;
+    }
+    
+    .positive {
+      color: var(--success-color);
+    }
+    
+    .negative {
+      color: var(--danger-color);
+    }
+    
+    .magnus-effect {
+      color: var(--secondary-color);
+    }
+    
+    .bernoulli-effect {
+      color: var(--primary-color);
+    }
+    
+    .close-btn {
+      display: block;
+      width: 100%;
+      padding: 1.25rem;
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      color: white;
+      border: none;
+      border-radius: 0 0 18px 18px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .close-btn:hover {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+    }
+    
+    /* 底部信息栏 */
+    .footer {
+      text-align: center;
+      padding: 1.5rem 2rem;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      border-top: 2px solid rgba(59, 130, 246, 0.5);
+      background: linear-gradient(135deg, rgba(11, 18, 32, 0.95), rgba(30, 41, 59, 0.9));
+      margin-top: 2rem;
+      position: relative;
+      overflow: hidden;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    
+    .footer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary-color), var(--primary-light), var(--primary-color));
+    }
+    
+    .footer-title {
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-bottom: 0.75rem;
+      color: var(--primary-color);
+    }
+    
+    .footer-info {
+      margin-bottom: 0.75rem;
+      color: var(--text-secondary);
+    }
+    
+    .footer-copyright {
+      color: var(--warning-color);
+      font-weight: bold;
+      font-size: 1rem;
+      margin-top: 1rem;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 1100px) {
+      .main-container {
+        flex-direction: column;
+      }
+      
+      .canvas-container, .control-panel {
+        min-width: 100%;
+      }
+      
+      .canvas-container {
+        order: 1;
+      }
+      
+      .control-panel {
+        order: 2;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 1.8rem;
+      }
+      
+      .header p {
+        font-size: 1rem;
+      }
+      
+      .main-container {
+        padding: 1rem;
+        gap: 1.5rem;
+      }
+      
+      .control-panel, .canvas-container {
+        border-radius: 12px;
+      }
+      
+      .parameter-grid, .trajectory-comparison {
+        grid-template-columns: 1fr;
+      }
+      
+      .trajectory-comparison {
+        flex-direction: column;
+      }
+      
+      .visualization-hint {
+        position: static;
+        max-width: 100%;
+        margin: 1.5rem;
+      }
+      
+      .modal {
+        width: 95%;
+        max-height: 85vh;
+      }
+      
+      .modal-content {
+        padding: 1.5rem;
+      }
+      
+      .action-buttons {
+        flex-direction: column;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .header {
+        padding: 1rem;
+      }
+      
+      .header h1 {
+        font-size: 1.5rem;
+      }
+      
+      .panel-title {
+        font-size: 1.3rem;
+      }
+      
+      .modal-title {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-pattern"></div>
+  
+  <!-- 头部 -->
+  <header class="header">
+    <h1>⚽ 香蕉球（Magnus效应）实验</h1>
+    <p>通过交互式模拟探索伯努利方程与旋转流体动力学原理，调整参数观察足球轨迹变化</p>
+  </header>
+  
+  <!-- 主内容区 -->
+  <div class="main-container">
+    <!-- 左侧控制面板 -->
+    <div class="control-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">实验参数控制</h2>
+        <p class="panel-subtitle">调整参数观察Magnus效应如何影响足球轨迹</p>
+      </div>
+      
+      <div class="control-group">
+        <label>自转角速度 ω (rad/s)</label>
+        <input id="spin" type="range" min="-6" max="6" step="0.1" value="3" />
+        <div class="value-display">
+          <span>逆时针旋转</span>
+          <span id="spinValue" class="current-value">3.0</span>
+          <span>顺时针旋转</span>
+        </div>
+      </div>
+      
+      <div class="control-group">
+        <label>初始平动速度 v (m/s)</label>
+        <input id="speed" type="range" min="2" max="8" step="0.1" value="4" />
+        <div class="value-display">
+          <span>慢</span>
+          <span id="speedValue" class="current-value">4.0</span>
+          <span>快</span>
+        </div>
+      </div>
+      
+      <div class="toggle-group">
+        <label>
+          <input type="checkbox" id="toggleSpin" checked /> 
+          启用旋转（Magnus效应）
+        </label>
+      </div>
+      
+      <div class="action-buttons">
+        <button id="evaluateBtn" class="action-btn">🔍 伯努利方程评测</button>
+        <button id="resetBtn" class="action-btn">↺ 重置实验</button>
+      </div>
+    </div>
+    
+    <!-- 右侧画布区域 -->
+    <div class="canvas-container">
+      <canvas id="c"></canvas>
+      
+      <!-- 可视化提示 -->
+      <div class="visualization-hint">
+        <div class="hint-title">💡 可视化提示</div>
+        <div class="hint-item">
+          <div class="hint-color hint-blue"></div>
+          <div>蓝色箭头：速度方向</div>
+        </div>
+        <div class="hint-item">
+          <div class="hint-color hint-red"></div>
+          <div>红色箭头：Magnus力方向</div>
+        </div>
+        <div class="hint-item">
+          <div class="hint-color hint-purple"></div>
+          <div>流线：显示气流分布</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 底部信息栏 -->
+  <footer class="footer">
+    <div class="footer-title">香蕉球与伯努利方程交互实验室 © 2025 | 流体动力学实验系统 | 版本 1.0 | 邮箱:</strong> xgyanger@qq.com</div>
+    <div class="footer-copyright">版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.</div>
+  </footer>
+  
+  <!-- 评测弹窗 -->
+  <div id="modalOverlay" class="modal-overlay"></div>
+  <div id="evaluationModal" class="modal">
+    <div class="modal-header">
+      <div class="modal-title">伯努利方程与香蕉球效应评测报告</div>
+      <div class="modal-subtitle">基于当前实验参数的物理学分析</div>
+    </div>
+    
+    <div class="modal-content">
+      <div class="evaluation-section">
+        <h3 class="section-title">📊 当前实验参数</h3>
+        <div class="parameter-grid">
+          <div class="parameter-card">
+            <div class="param-name">自转角速度 ω</div>
+            <div id="evalSpin" class="param-value">3.0 rad/s</div>
+            <div class="param-name">旋转方向</div>
+            <div id="evalDirection" class="param-value">逆时针</div>
+          </div>
+          
+          <div class="parameter-card">
+            <div class="param-name">平动速度 v</div>
+            <div id="evalSpeed" class="param-value">4.0 m/s</div>
+            <div class="param-name">马赫数估算</div>
+            <div id="evalMach" class="param-value">0.012</div>
+          </div>
+          
+          <div class="parameter-card">
+            <div class="param-name">旋转状态</div>
+            <div id="evalRotationState" class="param-value">启用</div>
+            <div class="param-name">Magnus效应</div>
+            <div id="evalMagnusState" class="param-value">显著</div>
+          </div>
+          
+          <div class="parameter-card">
+            <div class="param-name">预计偏转距离</div>
+            <div id="evalDeflection" class="param-value">2.4 m</div>
+            <div class="param-name">雷诺数估算</div>
+            <div id="evalReynolds" class="param-value">1.2×10⁵</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="evaluation-section">
+        <h3 class="section-title">🧠 伯努利方程原理</h3>
+        
+        <div class="formula-box">
+          <div style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 10px;">伯努利方程（简化形式）</div>
+          <div class="formula">P + ½ρv² + ρgh = 常数</div>
+          <div class="formula-note">其中 P 为压强，ρ 为流体密度，v 为流速，g 为重力加速度，h 为高度</div>
+        </div>
+        
+        <p class="explanation">
+          在香蕉球效应中，旋转球体带动周围空气流动。根据<span class="bernoulli-effect">伯努利原理</span>：
+        </p>
+        
+        <p class="explanation">
+          1. 球体<span class="highlight">旋转方向与空气相对运动方向相同</span>的一侧，空气流速加快，压强降低；
+        </p>
+        
+        <p class="explanation">
+          2. 球体<span class="highlight">旋转方向与空气相对运动方向相反</span>的一侧，空气流速减慢，压强升高；
+        </p>
+        
+        <p class="explanation">
+          3. 压强差产生垂直于运动方向的<span class="magnus-effect">Magnus力</span>，使球体轨迹发生偏转。
+        </p>
+      </div>
+      
+      <div class="evaluation-section">
+        <h3 class="section-title">⚽ 轨迹分析</h3>
+        
+        <div class="trajectory-comparison">
+          <div class="trajectory-card">
+            <div class="trajectory-title">当前轨迹（有旋转）</div>
+            <div id="evalCurvedDistance" class="trajectory-value magnus-effect">2.4 m 偏转</div>
+            <div style="font-size: 0.9rem; color: var(--text-muted);">水平位移后发生明显偏转</div>
+          </div>
+          
+          <div class="trajectory-card">
+            <div class="trajectory-title">对照轨迹（无旋转）</div>
+            <div id="evalStraightDistance" class="trajectory-value">0 m 偏转</div>
+            <div style="font-size: 0.9rem; color: var(--text-muted);">保持直线运动，无侧向偏转</div>
+          </div>
+        </div>
+        
+        <p class="explanation">
+          在当前参数下，旋转使球体轨迹发生<span id="evalDeflectionAmount" class="highlight">明显弯曲</span>。
+          这种弯曲轨迹在足球比赛中被称为"香蕉球"，在乒乓球、网球等运动中也有类似现象。
+        </p>
+      </div>
+      
+      <div class="evaluation-section">
+        <h3 class="section-title">🔬 Magnus效应公式</h3>
+        
+        <div class="formula-box">
+          <div style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 10px;">Magnus力计算公式</div>
+          <div class="formula">F = ρ·v·ω·A·C<sub>L</sub></div>
+          <div class="formula-note">其中 ρ 为空气密度，v 为速度，ω 为角速度，A 为截面积，C<sub>L</sub> 为升力系数</div>
+        </div>
+        
+        <p class="explanation">
+          根据当前参数估算，Magnus力大小约为 <span id="evalMagnusForce" class="highlight">0.85 N</span>。
+          这个力足以使标准足球在<span id="evalFlightTime" class="highlight">1.2 秒</span>的飞行时间内产生明显偏转。
+        </p>
+      </div>
+      
+      <div class="evaluation-section">
+        <h3 class="section-title">📈 优化建议</h3>
+        
+        <p class="explanation">
+          <span class="positive">✅ 当前设置效果良好：</span>旋转与速度的平衡产生了明显的香蕉球效应。
+        </p>
+        
+        <p class="explanation">
+          <span class="highlight">💡 实验建议：</span>
+        </p>
+        
+        <p class="explanation">
+          1. 尝试<span class="bernoulli-effect">增加旋转速度</span>以观察更强的偏转效果；
+        </p>
+        
+        <p class="explanation">
+          2. 尝试<span class="bernoulli-effect">降低平动速度</span>以观察在低速下伯努利效应是否仍然显著；
+        </p>
+        
+        <p class="explanation">
+          3. 关闭旋转功能，对比观察无Magnus效应时的直线轨迹。
+        </p>
+      </div>
+    </div>
+    
+    <button id="closeModal" class="close-btn">返回实验</button>
+  </div>
+  
+  <script>
+    // ================= Canvas设置 =================
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() { 
+      canvas.width = canvas.parentElement.clientWidth; 
+      canvas.height = canvas.parentElement.clientHeight; 
+    }
+    
+    window.addEventListener('resize', resize);
+    resize();
+    
+    // ================= 控件元素 =================
+    const spinCtl = document.getElementById('spin');
+    const speedCtl = document.getElementById('speed');
+    const toggleSpin = document.getElementById('toggleSpin');
+    const spinValue = document.getElementById('spinValue');
+    const speedValue = document.getElementById('speedValue');
+    const evaluateBtn = document.getElementById('evaluateBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const evaluationModal = document.getElementById('evaluationModal');
+    const closeModal = document.getElementById('closeModal');
+    
+    // ================= 物理参数 =================
+    const R = 44; // 球半径（视觉尺寸）
+    const magnusK = 0.015; // Magnus效应系数
+    const drag = 0.999; // 空气阻力系数
+    const airDensity = 1.225; // 空气密度 kg/m³
+    const ballRadius = 0.11; // 实际足球半径 m
+    const ballArea = Math.PI * ballRadius * ballRadius; // 截面积
+    
+    let mode = 1; // +1 正旋(逆时针), -1 反旋(顺时针)
+    let pause = 0;
+    let trajectoryHistory = []; // 记录轨迹点
+    let maxDeflection = 0; // 最大偏转距离
+    
+    const ball = { x: 0, y: 0, vx: 0, vy: 0, spin: 0 };
+    
+    // ================= 初始化函数 =================
+    function resetBall() {
+      ball.x = -40;
+      ball.y = canvas.height * 0.5;
+      ball.vx = Number(speedCtl.value) * 70;
+      ball.vy = 0;
+      ball.spin = toggleSpin.checked ? mode * Math.abs(Number(spinCtl.value)) : 0;
+      trajectoryHistory = [];
+      maxDeflection = 0;
+      
+      // 记录初始位置
+      trajectoryHistory.push({ x: ball.x, y: ball.y, spin: ball.spin });
+    }
+    
+    // 更新显示值
+    function updateDisplayValues() {
+      spinValue.textContent = Math.abs(Number(spinCtl.value)).toFixed(1);
+      speedValue.textContent = Number(speedCtl.value).toFixed(1);
+    }
+    
+    // 初始化显示值
+    updateDisplayValues();
+    
+    // 控件事件监听
+    spinCtl.addEventListener('input', updateDisplayValues);
+    speedCtl.addEventListener('input', updateDisplayValues);
+    
+    // 重置按钮
+    resetBtn.addEventListener('click', () => {
+      mode = 1;
+      resetBall();
+    });
+    
+    // ================= 评测功能 =================
+    evaluateBtn.addEventListener('click', showEvaluation);
+    closeModal.addEventListener('click', hideEvaluation);
+    modalOverlay.addEventListener('click', hideEvaluation);
+    
+    function showEvaluation() {
+      const spin = Number(spinCtl.value);
+      const speed = Number(speedCtl.value);
+      const hasSpin = toggleSpin.checked;
+      
+      // 更新评测参数
+      document.getElementById('evalSpin').textContent = Math.abs(spin).toFixed(1) + " rad/s";
+      document.getElementById('evalDirection').textContent = spin > 0 ? "逆时针" : (spin < 0 ? "顺时针" : "无旋转");
+      document.getElementById('evalSpeed').textContent = speed.toFixed(1) + " m/s";
+      document.getElementById('evalRotationState').textContent = hasSpin ? "启用" : "禁用";
+      
+      // 计算马赫数（声速≈340m/s）
+      const machNumber = speed / 340;
+      document.getElementById('evalMach').textContent = machNumber.toFixed(3);
+      
+      // 计算雷诺数 Re = ρvd/μ
+      // 空气粘度μ≈1.8×10⁻⁵ Pa·s，足球直径d=0.22m
+      const reynoldsNumber = (airDensity * speed * 0.22) / 1.8e-5;
+      document.getElementById('evalReynolds').textContent = (reynoldsNumber / 1e5).toFixed(1) + "×10⁵";
+      
+      // 计算Magnus力 F = ρ·v·ω·A·C_L (假设C_L≈1.2)
+      const magnusForce = hasSpin ? airDensity * speed * Math.abs(spin) * ballArea * 1.2 : 0;
+      document.getElementById('evalMagnusForce').textContent = magnusForce.toFixed(2) + " N";
+      
+      // 计算预计偏转距离（简化模型）
+      const flightTime = canvas.width / (speed * 70); // 像素时间转换为实际时间
+      const deflection = hasSpin ? 0.5 * (magnusForce / 0.43) * flightTime * flightTime : 0;
+      
+      // 转换为实际距离（比例因子）
+      const deflectionMeters = deflection * 0.01; // 简化比例
+      document.getElementById('evalDeflection').textContent = deflectionMeters.toFixed(1) + " m";
+      
+      // 更新轨迹分析
+      document.getElementById('evalCurvedDistance').textContent = hasSpin ? deflectionMeters.toFixed(1) + " m 偏转" : "0 m 偏转";
+      document.getElementById('evalStraightDistance').textContent = "0 m 偏转";
+      document.getElementById('evalDeflectionAmount').textContent = deflectionMeters > 1 ? "明显" : (deflectionMeters > 0.5 ? "可观测" : "轻微");
+      
+      // Magnus效应状态
+      document.getElementById('evalMagnusState').textContent = 
+        hasSpin && Math.abs(spin) > 0.5 ? (Math.abs(spin) > 3 ? "非常显著" : "显著") : "轻微或无";
+      
+      document.getElementById('evalFlightTime').textContent = flightTime.toFixed(1) + " 秒";
+      
+      // 显示弹窗
+      modalOverlay.style.display = 'block';
+      evaluationModal.style.display = 'block';
+    }
+    
+    function hideEvaluation() {
+      modalOverlay.style.display = 'none';
+      evaluationModal.style.display = 'none';
+    }
+    
+    // ================= 绘制函数 =================
+    function drawStreamlines() {
+      ctx.strokeStyle = 'rgba(147, 197, 253, 0.35)';
+      ctx.lineWidth = 1;
+      const omega = ball.spin;
+      
+      for(let y = 60; y < canvas.height - 60; y += 28) {
+        ctx.beginPath();
+        for(let x = 0; x < canvas.width; x += 6) {
+          const dx = x - ball.x;
+          const dy = y - ball.y;
+          const r2 = dx * dx + dy * dy;
+          const disturb = omega * R * R / Math.max(r2, 2500);
+          const yy = y + disturb * dx * 0.4;
+          
+          if(x === 0) {
+            ctx.moveTo(x, yy);
+          } else {
+            ctx.lineTo(x, yy);
+          }
+        }
+        ctx.stroke();
+      }
+    }
+    
+    function drawTrajectory() {
+      if (trajectoryHistory.length < 2) return;
+      
+      ctx.beginPath();
+      ctx.moveTo(trajectoryHistory[0].x, trajectoryHistory[0].y);
+      
+      for (let i = 1; i < trajectoryHistory.length; i++) {
+        const point = trajectoryHistory[i];
+        ctx.lineTo(point.x, point.y);
+      }
+      
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.7)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      
+      // 绘制轨迹点
+      for (let i = 0; i < trajectoryHistory.length; i += 5) {
+        const point = trajectoryHistory[i];
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.9)';
+        ctx.fill();
+      }
+    }
+    
+    function drawBall() {
+      ctx.save();
+      ctx.translate(ball.x, ball.y);
+      drawBall.angle = (drawBall.angle || 0) + ball.spin * 0.02;
+      ctx.rotate(drawBall.angle);
+      
+      // 创建球体渐变
+      const grd = ctx.createRadialGradient(-6, -6, 6, 0, 0, R);
+      grd.addColorStop(0, '#f9fafb');
+      grd.addColorStop(0.7, '#9ca3af');
+      grd.addColorStop(1, '#6b7280');
+      
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(0, 0, R, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 绘制旋转条纹
+      ctx.strokeStyle = 'rgba(30, 41, 59, 0.6)';
+      ctx.lineWidth = 1.5;
+      
+      for(let i = 0; i < 6; i++) {
+        ctx.beginPath();
+        ctx.arc(0, 0, R * 0.75, i * Math.PI / 3, i * Math.PI / 3 + Math.PI / 6);
+        ctx.stroke();
+      }
+      
+      // 绘制旋转方向指示器
+      if (ball.spin !== 0) {
+        const direction = ball.spin > 0 ? 1 : -1;
+        ctx.fillStyle = direction > 0 ? '#10b981' : '#ef4444';
+        ctx.beginPath();
+        ctx.arc(0, R * 0.6, 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 方向箭头
+        ctx.fillStyle = direction > 0 ? '#10b981' : '#ef4444';
+        ctx.beginPath();
+        if (direction > 0) {
+          // 逆时针箭头
+          ctx.moveTo(8, R * 0.6 - 10);
+          ctx.lineTo(-2, R * 0.6);
+          ctx.lineTo(8, R * 0.6 + 10);
+        } else {
+          // 顺时针箭头
+          ctx.moveTo(-8, R * 0.6 - 10);
+          ctx.lineTo(2, R * 0.6);
+          ctx.lineTo(-8, R * 0.6 + 10);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+      
+      ctx.restore();
+    }
+    
+    function drawVelocityArrow() {
+      const x0 = ball.x;
+      const y0 = ball.y;
+      const speedMagnitude = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+      const scale = 70 / 70; // 缩放因子
+      const x1 = ball.x + (ball.vx / speedMagnitude) * 70 * scale;
+      const y1 = ball.y + (ball.vy / speedMagnitude) * 70 * scale;
+      
+      ctx.strokeStyle = '#3b82f6';
+      ctx.fillStyle = '#3b82f6';
+      ctx.lineWidth = 6;
+      
+      // 主箭杆
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y1);
+      ctx.stroke();
+      
+      // 箭头
+      const angle = Math.atan2(y1 - y0, x1 - x0);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x1 - 16 * Math.cos(angle) + 10 * Math.sin(angle), 
+                y1 - 16 * Math.sin(angle) - 10 * Math.cos(angle));
+      ctx.lineTo(x1 - 16 * Math.cos(angle) - 10 * Math.sin(angle), 
+                y1 - 16 * Math.sin(angle) + 10 * Math.cos(angle));
+      ctx.closePath();
+      ctx.fill();
+      
+      // 速度标签
+      ctx.font = 'bold 16px Segoe UI';
+      ctx.fillStyle = '#3b82f6';
+      ctx.fillText(`v=${Number(speedCtl.value).toFixed(1)} m/s`, x1 + 10, y1 - 10);
+    }
+    
+    function drawForceArrow(Fy) {
+      if(!toggleSpin.checked || Math.abs(Fy) < 0.001) return;
+      
+      const len = Math.max(-50, Math.min(50, Fy * 140));
+      const x0 = ball.x;
+      const y0 = ball.y;
+      const y1 = ball.y + len;
+      
+      ctx.strokeStyle = '#ef4444';
+      ctx.fillStyle = '#ef4444';
+      ctx.lineWidth = 4;
+      
+      // 主箭杆
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x0, y1);
+      ctx.stroke();
+      
+      // 箭头
+      const dir = Math.sign(len) || 1;
+      ctx.beginPath();
+      ctx.moveTo(x0, y1);
+      ctx.lineTo(x0 - 10, y1 - dir * 14);
+      ctx.lineTo(x0 + 10, y1 - dir * 14);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Magnus力标签
+      ctx.font = 'bold 16px Segoe UI';
+      ctx.fillStyle = '#ef4444';
+      const labelY = len > 0 ? y1 + 20 : y1 - 10;
+      ctx.fillText(`F_Magnus`, x0 + 15, labelY);
+    }
+    
+    function drawInfoPanel() {
+      const spin = Number(spinCtl.value);
+      const speed = Number(speedCtl.value);
+      const hasSpin = toggleSpin.checked;
+      
+      // 信息面板背景
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.4)';
+      ctx.fillRect(20, canvas.height - 120, 300, 100);
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(20, canvas.height - 120, 300, 100);
+      
+      // 信息文字
+      ctx.font = '14px Segoe UI';
+      ctx.fillStyle = '#e5e7eb';
+      ctx.fillText(`自转速度: ${Math.abs(spin).toFixed(1)} rad/s`, 35, canvas.height - 95);
+      ctx.fillStyle = spin > 0 ? '#10b981' : (spin < 0 ? '#ef4444' : '#94a3b8');
+      ctx.fillText(`方向: ${spin > 0 ? '逆时针' : (spin < 0 ? '顺时针' : '无旋转')}`, 35, canvas.height - 75);
+      
+      ctx.fillStyle = '#e5e7eb';
+      ctx.fillText(`平动速度: ${speed.toFixed(1)} m/s`, 35, canvas.height - 55);
+      
+      if (hasSpin && spin !== 0) {
+        ctx.fillStyle = '#8b5cf6';
+        ctx.fillText(`Magnus效应: ${Math.abs(spin) > 3 ? '强' : '中'}`, 35, canvas.height - 35);
+      } else {
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText(`Magnus效应: 无`, 35, canvas.height - 35);
+      }
+    }
+    
+    // ================= 动画循环 =================
+    let last = performance.now();
+    
+    function tick(now) {
+      const dt = Math.min(0.02, (now - last) / 1000);
+      last = now;
+      
+      // 清除画布
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // 更新旋转（允许飞行中切换）
+      ball.spin = toggleSpin.checked ? mode * Math.abs(Number(spinCtl.value)) : 0;
+      
+      // Magnus力计算
+      const Fy = magnusK * ball.spin * ball.vx;
+      ball.vy += Fy * dt;
+      
+      // 空气阻力
+      ball.vx *= drag;
+      ball.vy *= drag;
+      
+      // 更新位置
+      ball.x += ball.vx * dt;
+      ball.y += ball.vy * dt;
+      
+      // 记录轨迹
+      if (trajectoryHistory.length < 300) {
+        trajectoryHistory.push({ x: ball.x, y: ball.y, spin: ball.spin });
+      }
+      
+      // 更新最大偏转距离
+      const deflection = Math.abs(ball.y - canvas.height * 0.5);
+      if (deflection > maxDeflection) {
+        maxDeflection = deflection;
+      }
+      
+      // 绘制所有元素
+      drawStreamlines();
+      drawTrajectory();
+      drawBall();
+      drawVelocityArrow();
+      drawForceArrow(Fy);
+      drawInfoPanel();
+      
+      // 球飞出边界后的处理
+      if(ball.x > canvas.width + 40) {
+        pause += dt;
+        if(pause > 0.6) {
+          mode *= -1; // 切换旋转方向
+          pause = 0;
+          resetBall();
+        }
+      }
+      
+      requestAnimationFrame(tick);
+    }
+    
+    // 初始化
+    resetBall();
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

@@ -1,0 +1,2969 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>清晨露珠生成-挥发模拟器 - 实例版</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Orbitron:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* 全局样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, #0a0e1a 0%, #1a2036 100%);
+            color: #e0e0e0;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 0;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 容器样式 */
+        .app-container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 头部样式 */
+        .header {
+            background: linear-gradient(90deg, #0a1930 0%, #1a3a5f 100%);
+            color: #e0f7ff;
+            padding: 25px 30px;
+            text-align: center;
+            border-radius: 15px 15px 0 0;
+            border-bottom: 1px solid rgba(64, 156, 255, 0.3);
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 0 10px rgba(64, 156, 255, 0.5);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+            color: #a0d2ff;
+        }
+
+        /* 三栏主内容区域 - 修改为3:4:3比例 */
+        .main-content {
+            display: grid;
+            grid-template-columns: 3fr 4fr 3fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-grow: 1;
+            min-height: 700px;
+        }
+
+        @media (max-width: 1400px) {
+            .main-content {
+                grid-template-columns: 2.8fr 4.4fr 2.8fr;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto;
+                gap: 20px;
+            }
+            
+            .left-panel, .right-panel {
+                max-width: 100%;
+            }
+        }
+
+        /* 左栏：控制区 */
+        .left-panel {
+            background: linear-gradient(145deg, rgba(15, 25, 45, 0.9), rgba(25, 35, 65, 0.9));
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 
+                0 0 30px rgba(0, 100, 200, 0.3),
+                inset 0 0 20px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(64, 156, 255, 0.2);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(135deg, transparent 30%, rgba(0, 100, 200, 0.05) 50%, transparent 70%);
+            pointer-events: none;
+            border-radius: 15px;
+        }
+
+        /* 中间栏：模拟区 */
+        .center-panel {
+            background: linear-gradient(145deg, rgba(15, 25, 45, 0.9), rgba(25, 35, 65, 0.9));
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 
+                0 0 30px rgba(0, 100, 200, 0.3),
+                inset 0 0 20px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(64, 156, 255, 0.2);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .center-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(135deg, transparent 30%, rgba(0, 100, 200, 0.05) 50%, transparent 70%);
+            pointer-events: none;
+            border-radius: 15px;
+        }
+
+        /* 右栏：数据监测和物理原理区 */
+        .right-panel {
+            background: linear-gradient(145deg, rgba(15, 25, 45, 0.9), rgba(25, 35, 65, 0.9));
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 
+                0 0 30px rgba(0, 100, 200, 0.3),
+                inset 0 0 20px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(64, 156, 255, 0.2);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .right-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(135deg, transparent 30%, rgba(0, 100, 200, 0.05) 50%, transparent 70%);
+            pointer-events: none;
+            border-radius: 15px;
+        }
+
+        /* 控制面板各区域 */
+        .panel-section {
+            background: rgba(20, 30, 60, 0.2);
+            border-radius: 12px;
+            padding: 0px;
+            border: 1px solid rgba(64, 156, 255, 0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        .panel-section h2 {
+            font-size: 1.2rem;
+            color: #4fc3f7;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-shadow: 0 0 8px rgba(79, 195, 247, 0.5);
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(64, 156, 255, 0.3);
+        }
+
+        /* 模拟区 - 天空背景和三叶子三角形布局 */
+        .simulation-area {
+            position: relative;
+            height: 500px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #0a1525, #1a2a4a);
+            transition: background 2s ease;
+            border: 1px solid rgba(64, 156, 255, 0.3);
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.7);
+            margin-bottom: 10px;
+            flex-grow: 1;
+        }
+
+        /* 太阳 */
+        .sun {
+            position: absolute;
+            top: 30px;
+            left: 40px;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle at 30% 30%, #FFA500, #FF4500, #FF6347);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 60px 30px rgba(255, 165, 0, 0.2),
+                0 0 120px 60px rgba(255, 69, 0, 0.1);
+            opacity: 0.4;
+            transition: opacity 2s ease, box-shadow 2s ease, top 2s ease;
+            z-index: 1;
+        }
+
+        /* 三叶子容器 - 三角形布局 */
+        .leaves-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            height: 90%;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* 顶部叶子 */
+        .leaf-top {
+            position: relative;
+            width: 200px;
+            height: 400px;
+            margin-bottom: 10px;
+            /* 创建叶子形状的剪切路径 */
+            clip-path: ellipse(45% 40% at 50% 50%);
+        }
+
+        /* 底部叶子容器 */
+        .leaf-bottom-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 500px;
+            padding: 0 20px;
+        }
+
+        /* 底部叶子 */
+        .leaf-bottom {
+            position: relative;
+            width: 160px;
+            height: 140px;
+            /* 创建叶子形状的剪切路径 */
+            clip-path: ellipse(45% 40% at 50% 50%);
+        }
+
+        .leaf {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><path fill="%2328a745" d="M100,30 C130,10 170,20 180,50 C190,80 170,120 140,150 C110,180 70,190 40,170 C10,150 20,110 50,80 C80,50 70,50 100,30 Z" /></svg>');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            filter: 
+                drop-shadow(0 5px 15px rgba(0, 0, 0, 0.7))
+                brightness(1.1);
+            /* 添加叶子形状的边框效果 */
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            overflow: hidden;
+        }
+
+        /* 露珠样式 - 限制在叶子区域内 */
+        .dew {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(
+                circle at 30% 30%, 
+                rgba(255, 255, 255, 0.95), 
+                rgba(220, 240, 255, 0.7) 40%,
+                rgba(180, 220, 255, 0.4) 70%,
+                transparent 90%
+            );
+            box-shadow: 
+                inset 0 0 15px rgba(255, 255, 255, 0.9),
+                inset 0 5px 20px rgba(255, 255, 255, 0.6),
+                0 5px 15px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(100, 200, 255, 0.3);
+            transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            z-index: 3;
+            /* 确保露珠不会超出叶子区域 */
+            will-change: transform, opacity;
+        }
+
+        /* 露珠高光 */
+        .dew::before {
+            content: '';
+            position: absolute;
+            top: 15%;
+            left: 15%;
+            width: 25%;
+            height: 25%;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.95), transparent 70%);
+            border-radius: 50%;
+            filter: blur(1px);
+        }
+
+        /* 水蒸气效果容器 */
+        #vaporContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 4;
+        }
+
+        .vapor {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.8), transparent 70%);
+            pointer-events: none;
+            z-index: 5;
+            filter: blur(5px);
+            opacity: 0;
+        }
+
+        /* 时间显示 */
+        .time-display {
+            background: rgba(20, 30, 60, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(64, 156, 255, 0.3);
+            margin-top: 10px;
+        }
+
+        .time-label {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #4fc3f7;
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+    display: inline-block;        /* 改为行内块元素 */
+    margin-right: 50px;           /* 与时间值的间距 */
+        }
+
+        .time-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #29b6f6;
+            margin-bottom: 10px;
+            text-shadow: 0 0 15px rgba(41, 182, 246, 0.7);
+            font-family: 'Orbitron', monospace;
+    display: inline-block;        /* 改为行内块元素 */
+        }
+
+        .time-progress {
+            height: 10px;
+            background-color: rgba(30, 40, 70, 0.8);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(64, 156, 255, 0.3);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #0066ff, #00ccff, #00ffcc);
+            width: 0%;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+        }
+
+        /* 按钮样式 */
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #0066cc, #0099ff);
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 102, 204, 0.4);
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0066cc, #0099ff);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0055aa, #0088ee);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 102, 204, 0.6);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #2a3b5f, #3a4b7f);
+            color: #c0d0ff;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #3a4b7f, #4a5b8f);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(64, 100, 200, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* 控制按钮容器 */
+        .control-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* 速度控制 */
+        .speed-control h3 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #a0d2ff;
+            text-shadow: 0 0 5px rgba(160, 210, 255, 0.3);
+        }
+
+        .speed-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+margin-bottom: 10px;
+
+        }
+
+        .speed-btn {
+            padding: 10px 5px;
+            background: rgba(30, 40, 70, 0.3);
+            border: 1px solid rgba(64, 156, 255, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #c0d0ff;
+            transition: all 0.2s ease;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .speed-btn.active {
+            background: linear-gradient(135deg, #0066cc, #0099ff);
+            color: white;
+            border-color: #0099ff;
+            box-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
+        }
+
+        .speed-btn:hover:not(.active) {
+            background: rgba(40, 50, 90, 0.9);
+            border-color: rgba(100, 180, 255, 0.5);
+        }
+
+        /* 环境温度调节区域（原名：手动温度控制） */
+        .environment-temp-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .temp-display {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #f16b6b;
+            text-align: center;
+margin-bottom: -55px;
+            text-shadow: 0 0 15px rgba(255, 107, 107, 0.5);
+            font-family: 'Orbitron', monospace;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            width: 100%;
+        }
+
+        .temp-buttons {
+            display: flex;
+            gap: 100px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .temp-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #0066cc, #0099ff);
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 5px 15px rgba(0, 102, 204, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+        }
+
+        .temp-btn:hover {
+            background: linear-gradient(135deg, #0055aa, #0088ee);
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(0, 102, 204, 0.6);
+        }
+
+        /* 挥发速度控制 */
+        .slider-container {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .slider-value {
+            text-align: center;
+            margin-top: 8px;
+            color: #4fc3f7;
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 10px;
+            -webkit-appearance: none;
+            background: linear-gradient(90deg, #0066cc, #00ccff, #00ffcc);
+            border-radius: 6px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #00ccff;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 204, 255, 0.9);
+            border: 3px solid white;
+        }
+
+        .info-text {
+            font-size: 0.9rem;
+            color: #88aadd;
+            text-align: center;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        /* 数据监测区域 */
+        .data-monitor {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .data-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background: rgba(20, 30, 60, 0.7);
+            border-radius: 10px;
+            border-left: 6px solid #0066ff;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(64, 156, 255, 0.2);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .data-item:nth-child(2) {
+            border-left-color: #00cc66;
+        }
+
+        .data-item:nth-child(3) {
+            border-left-color: #cc66ff;
+        }
+
+        .data-label {
+            font-weight: 600;
+            color: #c0d0ff;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .data-value {
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Orbitron', monospace;
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        .temperature-value {
+     font-size: 1.2rem;
+            color: #ff6b6b;
+        }
+
+        .humidity-value {
+     font-size: 1.2rem;
+            color: #4fc3f7;
+        }
+
+        .dewpoint-value {
+     font-size: 1.2rem;
+            color: #cc66ff;
+        }
+
+        /* 状态指示器 */
+        .status-indicator {
+            padding: 15px;
+            background: rgba(20, 30, 60, 0.7);
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(64, 156, 255, 0.2);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+            margin-top: 10px;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #88aadd;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .status-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #4fc3f7;
+            text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+            font-family: 'Orbitron', monospace;
+        }
+
+        /* 物理原理提示 */
+        .tip-box {
+            background: rgba(20, 30, 60, 0.7);
+            border-left: 6px solid #0066ff;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(64, 156, 255, 0.2);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tip-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            max-height: 300px;
+        }
+
+        .tip-box p {
+            margin-bottom: 12px;
+            color: #c0d0ff;
+            line-height: 1.5;
+            font-size: 1rem;
+        }
+
+        .tip-box ol, .tip-box ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+            color: #c0d0ff;
+        }
+
+        .tip-box li {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .tip-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        /* 开关样式 */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 55px;
+            height: 28px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider-toggle {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #2a3b5f;
+            transition: .4s;
+            border-radius: 34px;
+            border: 1px solid rgba(64, 156, 255, 0.3);
+        }
+
+        .slider-toggle:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 3px;
+            background-color: #88aadd;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider-toggle {
+            background-color: #0066cc;
+        }
+
+        input:checked + .slider-toggle:before {
+            background-color: white;
+            transform: translateX(26px);
+        }
+
+        /* 叶子选择器 */
+        .leaf-selector {
+            margin-top: 15px;
+        }
+
+        .leaf-selector h3 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #a0d2ff;
+            text-shadow: 0 0 5px rgba(160, 210, 255, 0.3);
+        }
+
+        .leaf-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .leaf-btn {
+            padding: 10px 5px;
+            background: rgba(30, 40, 70, 0.8);
+            border: 1px solid rgba(64, 156, 255, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #c0d0ff;
+            transition: all 0.2s ease;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .leaf-btn.active {
+            background: linear-gradient(135deg, #0066cc, #0099ff);
+            color: white;
+            border-color: #0099ff;
+            box-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
+        }
+
+        .leaf-btn:hover:not(.active) {
+            background: rgba(40, 50, 90, 0.9);
+            border-color: rgba(100, 180, 255, 0.5);
+        }
+
+        /* 页脚样式 */
+        .footer {
+            background: linear-gradient(90deg, #0a1930 0%, #1a3a5f 100%);
+            color: #a0d2ff;
+            padding: 25px;
+            text-align: center;
+            border-top: 1px solid rgba(64, 156, 255, 0.3);
+            position: relative;
+            z-index: 1;
+            border-radius: 0 0 15px 15px;
+            margin-top: 20px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            text-align: left;
+        }
+
+        .footer-section {
+            padding: 0 15px;
+        }
+
+        .footer-title {
+            color: #4fc3f7;
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(64, 156, 255, 0.3);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 8px;
+        }
+
+        .footer-links a {
+            color: #a0d2ff;
+            text-decoration: none;
+            transition: color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+        }
+
+        .footer-links a:hover {
+            color: #4fc3f7;
+        }
+
+        .footer-info p {
+            color: #a0d2ff;
+            margin-bottom: 8px;
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #a0d2ff;
+            font-size: 0.9rem;
+        }
+
+        .copyright {
+            text-align: center;
+            padding-top: 15px;
+            margin-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #88aadd;
+            font-size: 0.85rem;
+        }
+
+        .copyright a {
+            color: #4fc3f7;
+            text-decoration: none;
+        }
+
+        .copyright a:hover {
+            text-decoration: underline;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 992px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                grid-template-columns: 1.5fr;
+                gap: 15px;
+            }
+            
+            .simulation-area {
+                height: 400px;
+            }
+            
+            .data-value {
+                font-size: 1.5rem;
+            }
+            
+            .btn {
+                padding: 10px 15px;
+                font-size: 0.95rem;
+            }
+            
+            .temp-display {
+                font-size: 1.8rem;
+            }
+            
+            .temp-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.3rem;
+            }
+            
+            .leaf-top {
+                width: 150px;
+                height: 130px;
+            }
+            
+            .leaf-bottom {
+                width: 130px;
+                height: 110px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .app-container {
+                padding: 15px;
+            }
+            
+            .simulation-area {
+                height: 350px;
+            }
+            
+            .time-value {
+                font-size: 1.8rem;
+            }
+            
+            .data-value {
+                font-size: 1.4rem;
+            }
+            
+            .temp-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .leaf-top {
+                width: 130px;
+                height: 110px;
+            }
+            
+            .leaf-bottom {
+                width: 110px;
+                height: 90px;
+            }
+            
+            .leaf-bottom-container {
+                padding: 0 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-container {
+                padding: 10px;
+            }
+            
+            .header {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .left-panel, .center-panel, .right-panel {
+                padding: 15px;
+            }
+            
+            .simulation-area {
+                height: 300px;
+            }
+            
+            .time-value {
+                font-size: 1.6rem;
+            }
+            
+            .data-value {
+                font-size: 1.1rem;
+            }
+            
+            .leaf-top {
+                width: 110px;
+                height: 90px;
+            }
+            
+            .leaf-bottom {
+                width: 90px;
+                height: 70px;
+            }
+        }
+
+        /* 动画样式 */
+        @keyframes dewForm {
+            0% { opacity: 0; transform: scale(0.3); }
+            70% { transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        @keyframes dewEvaporate {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.2); }
+        }
+        
+        @keyframes vaporRise {
+            0% { opacity: 0.7; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes glow {
+            0% { box-shadow: 0 0 5px currentColor; }
+            50% { box-shadow: 0 0 15px currentColor; }
+            100% { box-shadow: 0 0 5px currentColor; }
+        }
+        
+        .data-value.changed {
+            animation: pulse 0.5s ease, glow 1s ease infinite;
+        }
+        
+        /* 按钮点击效果 */
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        /* 帮助图标样式 */
+        .help-icon {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #0066cc, #0099ff);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 
+                0 5px 15px rgba(0, 102, 204, 0.4),
+                inset 0 0 10px rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .help-icon:hover {
+            transform: scale(1.15) rotate(10deg);
+            box-shadow: 
+                0 8px 20px rgba(0, 102, 204, 0.6),
+                inset 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+        
+        /* 欢迎消息样式 */
+        .welcome-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(145deg, rgba(15, 25, 45, 0.95), rgba(25, 35, 65, 0.95));
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 
+                0 0 50px rgba(0, 100, 200, 0.5),
+                inset 0 0 20px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            z-index: 2000;
+            max-width: 500px;
+            border: 1px solid rgba(64, 156, 255, 0.3);
+            animation: fadeIn 0.6s ease;
+            color: #e0f7ff;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -55%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translate(-50%, -50%); }
+            to { opacity: 0; transform: translate(-50%, -45%); }
+        }
+        
+        /* 叶子形状点集检测样式 */
+        .leaf-point {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background-color: rgba(255, 0, 0, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- 应用容器 -->
+    <div class="app-container">
+        <!-- 头部 -->
+        <header class="header">
+            <h1><i class="fas fa-tint"></i> 清晨露珠生成-挥发模拟器</h1>
+            <p class="subtitle">温度-饱和蒸汽-露点 | 工程级物理可视化系统</p>
+        </header>
+        
+        <!-- 三栏主内容区域 -->
+        <div class="main-content">
+            <!-- 左栏：控制区 -->
+            <div class="left-panel">
+
+                <!-- 环境温度调节区域（原名：手动温度控制） -->
+                <div class="panel-section">
+                    <h2><i class="fas fa-thermometer-half"></i> 环境温度调节</h2>
+                    <div class="environment-temp-control">
+                        <div class="temp-display" id="environmentTemp">15.0°C</div>
+                        <div class="temp-buttons">
+                            <button id="tempDown" class="temp-btn">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <button id="tempUp" class="temp-btn">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="info-text">调节当前环境温度，观察露珠形成与蒸发</div>
+                </div>
+                <!-- 速度控制区域 -->
+                <div class="panel-section">
+                    <h2><i class="fas fa-tachometer-alt"></i> 速度控制</h2>
+                    <div class="speed-control">
+                        <div class="speed-options">
+                            <button data-speed="0.5" class="speed-btn">慢速</button>
+                            <button data-speed="1" class="speed-btn active">中速</button>
+                            <button data-speed="2" class="speed-btn">快速</button>
+                        </div>
+                    </div>
+                    
+                    <div class="evaporation-control">
+                        <h3>挥发速度控制</h3>
+                        <div class="slider-container">
+                            <input type="range" id="evaporationSpeed" min="1" max="10" value="5" step="0.5">
+                            <div class="slider-value">速度: <span id="speedValue">5.0</span></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 模拟控制区域 -->
+                <div class="panel-section">
+                    <h2><i class="fas fa-sliders-h"></i> 模拟控制</h2>
+                    <div class="control-buttons">
+                        <button id="startBtn" class="btn btn-primary">
+                            <i class="fas fa-play"></i> 开始模拟
+                        </button>
+                        <button id="pauseBtn" class="btn btn-secondary" disabled>
+                            <i class="fas fa-pause"></i> 暂停
+                        </button>
+                        <button id="resetBtn" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i> 重新开始
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 中栏：模拟区 -->
+            <div class="center-panel">
+                <!-- 模拟展示区 -->
+                <div class="panel-section">
+                    <h2><i class="fas fa-tree"></i> 模拟展示</h2>
+                    <div class="simulation-area" id="sky">
+                        <div class="sun" id="sun"></div>
+                        <div class="leaves-container" id="leavesContainer">
+                            <!-- 三片叶子呈三角形布局 -->
+                            <div class="leaf-top" id="leaf-container-0">
+                                <div class="leaf" id="leaf-0"></div>
+                            </div>
+                            <div class="leaf-bottom-container">
+                                <div class="leaf-bottom" id="leaf-container-1">
+                                    <div class="leaf" id="leaf-1"></div>
+                                </div>
+                                <div class="leaf-bottom" id="leaf-container-2">
+                                    <div class="leaf" id="leaf-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 水蒸气效果容器 -->
+                        <div id="vaporContainer"></div>
+                        <!-- 叶子形状点集容器（用于调试） -->
+                        <div id="leafPointsContainer"></div>
+                    </div>
+                    
+                    <div class="time-display">
+                        <div class="time-label" id="timeLabel">黎明前</div>
+                        <div class="time-value" id="timeValue">05:00</div>
+                        <div class="time-progress">
+                            <div class="progress-bar" id="progressBar"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 物理原理提示区域 - 从右栏移动到此 -->
+                <div class="panel-section">
+                    <h2><i class="fas fa-lightbulb"></i> 物理原理提示</h2>
+                    <div class="tip-box">
+                        <div class="tip-content" id="tipContent">
+                            <p><strong>露珠形成需要两个条件：</strong></p>
+                            <ol>
+                                <li>空气湿度足够高（相对湿度接近100%）</li>
+                                <li>表面温度降低到露点以下</li>
+                            </ol>
+                            <p id="currentTip">点击"开始模拟"观察露珠在叶子上形成与挥发的全过程</p>
+  
+                            <p><strong>环境温度调节说明：</strong></p>
+                            <ul>
+                                <li>此功能用于手动设置当前环境温度</li>
+                                <li>调节温度会暂停自动模拟，进入手动模式</li>
+                                <li>可以观察不同温度下露珠的形成与蒸发情况</li>
+                                <li>模拟的初始温度为10.0°C，露点温度为8.0°C</li>
+                            </ul>
+                        </div>
+                        <div class="tip-toggle">
+                            <span>显示提示</span>
+                            <label class="switch">
+                                <input type="checkbox" id="tipToggle" checked>
+                                <span class="slider-toggle"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右栏：数据监测和物理原理区 -->
+            <div class="right-panel">
+                <!-- 数据监测区域 -->
+                <div class="panel-section">
+                    <h2><i class="fas fa-chart-line"></i> 数据监测</h2>
+                    <div class="data-monitor">
+                        <div class="data-item">
+                            <div class="data-label">
+                                <i class="fas fa-thermometer-half"></i>
+                                <span>当前温度</span>
+                            </div>
+                            <div class="data-value temperature-value" id="temperature">10.0°C</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">
+                                <i class="fas fa-tint"></i>
+                                <span>相对湿度</span>
+                            </div>
+                            <div class="data-value humidity-value" id="humidity">80%</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">
+                                <i class="fas fa-cloud"></i>
+                                <span>露点温度</span>
+                            </div>
+                            <div class="data-value dewpoint-value" id="dewpoint">8.0°C</div>
+                        </div>
+                    </div>
+                    
+                    <div class="status-indicator">
+                        <div class="status-label">
+                            <i class="fas fa-info-circle"></i>
+                            <span>当前状态</span>
+                        </div>
+                        <div class="status-value" id="status">等待开始</div>
+                    </div>
+                </div>
+                
+                <!-- 叶子选择器 -->
+                <div class="panel-section leaf-selector">
+                    <h2><i class="fas fa-leaf"></i> 叶子选择</h2>
+                    <div class="leaf-buttons" id="leafButtons">
+                        <!-- 叶子按钮将通过JS动态生成 -->
+                    </div>
+                    <div class="info-text">选择叶子查看详细信息</div>
+                </div>
+
+
+                <!-- 叶子详细信息 -->
+                <div class="panel-section">
+                    <h2><i class="fas fa-info-circle"></i> 叶子详细信息</h2>
+                    <div class="leaf-info" id="leafInfo">
+                        <div class="info-text" id="selectedLeafText">请选择一片叶子查看详细信息</div>
+                        <div class="data-monitor" id="leafDataMonitor" style="display: none;">
+                            <div class="data-item">
+                                <div class="data-label">叶子编号</div>
+                                <div class="data-value" id="leafId">-</div>
+                            </div>
+                            <div class="data-item">
+                                <div class="data-label">露珠数量</div>
+                                <div class="data-value" id="leafDewCount">0</div>
+                            </div>
+                            <div class="data-item">
+                                <div class="data-label">平均大小</div>
+                                <div class="data-value" id="leafAvgSize">0px</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- 帮助图标 -->
+    <div class="help-icon" id="helpIcon">
+        <i class="fas fa-question-circle"></i>
+    </div>
+
+    <!-- 欢迎消息容器 -->
+    <div id="welcomeContainer"></div>
+
+    <!-- 帮助模态框容器 -->
+    <div id="helpModalContainer"></div>
+
+    <script>
+        // 《清晨露珠挥发模拟器》 - 三栏三叶版
+        // 作者：AiKnow
+        
+        // ===================== 模块1：物理模型与数据计算 =====================
+        class DewPhysicsModel {
+            constructor(leafCount = 3) { // 改为3片叶子
+                // 初始参数设置（黎明前阶段）
+                this.initialTemperature = 10.0;      // 初始温度 10°C
+                this.absoluteHumidity = 10.0;        // 绝对湿含量 10g/m³（保持不变）
+                this.dewPoint = 8.0;                 // 露点温度 8°C（根据绝对湿含量计算）
+                this.currentTemperature = this.initialTemperature;
+                this.currentHumidity = 80;           // 初始相对湿度 80%
+                
+                // 阶段时间设置（总时长120分钟）
+                this.totalDuration = 120;            // 总模拟时长（分钟）
+                this.phase1Duration = 30;            // 阶段1：黎明前（30分钟）
+                this.phase2Duration = 60;            // 阶段2：清晨（60分钟）
+                this.phase3Duration = 30;            // 阶段3：上午（30分钟）
+                
+                // 阶段温度目标
+                this.phase1EndTemp = 8.0;            // 阶段1结束温度（露点）
+                this.phase2EndTemp = 15.0;           // 阶段2结束温度
+                this.phase3EndTemp = 18.0;           // 阶段3结束温度
+                
+                // 当前模拟状态
+                this.currentTime = 0;                // 当前模拟时间（分钟，从0开始）
+                this.currentPhase = 0;               // 当前阶段 0:未开始, 1:黎明前, 2:清晨, 3:上午
+                this.isRunning = false;              // 模拟是否运行中
+                this.isPaused = false;               // 模拟是否暂停
+                this.simulationSpeed = 1.0;          // 模拟速度倍数
+                
+                // 多叶子相关参数
+                this.leafCount = leafCount;          // 叶子数量改为3
+                this.leaves = [];                    // 叶子数据数组
+                this.selectedLeafId = 0;             // 当前选中的叶子ID
+                
+                // 露珠相关参数
+                this.maxDewCountPerLeaf = 15;        // 每片叶子的最大露珠数量
+                this.dewFormationThreshold = 0.95;   // 开始形成露珠的相对湿度阈值
+                this.dewEvaporationThreshold = 1.05; // 开始蒸发露珠的温度阈值（相对于露点）
+                
+                // 挥发速度控制
+                this.evaporationSpeed = 5.0;         // 挥发速度系数，1-10，默认5
+                this.vaporParticles = [];            // 水蒸气粒子数组
+                
+                // 环境温度调节模式（原名：手动温度控制）
+                this.environmentMode = false;        // 是否处于环境温度调节模式
+                this.environmentTemperature = this.initialTemperature; // 环境温度
+                
+                // 初始化所有叶子
+                this.initLeaves();
+                
+                // 绑定更新函数
+                this.updateTemperature = this.updateTemperature.bind(this);
+                this.calculateHumidity = this.calculateHumidity.bind(this);
+            }
+            
+            // 初始化所有叶子 - 三叶子三角形布局
+            initLeaves() {
+                this.leaves = [];
+                
+                // 三片叶子的不同参数，形成三角形布局
+                // 叶子0：顶部叶子（较大）
+                // 叶子1：左下叶子
+                // 叶子2：右下叶子
+                const leafConfigs = [
+                    { 
+                        name: "顶部叶子", 
+                        centerX: 50, centerY: 30, 
+                        width: 200, height: 400,  // 实际像素尺寸
+                        minSize: 10, maxSize: 25,
+                        shapePoints: this.generateLeafShapePoints(200, 400, 45, 40)  // 叶子形状点集
+                    },
+                    { 
+                        name: "左下叶子", 
+                        centerX: 30, centerY: 70, 
+                        width: 160, height: 140,  // 实际像素尺寸
+                        minSize: 8, maxSize: 22,
+                        shapePoints: this.generateLeafShapePoints(160, 140, 45, 40)  // 叶子形状点集
+                    },
+                    { 
+                        name: "右下叶子", 
+                        centerX: 70, centerY: 70, 
+                        width: 160, height: 140,  // 实际像素尺寸
+                        minSize: 8, maxSize: 22,
+                        shapePoints: this.generateLeafShapePoints(160, 140, 45, 40)  // 叶子形状点集
+                    }
+                ];
+                
+                for (let i = 0; i < this.leafCount; i++) {
+                    const config = leafConfigs[i];
+                    const leaf = {
+                        id: i,
+                        name: config.name,
+                        dewCount: 0,
+                        dewElements: [],
+                        // 叶子位置参数（百分比）
+                        leafCenterX: config.centerX,               // 叶子中心X位置（百分比）
+                        leafCenterY: config.centerY,               // 叶子中心Y位置（百分比）
+                        // 叶子实际像素尺寸
+                        leafWidth: config.width,
+                        leafHeight: config.height,
+                        // 叶子形状点集（用于检测点是否在叶子内）
+                        shapePoints: config.shapePoints,
+                        // 露珠大小参数
+                        minDewSize: config.minSize,
+                        maxDewSize: config.maxSize,
+                        // 露珠形成概率微调（每片叶子略有不同）
+                        formationFactor: 0.8 + Math.random() * 0.4,
+                        evaporationFactor: 0.8 + Math.random() * 0.4
+                    };
+                    this.leaves.push(leaf);
+                }
+            }
+            
+            // 生成叶子形状的点集（用于检测点是否在叶子形状内）
+            generateLeafShapePoints(width, height, radiusXPercent, radiusYPercent) {
+                const points = [];
+                const radiusX = (radiusXPercent / 100) * width / 2;
+                const radiusY = (radiusYPercent / 100) * height / 2;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                
+                // 生成椭圆上的点
+                for (let angle = 0; angle < 2 * Math.PI; angle += 0.1) {
+                    const x = centerX + radiusX * Math.cos(angle);
+                    const y = centerY + radiusY * Math.sin(angle);
+                    points.push({ x, y });
+                }
+                
+                return points;
+            }
+            
+            // 计算饱和水汽压（Tetens公式，简化版）
+            calculateSaturationVaporPressure(tempCelsius) {
+                // 对于0°C以上的简化公式
+                return 6.112 * Math.exp((17.67 * tempCelsius) / (tempCelsius + 243.5));
+            }
+            
+            // 计算相对湿度
+            calculateHumidity(temperature) {
+                if (this.environmentMode) {
+                    // 环境温度调节模式下，根据温度重新计算相对湿度
+                    const satVaporPressure = this.calculateSaturationVaporPressure(temperature);
+                    // 绝对湿含量不变，根据绝对湿含量反推水汽压
+                    // 简化计算：假设绝对湿含量与水汽压成正比
+                    const vaporPressure = this.absoluteHumidity * 0.1; // 简化关系
+                    const humidity = (vaporPressure / satVaporPressure) * 100;
+                    return Math.max(10, Math.min(100, humidity));
+                } else {
+                    // 自动模拟模式下，根据阶段计算
+                    if (this.currentPhase === 1) {
+                        // 阶段1：黎明前，湿度逐渐增加到100%
+                        const progress = this.currentTime / this.phase1Duration;
+                        return 80 + (20 * progress); // 从80%线性增加到100%
+                    } else if (this.currentPhase === 2) {
+                        // 阶段2：清晨，湿度从100%下降到70%
+                        const progress = (this.currentTime - this.phase1Duration) / this.phase2Duration;
+                        return 100 - (30 * progress); // 从100%线性下降到70%
+                    } else if (this.currentPhase === 3) {
+                        // 阶段3：上午，湿度从70%下降到60%
+                        const progress = (this.currentTime - this.phase1Duration - this.phase2Duration) / this.phase3Duration;
+                        return 70 - (10 * progress); // 从70%线性下降到60%
+                    }
+                    return this.currentHumidity;
+                }
+            }
+            
+            // 更新温度（根据当前阶段和时间）
+            updateTemperature() {
+                if (this.environmentMode) {
+                    return this.environmentTemperature;
+                }
+                
+                if (this.currentPhase === 1) {
+                    // 阶段1：温度从10°C下降到8°C
+                    const progress = this.currentTime / this.phase1Duration;
+                    return this.initialTemperature - (2 * progress); // 线性下降
+                } else if (this.currentPhase === 2) {
+                    // 阶段2：温度从8°C上升到15°C
+                    const progress = (this.currentTime - this.phase1Duration) / this.phase2Duration;
+                    return this.phase1EndTemp + (7 * progress); // 线性上升
+                } else if (this.currentPhase === 3) {
+                    // 阶段3：温度从15°C上升到18°C
+                    const progress = (this.currentTime - this.phase1Duration - this.phase2Duration) / this.phase3Duration;
+                    return this.phase2EndTemp + (3 * progress); // 线性上升
+                }
+                return this.currentTemperature;
+            }
+            
+            // 检查露珠形成条件（针对特定叶子）
+            checkDewFormationForLeaf(temperature, humidity, leaf) {
+                // 简化条件：当相对湿度接近饱和且温度接近或低于露点时，开始形成露珠
+                const tempDifference = temperature - this.dewPoint;
+                const humidityFactor = humidity / 100;
+                
+                if (humidityFactor >= this.dewFormationThreshold && tempDifference <= 1.0) {
+                    // 形成露珠的概率，考虑叶子特有的形成因子
+                    const formationProbability = Math.min(1, 
+                        (humidityFactor - this.dewFormationThreshold) * 10 * 
+                        (1 - Math.max(0, tempDifference) / 2) * leaf.formationFactor
+                    );
+                    return formationProbability;
+                }
+                return 0;
+            }
+            
+            // 检查露珠蒸发条件（针对特定叶子）
+            checkDewEvaporationForLeaf(temperature, humidity, leaf) {
+                // 当温度高于露点且湿度较低时，露珠开始蒸发
+                const tempDifference = temperature - this.dewPoint;
+                const humidityFactor = humidity / 100;
+                
+                if (tempDifference > 0.5 && humidityFactor < 0.9) {
+                    // 蒸发概率，考虑挥发速度系数和叶子特有的蒸发因子
+                    const evaporationProbability = Math.min(1, 
+                        (tempDifference / 5) * (1 - humidityFactor) * 3 * 
+                        (this.evaporationSpeed / 5) * leaf.evaporationFactor
+                    );
+                    return evaporationProbability;
+                }
+                return 0;
+            }
+            
+            // 根据阶段获取叶子目标露珠数量
+            getTargetDewCountForLeaf(leaf) {
+                if (this.currentPhase === 1) {
+                    // 阶段1：露珠逐渐形成
+                    const progress = this.currentTime / this.phase1Duration;
+                    return Math.floor(this.maxDewCountPerLeaf * progress * leaf.formationFactor);
+                } else if (this.currentPhase === 2) {
+                    // 阶段2：露珠逐渐蒸发，考虑挥发速度
+                    const progress = (this.currentTime - this.phase1Duration) / this.phase2Duration;
+                    const speedFactor = this.evaporationSpeed / 5; // 基于默认速度5的系数
+                    const adjustedProgress = Math.min(1, progress * speedFactor);
+                    return Math.floor(this.maxDewCountPerLeaf * (1 - adjustedProgress) * leaf.evaporationFactor);
+                } else if (this.currentPhase === 3) {
+                    // 阶段3：露珠完全消失
+                    return 0;
+                }
+                return 0;
+            }
+            
+            // 更新时间
+            updateTime(deltaMinutes) {
+                if (!this.isRunning || this.isPaused) return;
+                
+                this.currentTime += deltaMinutes * this.simulationSpeed;
+                
+                // 检查阶段转换
+                if (this.currentTime <= this.phase1Duration) {
+                    this.currentPhase = 1;
+                } else if (this.currentTime <= this.phase1Duration + this.phase2Duration) {
+                    this.currentPhase = 2;
+                } else if (this.currentTime <= this.totalDuration) {
+                    this.currentPhase = 3;
+                } else {
+                    // 模拟结束
+                    this.currentTime = this.totalDuration;
+                    this.isRunning = false;
+                }
+                
+                // 更新温度和湿度
+                this.currentTemperature = this.updateTemperature();
+                this.currentHumidity = this.calculateHumidity(this.currentTemperature);
+                
+                // 更新每片叶子的露珠数量
+                this.updateLeafDewCounts();
+            }
+            
+            // 更新所有叶子的露珠数量
+            updateLeafDewCounts() {
+                for (let leaf of this.leaves) {
+                    const targetCount = this.getTargetDewCountForLeaf(leaf);
+                    leaf.targetDewCount = targetCount;
+                }
+            }
+            
+            // 设置模拟速度
+            setSimulationSpeed(speed) {
+                this.simulationSpeed = speed;
+            }
+            
+            // 设置挥发速度
+            setEvaporationSpeed(speed) {
+                this.evaporationSpeed = Math.max(1, Math.min(10, speed));
+            }
+            
+            // 设置环境温度（原名：手动设置温度）
+            setEnvironmentTemperature(temp) {
+                this.environmentMode = true;
+                this.environmentTemperature = Math.max(-5, Math.min(35, temp)); // 限制在-5到35°C之间
+                this.currentTemperature = this.environmentTemperature;
+                this.currentHumidity = this.calculateHumidity(this.currentTemperature);
+                
+                // 根据环境温度更新所有叶子的露珠状态
+                for (let leaf of this.leaves) {
+                    const dewProbability = this.checkDewFormationForLeaf(this.currentTemperature, this.currentHumidity, leaf);
+                    const evaporationProbability = this.checkDewEvaporationForLeaf(this.currentTemperature, this.currentHumidity, leaf);
+                    
+                    if (dewProbability > 0 && this.currentTemperature <= this.dewPoint + 1) {
+                        leaf.targetDewCount = Math.floor(this.maxDewCountPerLeaf * dewProbability);
+                    } else if (evaporationProbability > 0) {
+                        leaf.targetDewCount = Math.floor(this.maxDewCountPerLeaf * (1 - evaporationProbability));
+                    } else {
+                        leaf.targetDewCount = 0;
+                    }
+                }
+            }
+            
+            // 重置模拟
+            reset() {
+                this.currentTime = 0;
+                this.currentPhase = 0;
+                this.isRunning = false;
+                this.isPaused = false;
+                this.currentTemperature = this.initialTemperature;
+                this.currentHumidity = 80;
+                this.environmentMode = false;
+                this.environmentTemperature = this.initialTemperature;
+                this.vaporParticles = [];
+                
+                // 重置所有叶子
+                this.initLeaves();
+            }
+            
+            // 获取格式化时间
+            getFormattedTime() {
+                const totalMinutes = 5 * 60 + this.currentTime; // 从05:00开始
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = Math.floor(totalMinutes % 60);
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            }
+            
+            // 获取阶段名称
+            getPhaseName() {
+                switch(this.currentPhase) {
+                    case 0: return "等待开始";
+                    case 1: return "黎明前";
+                    case 2: return "清晨·日出";
+                    case 3: return "上午·晴空";
+                    default: return "模拟结束";
+                }
+            }
+            
+            // 获取阶段描述
+            getPhaseDescription() {
+                switch(this.currentPhase) {
+                    case 1:
+                        return "环境温度逐渐下降，相对湿度上升，当温度≤露点温度时，空气中的水汽会在叶子表面凝结形成露珠";
+                    case 2:
+                        return "太阳升起，环境温度逐渐升高，相对湿度下降，露珠开始挥发（挥发速度: " + this.evaporationSpeed.toFixed(1) + "）";
+                    case 3:
+                        return "温度继续上升，露珠完全挥发，空气中的水汽保持不饱和状态";
+                    default:
+                        return "点击'开始模拟'按钮，观察露珠在三片叶子上随时间（温度）形成与挥发的全过程";
+                }
+            }
+            
+            // 生成在叶子形状内的随机位置（使用多边形点包含算法）
+            getRandomLeafPosition(leaf) {
+                let x, y;
+                let attempts = 0;
+                const maxAttempts = 100;
+                
+                do {
+                    // 生成随机坐标（相对于叶子容器的百分比）
+                    const randomX = Math.random() * 100;
+                    const randomY = Math.random() * 100;
+                    
+                    // 将百分比坐标转换为叶子容器内的像素坐标
+                    const leafElement = document.getElementById(`leaf-container-${leaf.id}`);
+                    if (!leafElement) {
+                        // 如果叶子元素不存在，返回默认位置
+                        return { x: 50, y: 50 };
+                    }
+                    
+                    const leafRect = leafElement.getBoundingClientRect();
+                    const skyRect = document.getElementById('sky').getBoundingClientRect();
+                    
+                    // 计算在叶子容器内的像素坐标
+                    const pixelX = leafRect.left - skyRect.left + (randomX / 100) * leafRect.width;
+                    const pixelY = leafRect.top - skyRect.top + (randomY / 100) * leafRect.height;
+                    
+                    // 检查点是否在叶子形状内（使用点包含算法）
+                    const isInLeaf = this.isPointInLeafShape(pixelX, pixelY, leafElement);
+                    
+                    if (isInLeaf) {
+                        // 如果点在叶子形状内，返回百分比坐标
+                        return { 
+                            x: Math.max(0, Math.min(100, randomX)), 
+                            y: Math.max(0, Math.min(100, randomY)) 
+                        };
+                    }
+                    
+                    attempts++;
+                    
+                } while (attempts < maxAttempts);
+                
+                // 如果多次尝试失败，返回叶子中心附近的位置
+                console.log(`无法为叶子${leaf.id}找到合适位置，使用中心位置`);
+                return { x: 50, y: 50 };
+            }
+            
+            // 检查点是否在叶子形状内（使用射线法）
+            isPointInLeafShape(x, y, leafElement) {
+                // 获取叶子元素的clip-path值
+                const clipPath = window.getComputedStyle(leafElement).clipPath;
+                
+                // 如果clip-path是椭圆
+                if (clipPath && clipPath.includes('ellipse')) {
+                    // 解析椭圆参数
+                    const match = clipPath.match(/ellipse\(([^)]+)\)/);
+                    if (match) {
+                        const params = match[1].split(' ');
+                        const radiusX = parseFloat(params[0]) / 100 * leafElement.offsetWidth / 2;
+                        const radiusY = parseFloat(params[1]) / 100 * leafElement.offsetHeight / 2;
+                        
+                        // 计算相对于叶子中心的坐标
+                        const centerX = leafElement.offsetWidth / 2;
+                        const centerY = leafElement.offsetHeight / 2;
+                        
+                        // 获取叶子在天空中的位置
+                        const leafRect = leafElement.getBoundingClientRect();
+                        const skyRect = document.getElementById('sky').getBoundingClientRect();
+                        
+                        // 计算相对于叶子中心的坐标
+                        const relX = x - (leafRect.left - skyRect.left) - centerX;
+                        const relY = y - (leafRect.top - skyRect.top) - centerY;
+                        
+                        // 检查点是否在椭圆内（椭圆方程：(x/radiusX)² + (y/radiusY)² ≤ 1）
+                        const inEllipse = (relX * relX) / (radiusX * radiusX) + (relY * relY) / (radiusY * radiusY) <= 1;
+                        
+                        return inEllipse;
+                    }
+                }
+                
+                // 如果无法解析clip-path，使用边界框检查
+                const leafRect = leafElement.getBoundingClientRect();
+                const skyRect = document.getElementById('sky').getBoundingClientRect();
+                
+                const inBoundingBox = 
+                    x >= leafRect.left - skyRect.left && 
+                    x <= leafRect.right - skyRect.left && 
+                    y >= leafRect.top - skyRect.top && 
+                    y <= leafRect.bottom - skyRect.top;
+                
+                return inBoundingBox;
+            }
+            
+            // 选择叶子
+            selectLeaf(leafId) {
+                if (leafId >= 0 && leafId < this.leaves.length) {
+                    this.selectedLeafId = leafId;
+                    return this.leaves[leafId];
+                }
+                return null;
+            }
+            
+            // 获取当前选中的叶子
+            getSelectedLeaf() {
+                return this.leaves[this.selectedLeafId];
+            }
+        }
+
+        // ===================== 模块2：可视化与动画控制 =====================
+        class VisualSimulation {
+            constructor(physicsModel) {
+                this.physics = physicsModel;
+                this.vaporContainer = document.getElementById('vaporContainer');
+                this.leafPointsContainer = document.getElementById('leafPointsContainer');
+                this.animationFrameId = null;
+                this.lastUpdateTime = null;
+                
+                // 获取DOM元素
+                this.skyBackground = document.getElementById('sky');
+                this.sunElement = document.getElementById('sun');
+                this.leavesContainer = document.getElementById('leavesContainer');
+                this.timeLabel = document.getElementById('timeLabel');
+                this.timeValue = document.getElementById('timeValue');
+                this.progressBar = document.getElementById('progressBar');
+                this.temperatureDisplay = document.getElementById('temperature');
+                this.humidityDisplay = document.getElementById('humidity');
+                this.dewpointDisplay = document.getElementById('dewpoint');
+                this.statusDisplay = document.getElementById('status');
+                this.currentTip = document.getElementById('currentTip');
+                this.environmentTempDisplay = document.getElementById('environmentTemp');
+                this.leafButtonsContainer = document.getElementById('leafButtons');
+                this.leafInfo = document.getElementById('leafInfo');
+                this.leafDataMonitor = document.getElementById('leafDataMonitor');
+                this.leafIdDisplay = document.getElementById('leafId');
+                this.leafDewCountDisplay = document.getElementById('leafDewCount');
+                this.leafAvgSizeDisplay = document.getElementById('leafAvgSize');
+                
+                // 初始化
+                this.initVisuals();
+            }
+            
+            // 初始化视觉效果
+            initVisuals() {
+                // 清空水蒸气
+                this.clearVapor();
+                
+                // 初始化每片叶子的露珠数组
+                for (let i = 0; i < this.physics.leafCount; i++) {
+                    this.physics.leaves[i].dewElements = [];
+                }
+                
+                // 创建叶子选择按钮
+                this.createLeafButtons();
+                
+                // 设置初始背景（黎明前）
+                this.updateSkyBackground();
+                this.updateSunPosition();
+                
+                // 更新数据显示
+                this.updateDataDisplay();
+                
+                // 调试：显示叶子形状点集
+                // this.debugLeafShape();
+            }
+            
+            // 调试：显示叶子形状点集
+            debugLeafShape() {
+                this.leafPointsContainer.innerHTML = '';
+                for (let i = 0; i < this.physics.leafCount; i++) {
+                    const leaf = this.physics.leaves[i];
+                    const leafElement = document.getElementById(`leaf-container-${leaf.id}`);
+                    
+                    if (leafElement) {
+                        const leafRect = leafElement.getBoundingClientRect();
+                        const skyRect = this.skyBackground.getBoundingClientRect();
+                        
+                        // 在叶子形状上显示点
+                        for (let point of leaf.shapePoints) {
+                            const debugPoint = document.createElement('div');
+                            debugPoint.className = 'leaf-point';
+                            debugPoint.style.left = `${leafRect.left - skyRect.left + point.x}px`;
+                            debugPoint.style.top = `${leafRect.top - skyRect.top + point.y}px`;
+                            this.leafPointsContainer.appendChild(debugPoint);
+                        }
+                    }
+                }
+            }
+            
+            // 创建叶子选择按钮
+            createLeafButtons() {
+                this.leafButtonsContainer.innerHTML = '';
+                for (let i = 0; i < this.physics.leafCount; i++) {
+                    const leafBtn = document.createElement('button');
+                    leafBtn.className = 'leaf-btn';
+                    if (i === this.physics.selectedLeafId) {
+                        leafBtn.classList.add('active');
+                    }
+                    leafBtn.textContent = this.physics.leaves[i].name;
+                    leafBtn.dataset.leafId = i;
+                    
+                    leafBtn.addEventListener('click', () => {
+                        this.selectLeaf(i);
+                    });
+                    
+                    this.leafButtonsContainer.appendChild(leafBtn);
+                }
+            }
+            
+            // 选择叶子
+            selectLeaf(leafId) {
+                this.physics.selectLeaf(leafId);
+                
+                // 更新按钮状态
+                const leafButtons = document.querySelectorAll('.leaf-btn');
+                leafButtons.forEach((btn, index) => {
+                    if (index === leafId) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+                
+                // 更新叶子详细信息
+                this.updateLeafInfo();
+            }
+            
+            // 更新叶子详细信息
+            updateLeafInfo() {
+                const leaf = this.physics.getSelectedLeaf();
+                if (leaf) {
+                    this.leafIdDisplay.textContent = leaf.name;
+                    this.leafDewCountDisplay.textContent = leaf.dewElements.length;
+                    
+                    // 计算平均露珠大小
+                    if (leaf.dewElements.length > 0) {
+                        let totalSize = 0;
+                        leaf.dewElements.forEach(dew => {
+                            const size = parseFloat(dew.style.width);
+                            if (!isNaN(size)) {
+                                totalSize += size;
+                            }
+                        });
+                        const avgSize = totalSize / leaf.dewElements.length;
+                        this.leafAvgSizeDisplay.textContent = avgSize.toFixed(1) + 'px';
+                    } else {
+                        this.leafAvgSizeDisplay.textContent = '0px';
+                    }
+                    
+                    // 显示叶子详细信息
+                    document.getElementById('selectedLeafText').style.display = 'none';
+                    this.leafDataMonitor.style.display = 'block';
+                }
+            }
+            
+            // 更新天空背景（根据时间和阶段）
+            updateSkyBackground() {
+                const progress = this.physics.currentTime / this.physics.totalDuration;
+                
+                if (this.physics.currentPhase === 1) {
+                    // 黎明前：深蓝到深蓝灰
+                    const phaseProgress = this.physics.currentTime / this.physics.phase1Duration;
+                    const lightness = 10 + (5 * phaseProgress);
+                    this.skyBackground.style.background = 
+                        `linear-gradient(to bottom, hsl(220, 50%, ${lightness}%), hsl(210, 40%, ${lightness + 5}%))`;
+                        
+                } else if (this.physics.currentPhase === 2) {
+                    // 清晨：深蓝灰到蓝灰
+                    const phaseProgress = (this.physics.currentTime - this.physics.phase1Duration) / this.physics.phase2Duration;
+                    const lightness = 15 + (15 * phaseProgress);
+                    const saturation = 40 + (20 * phaseProgress);
+                    this.skyBackground.style.background = 
+                        `linear-gradient(to bottom, hsl(210, ${saturation}%, ${lightness}%), hsl(200, ${saturation}%, ${lightness + 10}%))`;
+                        
+                } else if (this.physics.currentPhase === 3) {
+                    // 上午：蓝灰到浅蓝灰
+                    const phaseProgress = (this.physics.currentTime - this.physics.phase1Duration - this.physics.phase2Duration) / this.physics.phase3Duration;
+                    const lightness = 30 + (10 * phaseProgress);
+                    this.skyBackground.style.background = 
+                        `linear-gradient(to bottom, hsl(200, 50%, ${lightness}%), hsl(190, 40%, ${lightness + 15}%))`;
+                } else {
+                    // 默认：深蓝黑
+                    this.skyBackground.style.background = 
+                        `linear-gradient(to bottom, hsl(220, 50%, 10%), hsl(210, 40%, 15%))`;
+                }
+            }
+            
+            // 更新太阳位置和亮度
+            updateSunPosition() {
+                const progress = this.physics.currentTime / this.physics.totalDuration;
+                
+                if (this.physics.currentPhase === 1) {
+                    // 黎明前：太阳低亮度，左上方
+                    this.sunElement.style.opacity = 0.3;
+                    this.sunElement.style.top = '30px';
+                    this.sunElement.style.left = '40px';
+                } else if (this.physics.currentPhase === 2) {
+                    // 清晨：太阳逐渐升起，亮度增加
+                    const phaseProgress = (this.physics.currentTime - this.physics.phase1Duration) / this.physics.phase2Duration;
+                    this.sunElement.style.opacity = 0.3 + (0.7 * phaseProgress);
+                    this.sunElement.style.top = `${30 - (10 * phaseProgress)}px`;
+                    this.sunElement.style.left = `${40 + (50 * phaseProgress)}px`;
+                    this.sunElement.style.boxShadow = 
+                        `0 0 ${40 + (80 * phaseProgress)}px ${20 + (40 * phaseProgress)}px rgba(255, 165, 0, ${0.4 + (0.4 * phaseProgress)}),
+                         0 0 ${80 + (120 * phaseProgress)}px ${40 + (80 * phaseProgress)}px rgba(255, 69, 0, ${0.2 + (0.2 * phaseProgress)})`;
+                } else if (this.physics.currentPhase === 3) {
+                    // 上午：太阳高悬，高亮度
+                    this.sunElement.style.opacity = 1.0;
+                    this.sunElement.style.top = '20px';
+                    this.sunElement.style.left = '90px';
+                    this.sunElement.style.boxShadow = 
+                        '0 0 120px 60px rgba(255, 165, 0, 0.8), 0 0 200px 100px rgba(255, 69, 0, 0.4)';
+                }
+            }
+            
+            // 创建露珠元素 - 精确限制在叶子形状内
+            createDewElement(leaf) {
+                const dew = document.createElement('div');
+                dew.className = 'dew';
+                
+                // 获取在叶子形状内的随机位置
+                const position = this.physics.getRandomLeafPosition(leaf);
+                
+                // 随机大小（根据叶子的最小最大尺寸）
+                const dewSize = leaf.minDewSize + Math.random() * (leaf.maxDewSize - leaf.minDewSize);
+                dew.style.width = `${dewSize}px`;
+                dew.style.height = `${dewSize}px`;
+                
+                // 使用限制在叶子形状内的位置
+                dew.style.left = `calc(${position.x}% - ${dewSize/2}px)`;
+                dew.style.top = `calc(${position.y}% - ${dewSize/2}px)`;
+                
+                // 随机透明度（模拟露珠形成过程）
+                dew.style.opacity = 0;
+                
+                return dew;
+            }
+            
+            // 创建水蒸气粒子
+            createVaporParticle(x, y) {
+                const vapor = document.createElement('div');
+                vapor.className = 'vapor';
+                
+                // 随机大小（10-25px）
+                const size = 10 + Math.random() * 15;
+                vapor.style.width = `${size}px`;
+                vapor.style.height = `${size}px`;
+                
+                // 设置位置
+                vapor.style.left = `${x}px`;
+                vapor.style.top = `${y}px`;
+                
+                // 随机动画时长（1-3秒）
+                const duration = 1 + Math.random() * 2;
+                vapor.style.animation = `vaporRise ${duration}s ease-out forwards`;
+                
+                this.vaporContainer.appendChild(vapor);
+                
+                // 动画结束后移除元素
+                setTimeout(() => {
+                    if (vapor.parentNode) {
+                        vapor.parentNode.removeChild(vapor);
+                    }
+                }, duration * 1000);
+                
+                return vapor;
+            }
+            
+            // 清空水蒸气
+            clearVapor() {
+                this.vaporContainer.innerHTML = '';
+            }
+            
+            // 更新所有叶子的露珠显示
+            updateDewDisplay() {
+                for (let leaf of this.physics.leaves) {
+                    this.updateLeafDewDisplay(leaf);
+                }
+                
+                // 更新叶子详细信息
+                this.updateLeafInfo();
+            }
+            
+            // 更新单个叶子的露珠显示
+            updateLeafDewDisplay(leaf) {
+                const targetCount = leaf.targetDewCount || 0;
+                const currentCount = leaf.dewElements.length;
+                
+                // 如果目标数量大于当前数量，添加露珠
+                if (targetCount > currentCount) {
+                    const dewToAdd = targetCount - currentCount;
+                    for (let i = 0; i < dewToAdd; i++) {
+                        this.addDewToLeaf(leaf);
+                    }
+                }
+                // 如果目标数量小于当前数量，移除露珠（并生成水蒸气）
+                else if (targetCount < currentCount) {
+                    const dewToRemove = currentCount - targetCount;
+                    for (let i = 0; i < dewToRemove; i++) {
+                        this.removeDewFromLeaf(leaf);
+                    }
+                }
+                
+                // 更新现有露珠的透明度（模拟形成/蒸发过程）
+                this.updateDewAppearance(leaf);
+                
+                // 更新露珠大小（根据温度与露点的关系）
+                this.updateDewSize(leaf);
+            }
+            
+            // 向叶子添加一颗露珠
+            addDewToLeaf(leaf) {
+                const dew = this.createDewElement(leaf);
+                const leafElement = document.getElementById(`leaf-${leaf.id}`);
+                if (leafElement) {
+                    leafElement.appendChild(dew);
+                    leaf.dewElements.push(dew);
+                    
+                    // 淡入效果，带弹性动画
+                    setTimeout(() => {
+                        dew.style.opacity = 0.8 + Math.random() * 0.2;
+                        dew.style.animation = 'dewForm 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+                    }, 10);
+                }
+            }
+            
+            // 从叶子移除一颗露珠（并生成水蒸气效果）
+            removeDewFromLeaf(leaf) {
+                if (leaf.dewElements.length === 0) return;
+                
+                const dew = leaf.dewElements.pop();
+                
+                // 获取露珠位置
+                const rect = dew.getBoundingClientRect();
+                const leafRect = document.getElementById(`leaf-${leaf.id}`).getBoundingClientRect();
+                const skyRect = this.skyBackground.getBoundingClientRect();
+                
+                // 计算露珠在天空背景中的位置
+                const x = rect.left - skyRect.left + rect.width / 2;
+                const y = rect.top - skyRect.top + rect.height / 2;
+                
+                // 创建水蒸气粒子（2-4个）
+                const vaporCount = 2 + Math.floor(Math.random() * 3);
+                for (let i = 0; i < vaporCount; i++) {
+                    // 稍微随机偏移位置
+                    const offsetX = (Math.random() - 0.5) * 15;
+                    const offsetY = (Math.random() - 0.5) * 8;
+                    this.createVaporParticle(x + offsetX, y + offsetY);
+                }
+                
+                // 淡出效果，带缩小动画
+                dew.style.opacity = 0;
+                dew.style.transform = 'scale(0.2)';
+                dew.style.animation = 'dewEvaporate 0.5s ease-out forwards';
+                
+                // 延迟移除DOM元素
+                setTimeout(() => {
+                    if (dew.parentNode) {
+                        dew.parentNode.removeChild(dew);
+                    }
+                }, 500);
+            }
+            
+            // 更新露珠外观（根据当前阶段）
+            updateDewAppearance(leaf) {
+                if (this.physics.currentPhase === 1) {
+                    // 阶段1：露珠逐渐形成，变得更加明显
+                    const phaseProgress = this.physics.currentTime / this.physics.phase1Duration;
+                    leaf.dewElements.forEach(dew => {
+                        dew.style.opacity = 0.6 + (0.4 * phaseProgress);
+                    });
+                } else if (this.physics.currentPhase === 2) {
+                    // 阶段2：露珠逐渐蒸发
+                    const phaseProgress = (this.physics.currentTime - this.physics.phase1Duration) / this.physics.phase2Duration;
+                    const speedFactor = this.physics.evaporationSpeed / 5;
+                    const adjustedProgress = Math.min(1, phaseProgress * speedFactor);
+                    
+                    leaf.dewElements.forEach((dew, index) => {
+                        // 让露珠依次蒸发，增加随机性
+                        const evaporationOrder = index / leaf.dewElements.length;
+                        if (evaporationOrder < adjustedProgress) {
+                            const fadeOut = (adjustedProgress - evaporationOrder) * 3;
+                            dew.style.opacity = Math.max(0, 1 - fadeOut);
+                            dew.style.transform = `scale(${Math.max(0.3, 1 - fadeOut * 0.7)})`;
+                        }
+                    });
+                }
+            }
+            
+            // 更新露珠大小（根据温度与露点的关系）
+            updateDewSize(leaf) {
+                const tempDifference = this.physics.currentTemperature - this.physics.dewPoint;
+                
+                leaf.dewElements.forEach(dew => {
+                    const currentSize = parseFloat(dew.style.width);
+                    if (currentSize) {
+                        // 当温度高于露点时，露珠逐渐变小
+                        if (tempDifference > 0) {
+                            const shrinkFactor = Math.max(0.5, 1 - (tempDifference * 0.05));
+                            const targetSize = currentSize * shrinkFactor;
+                            dew.style.width = `${Math.max(leaf.minDewSize * 0.5, targetSize)}px`;
+                            dew.style.height = `${Math.max(leaf.minDewSize * 0.5, targetSize)}px`;
+                        }
+                        // 当温度低于或等于露点时，露珠保持或增大
+                        else {
+                            const growFactor = Math.min(1.2, 1 + (Math.abs(tempDifference) * 0.02));
+                            const targetSize = currentSize * growFactor;
+                            dew.style.width = `${Math.min(leaf.maxDewSize * 1.2, targetSize)}px`;
+                            dew.style.height = `${Math.min(leaf.maxDewSize * 1.2, targetSize)}px`;
+                        }
+                    }
+                });
+            }
+            
+            // 更新数据显示
+            updateDataDisplay() {
+                // 更新时间显示
+                this.timeLabel.textContent = this.physics.getPhaseName();
+                this.timeValue.textContent = this.physics.getFormattedTime();
+                
+                // 更新进度条
+                const progress = (this.physics.currentTime / this.physics.totalDuration) * 100;
+                this.progressBar.style.width = `${progress}%`;
+                
+                // 更新温度、湿度、露点显示
+                this.temperatureDisplay.textContent = `${this.physics.currentTemperature.toFixed(1)}°C`;
+                this.humidityDisplay.textContent = `${Math.round(this.physics.currentHumidity)}%`;
+                this.dewpointDisplay.textContent = `${this.physics.dewPoint.toFixed(1)}°C`;
+                
+                // 更新环境温度显示
+                this.environmentTempDisplay.textContent = `${this.physics.environmentTemperature.toFixed(1)}°C`;
+                
+                // 更新状态显示
+                this.statusDisplay.textContent = this.physics.getPhaseName();
+                
+                // 更新提示文本
+                this.currentTip.textContent = this.physics.getPhaseDescription();
+                
+                // 根据温度与露点的关系添加高亮效果
+                if (this.physics.currentTemperature <= this.physics.dewPoint) {
+                    this.temperatureDisplay.style.color = '#4fc3f7'; // 蓝色，表示温度≤露点
+                    this.dewpointDisplay.style.color = '#cc66ff'; // 紫色，露点温度
+                } else {
+                    this.temperatureDisplay.style.color = '#ff6b6b'; // 红色，表示温度>露点
+                    this.dewpointDisplay.style.color = '#cc66ff'; // 紫色，露点温度
+                }
+                
+                // 添加数据变化动画
+                this.temperatureDisplay.classList.add('changed');
+                this.humidityDisplay.classList.add('changed');
+                setTimeout(() => {
+                    this.temperatureDisplay.classList.remove('changed');
+                    this.humidityDisplay.classList.remove('changed');
+                }, 500);
+            }
+            
+            // 开始动画循环
+            startAnimation() {
+                if (this.animationFrameId) return;
+                
+                const animate = (timestamp) => {
+                    if (!this.lastUpdateTime) {
+                        this.lastUpdateTime = timestamp;
+                    }
+                    
+                    // 计算时间增量（转换为模拟分钟）
+                    const deltaTime = timestamp - this.lastUpdateTime;
+                    const deltaMinutes = deltaTime / (1000); // 现实1秒 = 模拟1分钟
+                    
+                    // 更新物理模型
+                    this.physics.updateTime(deltaMinutes);
+                    
+                    // 更新视觉效果
+                    this.updateVisuals();
+                    
+                    this.lastUpdateTime = timestamp;
+                    
+                    // 如果模拟仍在运行，继续动画循环
+                    if (this.physics.isRunning && !this.physics.isPaused) {
+                        this.animationFrameId = requestAnimationFrame(animate);
+                    } else {
+                        this.animationFrameId = null;
+                    }
+                };
+                
+                this.lastUpdateTime = null;
+                this.animationFrameId = requestAnimationFrame(animate);
+            }
+            
+            // 停止动画循环
+            stopAnimation() {
+                if (this.animationFrameId) {
+                    cancelAnimationFrame(this.animationFrameId);
+                    this.animationFrameId = null;
+                }
+            }
+            
+            // 更新所有视觉效果
+            updateVisuals() {
+                this.updateSkyBackground();
+                this.updateSunPosition();
+                this.updateDewDisplay();
+                this.updateDataDisplay();
+            }
+        }
+
+        // ===================== 模块3：交互控制与事件处理 =====================
+        class InteractionController {
+            constructor(physicsModel, visualSimulation) {
+                this.physics = physicsModel;
+                this.visual = visualSimulation;
+                
+                // 获取DOM元素
+                this.startBtn = document.getElementById('startBtn');
+                this.pauseBtn = document.getElementById('pauseBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.speedBtns = document.querySelectorAll('.speed-btn');
+                this.tempUpBtn = document.getElementById('tempUp');
+                this.tempDownBtn = document.getElementById('tempDown');
+                this.tipToggle = document.getElementById('tipToggle');
+                this.tipContent = document.getElementById('tipContent');
+                this.evaporationSlider = document.getElementById('evaporationSpeed');
+                this.speedValue = document.getElementById('speedValue');
+                this.helpIcon = document.getElementById('helpIcon');
+                
+                // 初始化事件监听
+                this.initEventListeners();
+            }
+            
+            // 初始化事件监听器
+            initEventListeners() {
+                // 开始模拟按钮
+                this.startBtn.addEventListener('click', () => {
+                    this.startSimulation();
+                });
+                
+                // 暂停/继续按钮
+                this.pauseBtn.addEventListener('click', () => {
+                    this.togglePause();
+                });
+                
+                // 重置按钮
+                this.resetBtn.addEventListener('click', () => {
+                    this.resetSimulation();
+                });
+                
+                // 速度控制按钮
+                this.speedBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.setSimulationSpeed(e.target);
+                    });
+                });
+                
+                // 手动温度控制
+                this.tempUpBtn.addEventListener('click', () => {
+                    this.adjustTemperature(0.5);
+                });
+                
+                this.tempDownBtn.addEventListener('click', () => {
+                    this.adjustTemperature(-0.5);
+                });
+                
+                // 挥发速度滑块
+                this.evaporationSlider.addEventListener('input', (e) => {
+                    this.setEvaporationSpeed(e.target.value);
+                });
+                
+                // 提示开关
+                this.tipToggle.addEventListener('change', (e) => {
+                    this.toggleTips(e.target.checked);
+                });
+                
+                // 帮助图标
+                this.helpIcon.addEventListener('click', () => {
+                    this.showHelpModal();
+                });
+                
+                // 添加键盘快捷键
+                document.addEventListener('keydown', (e) => {
+                    this.handleKeyboardShortcuts(e);
+                });
+            }
+            
+            // 开始模拟
+            startSimulation() {
+                if (!this.physics.isRunning) {
+                    this.physics.isRunning = true;
+                    this.physics.isPaused = false;
+                    this.physics.environmentMode = false;
+                    
+                    // 更新按钮状态
+                    this.startBtn.disabled = true;
+                    this.startBtn.innerHTML = '<i class="fas fa-play"></i> 模拟中...';
+                    this.startBtn.classList.remove('btn-primary');
+                    this.startBtn.classList.add('btn-secondary');
+                    
+                    this.pauseBtn.disabled = false;
+                    this.pauseBtn.innerHTML = '<i class="fas fa-pause"></i> 暂停';
+                    
+                    // 开始动画循环
+                    this.visual.startAnimation();
+                }
+            }
+            
+            // 暂停/继续模拟
+            togglePause() {
+                if (!this.physics.isRunning) return;
+                
+                this.physics.isPaused = !this.physics.isPaused;
+                
+                if (this.physics.isPaused) {
+                    this.pauseBtn.innerHTML = '<i class="fas fa-play"></i> 继续';
+                    this.visual.stopAnimation();
+                } else {
+                    this.pauseBtn.innerHTML = '<i class="fas fa-pause"></i> 暂停';
+                    this.visual.startAnimation();
+                }
+            }
+            
+            // 重置模拟
+            resetSimulation() {
+                // 停止动画
+                this.visual.stopAnimation();
+                
+                // 重置物理模型
+                this.physics.reset();
+                
+                // 重置视觉效果
+                this.visual.initVisuals();
+                
+                // 重置按钮状态
+                this.startBtn.disabled = false;
+                this.startBtn.innerHTML = '<i class="fas fa-play"></i> 开始模拟';
+                this.startBtn.classList.remove('btn-secondary');
+                this.startBtn.classList.add('btn-primary');
+                
+                this.pauseBtn.disabled = true;
+                this.pauseBtn.innerHTML = '<i class="fas fa-pause"></i> 暂停';
+                
+                // 重置速度按钮
+                this.speedBtns.forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.speed === '1') {
+                        btn.classList.add('active');
+                    }
+                });
+                
+                // 重置挥发速度滑块
+                this.evaporationSlider.value = 5;
+                this.speedValue.textContent = '5.0';
+                
+                // 确保提示框可见
+                this.tipToggle.checked = true;
+                this.toggleTips(true);
+            }
+            
+            // 设置模拟速度
+            setSimulationSpeed(button) {
+                const speed = parseFloat(button.dataset.speed);
+                this.physics.setSimulationSpeed(speed);
+                
+                // 更新按钮状态
+                this.speedBtns.forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                button.classList.add('active');
+            }
+            
+            // 设置挥发速度
+            setEvaporationSpeed(speed) {
+                const speedNum = parseFloat(speed);
+                this.physics.setEvaporationSpeed(speedNum);
+                this.speedValue.textContent = speedNum.toFixed(1);
+            }
+            
+            // 手动调节温度
+            adjustTemperature(change) {
+                // 如果模拟正在运行，先暂停
+                if (this.physics.isRunning && !this.physics.isPaused) {
+                    this.togglePause();
+                }
+                
+                // 更新环境温度
+                const newTemp = this.physics.environmentTemperature + change;
+                this.physics.setEnvironmentTemperature(newTemp);
+                
+                // 更新视觉效果
+                this.visual.updateVisuals();
+            }
+            
+            // 切换提示显示
+            toggleTips(show) {
+                if (show) {
+                    this.tipContent.style.display = 'block';
+                } else {
+                    this.tipContent.style.display = 'none';
+                }
+            }
+            
+            // 显示帮助模态框
+            showHelpModal() {
+                // 如果已经存在，先移除
+                const existingModal = document.getElementById('helpModalContainer');
+                if (existingModal && existingModal.innerHTML) {
+                    existingModal.remove();
+                    return;
+                }
+                
+                // 创建模态框
+                const modalContainer = document.createElement('div');
+                modalContainer.id = 'helpModalContainer';
+                modalContainer.innerHTML = `
+                    <div class="help-modal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h2><i class="fas fa-question-circle"></i> 使用帮助 - 三栏三叶版</h2>
+                                <button class="close-modal">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <h3><i class="fas fa-columns"></i> 三栏3:4:3比例布局</h3>
+                                <ul>
+                                    <li><strong>左栏（30%）：控制区</strong> - 模拟控制、速度控制、温度调节</li>
+                                    <li><strong>中栏（40%）：模拟区</strong> - 三叶子三角形布局，露珠形成与挥发可视化</li>
+                                    <li><strong>右栏（30%）：数据区</strong> - 数据监测、叶子信息、物理原理</li>
+                                </ul>
+                                
+                                <h3><i class="fas fa-tree"></i> 三叶子三角形布局</h3>
+                                <ul>
+                                    <li>三片叶子呈三角形排列：顶部一片，底部左右各一片</li>
+                                    <li>每片叶子有独立的露珠形成和蒸发特性</li>
+                                    <li>点击左栏的叶子按钮选择查看特定叶子</li>
+                                    <li>右栏显示选中叶子的详细信息</li>
+                                </ul>
+                                
+                                <h3><i class="fas fa-cogs"></i> 模拟过程</h3>
+                                <ol>
+                                    <li><strong>黎明前</strong>：温度下降，湿度上升，露珠逐渐形成</li>
+                                    <li><strong>清晨</strong>：太阳升起，温度上升，湿度下降，露珠开始挥发</li>
+                                    <li><strong>上午</strong>：温度继续上升，露珠完全挥发</li>
+                                </ol>
+                                
+                                <h3><i class="fas fa-gamepad"></i> 操作指南</h3>
+                                <div class="shortcuts">
+                                    <div class="shortcut-item">
+                                        <span class="key">空格键</span>
+                                        <span>开始/暂停模拟</span>
+                                    </div>
+                                    <div class="shortcut-item">
+                                        <span class="key">R键</span>
+                                        <span>重置模拟</span>
+                                    </div>
+                                    <div class="shortcut-item">
+                                        <span class="key">↑↓箭头</span>
+                                        <span>手动调节温度</span>
+                                    </div>
+                                    <div class="shortcut-item">
+                                        <span class="key">1, 2, 3</span>
+                                        <span>切换模拟速度</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="footer-note">
+                                    <p><strong>改进说明：</strong> 露珠生成位置现在精确限制在叶子形状的实际边缘内，避免出现在叶子形状之外。</p>
+                                    <p>本模拟器基于物理原理构建，使用简化的数学模型进行实时计算，旨在直观展示温度、湿度与露点的动态关系。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 添加样式
+                const modalStyle = document.createElement('style');
+                modalStyle.textContent = `
+                    .help-modal {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(5, 10, 20, 0.85);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 2000;
+                        animation: modalFadeIn 0.4s ease;
+                        backdrop-filter: blur(5px);
+                    }
+                    
+                    .help-modal .modal-content {
+                        background: linear-gradient(145deg, rgba(15, 25, 45, 0.95), rgba(25, 35, 65, 0.95));
+                        border-radius: 15px;
+                        max-width: 600px;
+                        max-height: 85vh;
+                        overflow-y: auto;
+                        animation: modalSlideIn 0.4s ease;
+                        border: 1px solid rgba(64, 156, 255, 0.3);
+                        box-shadow: 0 0 50px rgba(0, 100, 200, 0.5);
+                        color: #e0f7ff;
+                    }
+                    
+                    .help-modal .modal-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 20px;
+                        background: linear-gradient(90deg, #0a1930, #1a3a5f);
+                        color: #e0f7ff;
+                        border-radius: 15px 15px 0 0;
+                        border-bottom: 1px solid rgba(64, 156, 255, 0.3);
+                    }
+                    
+                    .help-modal .modal-header h2 {
+                        margin: 0;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        font-size: 1.6rem;
+                        text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+                    }
+                    
+                    .help-modal .close-modal {
+                        background: none;
+                        border: none;
+                        color: #e0f7ff;
+                        font-size: 30px;
+                        cursor: pointer;
+                        line-height: 1;
+                        transition: all 0.2s ease;
+                    }
+                    
+                    .help-modal .close-modal:hover {
+                        transform: rotate(90deg);
+                    }
+                    
+                    .help-modal .modal-body {
+                        padding: 20px;
+                    }
+                    
+                    .help-modal h3 {
+                        color: #4fc3f7;
+                        margin-top: 20px;
+                        margin-bottom: 12px;
+                        padding-bottom: 6px;
+                        border-bottom: 2px solid rgba(64, 156, 255, 0.3);
+                    }
+                    
+                    .help-modal ul, .help-modal ol {
+                        margin-left: 20px;
+                        margin-bottom: 15px;
+                    }
+                    
+                    .help-modal li {
+                        margin-bottom: 6px;
+                        color: #c0d0ff;
+                    }
+                    
+                    .shortcuts {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 10px;
+                        margin: 15px 0;
+                    }
+                    
+                    .shortcut-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 10px;
+                        background: rgba(30, 40, 70, 0.7);
+                        border-radius: 8px;
+                        border: 1px solid rgba(64, 156, 255, 0.2);
+                    }
+                    
+                    .key {
+                        background: linear-gradient(135deg, #0066cc, #0099ff);
+                        color: white;
+                        padding: 5px 10px;
+                        border-radius: 6px;
+                        font-weight: bold;
+                        min-width: 50px;
+                        text-align: center;
+                        font-family: 'Orbitron', monospace;
+                    }
+                    
+                    .footer-note {
+                        margin-top: 20px;
+                        padding-top: 15px;
+                        border-top: 1px solid rgba(64, 156, 255, 0.3);
+                        font-size: 0.9rem;
+                        color: #88aadd;
+                    }
+                    
+                    @keyframes modalFadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    
+                    @keyframes modalSlideIn {
+                        from { transform: translateY(-40px); opacity: 0; }
+                        to { transform: translateY(0); opacity: 1; }
+                    }
+                `;
+                
+                document.head.appendChild(modalStyle);
+                document.body.appendChild(modalContainer);
+                
+                // 关闭按钮事件
+                const closeBtn = modalContainer.querySelector('.close-modal');
+                closeBtn.addEventListener('click', () => {
+                    modalContainer.style.animation = 'modalFadeOut 0.3s ease forwards';
+                    setTimeout(() => {
+                        if (modalContainer.parentNode) {
+                            modalContainer.parentNode.removeChild(modalContainer);
+                        }
+                    }, 300);
+                });
+                
+                // 点击背景关闭
+                modalContainer.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('help-modal')) {
+                        closeBtn.click();
+                    }
+                });
+            }
+            
+            // 键盘快捷键
+            handleKeyboardShortcuts(e) {
+                // 防止在输入框中触发快捷键
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+                    return;
+                }
+                
+                switch(e.key) {
+                    case ' ':
+                    case 'Spacebar':
+                        // 空格键：开始/暂停
+                        e.preventDefault();
+                        if (!this.physics.isRunning) {
+                            this.startSimulation();
+                        } else {
+                            this.togglePause();
+                        }
+                        break;
+                        
+                    case 'r':
+                    case 'R':
+                        // R键：重置
+                        e.preventDefault();
+                        this.resetSimulation();
+                        break;
+                        
+                    case 'ArrowUp':
+                        // 上箭头：升温
+                        e.preventDefault();
+                        this.adjustTemperature(0.5);
+                        break;
+                        
+                    case 'ArrowDown':
+                        // 下箭头：降温
+                        e.preventDefault();
+                        this.adjustTemperature(-0.5);
+                        break;
+                        
+                    case '1':
+                        // 1键：慢速
+                        e.preventDefault();
+                        const slowBtn = document.querySelector('[data-speed="0.5"]');
+                        if (slowBtn) this.setSimulationSpeed(slowBtn);
+                        break;
+                        
+                    case '2':
+                        // 2键：中速
+                        e.preventDefault();
+                        const normalBtn = document.querySelector('[data-speed="1"]');
+                        if (normalBtn) this.setSimulationSpeed(normalBtn);
+                        break;
+                        
+                    case '3':
+                        // 3键：快速
+                        e.preventDefault();
+                        const fastBtn = document.querySelector('[data-speed="2"]');
+                        if (fastBtn) this.setSimulationSpeed(fastBtn);
+                        break;
+                }
+            }
+        }
+
+        // ===================== 模块4：应用初始化与整合 =====================
+        class DewSimulatorApp {
+            constructor() {
+                // 初始化物理模型（3片叶子）
+                this.physicsModel = new DewPhysicsModel(3);
+                
+                // 初始化可视化模拟
+                this.visualSimulation = new VisualSimulation(this.physicsModel);
+                
+                // 初始化交互控制器
+                this.interactionController = new InteractionController(this.physicsModel, this.visualSimulation);
+                
+                // 添加初始化动画
+                this.initWelcomeAnimation();
+                
+                // 添加控制台欢迎信息
+                console.log(
+                    `%c🌿 清晨露珠生成-挥发模拟器 三叶版 %c\n` +
+                    `%c基于工程物理原理的工程级模拟器\n` +
+                    `版本: 1.0 | 作者: AIKnow\n` +
+                    `功能: 三叶三角形布局 | 精确露珠位置限制\n` +
+                    `提示: 按空格键开始/暂停模拟 | 方向键调节温度\n` +
+                    `改进: 露珠位置现在精确限制在叶子形状的实际边缘内`,
+                    'background: linear-gradient(90deg, #0a1930, #1a3a5f); color: #4fc3f7; padding: 8px 15px; border-radius: 5px; font-weight: bold;',
+                    '',
+                    'color: #4fc3f7;'
+                );
+            }
+            
+            // 初始化欢迎动画
+            initWelcomeAnimation() {
+                // 创建欢迎消息
+                const welcomeContainer = document.getElementById('welcomeContainer');
+                welcomeContainer.innerHTML = `
+          <div class="welcome-message">
+        <h2><i class="fas fa-leaf"></i> 清晨露珠生成-挥发模拟器</h2>
+        <p class="welcome-subtitle">
+            从一滴露水，理解传热与传质
+        </p>
+
+        <div class="welcome-section">
+            <p><strong>这是给大家准备的探索型实验：</strong></p>
+            <p class="welcome-text">
+                你不是在“看动画”，而是在像工程师一样，
+                通过调节环境条件，观察露珠在不同叶片上的真实行为。
+            </p>
+        </div>
+
+        <div class="welcome-section">
+            <p><strong><i class="fas fa-search"></i> 你可以探索：</strong></p>
+            <ul class="welcome-list">
+                <li>对比三片叶子在不同位置下的挥发差异</li>
+                <li>改变温度，感受蒸发速率的非线性变化</li>
+                <li>观察露珠如何始终受限于真实叶片边界</li>
+                <li>同步读取温度、湿度与露点数据</li>
+            </ul>
+        </div>
+                `;
+                
+                // 4秒后自动隐藏
+                setTimeout(() => {
+                    const welcomeMsg = document.querySelector('.welcome-message');
+                    if (welcomeMsg) {
+                        welcomeMsg.style.animation = 'fadeOut 0.6s ease forwards';
+                        setTimeout(() => {
+                            welcomeContainer.innerHTML = '';
+                        }, 600);
+                    }
+                }, 4000);
+            }
+        }
+
+        // 页面加载完成后初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化应用
+            const app = new DewSimulatorApp();
+            
+            // 初始更新
+            setTimeout(() => {
+                app.visualSimulation.updateVisuals();
+            }, 100);
+        });
+    </script>
+
+
+<!-- 底部信息栏 -->
+<div style="
+    text-align: center;
+    padding: 20px 30px;
+    margin-top: 40px;
+    color: #e6f7ff;
+    font-size: 0.9rem;
+    border-top: 2px solid rgba(0, 180, 255, 0.5);
+    background: linear-gradient(135deg, rgba(10, 15, 43, 0.95), rgba(18, 26, 58, 0.9));
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+">
+    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+    
+    <p style="font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; color: #00b4ff;">
+        清晨露珠挥发模拟器 © 2025 | 传热传质交互仿真 | 版本 1.0 |
+      <style="margin-bottom: 12px; color: #cbd5e1;">
+        <strong>邮箱:</strong> xgyanger@qq.com
+    </p>
+    
+    <div style="margin-top: 15px;">
+        <span style="color: #ffcc00; font-weight: bold; font-size: 1.1rem;">
+                    <p>本教学工具旨在帮助学生理解扩散控制下的传质过程，通过可视化交互加深对工程原理的理解。</p>
+            <p style="margin-top: 8px; font-size: 0.8rem;">
+                免责声明：本工具仅用于教学目的，实际工程应用需考虑更多复杂因素。
+            </p>
+            版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+        </span>
+    </div>
+</div>
+
+    </footer>
+
+
+</body>
+</html>

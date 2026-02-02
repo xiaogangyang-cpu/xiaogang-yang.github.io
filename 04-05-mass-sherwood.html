@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sherwood数下的对流传质挑战——清洗污染物工程谜题</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a1929 0%, #0c1d2e 100%);
+            color: #e0f2ff;
+            min-height: 100vh;
+            padding: 15px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 15px 0 20px;
+            border-bottom: 1px solid rgba(64, 156, 255, 0.2);
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 2.0rem;
+            color: #5fc9ff;
+            text-shadow: 0 0 10px rgba(95, 201, 255, 0.4);
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            font-size: 1.0rem;
+            color: #a8d8ff;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.4;
+        }
+        
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        @media (max-width: 1100px) {
+            .game-area {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .control-panel {
+            background: rgba(16, 40, 66, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(64, 156, 255, 0.3);
+            box-shadow: 0 8px 25px rgba(0, 20, 40, 0.6);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel-title {
+            color: #5fc9ff;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(95, 201, 255, 0.3);
+        }
+        
+        .parameter-control {
+            margin-bottom: 20px;
+        }
+        
+        .parameter-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .param-label {
+            width: 150px;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+        
+        .param-value {
+            width: 70px;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            color: #a8d8ff;
+            font-size: 0.95rem;
+        }
+        
+        .slider-container {
+            flex: 1;
+            margin: 0 12px;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(30, 70, 120, 0.8);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #5fc9ff;
+            cursor: pointer;
+            box-shadow: 0 0 6px rgba(95, 201, 255, 0.8);
+        }
+        
+        .calculated-values {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .value-box {
+            background: rgba(10, 30, 50, 0.5);
+            border-radius: 6px;
+            padding: 12px;
+            border: 1px solid rgba(64, 156, 255, 0.2);
+        }
+        
+        .value-label {
+            font-size: 0.85rem;
+            color: #a8d8ff;
+            margin-bottom: 5px;
+        }
+        
+        .value-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #5fc9ff;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .test-button-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .test-button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #3b8cff, #5fc9ff);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 6px 15px rgba(0, 60, 120, 0.5);
+            font-size: 1.1rem;
+            width: 100%;
+        }
+        
+        .test-button:hover {
+            background: linear-gradient(135deg, #2b7cff, #4fb9ff);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 60, 120, 0.7);
+        }
+        
+        .test-button:active {
+            transform: translateY(0);
+        }
+        
+        .performance-evaluation {
+            background: rgba(10, 30, 50, 0.5);
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            border: 1px solid rgba(64, 156, 255, 0.2);
+        }
+        
+        .performance-title {
+            color: #5fc9ff;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        
+        .performance-level {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .performance-desc {
+            font-size: 0.95rem;
+            color: #c2e0ff;
+        }
+        
+        .level-excellent { color: #4caf50; }
+        .level-good { color: #8bc34a; }
+        .level-fair { color: #ffc107; }
+        .level-poor { color: #ff9800; }
+        .level-weak { color: #f44336; }
+        
+        .charts-container {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+            height: 100%;
+        }
+        
+        .chart-box {
+            background: rgba(16, 40, 66, 0.7);
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid rgba(64, 156, 255, 0.3);
+            box-shadow: 0 8px 25px rgba(0, 20, 40, 0.6);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chart-title {
+            color: #5fc9ff;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .chart-wrapper {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+        }
+        
+        .comparison-bar {
+            display: flex;
+            height: 50px;
+            margin-top: 15px;
+            border-radius: 6px;
+            overflow: hidden;
+            background: rgba(10, 30, 50, 0.5);
+            flex-shrink: 0;
+        }
+        
+        .diffusion-bar {
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255, 100, 100, 0.8), rgba(255, 50, 50, 0.9));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: width 1s ease;
+        }
+        
+        .convection-bar {
+            height: 100%;
+            background: linear-gradient(90deg, rgba(95, 201, 255, 0.8), rgba(64, 156, 255, 0.9));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: width 1s ease;
+        }
+        
+        .game-progress {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            background: rgba(16, 40, 66, 0.7);
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid rgba(64, 156, 255, 0.3);
+        }
+        
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(30, 70, 120, 0.8);
+            color: #a8d8ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 8px;
+            border: 2px solid rgba(95, 201, 255, 0.3);
+        }
+        
+        .step-number.active {
+            background: linear-gradient(135deg, #3b8cff, #5fc9ff);
+            color: white;
+            border-color: #5fc9ff;
+        }
+        
+        .step-label {
+            font-size: 0.9rem;
+            text-align: center;
+            color: #a8d8ff;
+        }
+        
+        .progress-line {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background: rgba(95, 201, 255, 0.3);
+            z-index: -1;
+        }
+        
+        .step-section {
+            display: none;
+        }
+        
+        .step-section.active {
+            display: block;
+        }
+        
+        .evaluation-section {
+            background: rgba(16, 40, 66, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 25px;
+            border: 1px solid rgba(64, 156, 255, 0.3);
+            box-shadow: 0 8px 25px rgba(0, 20, 40, 0.6);
+        }
+        
+        .evaluation-title {
+            color: #5fc9ff;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+        
+        .question {
+            background: rgba(10, 30, 50, 0.5);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .question-text {
+            font-size: 1.0rem;
+            margin-bottom: 12px;
+            color: #a8d8ff;
+        }
+        
+        .options-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .option-button {
+            padding: 12px 15px;
+            background: rgba(20, 50, 80, 0.7);
+            border: 1px solid rgba(95, 201, 255, 0.4);
+            border-radius: 5px;
+            color: #e0f2ff;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+        
+        .option-button:hover {
+            background: rgba(30, 70, 120, 0.8);
+            border-color: #5fc9ff;
+        }
+        
+        .option-button.selected {
+            background: rgba(95, 201, 255, 0.2);
+            border-color: #5fc9ff;
+            color: #5fc9ff;
+        }
+        
+        .option-button.correct {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: #4caf50;
+            color: #c8f7c5;
+        }
+        
+        .option-button.incorrect {
+            background: rgba(244, 67, 54, 0.3);
+            border-color: #f44336;
+            color: #ffcdd2;
+        }
+        
+        .next-button {
+            display: block;
+            margin: 20px auto 0;
+            padding: 12px 40px;
+        }
+        
+        .results-container {
+            display: none;
+            background: rgba(10, 30, 50, 0.5);
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .results-container.active {
+            display: block;
+        }
+        
+        .radar-chart-container {
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .engineer-rating {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .rating-title {
+            font-size: 1.5rem;
+            color: #5fc9ff;
+            margin-bottom: 10px;
+        }
+        
+        .rating-badge {
+            display: inline-block;
+            padding: 10px 25px;
+            border-radius: 30px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 15px 0;
+            color: white;
+        }
+        
+        .rating-description {
+            font-size: 1.1rem;
+            color: #c2e0ff;
+            margin-bottom: 20px;
+        }
+        
+        .suggestions {
+            background: rgba(16, 40, 66, 0.7);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #5fc9ff;
+        }
+        
+        .suggestions-title {
+            color: #5fc9ff;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+        
+        .suggestions-list {
+            list-style-type: none;
+        }
+        
+        .suggestions-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(95, 201, 255, 0.2);
+            color: #c2e0ff;
+        }
+        
+        .suggestions-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .suggestions-list li::before {
+            content: "•";
+            color: #5fc9ff;
+            font-weight: bold;
+            display: inline-block;
+            width: 1em;
+            margin-left: -1em;
+        }
+        
+        .info-box {
+            background: rgba(10, 30, 50, 0.5);
+            border-left: 3px solid #5fc9ff;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 0 6px 6px 0;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        
+        .info-title {
+            color: #5fc9ff;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 15px;
+            color: #8ab4f8;
+            font-size: 0.85rem;
+            margin-top: 25px;
+            border-top: 1px solid rgba(64, 156, 255, 0.2);
+        }
+        
+        .formula {
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+            color: #a8d8ff;
+            font-size: 0.9rem;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        
+        .slider-minmax {
+            color: #8ab4f8;
+            font-size: 0.85rem;
+        }
+        
+        .game-container {
+            min-height: 700px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        
+        .chart-canvas-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .answer-explanation {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(20, 50, 80, 0.5);
+            border-radius: 6px;
+            border-left: 4px solid #5fc9ff;
+            display: none;
+        }
+        
+        .answer-explanation.active {
+            display: block;
+        }
+        
+        .explanation-title {
+            color: #5fc9ff;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .explanation-content {
+            color: #c2e0ff;
+            font-size: 0.95rem;
+        }
+        
+        .exploration-stats {
+            background: rgba(10, 30, 50, 0.5);
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            border: 1px solid rgba(95, 201, 255, 0.2);
+        }
+        
+        .stats-title {
+            color: #5fc9ff;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            color: #a8d8ff;
+            margin-bottom: 3px;
+        }
+        
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #5fc9ff;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .answers-review {
+            background: rgba(16, 40, 66, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 25px;
+            border: 1px solid rgba(64, 156, 255, 0.3);
+            box-shadow: 0 8px 25px rgba(0, 20, 40, 0.6);
+            display: none;
+        }
+        
+        .answers-review.active {
+            display: block;
+        }
+        
+        .review-title {
+            color: #5fc9ff;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .review-question {
+            background: rgba(10, 30, 50, 0.5);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .review-question-text {
+            font-size: 1.0rem;
+            margin-bottom: 12px;
+            color: #a8d8ff;
+        }
+        
+        .review-correct-answer {
+            padding: 12px 15px;
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+            border-radius: 5px;
+            color: #c8f7c5;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        
+        .review-explanation {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(20, 50, 80, 0.5);
+            border-radius: 5px;
+            border-left: 3px solid #5fc9ff;
+        }
+        
+        .progress-feedback {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.1rem;
+            color: #c2e0ff;
+        }
+        
+        .progress-feedback .highlight {
+            color: #5fc9ff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container game-container">
+        <header>
+            <h1>Sherwood数下的对流传质挑战</h1>
+            <div class="subtitle">清洗污染物工程谜题 - 理解对流传质机制与相似放大原理</div>
+        </header>
+        
+        <div class="game-progress">
+            <div class="progress-step">
+                <div class="step-number active" id="step1-number">1</div>
+                <div class="step-label">参数探索</div>
+                <div class="progress-line" style="left: 70%;"></div>
+            </div>
+            <div class="progress-step">
+                <div class="step-number" id="step2-number">2</div>
+                <div class="step-label">知识评测</div>
+                <div class="progress-line" style="left: 50%; width: 100%;"></div>
+            </div>
+            <div class="progress-step">
+                <div class="step-number" id="step3-number">3</div>
+                <div class="step-label">评估报告</div>
+            </div>
+        </div>
+        
+        <div class="step-section active" id="step1-section">
+            <div class="game-area">
+                <div class="control-panel">
+                    <h2 class="panel-title">工程控制台</h2>
+                    
+                    <div class="parameter-control">
+                        <div class="slider-label">
+                            <div class="param-label">流速 u (m/s):</div>
+                            <div class="slider-minmax">0.01 - 10.0</div>
+                        </div>
+                        <div class="parameter-row">
+                            <div class="slider-container">
+                                <input type="range" id="velocity-slider" min="0.01" max="10.0" step="0.01" value="1.0">
+                            </div>
+                            <div class="param-value" id="velocity-value">1.00</div>
+                        </div>
+                        
+                        <div class="slider-label">
+                            <div class="param-label">特征长度 L (m):</div>
+                            <div class="slider-minmax">0.1 - 5.0</div>
+                        </div>
+                        <div class="parameter-row">
+                            <div class="slider-container">
+                                <input type="range" id="length-slider" min="0.1" max="5.0" step="0.1" value="1.0">
+                            </div>
+                            <div class="param-value" id="length-value">1.00</div>
+                        </div>
+                        
+                        <div class="slider-label">
+                            <div class="param-label">Schmidt数 Sc:</div>
+                            <div class="slider-minmax">1 - 1000</div>
+                        </div>
+                        <div class="parameter-row">
+                            <div class="slider-container">
+                                <input type="range" id="schmidt-slider" min="1" max="1000" step="10" value="1000">
+                            </div>
+                            <div class="param-value" id="schmidt-value">1000</div>
+                        </div>
+                        
+                        <div class="slider-label">
+                            <div class="param-label">清洗时间 t (s):</div>
+                            <div class="slider-minmax">10 - 1000</div>
+                        </div>
+                        <div class="parameter-row">
+                            <div class="slider-container">
+                                <input type="range" id="time-slider" min="10" max="1000" step="10" value="100">
+                            </div>
+                            <div class="param-value" id="time-value">100</div>
+                        </div>
+                    </div>
+                    
+                    <div class="calculated-values">
+                        <div class="value-box">
+                            <div class="value-label">Reynolds数 Re = uL/ν</div>
+                            <div class="value-number" id="reynolds-value">1000000</div>
+                        </div>
+                        <div class="value-box">
+                            <div class="value-label">Sherwood数 Sh</div>
+                            <div class="value-number" id="sherwood-value">664.0</div>
+                        </div>
+                        <div class="value-box">
+                            <div class="value-label">扩散系数 D (m²/s)</div>
+                            <div class="value-number" id="diffusion-value">1.0e-9</div>
+                        </div>
+                        <div class="value-box">
+                            <div class="value-label">传质系数 k (m/s)</div>
+                            <div class="value-number" id="mass-transfer-value">6.64e-7</div>
+                        </div>
+                    </div>
+                    
+                    <div class="test-button-container">
+                        <button class="test-button" id="test-button">启动测试</button>
+                    </div>
+                    
+                    <div class="performance-evaluation">
+                        <div class="performance-title">当前传质效果评价</div>
+                        <div class="performance-level" id="performance-level">未测试</div>
+                        <div class="performance-desc" id="performance-desc">调整参数后点击"启动测试"按钮查看效果</div>
+                    </div>
+                    
+                    <div class="info-box">
+                        <div class="info-title">传质公式</div>
+                        <div class="formula">Sh = kL/D = 0.664 × Re^(1/2) × Sc^(1/3)</div>
+                        <div class="formula">污染物剩余比例 = exp(-Sh × D × t / L²)</div>
+                    </div>
+                </div>
+                
+                <div class="charts-container">
+                    <div class="chart-box">
+                        <h3 class="chart-title">不同位置剩余污染物比例</h3>
+                        <div class="chart-wrapper">
+                            <div class="chart-canvas-container">
+                                <canvas id="position-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-box">
+                        <h3 class="chart-title">总残留污染物 vs 时间</h3>
+                        <div class="chart-wrapper">
+                            <div class="chart-canvas-container">
+                                <canvas id="time-chart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="comparison-bar">
+                            <div class="diffusion-bar" id="diffusion-bar" style="width: 50%;">纯扩散有效</div>
+                            <div class="convection-bar" id="convection-bar" style="width: 50%;">对流传质有效</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-button-container">
+                <button class="test-button next-button" id="step1-next-button">完成探索，进入评测</button>
+            </div>
+        </div>
+        
+        <div class="step-section" id="step2-section">
+            <div class="evaluation-section">
+                <h2 class="evaluation-title">对流传质知识评测</h2>
+                <div class="info-box">
+                    <div class="info-title">评测说明</div>
+                    <p>请回答以下问题，测试您对对流传质原理的理解。完成评测后，您将获得工程师评级和学习建议。</p>
+                    <p><strong>注意：</strong>您必须先选择所有问题的答案，然后才能提交查看结果和正确答案。</p>
+                </div>
+                
+                <div class="question">
+                    <div class="question-text">问题1：在对流传质中，下列哪个参数对提高清洗效率的影响最显著？</div>
+                    <div class="options-container" id="q1-options">
+                        <button class="option-button" data-value="A">A. 增加清洗时间 t</button>
+                        <button class="option-button" data-value="B">B. 提高流速 u</button>
+                        <button class="option-button" data-value="C">C. 增大特征长度 L</button>
+                        <button class="option-button" data-value="D">D. 增加Schmidt数 Sc</button>
+                    </div>
+                </div>
+                
+                <div class="question">
+                    <div class="question-text">问题2：根据相似原理，当系统尺寸（L）增大10倍时，要保持相同的传质效率（相同的Sherwood数），流速u应该如何调整？</div>
+                    <div class="options-container" id="q2-options">
+                        <button class="option-button" data-value="A">A. 增大10倍</button>
+                        <button class="option-button" data-value="B">B. 减小10倍</button>
+                        <button class="option-button" data-value="C">C. 保持不变</button>
+                        <button class="option-button" data-value="D">D. 减小为原来的1/10</button>
+                    </div>
+                </div>
+                
+                <div class="question">
+                    <div class="question-text">问题3：Sherwood数（Sh）的物理意义是什么？</div>
+                    <div class="options-container" id="q3-options">
+                        <button class="option-button" data-value="A">A. 衡量对流与扩散的相对重要性</button>
+                        <button class="option-button" data-value="B">B. 描述流动状态（层流或湍流）</button>
+                        <button class="option-button" data-value="C">C. 表示流体粘性对传质的影响</button>
+                        <button class="option-button" data-value="D">D. 计算污染物扩散距离</button>
+                    </div>
+                </div>
+                
+                <button class="test-button next-button" id="step2-submit-button" disabled>提交答案</button>
+            </div>
+            
+            <div class="answers-review" id="answers-review">
+                <h2 class="review-title">正确答案与解析</h2>
+                <div class="progress-feedback">
+                    您答对了 <span class="highlight" id="correct-count">0</span> 道题，共 3 道题。
+                </div>
+                
+                <div class="review-question">
+                    <div class="review-question-text">问题1：在对流传质中，下列哪个参数对提高清洗效率的影响最显著？</div>
+                    <div class="review-correct-answer">正确答案：B. 提高流速 u</div>
+                    <div class="review-explanation">
+                        <p>根据对流传质公式 Sh = 0.664 × Re^(1/2) × Sc^(1/3)，其中 Re = uL/ν。提高流速u会直接增加雷诺数Re，从而提高Sherwood数Sh和传质系数k，显著改善清洗效率。时间t虽然也有影响，但增加流速的效果更显著。</p>
+                    </div>
+                </div>
+                
+                <div class="review-question">
+                    <div class="review-question-text">问题2：根据相似原理，当系统尺寸（L）增大10倍时，要保持相同的传质效率（相同的Sherwood数），流速u应该如何调整？</div>
+                    <div class="review-correct-answer">正确答案：D. 减小为原来的1/10</div>
+                    <div class="review-explanation">
+                        <p>根据相似原理，要保持相同的Sherwood数，需要保持雷诺数Re不变。Re = uL/ν，当L增大10倍时，为了保持Re不变，u需要减小为原来的1/10。</p>
+                    </div>
+                </div>
+                
+                <div class="review-question">
+                    <div class="review-question-text">问题3：Sherwood数（Sh）的物理意义是什么？</div>
+                    <div class="review-correct-answer">正确答案：A. 衡量对流与扩散的相对重要性</div>
+                    <div class="review-explanation">
+                        <p>Sherwood数（Sh = kL/D）是对流传质中的无量纲数，表示对流传质速率与扩散传质速率的比值。Sh越大，表明对流传质作用越强，清洗效率越高。</p>
+                    </div>
+                </div>
+                
+                <div class="test-button-container">
+                    <button class="test-button" id="step2-review-button">查看完整评估报告</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="step-section" id="step3-section">
+            <div class="evaluation-section">
+                <h2 class="evaluation-title">工程能力评估报告</h2>
+                
+                <div class="engineer-rating">
+                    <div class="rating-title">您的工程师评级</div>
+                    <div id="rating-badge" class="rating-badge">L1 初级工程师</div>
+                    <div id="rating-description" class="rating-description">基本理解对流传质概念</div>
+                </div>
+                
+                <div class="exploration-stats">
+                    <div class="stats-title">探索过程表现</div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">测试次数</div>
+                            <div class="stat-value" id="stat-tests">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">最佳清洗效果</div>
+                            <div class="stat-value" id="stat-best-effect">0%</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">参数探索广度</div>
+                            <div class="stat-value" id="stat-param-range">0/4</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">平均清洗效果</div>
+                            <div class="stat-value" id="stat-avg-effect">0%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="radar-chart-container">
+                    <canvas id="radar-chart"></canvas>
+                </div>
+                
+                <div class="suggestions">
+                    <div class="suggestions-title">学习建议</div>
+                    <ul class="suggestions-list" id="suggestions-list">
+                        <li>复习Sherwood数的定义和物理意义</li>
+                        <li>理解流速对传质效率的影响机制</li>
+                        <li>掌握相似放大原理在工程中的应用</li>
+                        <li>练习使用对流传质公式进行计算</li>
+                    </ul>
+                </div>
+                
+                <div class="test-button-container">
+                    <button class="test-button" id="restart-button">重新开始游戏</button>
+                </div>
+            </div>
+        </div>
+        
+
+
+    <script>
+        // 固定参数
+        const KINEMATIC_VISCOSITY = 1.0e-6; // ν，运动粘度，固定值
+        
+        // 获取DOM元素
+        const velocitySlider = document.getElementById('velocity-slider');
+        const lengthSlider = document.getElementById('length-slider');
+        const schmidtSlider = document.getElementById('schmidt-slider');
+        const timeSlider = document.getElementById('time-slider');
+        
+        const velocityValue = document.getElementById('velocity-value');
+        const lengthValue = document.getElementById('length-value');
+        const schmidtValue = document.getElementById('schmidt-value');
+        const timeValue = document.getElementById('time-value');
+        
+        const reynoldsValue = document.getElementById('reynolds-value');
+        const sherwoodValue = document.getElementById('sherwood-value');
+        const diffusionValue = document.getElementById('diffusion-value');
+        const massTransferValue = document.getElementById('mass-transfer-value');
+        
+        const testButton = document.getElementById('test-button');
+        const performanceLevel = document.getElementById('performance-level');
+        const performanceDesc = document.getElementById('performance-desc');
+        
+        const step1Number = document.getElementById('step1-number');
+        const step2Number = document.getElementById('step2-number');
+        const step3Number = document.getElementById('step3-number');
+        const step1Section = document.getElementById('step1-section');
+        const step2Section = document.getElementById('step2-section');
+        const step3Section = document.getElementById('step3-section');
+        const step1NextButton = document.getElementById('step1-next-button');
+        const step2SubmitButton = document.getElementById('step2-submit-button');
+        const step2ReviewButton = document.getElementById('step2-review-button');
+        const restartButton = document.getElementById('restart-button');
+        
+        const q1Options = document.querySelectorAll('#q1-options .option-button');
+        const q2Options = document.querySelectorAll('#q2-options .option-button');
+        const q3Options = document.querySelectorAll('#q3-options .option-button');
+        
+        const ratingBadge = document.getElementById('rating-badge');
+        const ratingDescription = document.getElementById('rating-description');
+        const suggestionsList = document.getElementById('suggestions-list');
+        
+        // 探索统计元素
+        const statTests = document.getElementById('stat-tests');
+        const statBestEffect = document.getElementById('stat-best-effect');
+        const statParamRange = document.getElementById('stat-param-range');
+        const statAvgEffect = document.getElementById('stat-avg-effect');
+        
+        // 答案回顾元素
+        const answersReview = document.getElementById('answers-review');
+        const correctCount = document.getElementById('correct-count');
+        
+        // 图表实例
+        let positionChart, timeChart, radarChart;
+        
+        // 游戏状态
+        let gameState = {
+            currentStep: 1,
+            testResults: [],
+            answers: { q1: null, q2: null, q3: null },
+            answered: { q1: false, q2: false, q3: false },
+            correctAnswers: { q1: 'B', q2: 'D', q3: 'A' },
+            showAnswersReview: false,
+            explorationData: {
+                testCount: 0,
+                bestEffectiveness: 0,
+                paramExploration: new Set(), // 记录调整过的参数
+                totalEffectiveness: 0,
+                avgEffectiveness: 0
+            }
+        };
+        
+        // 初始化图表
+        function initCharts() {
+            // 位置分布图
+            const positionCtx = document.getElementById('position-chart').getContext('2d');
+            positionChart = new Chart(positionCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['位置1', '位置2', '位置3', '位置4', '位置5', '位置6', '位置7', '位置8', '位置9', '位置10'],
+                    datasets: [{
+                        label: '剩余污染物比例',
+                        data: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                        backgroundColor: 'rgba(95, 201, 255, 0.7)',
+                        borderColor: 'rgba(95, 201, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1.0,
+                            title: {
+                                display: true,
+                                text: '剩余比例',
+                                color: '#e0f2ff',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#a8d8ff',
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#a8d8ff',
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            
+            // 时间变化图
+            const timeCtx = document.getElementById('time-chart').getContext('2d');
+            timeChart = new Chart(timeCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '总残留污染物',
+                        data: [],
+                        borderColor: 'rgba(95, 201, 255, 1)',
+                        backgroundColor: 'rgba(95, 201, 255, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1.2,
+                            title: {
+                                display: true,
+                                text: '总残留比例',
+                                color: '#e0f2ff',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#a8d8ff',
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '时间 (s)',
+                                color: '#e0f2ff',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#a8d8ff',
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            
+            // 雷达图
+            const radarCtx = document.getElementById('radar-chart').getContext('2d');
+            radarChart = new Chart(radarCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['参数理解', '传质机制', '相似放大', '工程应用', '探索能力'],
+                    datasets: [{
+                        label: '能力评估',
+                        data: [3, 3, 3, 3, 3],
+                        backgroundColor: 'rgba(95, 201, 255, 0.2)',
+                        borderColor: 'rgba(95, 201, 255, 0.8)',
+                        pointBackgroundColor: 'rgba(95, 201, 255, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(95, 201, 255, 1)',
+                        borderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 5,
+                            min: 0,
+                            ticks: {
+                                stepSize: 1,
+                                display: false
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            angleLines: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            pointLabels: {
+                                color: '#e0f2ff',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 计算传质相关参数
+        function calculateParameters() {
+            // 获取当前滑块值
+            const u = parseFloat(velocitySlider.value);
+            const L = parseFloat(lengthSlider.value);
+            const Sc = parseFloat(schmidtSlider.value);
+            const t = parseFloat(timeSlider.value);
+            
+            // 更新显示值
+            velocityValue.textContent = u.toFixed(2);
+            lengthValue.textContent = L.toFixed(2);
+            schmidtValue.textContent = Sc.toFixed(0);
+            timeValue.textContent = t.toFixed(0);
+            
+            // 计算扩散系数 D = ν / Sc
+            const D = KINEMATIC_VISCOSITY / Sc;
+            
+            // 计算雷诺数 Re = u * L / ν
+            const Re = u * L / KINEMATIC_VISCOSITY;
+            
+            // 计算Sherwood数 Sh = 0.664 * Re^(1/2) * Sc^(1/3)
+            const Sh = 0.664 * Math.sqrt(Re) * Math.pow(Sc, 1/3);
+            
+            // 计算传质系数 k = Sh * D / L
+            const k = Sh * D / L;
+            
+            // 更新显示
+            reynoldsValue.textContent = Re.toLocaleString('en-US', {maximumFractionDigits:0});
+            sherwoodValue.textContent = Sh.toFixed(1);
+            diffusionValue.textContent = D.toExponential(1);
+            massTransferValue.textContent = k.toExponential(2);
+            
+            return { u, L, Sc, t, D, Re, Sh, k };
+        }
+        
+        // 运行测试 - 更新所有图表
+        function runTest() {
+            const params = calculateParameters();
+            
+            // 计算污染物剩余比例
+            const remainingRatio = Math.exp(-params.Sh * params.D * params.t / (params.L * params.L));
+            
+            // 计算纯扩散情况下的剩余比例（无对流）
+            const diffusionOnlyRatio = Math.exp(-params.D * params.t / (params.L * params.L));
+            
+            // 更新对比条
+            const convectionEffectiveness = (1 - remainingRatio) * 100;
+            const diffusionEffectiveness = (1 - diffusionOnlyRatio) * 100;
+            
+            // 确保宽度不超过100%
+            const convWidth = Math.min(convectionEffectiveness, 100);
+            const diffWidth = Math.min(diffusionEffectiveness, 100);
+            
+            const convectionBar = document.getElementById('convection-bar');
+            const diffusionBar = document.getElementById('diffusion-bar');
+            
+            convectionBar.style.width = convWidth + '%';
+            convectionBar.textContent = `对流传质有效 ${convWidth.toFixed(1)}%`;
+            
+            diffusionBar.style.width = diffWidth + '%';
+            diffusionBar.textContent = `纯扩散有效 ${diffWidth.toFixed(1)}%`;
+            
+            // 更新位置分布图
+            updatePositionChart(params.u, params.L, params.Sc, params.t, params.D, params.Sh);
+            
+            // 更新时间变化图
+            updateTimeChart(params.u, params.L, params.Sc, params.D, params.Sh);
+            
+            // 评估传质效果
+            evaluateMassTransfer(remainingRatio, convectionEffectiveness);
+            
+            // 更新探索数据
+            updateExplorationData(convectionEffectiveness);
+            
+            // 保存测试结果
+            gameState.testResults.push({
+                u: params.u,
+                L: params.L,
+                Sc: params.Sc,
+                t: params.t,
+                remainingRatio: remainingRatio,
+                convectionEffectiveness: convectionEffectiveness
+            });
+            
+            return { remainingRatio, convectionEffectiveness };
+        }
+        
+        // 更新探索数据
+        function updateExplorationData(effectiveness) {
+            // 增加测试次数
+            gameState.explorationData.testCount++;
+            
+            // 更新最佳效果
+            if (effectiveness > gameState.explorationData.bestEffectiveness) {
+                gameState.explorationData.bestEffectiveness = effectiveness;
+            }
+            
+            // 记录参数调整
+            gameState.explorationData.paramExploration.add('u');
+            gameState.explorationData.paramExploration.add('L');
+            gameState.explorationData.paramExploration.add('Sc');
+            gameState.explorationData.paramExploration.add('t');
+            
+            // 更新总效果和平均效果
+            gameState.explorationData.totalEffectiveness += effectiveness;
+            gameState.explorationData.avgEffectiveness = gameState.explorationData.totalEffectiveness / gameState.explorationData.testCount;
+        }
+        
+        // 更新位置分布图
+        function updatePositionChart(u, L, Sc, t, D, Sh) {
+            // 假设不同位置的传质系数略有不同（模拟流动发展）
+            const positions = 10;
+            const newData = [];
+            
+            for (let i = 0; i < positions; i++) {
+                // 假设位置i的特征长度为L_i = L * (i+1)/positions
+                const L_i = L * (i + 1) / positions;
+                
+                // 计算位置i的局部雷诺数
+                const Re_i = u * L_i / KINEMATIC_VISCOSITY;
+                
+                // 计算位置i的局部Sherwood数
+                const Sh_i = 0.664 * Math.sqrt(Re_i) * Math.pow(Sc, 1/3);
+                
+                // 计算位置i的剩余污染物比例
+                const remainingRatio_i = Math.exp(-Sh_i * D * t / (L_i * L_i));
+                
+                newData.push(remainingRatio_i);
+            }
+            
+            // 确保图表已初始化
+            if (positionChart && positionChart.data && positionChart.data.datasets) {
+                positionChart.data.datasets[0].data = newData;
+                positionChart.update();
+            }
+        }
+        
+        // 更新时间变化图
+        function updateTimeChart(u, L, Sc, D, Sh) {
+            const timePoints = 20;
+            const maxTime = parseFloat(timeSlider.max);
+            const labels = [];
+            const data = [];
+            
+            for (let i = 0; i <= timePoints; i++) {
+                const t_i = i * maxTime / timePoints;
+                labels.push(t_i.toFixed(0));
+                
+                // 计算时间t_i时的总残留污染物比例
+                const remainingRatio = Math.exp(-Sh * D * t_i / (L * L));
+                data.push(remainingRatio);
+            }
+            
+            // 确保图表已初始化
+            if (timeChart && timeChart.data && timeChart.data.datasets) {
+                timeChart.data.labels = labels;
+                timeChart.data.datasets[0].data = data;
+                timeChart.update();
+            }
+        }
+        
+        // 评估传质效果
+        function evaluateMassTransfer(remainingRatio, effectiveness) {
+            let level, desc, colorClass;
+            
+            if (effectiveness >= 90) {
+                level = "优秀";
+                desc = "清洗效率极高，几乎完全清除了污染物";
+                colorClass = "level-excellent";
+            } else if (effectiveness >= 70) {
+                level = "良好";
+                desc = "清洗效率良好，大部分污染物已被清除";
+                colorClass = "level-good";
+            } else if (effectiveness >= 50) {
+                level = "中等";
+                desc = "清洗效率中等，需要进一步优化参数";
+                colorClass = "level-fair";
+            } else if (effectiveness >= 30) {
+                level = "一般";
+                desc = "清洗效率一般，建议调整流速或时间";
+                colorClass = "level-poor";
+            } else {
+                level = "较差";
+                desc = "清洗效率较差，需要显著优化参数";
+                colorClass = "level-weak";
+            }
+            
+            performanceLevel.textContent = level;
+            performanceLevel.className = `performance-level ${colorClass}`;
+            performanceDesc.textContent = `清洗效果：${effectiveness.toFixed(1)}% 污染物被清除。${desc}`;
+        }
+        
+        // 切换步骤
+        function goToStep(step) {
+            gameState.currentStep = step;
+            
+            // 更新步骤指示器
+            step1Number.classList.toggle('active', step === 1);
+            step2Number.classList.toggle('active', step === 2);
+            step3Number.classList.toggle('active', step === 3);
+            
+            // 显示对应步骤内容
+            step1Section.classList.toggle('active', step === 1);
+            step2Section.classList.toggle('active', step === 2);
+            step3Section.classList.toggle('active', step === 3);
+            
+            // 如果进入第三步，生成评估报告
+            if (step === 3) {
+                generateEvaluationReport();
+            }
+        }
+        
+        // 处理问题选择
+        function handleQuestionSelect(questionNum, selectedOption) {
+            const options = document.querySelectorAll(`#q${questionNum}-options .option-button`);
+            
+            // 移除所有选项的选中状态
+            options.forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // 设置当前选项为选中状态
+            selectedOption.classList.add('selected');
+            
+            // 保存答案
+            gameState.answers[`q${questionNum}`] = selectedOption.dataset.value;
+            gameState.answered[`q${questionNum}`] = true;
+            
+            // 检查是否所有问题都已回答
+            checkAllAnswered();
+        }
+        
+        // 检查是否所有问题都已回答
+        function checkAllAnswered() {
+            const allAnswered = gameState.answered.q1 && gameState.answered.q2 && gameState.answered.q3;
+            step2SubmitButton.disabled = !allAnswered;
+            return allAnswered;
+        }
+        
+        // 提交答案并显示正确答案与解析
+        function submitAnswers() {
+            // 标记答案正确/错误
+            markAnswers();
+            
+            // 计算答对题目数量
+            let score = 0;
+            if (gameState.answers.q1 === gameState.correctAnswers.q1) score++;
+            if (gameState.answers.q2 === gameState.correctAnswers.q2) score++;
+            if (gameState.answers.q3 === gameState.correctAnswers.q3) score++;
+            
+            // 显示答对数量
+            correctCount.textContent = score;
+            
+            // 显示答案回顾
+            answersReview.classList.add('active');
+            
+            // 禁用选项按钮，防止修改答案
+            disableOptionButtons();
+            
+            // 滚动到答案回顾区域
+            answersReview.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // 标记答案正确/错误
+        function markAnswers() {
+            // 问题1
+            const q1Options = document.querySelectorAll('#q1-options .option-button');
+            q1Options.forEach(option => {
+                if (option.dataset.value === gameState.correctAnswers.q1) {
+                    option.classList.add('correct');
+                } else if (option.dataset.value === gameState.answers.q1 && option.dataset.value !== gameState.correctAnswers.q1) {
+                    option.classList.add('incorrect');
+                }
+            });
+            
+            // 问题2
+            const q2Options = document.querySelectorAll('#q2-options .option-button');
+            q2Options.forEach(option => {
+                if (option.dataset.value === gameState.correctAnswers.q2) {
+                    option.classList.add('correct');
+                } else if (option.dataset.value === gameState.answers.q2 && option.dataset.value !== gameState.correctAnswers.q2) {
+                    option.classList.add('incorrect');
+                }
+            });
+            
+            // 问题3
+            const q3Options = document.querySelectorAll('#q3-options .option-button');
+            q3Options.forEach(option => {
+                if (option.dataset.value === gameState.correctAnswers.q3) {
+                    option.classList.add('correct');
+                } else if (option.dataset.value === gameState.answers.q3 && option.dataset.value !== gameState.correctAnswers.q3) {
+                    option.classList.add('incorrect');
+                }
+            });
+        }
+        
+        // 禁用选项按钮
+        function disableOptionButtons() {
+            const allOptionButtons = document.querySelectorAll('.option-button');
+            allOptionButtons.forEach(button => {
+                button.style.cursor = 'default';
+                button.onclick = null;
+            });
+        }
+        
+        // 生成评估报告
+        function generateEvaluationReport() {
+            // 计算评测得分
+            let score = 0;
+            if (gameState.answers.q1 === gameState.correctAnswers.q1) score++;
+            if (gameState.answers.q2 === gameState.correctAnswers.q2) score++;
+            if (gameState.answers.q3 === gameState.correctAnswers.q3) score++;
+            
+            // 确定评级
+            let rating, description, badgeClass;
+            let radarData = [3, 3, 3, 3, 3]; // 默认值
+            
+            // 计算探索能力得分（0-5分）
+            const explorationScore = calculateExplorationScore();
+            
+            if (score === 3 && explorationScore >= 4) {
+                rating = "L4 专家工程师";
+                description = "完全掌握对流传质原理，能够应用于工程实践";
+                badgeClass = "level-l4";
+                radarData = [5, 5, 5, 4, explorationScore];
+            } else if (score >= 2 && explorationScore >= 3) {
+                rating = "L3 高级工程师";
+                description = "较好理解对流传质原理，基本掌握相似放大概念";
+                badgeClass = "level-l3";
+                radarData = [
+                    score >= 2 ? 4 : 3,
+                    score >= 2 ? 4 : 3,
+                    score === 3 ? 5 : (score >= 2 ? 4 : 3),
+                    3,
+                    explorationScore
+                ];
+            } else if (score >= 1 && explorationScore >= 2) {
+                rating = "L2 中级工程师";
+                description = "理解对流传质基本概念，需要加强原理理解";
+                badgeClass = "level-l2";
+                radarData = [
+                    score >= 1 ? 3 : 2,
+                    score >= 1 ? 3 : 2,
+                    score >= 2 ? 4 : (score >= 1 ? 3 : 2),
+                    2,
+                    explorationScore
+                ];
+            } else {
+                rating = "L1 初级工程师";
+                description = "基本了解对流传质概念，需要系统学习";
+                badgeClass = "level-l1";
+                radarData = [2, 2, 1, 1, explorationScore];
+            }
+            
+            // 更新评级显示
+            ratingBadge.textContent = rating;
+            ratingBadge.className = `rating-badge ${badgeClass}`;
+            ratingDescription.textContent = description;
+            
+            // 更新雷达图
+            radarChart.data.datasets[0].data = radarData;
+            radarChart.update();
+            
+            // 更新探索统计
+            updateExplorationStats();
+            
+            // 更新学习建议
+            updateSuggestions(score, explorationScore);
+        }
+        
+        // 计算探索能力得分
+        function calculateExplorationScore() {
+            const explorationData = gameState.explorationData;
+            
+            if (explorationData.testCount === 0) {
+                return 0; // 没有进行探索
+            }
+            
+            let score = 0;
+            
+            // 1. 测试次数得分（鼓励有效探索，但不是越多越好）
+            if (explorationData.testCount >= 3 && explorationData.testCount <= 8) {
+                score += 1; // 适中探索
+            } else if (explorationData.testCount > 8) {
+                score += 0.5; // 过度探索
+            } else {
+                score += 0; // 探索不足
+            }
+            
+            // 2. 最佳效果得分
+            if (explorationData.bestEffectiveness >= 90) {
+                score += 2; // 优秀
+            } else if (explorationData.bestEffectiveness >= 70) {
+                score += 1.5; // 良好
+            } else if (explorationData.bestEffectiveness >= 50) {
+                score += 1; // 中等
+            } else if (explorationData.bestEffectiveness >= 30) {
+                score += 0.5; // 一般
+            } else {
+                score += 0; // 较差
+            }
+            
+            // 3. 参数探索广度得分
+            const paramCount = explorationData.paramExploration.size;
+            if (paramCount === 4) {
+                score += 2; // 探索了所有参数
+            } else if (paramCount >= 2) {
+                score += 1; // 探索了多个参数
+            } else {
+                score += 0; // 探索不足
+            }
+            
+            // 4. 平均效果得分
+            if (explorationData.avgEffectiveness >= 60) {
+                score += 1; // 整体表现良好
+            } else if (explorationData.avgEffectiveness >= 40) {
+                score += 0.5; // 整体表现一般
+            } else {
+                score += 0; // 整体表现较差
+            }
+            
+            // 确保分数在0-5之间
+            return Math.min(5, Math.max(0, score));
+        }
+        
+        // 更新探索统计
+        function updateExplorationStats() {
+            const explorationData = gameState.explorationData;
+            
+            statTests.textContent = explorationData.testCount;
+            statBestEffect.textContent = explorationData.bestEffectiveness.toFixed(1) + '%';
+            statParamRange.textContent = explorationData.paramExploration.size + '/4';
+            statAvgEffect.textContent = explorationData.avgEffectiveness.toFixed(1) + '%';
+        }
+        
+        // 更新学习建议
+        function updateSuggestions(score, explorationScore) {
+            suggestionsList.innerHTML = '';
+            
+            if (score === 3 && explorationScore >= 4) {
+                suggestionsList.innerHTML = `
+                    <li>深入学习复杂流动条件下的对流传质模型</li>
+                    <li>研究非稳态对流传质的工程应用</li>
+                    <li>探索多相流传质过程的优化方法</li>
+                    <li>学习计算流体力学(CFD)在传质模拟中的应用</li>
+                `;
+            } else if (score >= 2 && explorationScore >= 3) {
+                suggestionsList.innerHTML = `
+                    <li>巩固Sherwood数与传质系数的关系</li>
+                    <li>练习不同几何形状的对流传质计算</li>
+                    <li>深入理解相似放大在工程设计中的应用</li>
+                    <li>学习对流传质强化技术</li>
+                `;
+            } else if (score >= 1 && explorationScore >= 2) {
+                suggestionsList.innerHTML = `
+                    <li>复习Sherwood数的定义和物理意义</li>
+                    <li>理解流速对传质效率的影响机制</li>
+                    <li>掌握相似放大原理的基本概念</li>
+                    <li>练习使用对流传质公式进行计算</li>
+                `;
+            } else {
+                suggestionsList.innerHTML = `
+                    <li>学习对流传质与纯扩散的区别</li>
+                    <li>理解Sherwood数、Reynolds数和Schmidt数的意义</li>
+                    <li>掌握对流传质基本公式 Sh = f(Re, Sc)</li>
+                    <li>了解工程中常用的对流传质关联式</li>
+                `;
+            }
+        }
+        
+        // 重置游戏到初始状态
+        function resetGame() {
+            // 重置滑块值
+            velocitySlider.value = 1.0;
+            lengthSlider.value = 1.0;
+            schmidtSlider.value = 1000;
+            timeSlider.value = 100;
+            
+            // 重置游戏状态
+            gameState = {
+                currentStep: 1,
+                testResults: [],
+                answers: { q1: null, q2: null, q3: null },
+                answered: { q1: false, q2: false, q3: false },
+                correctAnswers: { q1: 'B', q2: 'D', q3: 'A' },
+                showAnswersReview: false,
+                explorationData: {
+                    testCount: 0,
+                    bestEffectiveness: 0,
+                    paramExploration: new Set(),
+                    totalEffectiveness: 0,
+                    avgEffectiveness: 0
+                }
+            };
+            
+            // 重置图表和显示
+            calculateParameters();
+            runTest();
+            
+            // 重置问题选项
+            const allOptions = document.querySelectorAll('.option-button');
+            allOptions.forEach(option => {
+                option.classList.remove('selected', 'correct', 'incorrect');
+                option.style.cursor = 'pointer';
+            });
+            
+            // 重新绑定选项按钮事件
+            bindOptionButtonEvents();
+            
+            // 隐藏答案回顾
+            answersReview.classList.remove('active');
+            
+            // 重置评测按钮状态
+            step2SubmitButton.disabled = true;
+            
+            // 返回第一步
+            goToStep(1);
+        }
+        
+        // 绑定选项按钮事件
+        function bindOptionButtonEvents() {
+            q1Options.forEach(option => {
+                option.onclick = () => handleQuestionSelect(1, option);
+            });
+            
+            q2Options.forEach(option => {
+                option.onclick = () => handleQuestionSelect(2, option);
+            });
+            
+            q3Options.forEach(option => {
+                option.onclick = () => handleQuestionSelect(3, option);
+            });
+        }
+        
+        // 滑块事件监听
+        function updateAllCharts() {
+            const params = calculateParameters();
+            
+            // 更新位置分布图
+            updatePositionChart(params.u, params.L, params.Sc, params.t, params.D, params.Sh);
+            
+            // 更新时间变化图
+            updateTimeChart(params.u, params.L, params.Sc, params.D, params.Sh);
+        }
+        
+        // 事件监听
+        velocitySlider.addEventListener('input', updateAllCharts);
+        lengthSlider.addEventListener('input', updateAllCharts);
+        schmidtSlider.addEventListener('input', updateAllCharts);
+        timeSlider.addEventListener('input', updateAllCharts);
+        
+        // 测试按钮
+        testButton.addEventListener('click', runTest);
+        
+        // 步骤切换
+        step1NextButton.addEventListener('click', () => goToStep(2));
+        
+        // 评测提交按钮
+        step2SubmitButton.addEventListener('click', submitAnswers);
+        
+        // 答案回顾后查看评估报告
+        step2ReviewButton.addEventListener('click', () => goToStep(3));
+        
+        // 重新开始按钮
+        restartButton.addEventListener('click', resetGame);
+        
+        // 初始化
+        window.onload = function() {
+            initCharts();
+            calculateParameters();
+            runTest();
+            bindOptionButtonEvents();
+            
+            // 窗口大小调整时重新绘制图表
+            window.addEventListener('resize', function() {
+                if (positionChart) positionChart.resize();
+                if (timeChart) timeChart.resize();
+                if (radarChart) radarChart.resize();
+            });
+        };
+    </script>
+
+    <!-- 底部信息栏 -->
+    <div style="
+        text-align: center;
+        padding: 20px 30px;
+        margin-top: 40px;
+        color: #93c5fd;
+        font-size: 0.9rem;
+        border-top: 2px solid rgba(56, 189, 248, 0.5);
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9));
+        border-radius: 15px 15px 0 0;
+        box-shadow: 0 -10px 30px rgba(56, 189, 248, 0.1);
+        position: relative;
+        overflow: hidden;
+    ">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #38bdf8, #0ea5e9, #38bdf8);"></div>
+        
+        <p style="font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; color: #38bdf8;">
+            Sherwood数对流传质教学游戏 &copy; 2025 | 工程思维训练系统 | 版本 1.0 | 
+        
+        <style="margin-bottom: 12px; color: #cbd5e1;">
+             <strong>邮箱:</strong> xgyanger@qq.com
+        </p>
+        
+      
+        <div style="margin-top: 15px; display: flex; justify-content: center; gap: 15px;">
+            <span style="color: #ff9e00; font-weight: bold; font-size: 1.1rem;">
+                版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+            </span>
+        </div>
+    </div>
+
+
+   
+
+</body>
+</html>

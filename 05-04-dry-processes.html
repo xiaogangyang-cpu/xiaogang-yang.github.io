@@ -1,0 +1,2248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>工程传质能力进阶训练 - 三关版</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --primary-light: #4285f4;
+            --primary-dark: #0d47a1;
+            --secondary: #00bcd4;
+            --accent: #00ff88;
+            --danger: #ff5252;
+            --warning: #ffc107;
+            --success: #4caf50;
+            --dark: #0a1929;
+            --gray-800: #1e293b;
+            --gray-700: #334155;
+            --gray-600: #475569;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--dark) 0%, #102a43 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* 标题区域 */
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+            padding: 20px;
+            background: linear-gradient(90deg, rgba(26, 115, 232, 0.2) 0%, rgba(0, 188, 212, 0.2) 100%);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(66, 133, 244, 0.3);
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+            background: linear-gradient(90deg, #1a73e8, #00bcd4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 500;
+        }
+        
+        .header p {
+            color: #cbd5e1;
+            font-size: 1.0rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* 关卡导航 */
+        .level-nav {
+            display: flex;
+            background: var(--gray-800);
+            border-radius: 12px;
+            margin-bottom: 5px;
+            overflow: hidden;
+            border: 1px solid var(--gray-700);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 10px 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+        
+        .nav-item:hover {
+            background: rgba(26, 115, 232, 0.1);
+            color: #e2e8f0;
+        }
+        
+        .nav-item.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+        
+        .nav-label {
+            font-size: 1.1rem;
+        }
+        
+        .nav-subtitle {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+        
+        /* 内容区域 */
+        .content-area {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 14px;
+            padding: 30px;
+            border: 1px solid var(--gray-700);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            margin-bottom: 10px;
+            display: none;
+        }
+        
+        .content-area.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .level-title {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00bcd4, var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .level-description {
+            color: #cbd5e1;
+            font-size: 1.1rem;
+            margin-bottom: 25px;
+            line-height: 1.7;
+        }
+        
+        /* 生活案例区 */
+        .analogy-section {
+            background: rgba(10, 25, 41, 0.7);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(66, 133, 244, 0.2);
+        }
+        
+        .analogy-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .analogy-tab {
+            padding: 10px 20px;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            border: 1px solid transparent;
+        }
+        
+        .analogy-tab:hover {
+            border-color: var(--primary-light);
+        }
+        
+        .analogy-tab.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-color: var(--primary-light);
+        }
+        
+        .analogy-content {
+            display: none;
+        }
+        
+        .analogy-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .analogy-visual {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 0px;
+        }
+        
+        .analogy-image {
+            flex: 1;
+            min-height: 200px;
+            background: linear-gradient(135deg, rgba(26, 115, 232, 0.1), rgba(0, 188, 212, 0.1));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            border: 2px dashed rgba(66, 133, 244, 0.3);
+        }
+        
+        .analogy-principles {
+            flex: 1.2;
+        }
+        
+        .principle-list {
+            list-style: none;
+        }
+        
+        .principle-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .principle-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .principle-icon {
+            font-size: 1.5rem;
+            width: 40px;
+            text-align: center;
+        }
+        
+        /* 模拟区域 */
+        .simulation-area {
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(66, 133, 244, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .simulation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .simulation-title {
+            font-size: 1.3rem;
+            color: var(--accent);
+        }
+        
+        .simulation-status {
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        
+        /* 风速与箭头显示 */
+        .air-flow-display {
+            position: relative;
+            height: 80px;
+            background: rgba(10, 25, 41, 0.7);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(66, 133, 244, 0.2);
+        }
+        
+        .air-flow-direction {
+            position: absolute;
+            top: 50%;
+            width: 180%;
+            height: 60px;
+            transform: translateY(-50%);
+        }
+        
+        .flow-arrow {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--accent);
+            font-size: 40px;
+            filter: drop-shadow(0 0 10px rgba(0, 255, 136, 0.5));
+            z-index: 2;
+        }
+        
+        .flow-text {
+            position: absolute;
+            top: 20px;
+            width: 60%;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+        
+        /* 极片模拟 */
+        .electrode-container {
+            position: relative;
+            height: 150px;
+            background: rgba(30, 41, 59, 0.9);
+            border-radius: 12px;
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .electrode-strip {
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(90deg, #2d3748, #4a5568);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #4a5568;
+        }
+        
+        .solvent-layer {
+            height: 100%;
+            background: linear-gradient(90deg, #00bcd4 0%, #0d47a1 100%);
+            transition: width 0.5s ease;
+            position: relative;
+        }
+        
+        .solvent-layer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 20px;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(0, 188, 212, 0.5), transparent);
+        }
+        
+        /* 控制面板 */
+        .control-panel {
+            background: rgba(30, 41, 59, 0.9);
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid rgba(66, 133, 244, 0.3);
+            margin-bottom: 30px;
+        }
+        
+        .formula-display {
+            background: rgba(10, 25, 41, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            color: var(--accent);
+            font-size: 1.2rem;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.1);
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-label {
+            display: block;
+            margin-bottom: 10px;
+            color: #e2e8f0;
+            font-weight: 600;
+        }
+        
+        .slider-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .slider-value {
+            position: absolute;
+            right: 0;
+            top: -25px;
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 10px;
+            -webkit-appearance: none;
+            background: linear-gradient(to right, var(--success), var(--warning), var(--danger));
+            border-radius: 5px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 0 10px rgba(26, 115, 232, 0.8);
+        }
+        
+        .mode-selector {
+            display: flex;
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 15px 20px;
+            background: rgba(30, 41, 59, 0.9);
+            border: 2px solid rgba(66, 133, 244, 0.3);
+            border-radius: 8px;
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .mode-btn:hover {
+            border-color: var(--primary-light);
+            color: white;
+        }
+        
+        .mode-btn.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-color: var(--primary-light);
+            color: white;
+        }
+        
+        /* 操作按钮 */
+        .action-buttons {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .action-btn {
+            flex: 1;
+            padding: 18px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(26, 115, 232, 0.4);
+        }
+        
+        .btn-secondary {
+            background: rgba(30, 41, 59, 0.9);
+            color: #cbd5e1;
+            border: 2px solid rgba(66, 133, 244, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--primary-light);
+            color: white;
+        }
+        
+        /* 第二关：瓶颈分析 - 四个参数在同一行 */
+        .bottleneck-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .bottleneck-item {
+            flex: 1;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 5px;
+            border-radius: 12px;
+            border-left: 4px solid;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .bottleneck-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .bottleneck-item.active {
+            background: rgba(26, 115, 232, 0.2);
+            border-left-color: var(--accent);
+        }
+        
+        .bottleneck-item.critical {
+            background: rgba(255, 82, 82, 0.1);
+            border-left-color: var(--danger);
+            animation: pulse 2s infinite;
+        }
+        
+        .bottleneck-name {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #e2e8f0;
+        }
+        
+        .bottleneck-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .bottleneck-description {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* 第三关：优化布局 */
+        .system-layout-compact {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .mode-section-compact {
+            background: rgba(10, 25, 41, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(66, 133, 244, 0.3);
+        }
+        
+        .progress-section-compact {
+            background: rgba(10, 25, 41, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(66, 133, 244, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .mode-display-compact {
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .mode-icon-compact {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .mode-description-compact {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-top: 10px;
+        }
+        
+        .progress-stats-compact {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-item-compact {
+            background: rgba(30, 41, 59, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(66, 133, 244, 0.2);
+        }
+        
+        .stat-value-compact {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 8px 0;
+            color: var(--accent);
+        }
+        
+        .stat-label-compact {
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+        
+        /* 第三关滑块紧凑布局 */
+        .control-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .control-column {
+            flex: 1;
+        }
+        
+        /* 评测环节样式 */
+        .evaluation-toggle {
+            display: none;
+            margin: 30px auto 0;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, rgba(0, 188, 212, 0.2), rgba(0, 255, 136, 0.2));
+            color: var(--accent);
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .evaluation-toggle:hover {
+            background: linear-gradient(135deg, rgba(0, 188, 212, 0.3), rgba(0, 255, 136, 0.3));
+            border-color: var(--accent);
+            transform: translateY(-3px);
+        }
+        
+        .evaluation-section {
+            background: rgba(10, 25, 41, 0.9);
+            border-radius: 16px;
+            padding: 40px;
+            margin-top: 40px;
+            border: 2px solid rgba(66, 133, 244, 0.4);
+            box-shadow: 0 0 40px rgba(26, 115, 232, 0.3);
+            display: none;
+        }
+        
+        .evaluation-section.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .evaluation-title {
+            font-size: 2rem;
+            margin-bottom: 30px;
+            background: linear-gradient(90deg, #00bcd4, #00ff88);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-align: center;
+        }
+        
+        .question-card {
+            background: rgba(30, 41, 59, 0.9);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(66, 133, 244, 0.3);
+        }
+        
+        .question-number {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 36px;
+            font-weight: 700;
+            margin-right: 15px;
+        }
+        
+        .question-text {
+            display: inline;
+            font-size: 1.2rem;
+            color: #e2e8f0;
+            font-weight: 600;
+        }
+        
+        .options-container {
+            margin-top: 25px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .option {
+            background: rgba(10, 25, 41, 0.7);
+            border: 2px solid rgba(66, 133, 244, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        
+        .option:hover {
+            border-color: rgba(0, 188, 212, 0.5);
+            background: rgba(0, 188, 212, 0.1);
+        }
+        
+        .option.selected {
+            border-color: var(--accent);
+            background: rgba(0, 255, 136, 0.1);
+        }
+        
+        .option.correct {
+            border-color: var(--success);
+            background: rgba(76, 175, 80, 0.1);
+        }
+        
+        .option.incorrect {
+            border-color: var(--danger);
+            background: rgba(255, 82, 82, 0.1);
+        }
+        
+        .option-letter {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, rgba(66, 133, 244, 0.2), rgba(0, 188, 212, 0.2));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+        
+        .option.selected .option-letter {
+            background: linear-gradient(135deg, var(--accent), #00cc80);
+            color: white;
+        }
+        
+        .submit-btn {
+            display: block;
+            margin: 40px auto;
+            padding: 18px 50px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(26, 115, 232, 0.4);
+        }
+        
+        .result-container {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            background: rgba(30, 41, 59, 0.9);
+            border-radius: 16px;
+            border: 2px solid rgba(66, 133, 244, 0.4);
+            margin-top: 30px;
+            animation: fadeIn 0.8s ease;
+        }
+        
+        .result-container.active {
+            display: block;
+        }
+        
+        .result-score {
+            font-size: 4rem;
+            font-weight: 700;
+            margin: 20px 0;
+            background: linear-gradient(90deg, #00bcd4, var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .action-buttons-evaluation {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .btn-evaluation {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-retry {
+            background: rgba(30, 41, 59, 0.9);
+            color: #cbd5e1;
+            border: 2px solid rgba(66, 133, 244, 0.3);
+        }
+        
+        .btn-continue {
+            background: linear-gradient(135deg, var(--accent), #00cc80);
+            color: var(--dark);
+            font-weight: 700;
+        }
+        
+        /* 动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 82, 82, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 82, 82, 0); }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .bottleneck-container {
+                flex-wrap: wrap;
+            }
+            
+            .bottleneck-item {
+                flex: 1 1 calc(50% - 20px);
+            }
+            
+            .system-layout-compact {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-row {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .bottleneck-container {
+                flex-direction: column;
+            }
+            
+            .analogy-visual {
+                flex-direction: column;
+            }
+            
+            .options-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .progress-stats-compact {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 标题区域 -->
+        <div class="header">
+            <h1>工程传质能力进阶训练</h1>
+            <p>从生活现象到工业应用，深入理解对流传质原理，掌握工程优化方法</p>
+        </div>
+        
+        <!-- 关卡导航 -->
+        <div class="level-nav">
+            <div id="nav1" class="nav-item active">
+                <div class="nav-label">L1: 生活案例</div>
+                <div class="nav-subtitle">日常生活中的传质现象</div>
+            </div>
+            <div id="nav2" class="nav-item">
+                <div class="nav-label">L2: 瓶颈分析</div>
+                <div class="nav-subtitle">识别传质限制步骤</div>
+            </div>
+            <div id="nav3" class="nav-item">
+                <div class="nav-label">L3: 系统设计</div>
+                <div class="nav-subtitle">工业传质系统优化</div>
+            </div>
+        </div>
+        
+        <!-- 第一关：生活案例 -->
+        <div id="level1" class="content-area active">
+            <h2 class="level-title">第一关：生活中的对流传质</h2>
+            <p class="level-description">
+                观察日常生活中的传质现象，理解风速、温度和浓度差对传质速率的影响。从晾晒衣物到咖啡干燥，探索传质原理在生活中的应用。
+            </p>
+            
+            <!-- 生活案例区 -->
+            <div class="analogy-section">
+                <div class="analogy-tabs">
+                    <div class="analogy-tab active" onclick="switchAnalogy('clothes')">👕 晾晒衣物</div>
+                    <div class="analogy-tab" onclick="switchAnalogy('coffee')">☕ 咖啡干燥</div>
+                    <div class="analogy-tab" onclick="switchAnalogy('bathroom')">🛁 浴室除湿</div>
+                </div>
+                
+                <!-- 晾晒衣物案例 -->
+                <div id="analogy-clothes" class="analogy-content active">
+                    <div class="analogy-visual">
+                        <div class="analogy-image">
+                            <div style="font-size: 5rem;">👕</div>
+                        </div>
+                        <div class="analogy-principles">
+                            <h4>传质原理分析：</h4>
+                            <ul class="principle-list">
+                                <li><span class="principle-icon">🌬️</span> 风速增加 → 空气边界层变薄 → 传质加快</li>
+                                <li><span class="principle-icon">🌡️</span> 温度升高 → 水分子动能增加 → 蒸发加快</li>
+                                <li><span class="principle-icon">💧</span> 湿度降低 → 浓度差增大 → 推动力增强</li>
+                                <li><span class="principle-icon">📏</span> 表面积增大 → 传质面积增加 → 总传质速率提高</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- 模拟区 -->
+                    <div class="simulation-area">
+                        <div class="simulation-header">
+                            <h3 class="simulation-title">衣物干燥过程模拟</h3>
+                            <div class="simulation-status" id="clothes-status">就绪</div>
+                        </div>
+                        
+                        <!-- 风速与箭头显示 -->
+                        <div class="air-flow-display">
+                            <div class="air-flow-direction">
+                                <div id="clothes-arrow" class="flow-arrow">➡</div>
+                                <div class="flow-text" id="clothes-flow-text">风速: 2.0 m/s</div>
+                            </div>
+                        </div>
+                        
+<!-- 衣物湿度显示 -->
+<div class="electrode-container">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: #94a3b8;">
+        <div style="font-weight: 600;">衣物湿度: <span id="clothes-moisture" style="color: var(--accent); font-size: 1.3rem; font-weight: bold;">100%</span></div>
+        <div style="font-weight: 600;">干燥进度</div>
+    </div>
+    <div class="electrode-strip">
+        <div id="clothes-solvent" class="solvent-layer" style="width: 100%"></div>
+    </div>
+</div>
+                        
+                        <!-- 控制面板 -->
+                        <div class="control-panel">
+                            <div class="formula-display" id="clothes-formula">
+                                N = k · (C₁ - C₂)
+                            </div>
+                            
+                            <div class="control-group">
+                                <label class="control-label">风速调节 (m/s)</label>
+                                <div class="slider-container">
+                                    <div id="clothes-wind-value" class="slider-value">2.0</div>
+                                    <input type="range" id="clothes-wind-slider" min="0.1" max="5.0" step="0.1" value="2.0">
+                                </div>
+                            </div>
+                            
+                            <div class="control-group">
+                                <label class="control-label">环境温度 (°C)</label>
+                                <div class="slider-container">
+                                    <div id="clothes-temp-value" class="slider-value">25</div>
+                                    <input type="range" id="clothes-temp-slider" min="10" max="40" step="1" value="25">
+                                </div>
+                            </div>
+                            
+                            <div class="control-group">
+                                <label class="control-label">环境湿度 (%)</label>
+                                <div class="slider-container">
+                                    <div id="clothes-humidity-value" class="slider-value">50</div>
+                                    <input type="range" id="clothes-humidity-slider" min="10" max="90" step="1" value="50">
+                                </div>
+                            </div>
+                            
+                            <div class="action-buttons">
+                                <button id="clothes-start-btn" class="action-btn btn-primary" onclick="startClothesSim()">
+                                    <span>▶</span>
+                                    <span>开始模拟</span>
+                                </button>
+                                <button class="action-btn btn-secondary" onclick="resetClothesSim()">
+                                    <span>↺</span>
+                                    <span>重置</span>
+                                </button>
+                            </div>
+                            
+                            <div id="clothes-result" style="text-align: center; margin-top: 20px; color: #94a3b8; display: none;">
+                                <div id="clothes-drying-rate">干燥速率: 0 g/m²·s</div>
+                                <div id="clothes-time">干燥时间: 0 s</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 咖啡干燥案例 -->
+                <div id="analogy-coffee" class="analogy-content">
+                    <div class="analogy-visual">
+                        <div class="analogy-image">
+                            <div style="font-size: 5rem;">☕</div>
+                        </div>
+                        <div class="analogy-principles">
+                            <h4>传质原理分析：</h4>
+                            <ul class="principle-list">
+                                <li><span class="principle-icon">🔥</span> 喷雾干燥 → 增大比表面积 → 传质速率提高</li>
+                                <li><span class="principle-icon">⏱️</span> 停留时间优化 → 充分干燥 → 产品质量稳定</li>
+                                <li><span class="principle-icon">🌡️</span> 温度控制 → 防止过热焦化 → 保持风味</li>
+                                <li><span class="principle-icon">💨</span> 气流组织 → 均匀干燥 → 避免结块</li>
+                            </ul>
+                        </div>
+                    </div>
+                                        <div style="text-align: center; padding: 40px; color: #94a3b8;">
+                        ☕ 咖啡干燥模拟（开发中）
+                    </div>
+                </div>
+                
+                <!-- 浴室除湿案例 -->
+                <div id="analogy-bathroom" class="analogy-content">
+                    <div class="analogy-visual">
+                        <div class="analogy-image">
+                            <div style="font-size: 5rem;">🛁</div>
+                        </div>
+                        <div class="analogy-principles">
+                            <h4>传质原理分析：</h4>
+                            <ul class="principle-list">
+                                <li><span class="principle-icon">💨</span> 排风扇强制对流 → 带走湿空气 → 降低湿度</li>
+                                <li><span class="principle-icon">🌡️</span> 温度差驱动自然对流 → 空气循环 → 水分蒸发</li>
+                                <li><span class="principle-icon">📊</span> 浓度梯度驱动扩散 → 高浓度向低浓度迁移</li>
+                                <li><span class="principle-icon">🔄</span> 多模式耦合 → 对流+扩散 → 协同除湿</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 40px; color: #94a3b8;">
+                        🛁 浴室除湿模拟（开发中）
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 第二关：瓶颈分析 -->
+        <div id="level2" class="content-area">
+            <h2 class="level-title">第二关：传质瓶颈分析</h2>
+            <p class="level-description">
+                分析传质过程中的限制步骤。理解挥发、对流和热传导如何相互作用，识别关键瓶颈并找到优化方向。
+            </p>
+            
+            <!-- 瓶颈分析区 -->
+            <div class="simulation-area">
+                <div class="simulation-header">
+                    <h3 class="simulation-title">传质过程瓶颈可视化</h3>
+                    <div class="simulation-status" id="bottleneck-status">当前瓶颈: 未分析</div>
+                </div>
+                
+                <!-- 四个参数在同一行 -->
+                <div class="bottleneck-container">
+                    <div class="bottleneck-item" id="bottleneck-evaporation" style="border-left-color: #00bcd4;">
+                        <h4 class="bottleneck-name">挥发传质</h4>
+                        <div class="bottleneck-value" id="evaporation-value" style="color: #00bcd4;">0.8</div>
+                        <div class="bottleneck-description">
+                            液体表面到空气的传质
+                        </div>
+                    </div>
+                    
+                    <div class="bottleneck-item active" id="bottleneck-convection" style="border-left-color: #1a73e8;">
+                        <h4 class="bottleneck-name">对流传质</h4>
+                        <div class="bottleneck-value" id="convection-value" style="color: #1a73e8;">0.5</div>
+                        <div class="bottleneck-description">
+                            空气流动带走的传质
+                        </div>
+                    </div>
+                    
+                    <div class="bottleneck-item" id="bottleneck-heat" style="border-left-color: #ffc107;">
+                        <h4 class="bottleneck-name">热传导</h4>
+                        <div class="bottleneck-value" id="heat-value" style="color: #ffc107;">0.9</div>
+                        <div class="bottleneck-description">
+                            热量传递到液体表面
+                        </div>
+                    </div>
+                    
+                    <div class="bottleneck-item" id="bottleneck-diffusion" style="border-left-color: #4caf50;">
+                        <h4 class="bottleneck-name">内部扩散</h4>
+                        <div class="bottleneck-value" id="diffusion-value" style="color: #4caf50;">0.6</div>
+                        <div class="bottleneck-description">
+                            液体内部水分向表面扩散
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 控制面板 -->
+                <div class="control-panel">
+                    <div class="formula-display">
+                        总传质速率 = min(挥发, 对流, 热传导, 扩散)
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">风速 (影响对流传质)</label>
+                        <div class="slider-container">
+                            <div id="bottleneck-wind-value" class="slider-value">2.0</div>
+                            <input type="range" id="bottleneck-wind-slider" min="0.1" max="10.0" step="0.1" value="2.0">
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">表面温度 (影响挥发)</label>
+                        <div class="slider-container">
+                            <div id="bottleneck-temp-value" class="slider-value">60</div>
+                            <input type="range" id="bottleneck-temp-slider" min="20" max="120" step="1" value="60">
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">液体粘度 (影响扩散)</label>
+                        <div class="slider-container">
+                            <div id="bottleneck-viscosity-value" class="slider-value">0.5</div>
+                            <input type="range" id="bottleneck-viscosity-slider" min="0.1" max="2.0" step="0.1" value="0.5">
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="action-btn btn-primary" onclick="analyzeBottleneck()">
+                            <span>🔍</span>
+                            <span>分析瓶颈</span>
+                        </button>
+                        <button class="action-btn btn-secondary" onclick="resetBottleneck()">
+                            <span>↺</span>
+                            <span>重置</span>
+                        </button>
+                    </div>
+                    
+                    <div id="bottleneck-result" style="text-align: center; margin-top: 20px; padding: 15px; background: rgba(0, 188, 212, 0.1); border-radius: 8px; border: 1px solid rgba(0, 188, 212, 0.3); display: none;">
+                        <div style="font-weight: bold; color: #00bcd4;" id="bottleneck-message">当前限制步骤: 对流传质</div>
+                        <div style="font-size: 0.9rem; color: #94a3b8; margin-top: 5px;" id="bottleneck-suggestion">建议提高风速以改善对流传质</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 第三关：系统设计 -->
+        <div id="level3" class="content-area">
+            <h2 class="level-title">第三关：电池极片干燥系统设计</h2>
+            <p class="level-description">
+                设计完整的工业干燥系统。优化气流组织、温度和风速参数，平衡干燥效率与产品质量，防止表面结皮现象。
+            </p>
+            
+            <!-- 模拟区域 -->
+            <div class="simulation-area">
+                <div class="simulation-header">
+                    <h3 class="simulation-title">电池极片干燥过程模拟</h3>
+                    <div class="simulation-status" id="system-status">就绪</div>
+                </div>
+                
+                <!-- 紧凑布局：气流模式和干燥进度 -->
+                <div class="system-layout-compact">
+                    <!-- 左侧：气流模式 -->
+                    <div class="mode-section-compact">
+                        <h4 style="color: var(--accent); margin-bottom: 15px;">气流组织方案</h4>
+                        
+                        <div class="mode-selector">
+                            <button class="mode-btn active" onclick="setSystemMode('co')">并流</button>
+                            <button class="mode-btn" onclick="setSystemMode('counter')">逆流</button>
+                            <button class="mode-btn" onclick="setSystemMode('cross')">错流</button>
+                        </div>
+                        
+                        <div class="mode-display-compact">
+                            <div id="system-mode-icon" class="mode-icon-compact">➡</div>
+                            <div style="font-size: 1.2rem; font-weight: bold; color: var(--accent);" id="system-mode-name">并流模式</div>
+                            <div class="mode-description-compact" id="system-mode-desc">
+                                气流与极片移动方向相同。初期推动力大，干燥快；后期推动力小，效率降低。
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 右侧：干燥进度 -->
+                    <div class="progress-section-compact">
+                        <h4 style="color: var(--accent); margin-bottom: 15px;">干燥进度</h4>
+                        
+                        <!-- 极片模拟 -->
+                        <div style="margin-bottom: 15px;">
+                            <div style="text-align: center; margin-bottom: 10px; color: #94a3b8;">
+                                溶剂含量: <span id="system-solvent" style="color: var(--accent); font-size: 1.3rem; font-weight: bold;">100%</span>
+                            </div>
+                            <div class="electrode-strip">
+                                <div id="system-solvent-layer" class="solvent-layer" style="width: 100%"></div>
+                                <div id="crusting-layer" style="position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: repeating-linear-gradient(45deg, transparent, transparent 5px, var(--danger) 5px, var(--danger) 10px); opacity: 0;"></div>
+                            </div>
+                            <div style="text-align: center; margin-top: 10px; color: #94a3b8; font-size: 0.9rem;">
+                                结皮风险: <span id="system-crusting-risk" style="color: var(--success); font-weight: bold;">低</span>
+                            </div>
+                        </div>
+                        
+  <!-- 统计数据 -->
+    <div class="progress-stats-compact">
+        <div class="stat-item-compact">
+            <div>
+                <span class="stat-label-compact">干燥速率:</span>
+                <span class="stat-value-compact" id="system-drying-rate">0.0</span>
+                <span class="stat-label-compact">g/m²·s</span>
+            </div>
+        </div>
+        
+        <div class="stat-item-compact">
+            <div>
+                <span class="stat-label-compact">干燥时间:</span>
+                <span class="stat-value-compact" id="system-time">0</span>
+                <span class="stat-label-compact">s</span>
+            </div>
+        </div>
+        
+        <div class="stat-item-compact">
+            <div>
+                <span class="stat-label-compact">能耗:</span>
+                <span class="stat-value-compact" id="system-energy">0.0</span>
+                <span class="stat-label-compact">kW·h</span>
+            </div>
+        </div>
+        
+        <div class="stat-item-compact">
+            <div>
+                <span class="stat-label-compact">能效比:</span>
+                <span class="stat-value-compact" id="system-efficiency">0.0</span>
+                <span class="stat-label-compact">g/kW·h</span>
+            </div>
+        </div>
+    </div>
+</div>
+                
+                <!-- 风速与箭头显示 -->
+                <div class="air-flow-display">
+                    <div class="air-flow-direction">
+                        <div id="system-arrow" class="flow-arrow">➡</div>
+                        <div class="flow-text" id="system-flow-text">气流模式: 并流 | 风速: 2.0 m/s | 温度: 80°C</div>
+                    </div>
+                </div>
+                
+                <!-- 控制面板 -->
+                <div class="control-panel">
+                    <div class="formula-display" id="system-formula">
+                        N(x) = kc(x) · [Cs(x) - Cair(x)]
+                    </div>
+                    
+                    <!-- 滑块紧凑布局 -->
+                    <div class="control-row">
+                        <div class="control-column">
+                            <label class="control-label">风速 (m/s)</label>
+                            <div class="slider-container">
+                                <div id="system-wind-value" class="slider-value">2.0</div>
+                                <input type="range" id="system-wind-slider" min="0.5" max="15.0" step="0.1" value="2.0">
+                            </div>
+                        </div>
+                        
+                        <div class="control-column">
+                            <label class="control-label">温度 (°C)</label>
+                            <div class="slider-container">
+                                <div id="system-temp-value" class="slider-value">80</div>
+                                <input type="range" id="system-temp-slider" min="40" max="120" step="1" value="80">
+                            </div>
+                        </div>
+                        
+                        <div class="control-column">
+                            <label class="control-label">湿度 (%)</label>
+                            <div class="slider-container">
+                                <div id="system-humidity-value" class="slider-value">10</div>
+                                <input type="range" id="system-humidity-slider" min="1" max="50" step="1" value="10">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="action-btn btn-primary" onclick="startSystemSim()">
+                            <span>▶</span>
+                            <span>启动产线</span>
+                        </button>
+                        <button class="action-btn btn-secondary" onclick="resetSystemSim()">
+                            <span>↺</span>
+                            <span>重置</span>
+                        </button>
+                        <button class="action-btn btn-secondary" onclick="optimizeSystem()">
+                            <span>⚡</span>
+                            <span>智能优化</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 评测环节 -->
+            <button id="evaluation-toggle" class="evaluation-toggle" onclick="showEvaluation()">
+                <span>📝</span>
+                <span>进入综合评测</span>
+            </button>
+            
+            <div id="evaluation-section" class="evaluation-section">
+                <h2 class="evaluation-title">工程传质能力综合评测</h2>
+                <p style="text-align: center; color: #94a3b8; margin-bottom: 30px;">
+                    通过3道专业题目测试您的工程传质知识掌握程度。
+                </p>
+                
+                <div class="questions-container">
+                    <!-- 题目1 -->
+                    <div class="question-card" id="question1">
+                        <div>
+                            <span class="question-number">1</span>
+                            <span class="question-text">在电池极片对流干燥过程中，以下哪种气流组织方案通常具有最均匀的推动力分布？</span>
+                        </div>
+                        
+                        <div class="options-container">
+                            <div class="option" onclick="selectOption(1, 'A')">
+                                <div class="option-letter">A</div>
+                                <div class="option-text">并流（Cocurrent）方案</div>
+                            </div>
+                            <div class="option" onclick="selectOption(1, 'B')">
+                                <div class="option-letter">B</div>
+                                <div class="option-text">逆流（Counter-current）方案</div>
+                            </div>
+                            <div class="option" onclick="selectOption(1, 'C')">
+                                <div class="option-letter">C</div>
+                                <div class="option-text">错流（Cross-flow）方案</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 题目2 -->
+                    <div class="question-card" id="question2">
+                        <div>
+                            <span class="question-number">2</span>
+                            <span class="question-text">为了防止极片表面结皮（Crusting），以下哪项措施最为有效？</span>
+                        </div>
+                        
+                        <div class="options-container">
+                            <div class="option" onclick="selectOption(2, 'A')">
+                                <div class="option-letter">A</div>
+                                <div class="option-text">在干燥初期使用极高的风速</div>
+                            </div>
+                            <div class="option" onclick="selectOption(2, 'B')">
+                                <div class="option-letter">B</div>
+                                <div class="option-text">采用分段温度控制，初期低温后期高温</div>
+                            </div>
+                            <div class="option" onclick="selectOption(2, 'C')">
+                                <div class="option-letter">C</div>
+                                <div class="option-text">在整个过程中保持恒定的低湿度</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 题目3 -->
+                    <div class="question-card" id="question3">
+                        <div>
+                            <span class="question-number">3</span>
+                            <span class="question-text">在对流传质过程中，以下哪个因素对传质系数（kc）的影响最大？</span>
+                        </div>
+                        
+                        <div class="options-container">
+                            <div class="option" onclick="selectOption(3, 'A')">
+                                <div class="option-letter">A</div>
+                                <div class="option-text">空气的温度</div>
+                            </div>
+                            <div class="option" onclick="selectOption(3, 'B')">
+                                <div class="option-letter">B</div>
+                                <div class="option-text">空气的流速</div>
+                            </div>
+                            <div class="option" onclick="selectOption(3, 'C')">
+                                <div class="option-letter">C</div>
+                                <div class="option-text">溶剂的性质</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="submit-evaluation" class="submit-btn" onclick="submitEvaluation()" disabled>
+                    <span>📤</span>
+                    <span>提交评测</span>
+                </button>
+                
+                <!-- 评测结果 -->
+                <div id="result-container" class="result-container">
+                    <div style="margin-bottom: 30px;">
+                        <div id="result-badge" style="display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #4a5568, #718096); color: white; border-radius: 30px; font-size: 1.5rem; font-weight: 700; margin-bottom: 20px;">
+                            助理工程师
+                        </div>
+                        <div id="result-score" class="result-score">0/9</div>
+                        <h3 id="result-title" style="font-size: 2rem; color: #e2e8f0; margin-bottom: 15px;">助理工程师</h3>
+                        <p id="result-desc" style="color: #94a3b8; font-size: 1.1rem; line-height: 1.6; max-width: 800px; margin: 0 auto 30px;">
+                            您已掌握传质过程的基础知识，但在实际工程应用和系统优化方面还需要进一步学习。
+                        </p>
+                    </div>
+                    
+                    <div class="action-buttons-evaluation">
+                        <button class="btn-evaluation btn-retry" onclick="retryEvaluation()">
+                            <span>🔄</span>
+                            <span>重新评测</span>
+                        </button>
+                        <button class="btn-evaluation btn-continue" onclick="continueLearning()">
+                            <span>🚀</span>
+                            <span>继续学习</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化状态
+        let currentLevel = 1;
+        
+        // 第一关状态
+        let clothesSimRunning = false;
+        let clothesSimInterval = null;
+        let clothesMoisture = 100;
+        let clothesStartTime = 0;
+        let clothesDryingRate = 0;
+        
+        // 第二关状态
+        let bottleneckValues = {
+            evaporation: 0.8,
+            convection: 0.5,
+            heat: 0.9,
+            diffusion: 0.6
+        };
+        
+        // 第三关状态
+        let systemSimRunning = false;
+        let systemSimInterval = null;
+        let systemSolvent = 100;
+        let systemMode = 'co';
+        let systemStartTime = 0;
+        let systemEnergy = 0;
+        let systemEfficiency = 0;
+        
+        // 评测系统状态
+        let evaluationAnswers = {};
+        
+        // 初始化函数
+        function init() {
+            // 设置导航点击事件
+            document.querySelectorAll('.nav-item').forEach((item, index) => {
+                item.addEventListener('click', () => {
+                    switchLevel(index + 1);
+                });
+            });
+            
+            // 设置第一关滑块事件
+            setupLevel1Controls();
+            
+            // 设置第二关滑块事件
+            setupLevel2Controls();
+            
+            // 设置第三关滑块事件
+            setupLevel3Controls();
+            
+            // 显示第一关
+            switchLevel(1);
+            
+            // 初始化第三关模式显示
+            updateSystemModeDisplay();
+        }
+        
+        // 切换关卡
+        function switchLevel(level) {
+            currentLevel = level;
+            
+            // 更新导航
+            document.querySelectorAll('.nav-item').forEach((item, index) => {
+                item.classList.toggle('active', index + 1 === level);
+            });
+            
+            // 显示对应关卡内容
+            document.querySelectorAll('.content-area').forEach((area, index) => {
+                area.classList.toggle('active', index + 1 === level);
+            });
+            
+            // 重置当前关卡的模拟
+            if (level === 1) {
+                resetClothesSim();
+            } else if (level === 2) {
+                resetBottleneck();
+            } else if (level === 3) {
+                resetSystemSim();
+            }
+        }
+        
+        // === 第一关：生活案例 ===
+        function setupLevel1Controls() {
+            const windSlider = document.getElementById('clothes-wind-slider');
+            const tempSlider = document.getElementById('clothes-temp-slider');
+            const humiditySlider = document.getElementById('clothes-humidity-slider');
+            
+            if (windSlider) {
+                windSlider.addEventListener('input', function(e) {
+                    const value = parseFloat(e.target.value);
+                    document.getElementById('clothes-wind-value').textContent = value.toFixed(1);
+                    updateClothesArrow(value);
+                });
+            }
+            
+            if (tempSlider) {
+                tempSlider.addEventListener('input', function(e) {
+                    const value = parseInt(e.target.value);
+                    document.getElementById('clothes-temp-value').textContent = value;
+                });
+            }
+            
+            if (humiditySlider) {
+                humiditySlider.addEventListener('input', function(e) {
+                    const value = parseInt(e.target.value);
+                    document.getElementById('clothes-humidity-value').textContent = value;
+                });
+            }
+        }
+        
+        function updateClothesArrow(windSpeed) {
+            const arrow = document.getElementById('clothes-arrow');
+            const flowText = document.getElementById('clothes-flow-text');
+            
+            // 根据风速调整箭头大小
+            let arrowSize = 30 + windSpeed * 5;
+            if (arrowSize > 60) arrowSize = 60;
+            
+            arrow.style.fontSize = `${arrowSize}px`;
+            flowText.textContent = `风速: ${windSpeed.toFixed(1)} m/s`;
+            
+            // 调整箭头符号表示风速大小
+            if (windSpeed > 3.5) {
+                arrow.textContent = '➡➡';
+            } else if (windSpeed > 2) {
+                arrow.textContent = '➡';
+            } else {
+                arrow.textContent = '➝';
+            }
+        }
+        
+        function startClothesSim() {
+            if (clothesSimRunning) {
+                // 如果已经在运行，则停止
+                clearInterval(clothesSimInterval);
+                clothesSimRunning = false;
+                document.getElementById('clothes-start-btn').innerHTML = '<span>▶</span><span>开始模拟</span>';
+                document.getElementById('clothes-status').textContent = '已停止';
+                return;
+            }
+            
+            clothesSimRunning = true;
+            clothesMoisture = 100;
+            clothesStartTime = Date.now();
+            clothesDryingRate = 0;
+            
+            // 获取参数
+            const windSpeed = parseFloat(document.getElementById('clothes-wind-slider').value);
+            const temperature = parseInt(document.getElementById('clothes-temp-slider').value);
+            const humidity = parseInt(document.getElementById('clothes-humidity-slider').value);
+            
+            // 更新状态显示
+            document.getElementById('clothes-status').textContent = '干燥中...';
+            document.getElementById('clothes-result').style.display = 'none';
+            document.getElementById('clothes-start-btn').innerHTML = '<span>⏸</span><span>暂停模拟</span>';
+            
+            // 清除之前的定时器
+            if (clothesSimInterval) {
+                clearInterval(clothesSimInterval);
+            }
+            
+            // 开始模拟
+            clothesSimInterval = setInterval(() => {
+                // 计算干燥速率：基于风速、温度、湿度
+                const windEffect = windSpeed * 0.1; // 风速影响
+                const tempEffect = (temperature - 10) * 0.005; // 温度影响
+                const humidityEffect = (100 - humidity) * 0.002; // 湿度影响（湿度越低干燥越快）
+                
+                // 当前湿度越高，干燥越快（浓度差大）
+                const moistureEffect = clothesMoisture / 100;
+                
+                // 综合干燥速率
+                clothesDryingRate = (windEffect + tempEffect + humidityEffect) * moistureEffect * 0.5;
+                
+                // 更新湿度
+                clothesMoisture -= clothesDryingRate;
+                
+                // 确保湿度不会低于0
+                if (clothesMoisture <= 0) {
+                    clothesMoisture = 0;
+                    finishClothesSim();
+                }
+                
+                // 更新UI
+                document.getElementById('clothes-moisture').textContent = `${clothesMoisture.toFixed(1)}%`;
+                document.getElementById('clothes-solvent').style.width = `${clothesMoisture}%`;
+                
+                // 计算经过的时间
+                const elapsedTime = (Date.now() - clothesStartTime) / 1000;
+                
+                // 更新结果
+                document.getElementById('clothes-drying-rate').textContent = `干燥速率: ${clothesDryingRate.toFixed(3)} g/m²·s`;
+                document.getElementById('clothes-time').textContent = `干燥时间: ${elapsedTime.toFixed(1)} s`;
+                
+            }, 100); // 每100ms更新一次
+        }
+        
+        function finishClothesSim() {
+            clearInterval(clothesSimInterval);
+            clothesSimRunning = false;
+            
+            const elapsedTime = (Date.now() - clothesStartTime) / 1000;
+            
+            document.getElementById('clothes-status').textContent = '干燥完成';
+            document.getElementById('clothes-result').style.display = 'block';
+            document.getElementById('clothes-start-btn').innerHTML = '<span>▶</span><span>重新开始</span>';
+            
+            // 获取参数用于反馈
+            const windSpeed = parseFloat(document.getElementById('clothes-wind-slider').value);
+            const temperature = parseInt(document.getElementById('clothes-temp-slider').value);
+            const humidity = parseInt(document.getElementById('clothes-humidity-slider').value);
+            
+            // 给出反馈
+            let feedback = `🎉 衣物干燥完成！\n\n`;
+            feedback += `最终湿度: 0%\n`;
+            feedback += `干燥时间: ${elapsedTime.toFixed(1)}秒\n`;
+            feedback += `风速: ${windSpeed.toFixed(1)} m/s\n`;
+            feedback += `温度: ${temperature}°C\n`;
+            feedback += `湿度: ${humidity}%\n`;
+            feedback += `平均干燥速率: ${clothesDryingRate.toFixed(3)} g/m²·s\n\n`;
+            
+            if (windSpeed > 4 && elapsedTime < 20) {
+                feedback += `提示：风速过快可能导致衣物变形，建议适当降低风速。`;
+            } else if (temperature > 35) {
+                feedback += `提示：温度过高可能损坏衣物纤维，建议适当降低温度。`;
+            } else if (elapsedTime > 60) {
+                feedback += `提示：干燥时间较长，可适当提高风速或温度。`;
+            } else {
+                feedback += `工艺参数合理，干燥效果良好！`;
+            }
+            
+            setTimeout(() => alert(feedback), 500);
+        }
+        
+        function resetClothesSim() {
+            if (clothesSimInterval) {
+                clearInterval(clothesSimInterval);
+            }
+            clothesSimRunning = false;
+            clothesMoisture = 100;
+            clothesDryingRate = 0;
+            
+            document.getElementById('clothes-status').textContent = '就绪';
+            document.getElementById('clothes-moisture').textContent = '100%';
+            document.getElementById('clothes-solvent').style.width = '100%';
+            document.getElementById('clothes-result').style.display = 'none';
+            document.getElementById('clothes-start-btn').innerHTML = '<span>▶</span><span>开始模拟</span>';
+            
+            // 重置箭头
+            const windSpeed = parseFloat(document.getElementById('clothes-wind-slider').value);
+            updateClothesArrow(windSpeed);
+        }
+        
+        function switchAnalogy(analogy) {
+            // 更新选项卡
+            document.querySelectorAll('.analogy-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            // 显示对应内容
+            document.querySelectorAll('.analogy-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`analogy-${analogy}`).classList.add('active');
+        }
+        
+        // === 第二关：瓶颈分析 ===
+        function setupLevel2Controls() {
+            const windSlider = document.getElementById('bottleneck-wind-slider');
+            const tempSlider = document.getElementById('bottleneck-temp-slider');
+            const viscositySlider = document.getElementById('bottleneck-viscosity-slider');
+            
+            if (windSlider) {
+                windSlider.addEventListener('input', function(e) {
+                    const value = parseFloat(e.target.value);
+                    document.getElementById('bottleneck-wind-value').textContent = value.toFixed(1);
+                });
+            }
+            
+            if (tempSlider) {
+                tempSlider.addEventListener('input', function(e) {
+                    const value = parseInt(e.target.value);
+                    document.getElementById('bottleneck-temp-value').textContent = value;
+                });
+            }
+            
+            if (viscositySlider) {
+                viscositySlider.addEventListener('input', function(e) {
+                    const value = parseFloat(e.target.value);
+                    document.getElementById('bottleneck-viscosity-value').textContent = value.toFixed(1);
+                });
+            }
+        }
+        
+        function analyzeBottleneck() {
+            // 获取参数
+            const windSpeed = parseFloat(document.getElementById('bottleneck-wind-slider').value);
+            const temperature = parseInt(document.getElementById('bottleneck-temp-slider').value);
+            const viscosity = parseFloat(document.getElementById('bottleneck-viscosity-slider').value);
+            
+            // 计算各环节传质系数
+            // 对流传质：与风速相关
+            bottleneckValues.convection = Math.min(1, windSpeed / 8);
+            
+            // 挥发传质：与温度相关
+            bottleneckValues.evaporation = Math.min(1, (temperature - 20) / 80);
+            
+            // 热传导：与温度差相关
+            bottleneckValues.heat = Math.min(1, (temperature - 20) / 60);
+            
+            // 内部扩散：与粘度负相关
+            bottleneckValues.diffusion = Math.max(0.1, 1 - viscosity / 2);
+            
+            // 更新显示
+            updateBottleneckDisplay();
+            
+            // 分析瓶颈
+            findBottleneck();
+        }
+        
+        function updateBottleneckDisplay() {
+            document.getElementById('evaporation-value').textContent = bottleneckValues.evaporation.toFixed(2);
+            document.getElementById('convection-value').textContent = bottleneckValues.convection.toFixed(2);
+            document.getElementById('heat-value').textContent = bottleneckValues.heat.toFixed(2);
+            document.getElementById('diffusion-value').textContent = bottleneckValues.diffusion.toFixed(2);
+        }
+        
+        function findBottleneck() {
+            // 找到最小值（瓶颈）
+            const values = Object.values(bottleneckValues);
+            const minValue = Math.min(...values);
+            
+            let bottleneck = '';
+            let suggestion = '';
+            
+            // 重置所有项目状态
+            document.querySelectorAll('.bottleneck-item').forEach(item => {
+                item.classList.remove('active', 'critical');
+            });
+            
+            // 确定瓶颈环节
+            if (bottleneckValues.convection === minValue) {
+                bottleneck = '对流传质';
+                suggestion = '建议提高风速以改善对流传质';
+                document.getElementById('bottleneck-convection').classList.add('critical');
+            } else if (bottleneckValues.evaporation === minValue) {
+                bottleneck = '挥发传质';
+                suggestion = '建议提高温度以增强挥发';
+                document.getElementById('bottleneck-evaporation').classList.add('critical');
+            } else if (bottleneckValues.heat === minValue) {
+                bottleneck = '热传导';
+                suggestion = '建议提高温度以改善热传导';
+                document.getElementById('bottleneck-heat').classList.add('critical');
+            } else if (bottleneckValues.diffusion === minValue) {
+                bottleneck = '内部扩散';
+                suggestion = '建议降低液体粘度或提高温度';
+                document.getElementById('bottleneck-diffusion').classList.add('critical');
+            }
+            
+            // 更新显示
+            document.getElementById('bottleneck-status').textContent = `当前瓶颈: ${bottleneck}`;
+            document.getElementById('bottleneck-message').textContent = `当前限制步骤: ${bottleneck}`;
+            document.getElementById('bottleneck-suggestion').textContent = suggestion;
+            document.getElementById('bottleneck-result').style.display = 'block';
+            
+            // 计算总传质速率
+            const totalRate = minValue;
+            
+            // 给出反馈
+            let feedback = `⚡ 瓶颈分析完成！\n\n`;
+            feedback += `当前限制环节: ${bottleneck}\n`;
+            feedback += `总传质速率: ${totalRate.toFixed(2)}\n`;
+            feedback += `\n${suggestion}`;
+            
+            alert(feedback);
+        }
+        
+        function resetBottleneck() {
+            // 重置滑块到默认值
+            document.getElementById('bottleneck-wind-slider').value = 2.0;
+            document.getElementById('bottleneck-temp-slider').value = 60;
+            document.getElementById('bottleneck-viscosity-slider').value = 0.5;
+            
+            document.getElementById('bottleneck-wind-value').textContent = '2.0';
+            document.getElementById('bottleneck-temp-value').textContent = '60';
+            document.getElementById('bottleneck-viscosity-value').textContent = '0.5';
+            
+            // 重置显示
+            document.getElementById('bottleneck-status').textContent = '当前瓶颈: 未分析';
+            document.getElementById('bottleneck-result').style.display = 'none';
+            
+            // 重置项目状态
+            document.querySelectorAll('.bottleneck-item').forEach(item => {
+                item.classList.remove('active', 'critical');
+            });
+            document.getElementById('bottleneck-convection').classList.add('active');
+            
+            // 重置值
+            bottleneckValues = {
+                evaporation: 0.8,
+                convection: 0.5,
+                heat: 0.9,
+                diffusion: 0.6
+            };
+            
+            updateBottleneckDisplay();
+        }
+        
+        // === 第三关：系统设计 ===
+        function setupLevel3Controls() {
+            const windSlider = document.getElementById('system-wind-slider');
+            const tempSlider = document.getElementById('system-temp-slider');
+            const humiditySlider = document.getElementById('system-humidity-slider');
+            
+            if (windSlider) {
+                windSlider.addEventListener('input', function(e) {
+                    const value = parseFloat(e.target.value);
+                    document.getElementById('system-wind-value').textContent = value.toFixed(1);
+                    updateSystemArrow(value);
+                });
+            }
+            
+            if (tempSlider) {
+                tempSlider.addEventListener('input', function(e) {
+                    const value = parseInt(e.target.value);
+                    document.getElementById('system-temp-value').textContent = value;
+                    updateSystemArrow(parseFloat(document.getElementById('system-wind-slider').value));
+                });
+            }
+            
+            if (humiditySlider) {
+                humiditySlider.addEventListener('input', function(e) {
+                    const value = parseInt(e.target.value);
+                    document.getElementById('system-humidity-value').textContent = value;
+                });
+            }
+        }
+        
+        function setSystemMode(mode) {
+            systemMode = mode;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            // 更新模式显示
+            updateSystemModeDisplay();
+            
+            // 更新箭头
+            updateSystemArrow(parseFloat(document.getElementById('system-wind-slider').value));
+        }
+        
+        function updateSystemModeDisplay() {
+            let modeIcon = '➡';
+            let modeName = '并流模式';
+            let modeDesc = '气流与极片移动方向相同。初期推动力大，干燥快；后期推动力小，效率降低。';
+            
+            if (systemMode === 'counter') {
+                modeIcon = '⬅';
+                modeName = '逆流模式';
+                modeDesc = '气流与极片移动方向相反。推动力分布均匀，干燥效率稳定，但初期干燥较慢。';
+            } else if (systemMode === 'cross') {
+                modeIcon = '⬇';
+                modeName = '错流模式';
+                modeDesc = '气流与极片移动方向垂直。综合并流和逆流的优点，适用于复杂形状的极片。';
+            }
+            
+            document.getElementById('system-mode-icon').textContent = modeIcon;
+            document.getElementById('system-mode-name').textContent = modeName;
+            document.getElementById('system-mode-desc').textContent = modeDesc;
+        }
+        
+        function updateSystemArrow(windSpeed) {
+            const arrow = document.getElementById('system-arrow');
+            
+            // 根据风速调整箭头大小
+            let arrowSize = 30 + windSpeed * 5;
+            if (arrowSize > 60) arrowSize = 60;
+            
+            arrow.style.fontSize = `${arrowSize}px`;
+            
+            // 根据模式设置箭头方向
+            let arrowSymbol = '➡';
+            if (systemMode === 'counter') arrowSymbol = '⬅';
+            if (systemMode === 'cross') arrowSymbol = '⬇';
+            arrow.textContent = arrowSymbol;
+            
+            // 更新文本
+            const temperature = parseInt(document.getElementById('system-temp-slider').value);
+            let modeText = '并流';
+            if (systemMode === 'counter') modeText = '逆流';
+            if (systemMode === 'cross') modeText = '错流';
+            
+            document.getElementById('system-flow-text').textContent = `气流模式: ${modeText} | 风速: ${windSpeed.toFixed(1)} m/s | 温度: ${temperature}°C`;
+        }
+        
+        function startSystemSim() {
+            if (systemSimRunning) return;
+            
+            systemSimRunning = true;
+            systemSolvent = 100;
+            systemStartTime = Date.now();
+            systemEnergy = 0;
+            systemEfficiency = 0;
+            
+            // 获取参数
+            const windSpeed = parseFloat(document.getElementById('system-wind-slider').value);
+            const temperature = parseInt(document.getElementById('system-temp-slider').value);
+            const humidity = parseInt(document.getElementById('system-humidity-slider').value);
+            
+            // 更新状态显示
+            document.getElementById('system-status').textContent = '运行中...';
+            
+            // 清除之前的定时器
+            if (systemSimInterval) {
+                clearInterval(systemSimInterval);
+            }
+            
+            // 开始模拟
+            systemSimInterval = setInterval(() => {
+                // 计算传质系数
+                const kc = 0.4 * Math.pow(windSpeed, 0.6) * Math.exp(0.02 * (temperature - 20));
+                
+                // 计算推动力（根据气流模式）
+                let drivingForce = 0;
+                let crustingRisk = 0;
+                
+                if (systemMode === 'co') {
+                    // 并流：初期推动力大，后期小
+                    const progress = (100 - systemSolvent) / 100;
+                    drivingForce = 1.8 * Math.exp(-progress * 2);
+                    // 并流初期结皮风险高
+                    if (windSpeed > 6 && systemSolvent > 70) {
+                        crustingRisk = Math.min(1, (windSpeed - 6) / 4 * (systemSolvent / 100));
+                    }
+                } else if (systemMode === 'counter') {
+                    // 逆流：推动力较均匀
+                    drivingForce = 1.2;
+                    // 逆流结皮风险低
+                    if (windSpeed > 9) {
+                        crustingRisk = Math.min(1, (windSpeed - 9) / 6);
+                    }
+                } else {
+                    // 错流：中等推动力
+                    const progress = (100 - systemSolvent) / 100;
+                    drivingForce = 1.5 * (1 - progress * 0.3);
+                    if (windSpeed > 8 && systemSolvent > 50) {
+                        crustingRisk = Math.min(1, (windSpeed - 8) / 4 * (systemSolvent / 100));
+                    }
+                }
+                
+                // 考虑湿度影响
+                drivingForce *= (1 - humidity / 100);
+                
+                // 计算干燥速率
+                const dryingRate = kc * drivingForce * 0.5;
+                systemSolvent -= dryingRate;
+                
+                // 计算能耗
+                systemEnergy += (windSpeed * windSpeed * 0.01) + ((temperature - 20) * 0.001);
+                
+                // 计算能效比
+                if (systemEnergy > 0) {
+                    systemEfficiency = (100 - systemSolvent) / systemEnergy;
+                }
+                
+                // 更新UI
+                document.getElementById('system-solvent').textContent = `${systemSolvent.toFixed(1)}%`;
+                document.getElementById('system-solvent-layer').style.width = `${systemSolvent}%`;
+                
+                // 更新结皮风险显示
+                const crustingLayer = document.getElementById('crusting-layer');
+                crustingLayer.style.opacity = crustingRisk;
+                
+                let riskText = '低';
+                let riskColor = 'var(--success)';
+                
+                if (crustingRisk > 0.7) {
+                    riskText = '高';
+                    riskColor = 'var(--danger)';
+                } else if (crustingRisk > 0.3) {
+                    riskText = '中';
+                    riskColor = 'var(--warning)';
+                }
+                
+                document.getElementById('system-crusting-risk').textContent = riskText;
+                document.getElementById('system-crusting-risk').style.color = riskColor;
+                
+                // 计算经过的时间
+                const elapsedTime = (Date.now() - systemStartTime) / 1000;
+                
+                // 更新统计数据
+                document.getElementById('system-drying-rate').textContent = dryingRate.toFixed(3);
+                document.getElementById('system-time').textContent = elapsedTime.toFixed(0);
+                document.getElementById('system-energy').textContent = systemEnergy.toFixed(2);
+                document.getElementById('system-efficiency').textContent = systemEfficiency.toFixed(1);
+                
+                // 检查完成条件
+                if (systemSolvent <= 0) {
+                    systemSolvent = 0;
+                    finishSystemSim();
+                }
+                
+            }, 100); // 每100ms更新一次
+        }
+        
+        function finishSystemSim() {
+            clearInterval(systemSimInterval);
+            systemSimRunning = false;
+            
+            const elapsedTime = (Date.now() - systemStartTime) / 1000;
+            
+            document.getElementById('system-status').textContent = '干燥完成';
+            
+            // 显示评测按钮
+            document.getElementById('evaluation-toggle').style.display = 'block';
+            
+            // 给出反馈
+            let feedback = `🎉 电池极片干燥完成！\n\n`;
+            feedback += `最终溶剂含量: 0%\n`;
+            feedback += `干燥时间: ${elapsedTime.toFixed(1)}秒\n`;
+            feedback += `能耗: ${systemEnergy.toFixed(2)} kW·h\n`;
+            feedback += `能效比: ${systemEfficiency.toFixed(1)} g/kW·h\n`;
+            feedback += `结皮风险: ${document.getElementById('system-crusting-risk').textContent}\n\n`;
+            
+            // 根据表现给出评价
+            const crustingRisk = document.getElementById('system-crusting-risk').textContent;
+            
+            if (crustingRisk === '高') {
+                feedback += `⚠️ 注意：存在高结皮风险，建议调整参数！`;
+            } else if (systemEnergy > 20) {
+                feedback += `⚠️ 注意：能耗较高，建议优化参数降低能耗！`;
+            } else if (elapsedTime > 50) {
+                feedback += `提示：干燥时间较长，可适当提高风速或温度。`;
+            } else {
+                feedback += `工艺参数合理，干燥效果良好！`;
+            }
+            
+            setTimeout(() => alert(feedback), 500);
+        }
+        
+        function resetSystemSim() {
+            if (systemSimInterval) {
+                clearInterval(systemSimInterval);
+            }
+            systemSimRunning = false;
+            systemSolvent = 100;
+            systemEnergy = 0;
+            systemEfficiency = 0;
+            
+            document.getElementById('system-status').textContent = '就绪';
+            document.getElementById('system-solvent').textContent = '100%';
+            document.getElementById('system-solvent-layer').style.width = '100%';
+            document.getElementById('system-crusting-risk').textContent = '低';
+            document.getElementById('system-crusting-risk').style.color = 'var(--success)';
+            document.getElementById('crusting-layer').style.opacity = '0';
+            document.getElementById('evaluation-toggle').style.display = 'none';
+            
+            // 重置统计数据
+            document.getElementById('system-drying-rate').textContent = '0.0';
+            document.getElementById('system-time').textContent = '0';
+            document.getElementById('system-energy').textContent = '0.0';
+            document.getElementById('system-efficiency').textContent = '0.0';
+            
+            // 重置箭头
+            updateSystemArrow(parseFloat(document.getElementById('system-wind-slider').value));
+        }
+        
+        function optimizeSystem() {
+            // 根据当前模式推荐优化参数
+            if (systemMode === 'co') {
+                // 并流优化：降低风速避免结皮，适当提高温度
+                document.getElementById('system-wind-slider').value = 4.0;
+                document.getElementById('system-temp-slider').value = 85;
+                document.getElementById('system-humidity-slider').value = 15;
+            } else if (systemMode === 'counter') {
+                // 逆流优化：可提高风速，温度适中
+                document.getElementById('system-wind-slider').value = 6.0;
+                document.getElementById('system-temp-slider').value = 75;
+                document.getElementById('system-humidity-slider').value = 20;
+            } else {
+                // 错流优化：中等参数
+                document.getElementById('system-wind-slider').value = 5.0;
+                document.getElementById('system-temp-slider').value = 80;
+                document.getElementById('system-humidity-slider').value = 18;
+            }
+            
+            // 更新显示
+            document.getElementById('system-wind-value').textContent = document.getElementById('system-wind-slider').value;
+            document.getElementById('system-temp-value').textContent = document.getElementById('system-temp-slider').value;
+            document.getElementById('system-humidity-value').textContent = document.getElementById('system-humidity-slider').value;
+            
+            updateSystemArrow(parseFloat(document.getElementById('system-wind-slider').value));
+            
+            alert('⚡ 已应用智能优化参数！');
+        }
+        
+        // === 评测系统 ===
+        function showEvaluation() {
+            document.getElementById('evaluation-section').classList.add('active');
+            document.getElementById('evaluation-toggle').style.display = 'none';
+            resetEvaluation();
+        }
+        
+        function selectOption(questionId, optionLetter) {
+            // 清除该题目的其他选项选中状态
+            const questionCard = document.getElementById(`question${questionId}`);
+            if (questionCard) {
+                const options = questionCard.querySelectorAll('.option');
+                options.forEach(option => {
+                    option.classList.remove('selected');
+                });
+            }
+            
+            // 标记选中选项
+            event.currentTarget.classList.add('selected');
+            
+            // 保存答案
+            evaluationAnswers[questionId] = optionLetter;
+            
+            // 检查是否所有题目都已作答
+            checkAllAnswered();
+        }
+        
+        function checkAllAnswered() {
+            const allAnswered = Object.keys(evaluationAnswers).length === 3;
+            const submitBtn = document.getElementById('submit-evaluation');
+            
+            if (allAnswered) {
+                submitBtn.disabled = false;
+            }
+        }
+        
+        function submitEvaluation() {
+            // 正确答案
+            const correctAnswers = {1: 'B', 2: 'B', 3: 'B'};
+            let score = 0;
+            
+            // 计算分数
+            for (const [questionId, userAnswer] of Object.entries(evaluationAnswers)) {
+                if (userAnswer === correctAnswers[questionId]) {
+                    score += 3;
+                }
+            }
+            
+            // 确定等级
+            let level = 'junior';
+            let badgeColor = 'linear-gradient(135deg, #4a5568, #718096)';
+            let title = '助理工程师';
+            let desc = '您已掌握传质过程的基础知识，但在实际工程应用和系统优化方面还需要进一步学习。';
+            
+            if (score >= 7) {
+                level = 'senior';
+                badgeColor = 'linear-gradient(135deg, #00bcd4, #00a0b8)';
+                title = '专业工程师';
+                desc = '您具备了优秀的工程传质能力，能够设计优化复杂的干燥系统，解决实际生产中的技术难题。';
+            } else if (score >= 4) {
+                level = 'engineer';
+                badgeColor = 'linear-gradient(135deg, #3182ce, #2b6cb0)';
+                title = '工程师';
+                desc = '您具备了扎实的传质理论基础和一定的工程应用能力，能够处理常见的干燥工艺问题。';
+            }
+            
+            // 显示结果
+            document.getElementById('result-badge').style.background = badgeColor;
+            document.getElementById('result-badge').textContent = title;
+            document.getElementById('result-score').textContent = `${score}/9`;
+            document.getElementById('result-title').textContent = title;
+            document.getElementById('result-desc').textContent = desc;
+            document.getElementById('result-container').classList.add('active');
+        }
+        
+        function retryEvaluation() {
+            resetEvaluation();
+            document.getElementById('result-container').classList.remove('active');
+        }
+        
+        function resetEvaluation() {
+            evaluationAnswers = {};
+            
+            // 重置UI
+            document.querySelectorAll('.option').forEach(option => {
+                option.classList.remove('selected', 'correct', 'incorrect');
+            });
+            
+            // 重置提交按钮
+            const submitBtn = document.getElementById('submit-evaluation');
+            submitBtn.disabled = true;
+        }
+        
+        function continueLearning() {
+            alert("🎉 恭喜完成评测！建议您回顾模拟过程中的关键知识点。");
+            document.getElementById('evaluation-section').classList.remove('active');
+            document.getElementById('evaluation-toggle').style.display = 'block';
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+
+
+<!-- 底部信息栏 -->
+<div style="
+    text-align: center;
+    padding: 20px 30px;
+    margin-top: 40px;
+    color: #e6f7ff;
+    font-size: 0.9rem;
+    border-top: 2px solid rgba(0, 180, 255, 0.5);
+    background: linear-gradient(135deg, rgba(10, 15, 43, 0.95), rgba(18, 26, 58, 0.9));
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+">
+    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+    
+    <p style="font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; color: #00b4ff;">
+       电池极片干燥系统进阶 © 2025 | 传质干燥仿真系统 | 版本 1.0 |
+      <style="margin-bottom: 12px; color: #cbd5e1;">
+        <strong>邮箱:</strong> xgyanger@qq.com
+    </p>
+    
+    <div style="margin-top: 15px;">
+        <span style="color: #ffcc00; font-weight: bold; font-size: 1.1rem;">
+            版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+        </span>
+    </div>
+</div>
+
+
+
+
+</body>
+</html>

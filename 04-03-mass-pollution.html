@@ -1,0 +1,1946 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>扩散传质工程模拟 | 菲克定律实战训练</title>
+<style>
+body{
+    background: linear-gradient(135deg, #071824 0%, #0a2d46 100%);
+    color:#e6f3ff;
+    font-family:"Segoe UI", "Microsoft YaHei", sans-serif;
+    margin:0;
+    padding:20px;
+    overflow-x: hidden;
+}
+h1{
+    text-align:center;
+    color:#7ce0ff;
+    text-shadow:0 0 10px rgba(0,150,255,0.5);
+    margin-bottom:25px;
+    font-weight:300;
+    letter-spacing:1px;
+    font-size:28px;
+}
+.container{
+    display:flex;
+    padding:20px;
+    gap:20px;
+    max-width:1600px;
+    margin:0 auto;
+    height: calc(100vh - 220px);
+}
+.panel{
+    width:320px;
+    background:rgba(10,40,70,0.85);
+    border-radius:15px;
+    padding:25px;
+    border:1px solid rgba(0,150,255,0.3);
+    box-shadow:0 10px 30px rgba(0,0,0,0.5);
+    backdrop-filter:blur(10px);
+    overflow-y: auto;
+}
+.panel h3{
+    margin-top:0;
+    color:#7ce0ff;
+    border-bottom:2px solid rgba(0,150,255,0.3);
+    padding-bottom:10px;
+    font-weight:400;
+    font-size:20px;
+}
+label{
+    display:block;
+    margin-top:15px;
+    color:#b3e0ff;
+    font-size:16px;
+}
+input,select,button{
+    width:100%;
+    margin-top:8px;
+    padding:12px;
+    border-radius:8px;
+    border:1px solid rgba(0,150,255,0.3);
+    background:rgba(0,30,60,0.7);
+    color:#e6f3ff;
+    font-size:16px;
+    transition:all 0.3s;
+}
+input:hover, select:hover{
+    border-color:#00aaff;
+    box-shadow:0 0 10px rgba(0,170,255,0.3);
+}
+button{
+    background:linear-gradient(to right, #0088cc, #00aaff);
+    border:none;
+    color:#fff;
+    padding:14px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
+    margin-top:18px;
+    transition:all 0.3s;
+    letter-spacing:1px;
+    font-size:16px;
+}
+button:hover{
+    background:linear-gradient(to right, #0077bb, #0099ee);
+    box-shadow:0 5px 15px rgba(0,150,255,0.4);
+    transform:translateY(-2px);
+}
+button:active{
+    transform:translateY(0);
+}
+.canvas-container{
+    flex:0 0 48%;
+    max-width:48%;
+    position:relative;
+    background:linear-gradient(180deg, #0a1a2a 0%, #0f2d44 100%);
+    border-radius:15px;
+    border:2px solid rgba(0,150,255,0.3);
+    box-shadow:0 10px 30px rgba(0,0,0,0.5);
+    overflow:hidden;
+    height: 100%;
+}
+#canvas {
+    display:block;
+    width:100%;
+    height:100%;
+}
+.quiz{
+    background:rgba(0,40,70,0.9);
+    padding:15px;
+    border-radius:12px;
+    margin-top:15px;
+    border:1px solid rgba(0,150,255,0.3);
+}
+.quiz p{
+    margin:15px 0 10px 0;
+    color:#cceeff;
+    font-size:16px;
+}
+.result{
+    margin-top:15px;
+    padding:15px;
+    border-radius:8px;
+    font-weight:bold;
+    text-align:center;
+    background:rgba(0,30,60,0.8);
+    border:1px solid rgba(0,150,255,0.3);
+    font-size:16px;
+}
+.success{
+    color:#4dffb8;
+    background:rgba(0,100,80,0.3);
+}
+.warning{
+    color:#ffcc00;
+    background:rgba(100,80,0,0.3);
+}
+.error{
+    color:#ff6666;
+    background:rgba(100,0,0,0.3);
+}
+.small-text{
+    color:#a3d5ff;
+    font-size:14px;
+    line-height:1.6;
+    margin-top:15px;
+    padding-top:15px;
+    border-top:1px solid rgba(0,150,255,0.3);
+}
+.param-display{
+    display:flex;
+    justify-content:space-between;
+    margin-top:8px;
+    font-size:15px;
+    color:#7ce0ff;
+}
+.theory-box{
+    background:rgba(0,30,60,0.8);
+    padding:15px;
+    border-radius:10px;
+    margin-bottom:20px;
+    border:1px solid rgba(0,150,255,0.3);
+    font-size:16px;
+    line-height:1.7;
+}
+.theory-box b{
+    color:#7ce0ff;
+    display:block;
+    margin-bottom:12px;
+    font-size:18px;
+}
+.theory-box .formula{
+    background:rgba(0,20,40,0.8);
+    padding:15px;
+    border-radius:8px;
+    margin:12px 0;
+    border-left:4px solid #00aaff;
+    font-family:monospace;
+    color:#a3e6ff;
+    font-size:16px;
+}
+.theory-box .explanation{
+    color:#cceeff;
+    font-size:15px;
+    margin-top:12px;
+    padding-top:12px;
+    border-top:1px dashed rgba(100,180,255,0.3);
+}
+.achievement{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    background:rgba(0,60,100,0.95);
+    padding:20px;
+    border-radius:12px;
+    border:2px solid #00aaff;
+    display:none;
+    animation:popIn 0.5s;
+    z-index:100;
+    font-size:16px;
+    max-width:300px;
+}
+@keyframes popIn{
+    0%{transform:scale(0.5); opacity:0;}
+    100%{transform:scale(1); opacity:1;}
+}
+.simulation-info {
+    position: absolute;
+    top: 20px;
+    left: 50px;
+    background: rgba(0,30,60,0.1);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(0,150,255,0.3);
+    font-size: 16px;
+    z-index: 10;
+    min-width: 160px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+.flux-display {
+    background: rgba(0,40,70,0.9);
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 12px;
+    border: 1px solid rgba(0,150,255,0.3);
+}
+.flux-value {
+    color: #4dffb8;
+    font-weight: bold;
+    font-size: 18px;
+}
+.param-group {
+    background: rgba(0,30,60,0.7);
+    padding: 12px;
+    border-radius: 10px;
+    margin-top: 12px;
+    border: 1px solid rgba(0,150,255,0.2);
+}
+.control-section {
+    margin-bottom: 20px;
+}
+
+/* 清晰的状态显示 */
+.status-display {
+    position: absolute;
+    top: 20px;
+    left: 280px;
+    background: rgba(0,30,60,0.1);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(0,150,255,0.3);
+    font-size: 16px;
+    z-index: 10;
+    min-width: 120px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+.status-item {
+    margin: 0px 0;
+    display: flex;
+    justify-content: space-between;
+}
+.status-label {
+    color: #b3e0ff;
+}
+.status-value {
+    color: #7ce0ff;
+    font-weight: bold;
+}
+
+}
+
+/* 坐标轴标签 - 使用HTML元素确保清晰度 */
+.axis-labels {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+.x-axis-label {
+    position: absolute;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #7ce0ff;
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 0 0 3px rgba(0,0,0,0.8);
+}
+.y-axis-label {
+    position: absolute;
+    left: -10px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+    color: #7ce0ff;
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 0 0 3px rgba(0,0,0,0.8);
+    white-space: nowrap;
+}
+.origin-label {
+    position: absolute;
+    bottom: 25px;
+    left: 40px;
+    color: #7ce0ff;
+    font-size: 16px;
+    font-weight: bold;
+}
+.unit-display {
+    position: absolute;
+    bottom: 25px;
+    right: 40px;
+    color: #7ce0ff;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* 开始评测按钮 - 移到页面下方 */
+.start-assessment-container {
+    display: flex;
+    justify-content: center;
+    margin: 30px auto;
+    max-width: 1600px;
+}
+.start-assessment-button {
+    background: linear-gradient(45deg, #ff8800, #ffaa00, #ffcc00);
+    border: none;
+    color: #fff;
+    padding: 20px 40px;
+    border-radius: 15px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 22px;
+    transition: all 0.3s;
+    letter-spacing: 2px;
+    box-shadow: 0 10px 20px rgba(255, 136, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.start-assessment-button:hover {
+    background: linear-gradient(45deg, #ff7700, #ff9900, #ffbb00);
+    box-shadow: 0 15px 30px rgba(255, 136, 0, 0.5);
+    transform: translateY(-5px) scale(1.05);
+}
+.start-assessment-button:active {
+    transform: translateY(0) scale(1);
+}
+.start-assessment-icon {
+    font-size: 28px;
+}
+
+/* 评测页面样式 */
+.assessment-container {
+    display: none;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 30px;
+    background: rgba(10,40,70,0.9);
+    border-radius: 20px;
+    border: 2px solid rgba(0,150,255,0.3);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+}
+.assessment-container h2 {
+    text-align: center;
+    color: #7ce0ff;
+    margin-bottom: 30px;
+    font-size: 28px;
+}
+.assessment-question {
+    background: rgba(0,30,60,0.8);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(0,150,255,0.2);
+}
+.assessment-question h3 {
+    color: #cceeff;
+    margin-top: 0;
+    font-size: 20px;
+}
+.assessment-options {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 15px;
+}
+.assessment-option {
+    background: rgba(0,40,70,0.7);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid rgba(0,150,255,0.2);
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 16px;
+}
+.assessment-option:hover {
+    background: rgba(0,60,100,0.8);
+    border-color: #00aaff;
+    transform: translateY(-2px);
+}
+.assessment-option.selected {
+    background: rgba(0,100,150,0.8);
+    border-color: #00aaff;
+    box-shadow: 0 0 15px rgba(0,170,255,0.4);
+}
+.assessment-result {
+    display: none;
+    text-align: center;
+    padding: 30px;
+    background: rgba(0,30,60,0.9);
+    border-radius: 15px;
+    margin-top: 30px;
+    border: 2px solid rgba(0,150,255,0.3);
+}
+.engineer-level {
+    font-size: 32px;
+    font-weight: bold;
+    margin: 20px 0;
+    padding: 20px;
+    border-radius: 10px;
+}
+.level-expert {
+    color: #4dffb8;
+    background: linear-gradient(45deg, rgba(0,80,60,0.3), rgba(0,120,80,0.3));
+    border: 2px solid #4dffb8;
+}
+.level-senior {
+    color: #7ce0ff;
+    background: linear-gradient(45deg, rgba(0,60,100,0.3), rgba(0,100,150,0.3));
+    border: 2px solid #7ce0ff;
+}
+.level-junior {
+    color: #ffcc00;
+    background: linear-gradient(45deg, rgba(100,80,0,0.3), rgba(150,120,0,0.3));
+    border: 2px solid #ffcc00;
+}
+.level-trainee {
+    color: #ff9966;
+    background: linear-gradient(45deg, rgba(100,40,0,0.3), rgba(150,60,0,0.3));
+    border: 2px solid #ff9966;
+}
+.assessment-suggestion {
+    background: rgba(0,40,70,0.8);
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+    text-align: left;
+    font-size: 16px;
+    line-height: 1.6;
+}
+.assessment-suggestion h4 {
+    color: #7ce0ff;
+    margin-top: 0;
+    font-size: 18px;
+}
+.assessment-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+}
+.assessment-buttons button {
+    width: 48%;
+    font-size: 16px;
+}
+.progress-bar {
+    height: 10px;
+    background: rgba(0,30,60,0.8);
+    border-radius: 5px;
+    margin: 20px 0;
+    overflow: hidden;
+}
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(to right, #0088cc, #00aaff);
+    border-radius: 5px;
+    width: 0%;
+    transition: width 1s ease-in-out;
+}
+.progress-text {
+    text-align: center;
+    font-size: 16px;
+    color: #b3e0ff;
+    margin-bottom: 10px;
+}
+
+/* 雷达图样式 */
+.radar-container {
+    display: flex;
+    justify-content: center;
+    margin: 30px 0;
+}
+.radar-chart-container {
+    position: relative;
+    width: 300px;
+    height: 300px;
+}
+.radar-canvas {
+    width: 100%;
+    height: 100%;
+}
+.radar-dimensions {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.dimension-label {
+    position: absolute;
+    font-size: 14px;
+    color: #cceeff;
+    text-align: center;
+    width: 80px;
+}
+.dimension-score {
+    position: absolute;
+    font-size: 16px;
+    font-weight: bold;
+    color: #7ce0ff;
+}
+.skill-indicators {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
+.skill-indicator {
+    background: rgba(0,40,70,0.8);
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #00aaff;
+}
+.skill-name {
+    font-weight: bold;
+    color: #7ce0ff;
+    margin-bottom: 8px;
+}
+.skill-bar {
+    height: 10px;
+    background: rgba(0,30,60,0.8);
+    border-radius: 5px;
+    overflow: hidden;
+}
+.skill-fill {
+    height: 100%;
+    background: linear-gradient(to right, #0088cc, #00aaff);
+    border-radius: 5px;
+    transition: width 1s ease-in-out;
+}
+.skill-score {
+    text-align: right;
+    font-size: 14px;
+    color: #b3e0ff;
+    margin-top: 5px;
+}
+.assessment-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 30px;
+}
+
+/* 调控探索反馈样式 */
+.exploration-feedback {
+    background: rgba(0,40,70,0.9);
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 25px;
+    border: 2px solid rgba(255, 170, 0, 0.3);
+}
+.exploration-feedback h3 {
+    color: #ffcc00;
+    margin-top: 0;
+    font-size: 22px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+.exploration-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+.exploration-stat {
+    background: rgba(0,30,60,0.7);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid rgba(0,150,255,0.2);
+}
+.stat-name {
+    color: #b3e0ff;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+.stat-value {
+    color: #7ce0ff;
+    font-size: 18px;
+    font-weight: bold;
+}
+.control-suggestions {
+    background: rgba(0,30,60,0.7);
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    border-left: 4px solid #ffaa00;
+}
+.control-suggestions h4 {
+    color: #ffcc00;
+    margin-top: 0;
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+.suggestion-list {
+    padding-left: 20px;
+    margin-bottom: 0;
+}
+.suggestion-list li {
+    margin-bottom: 8px;
+    color: #cceeff;
+}
+.suggestion-list li:last-child {
+    margin-bottom: 0;
+}
+</style>
+</head>
+
+<body>
+<!-- 主模拟界面 -->
+<div id="mainContainer">
+    <h1>🔬 扩散传质工程模拟 | 菲克定律实战训练</h1>
+
+    <div class="container">
+        <!-- 左：控制区 -->
+        <div class="panel">
+            <h3>🚀 扩散调控面板</h3>
+            
+            <div class="control-section">
+                <label>扩散模式</label>
+                <select id="mode">
+                    <option value="dynamic">⏳ 非稳态扩散 (瞬态过程)</option>
+                    <option value="steady">⚖️ 稳态扩散 (平衡状态)</option>
+                </select>
+            </div>
+            
+            <div class="param-group">
+                <h4 style="color:#7ce0ff; margin-top:0;">扩散参数</h4>
+                <label>扩散系数 D (m²/s)</label>
+                <input type="range" id="D" min="0.1" max="5" step="0.1" value="1">
+                <div class="param-display">
+                    <span>低扩散性</span>
+                    <span id="D-value">1.0</span>
+                    <span>高扩散性</span>
+                </div>
+                
+                <label>扩散距离 L (m)</label>
+                <input type="range" id="L" min="5" max="30" step="1" value="15">
+                <div class="param-display">
+                    <span>短距离</span>
+                    <span id="L-value">15</span>
+                    <span>长距离</span>
+                </div>
+                
+                <label>动画速度</label>
+                <input type="range" id="speed" min="1" max="10" step="1" value="5">
+                <div class="param-display">
+                    <span>慢速</span>
+                    <span id="speed-value">5</span>
+                    <span>快速</span>
+                </div>
+            </div>
+            
+            <div class="param-group" id="steady-state-controls" style="display:none;">
+                <h4 style="color:#7ce0ff; margin-top:0;">稳态参数</h4>
+                <label>末端浓度 C<sub>L</sub> (相对值)</label>
+                <input type="range" id="CL" min="0" max="1" step="0.1" value="0">
+                <div class="param-display">
+                    <span>0.0</span>
+                    <span id="CL-value">0.0</span>
+                    <span>1.0</span>
+                </div>
+                
+                <div class="flux-display" id="flux-display" style="display:none;">
+                    <label>传质通量 J (mol/m²·s)</label>
+                    <div class="flux-value" id="flux-value">0.000</div>
+                    <small>根据菲克第一定律: J = -D·(ΔC/L)</small>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <button onclick="startSimulation()">▶ 启动扩散模拟</button>
+                <button onclick="pauseSimulation()">⏸️ 暂停</button>
+                <button onclick="resetSimulation()">⟲ 重置</button>
+                <button onclick="showHint()">💡 工程提示</button>
+            </div>
+            
+            <div class="small-text">
+                <b>工程目标：</b>探索不同参数下的扩散过程，理解菲克定律的工程应用。<br><br>
+                <b>操作指南：</b><br>
+                1. 选择扩散模式（稳态/非稳态）<br>
+                2. 调节参数观察扩散变化<br>
+                3. 点击启动按钮开始模拟<br>
+                4. 完成探索后点击下方评测按钮
+            </div>
+        </div>
+        
+        <!-- 中：展示区（宽度48%，高度自适应） -->
+        <div class="canvas-container">
+            <canvas id="canvas" width="800" height="500"></canvas>
+            
+            <!-- 坐标轴标签 - 使用HTML元素确保清晰度 -->
+            <div class="axis-labels">
+                <div class="x-axis-label">距离 x (m)</div>
+                <div class="y-axis-label">浓度 C/C₀</div>
+                <div class="origin-label">O</div>
+                <div class="unit-display" id="unitDisplay">L = 15 m</div>
+            </div>
+            
+            <!-- 清晰的状态显示面板 -->
+            <div class="simulation-info" id="simulationInfo"></div>
+            <div class="status-display" id="statusDisplay">
+                <div class="status-item">
+                    <span class="status-label">状态:</span>
+                    <span class="status-value" id="statusValue">准备就绪</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">时间 t:</span>
+                    <span class="status-value" id="timeValue">0.0 s</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">前沿位置:</span>
+                    <span class="status-value" id="frontValue">0.0 m</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">完成度:</span>
+                    <span class="status-value" id="completionValue">0%</span>
+                </div>
+            </div>
+            <div class="concentration-display" id="concentrationDisplay">
+                <div style="color:#00aaff; font-weight:bold; margin-bottom:8px;">C₀ = 1.0</div>
+                <div id="clValue" style="color:#4dffb8; font-weight:bold;">C_L = 0.0</div>
+            </div>
+        </div>
+        
+        <!-- 右：理论 + 信息 -->
+        <div class="panel">
+            <h3>📚 扩散理论核心</h3>
+            <div class="theory-box" id="theory">
+                <!-- 理论内容通过JS动态生成 -->
+            </div>
+            
+            <h3>📊 实时参数分析</h3>
+            <div class="theory-box" id="parameterAnalysis">
+                <!-- 参数分析内容通过JS动态生成 -->
+            </div>
+            
+            <div class="small-text">
+                <b>工程应用场景：</b><br>
+                • 污染物在地下水的扩散<br>
+                • 药物在人体组织中的渗透<br>
+                • 半导体制造中的掺杂过程<br>
+                • 燃料电池中的气体传输
+            </div>
+        </div>
+    </div>
+    
+    <!-- 开始评测按钮 - 单独放在页面下方 -->
+    <div class="start-assessment-container">
+        <button class="start-assessment-button" onclick="startAssessment()">
+            <span class="start-assessment-icon">📝</span>
+            完成探索，开始工程能力评测
+        </button>
+    </div>
+</div>
+
+<!-- 评测界面 -->
+<div class="assessment-container" id="assessmentContainer">
+    <h2>🧪 工程能力评测</h2>
+    
+    <div class="progress-text">已完成: <span id="progressPercent">0%</span></div>
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+    
+    <div id="questionContainer">
+        <!-- 评测题目将动态生成 -->
+    </div>
+    
+    <div class="assessment-buttons">
+        <button onclick="prevQuestion()">← 上一题</button>
+        <button onclick="nextQuestion()">下一题 →</button>
+    </div>
+    
+    <div class="assessment-result" id="assessmentResult">
+        <!-- 评测结果将动态生成 -->
+    </div>
+</div>
+
+<div class="achievement" id="achievement"></div>
+
+<script>
+// ==================== 主模拟部分 ====================
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d", { alpha: false });
+const mode = document.getElementById("mode");
+const theoryBox = document.getElementById("theory");
+const parameterAnalysis = document.getElementById("parameterAnalysis");
+const achievementBox = document.getElementById("achievement");
+const simulationInfo = document.getElementById("simulationInfo");
+const statusDisplay = document.getElementById("statusDisplay");
+const statusValue = document.getElementById("statusValue");
+const timeValue = document.getElementById("timeValue");
+const frontValue = document.getElementById("frontValue");
+const completionValue = document.getElementById("completionValue");
+const concentrationDisplay = document.getElementById("concentrationDisplay");
+const clValue = document.getElementById("clValue");
+const steadyStateControls = document.getElementById("steady-state-controls");
+const fluxDisplay = document.getElementById("flux-display");
+const fluxValue = document.getElementById("flux-value");
+const mainContainer = document.getElementById("mainContainer");
+const assessmentContainer = document.getElementById("assessmentContainer");
+const unitDisplay = document.getElementById("unitDisplay");
+
+// 参数显示
+const Dslider = document.getElementById("D");
+const Lslider = document.getElementById("L");
+const speedSlider = document.getElementById("speed");
+const CLslider = document.getElementById("CL");
+const Dvalue = document.getElementById("D-value");
+const Lvalue = document.getElementById("L-value");
+const speedValue = document.getElementById("speed-value");
+const CLvalue = document.getElementById("CL-value");
+
+// 模拟状态
+let time = 0;
+const N = 60; // 柱状图数量
+let simulationActive = false;
+let simulationPaused = false;
+let achievementUnlocked = false;
+let animationId = null;
+let lastTime = 0;
+let isRealTimeUpdate = true; // 滑块调节时实时更新
+
+// 调控探索记录
+let explorationData = {
+    modeSwitches: 0,
+    parameterChanges: 0,
+    simulationStarts: 0,
+    totalSimulationTime: 0,
+    maxDvalue: 0,
+    minDvalue: 5,
+    maxLvalue: 0,
+    minLvalue: 30,
+    maxCLvalue: 0,
+    minCLvalue: 1,
+    exploredSteady: false,
+    exploredDynamic: false,
+    lastMode: null
+};
+
+// 更新参数显示
+function updateParamDisplays() {
+    Dvalue.textContent = Dslider.value;
+    Lvalue.textContent = Lslider.value;
+    speedValue.textContent = speedSlider.value;
+    CLvalue.textContent = CLslider.value;
+    clValue.textContent = `C_L = ${CLslider.value}`;
+    unitDisplay.textContent = `L = ${Lslider.value} m`;
+}
+
+// 记录调控探索数据
+function recordExploration(action, value = null) {
+    switch(action) {
+        case 'modeSwitch':
+            explorationData.modeSwitches++;
+            const currentMode = mode.value;
+            if (currentMode === 'steady') explorationData.exploredSteady = true;
+            if (currentMode === 'dynamic') explorationData.exploredDynamic = true;
+            explorationData.lastMode = currentMode;
+            break;
+            
+        case 'parameterChange':
+            explorationData.parameterChanges++;
+            
+            // 记录参数范围
+            const dVal = parseFloat(Dslider.value);
+            if (dVal > explorationData.maxDvalue) explorationData.maxDvalue = dVal;
+            if (dVal < explorationData.minDvalue) explorationData.minDvalue = dVal;
+            
+            const lVal = parseFloat(Lslider.value);
+            if (lVal > explorationData.maxLvalue) explorationData.maxLvalue = lVal;
+            if (lVal < explorationData.minLvalue) explorationData.minLvalue = lVal;
+            
+            const clVal = parseFloat(CLslider.value);
+            if (clVal > explorationData.maxCLvalue) explorationData.maxCLvalue = clVal;
+            if (clVal < explorationData.minCLvalue) explorationData.minCLvalue = clVal;
+            break;
+            
+        case 'simulationStart':
+            explorationData.simulationStarts++;
+            break;
+            
+        case 'simulationTime':
+            explorationData.totalSimulationTime += value;
+            break;
+    }
+}
+
+// 更新理论展示和参数分析
+function updateTheoryAndAnalysis() {
+    const D = parseFloat(Dslider.value);
+    const L = parseFloat(Lslider.value);
+    const CL = parseFloat(CLslider.value);
+    const characteristicTime = (L * L / D).toFixed(1);
+    
+    if (mode.value === "steady") {
+        // 计算传质通量
+        const deltaC = 1 - CL; // C0=1, CL=用户设定值
+        const flux = D * deltaC / L;
+        fluxValue.textContent = flux.toFixed(4);
+        
+        theoryBox.innerHTML = `
+            <b>⚖️ 稳态扩散理论</b>
+            <div class="formula">∂C/∂t = 0</div>
+            <div class="formula">菲克第一定律：J = -D · (dC/dx)</div>
+            <div class="formula">一维线性解：C(x) = C₀ - (C₀ - C_L)·(x/L)</div>
+            <div class="formula">扩散通量：J = D · (C₀ - C_L) / L</div>
+            <div class="explanation">
+                <b>参数设定：</b><br>
+                • 起始浓度 C₀ = 1.0<br>
+                • 末端浓度 C_L = ${CL}<br>
+                • 浓度梯度 ΔC/L = ${(deltaC/L).toFixed(4)}<br>
+                <b>计算通量：</b> J = ${flux.toFixed(4)}·C₀
+            </div>
+        `;
+        
+        parameterAnalysis.innerHTML = `
+            <b>当前参数分析</b>
+            <div class="explanation">
+                <b>浓度梯度：</b> ${(deltaC/L).toFixed(4)} (C₀/m)<br>
+                <b>扩散通量：</b> ${flux.toFixed(4)} (mol/m²·s)<br>
+                <b>工程意义：</b> 扩散达到平衡，通量恒定<br>
+                <b>应用建议：</b> 可用于计算固定边界条件下的传质速率
+            </div>
+        `;
+        
+        // 更新状态显示
+        statusValue.textContent = "稳态扩散";
+        timeValue.textContent = "∞";
+        frontValue.textContent = L + " m";
+        completionValue.textContent = "100%";
+    } else {
+        const currentFront = Math.sqrt(4 * D * Math.max(time, 0.1));
+        const completion = Math.min(100, (currentFront / L * 100)).toFixed(1);
+        
+        theoryBox.innerHTML = `
+            <b>⏳ 非稳态扩散理论</b>
+            <div class="formula">∂C/∂t = D · (∂²C/∂x²)</div>
+            <div class="formula">特征扩散时间：τ ≈ L²/D = ${characteristicTime} s</div>
+            <div class="formula">扩散前沿：x_f ≈ √(4Dt)</div>
+            <div class="formula">误差函数解：C(x,t) = C₀ · erfc[x/√(4Dt)]</div>
+            <div class="explanation">
+                <b>工程意义：</b>扩散过程正在进行，浓度场随时间演变。<br>
+                <b>关键判断：</b>时间t vs 特征时间τ = ${characteristicTime} s
+            </div>
+        `;
+        
+        parameterAnalysis.innerHTML = `
+            <b>当前参数分析</b>
+            <div class="explanation">
+                <b>当前时间：</b> ${time.toFixed(1)} s<br>
+                <b>特征时间：</b> ${characteristicTime} s<br>
+                <b>扩散前沿：</b> ${currentFront.toFixed(2)} m<br>
+                <b>完成度：</b> ${completion} %<br>
+                <b>状态：</b> ${time < parseFloat(characteristicTime) ? "扩散进行中" : "接近稳态"}
+            </div>
+        `;
+        
+        // 更新状态显示
+        statusValue.textContent = simulationPaused ? "已暂停" : (simulationActive ? "扩散中" : "已停止");
+        timeValue.textContent = time.toFixed(1) + " s";
+        frontValue.textContent = currentFront.toFixed(2) + " m";
+        completionValue.textContent = completion + "%";
+    }
+}
+
+// 绘制坐标系
+function drawCoordinateSystem() {
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // 清空画布
+    ctx.clearRect(0, 0, width, height);
+    
+    // 绘制背景
+    ctx.fillStyle = "#0a1a2a";
+    ctx.fillRect(0, 0, width, height);
+    
+    // 绘制网格
+    ctx.strokeStyle = "rgba(0, 100, 200, 0.15)";
+    ctx.lineWidth = 1;
+    
+    // 水平网格线
+    for (let y = 50; y < height - 50; y += 50) {
+        ctx.beginPath();
+        ctx.moveTo(50, y);
+        ctx.lineTo(width - 50, y);
+        ctx.stroke();
+    }
+    
+    // 垂直网格线
+    for (let x = 50; x < width - 50; x += 50) {
+        ctx.beginPath();
+        ctx.moveTo(x, 50);
+        ctx.lineTo(x, height - 50);
+        ctx.stroke();
+    }
+    
+    // 绘制坐标轴
+    ctx.strokeStyle = "rgba(0, 200, 255, 0.8)";
+    ctx.lineWidth = 2;
+    
+    // x轴
+    ctx.beginPath();
+    ctx.moveTo(50, height - 50);
+    ctx.lineTo(width - 50, height - 50);
+    ctx.stroke();
+    
+    // y轴
+    ctx.beginPath();
+    ctx.moveTo(50, 50);
+    ctx.lineTo(50, height - 50);
+    ctx.stroke();
+    
+    // 坐标轴箭头
+    ctx.fillStyle = "rgba(0, 200, 255, 0.8)";
+    ctx.beginPath();
+    ctx.moveTo(width - 50, height - 50);
+    ctx.lineTo(width - 60, height - 45);
+    ctx.lineTo(width - 60, height - 55);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.moveTo(50, 50);
+    ctx.lineTo(45, 60);
+    ctx.lineTo(55, 60);
+    ctx.closePath();
+    ctx.fill();
+}
+
+// 绘制柱状图
+function drawBarChart(D, L, t) {
+    const width = canvas.width;
+    const height = canvas.height;
+    const barCount = N;
+    const barWidth = (width - 100) / barCount;
+    const chartHeight = height - 100;
+    
+    const characteristicLength = Math.sqrt(4 * D * Math.max(t, 0.1));
+    const CL = parseFloat(CLslider.value);
+    
+    // 绘制柱状图
+    for (let i = 0; i < barCount; i++) {
+        const x = (i / barCount) * L;
+        let concentration;
+        
+        if (mode.value === "steady") {
+            // 稳态线性分布
+            concentration = 1 - (1 - CL) * (x / L);
+        } else {
+            // 非稳态扩散（误差函数近似）
+            const xi = x / characteristicLength;
+            concentration = Math.exp(-xi * xi);
+        }
+        
+        concentration = Math.max(0, Math.min(1, concentration));
+        
+        // 计算柱状图位置和高度
+        const barX = 50 + i * barWidth;
+        const barHeight = concentration * chartHeight;
+        const barY = height - 50 - barHeight;
+        
+        // 创建渐变颜色
+        const gradient = ctx.createLinearGradient(barX, barY, barX, height - 50);
+        const hue = 200 + concentration * 40; // 蓝色到青色渐变
+        gradient.addColorStop(0, `hsla(${hue}, 100%, 60%, 0.9)`);
+        gradient.addColorStop(1, `hsla(${hue}, 100%, 40%, 0.7)`);
+        
+        // 绘制柱状
+        ctx.fillStyle = gradient;
+        ctx.fillRect(barX, barY, barWidth * 0.8, barHeight);
+        
+        // 添加柱状图边框
+        ctx.strokeStyle = `hsla(${hue}, 100%, 70%, 0.5)`;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(barX, barY, barWidth * 0.8, barHeight);
+        
+        // 在柱状图顶部添加高光
+        ctx.fillStyle = `hsla(${hue}, 100%, 80%, 0.3)`;
+        ctx.fillRect(barX, barY, barWidth * 0.8, 2);
+    }
+    
+    // 绘制扩散前沿标记（仅非稳态）
+    if (mode.value === "dynamic") {
+        const frontX = 50 + (characteristicLength / L) * (width - 100);
+        
+        // 绘制前沿线
+        ctx.strokeStyle = "rgba(255, 100, 100, 0.7)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        ctx.beginPath();
+        ctx.moveTo(frontX, 50);
+        ctx.lineTo(frontX, height - 50);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // 前沿标记
+        ctx.fillStyle = "#ff6666";
+        ctx.beginPath();
+        ctx.arc(frontX, height - 50, 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 前沿标记文字 - 使用清晰字体
+        ctx.fillStyle = "#ff9999";
+        ctx.font = "bold 16px Arial";
+        ctx.fillText(`x_f = ${characteristicLength.toFixed(2)} m`, frontX + 10, height - 40);
+    }
+    
+    // 绘制目标距离L标记
+    const targetX = width - 50;
+    ctx.strokeStyle = "rgba(0, 255, 150, 0.7)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(targetX, 50);
+    ctx.lineTo(targetX, height - 50);
+    ctx.stroke();
+    
+    // 目标距离文字标记 - 使用清晰字体
+    ctx.fillStyle = "#4dffb8";
+    ctx.font = "bold 18px Arial";
+    ctx.fillText(`L = ${L} m`, targetX - 50, 75);
+    
+    return {characteristicLength};
+}
+
+// 主绘制函数
+function drawDiffusion(D, L, t) {
+    drawCoordinateSystem();
+    const {characteristicLength} = drawBarChart(D, L, t);
+    
+    // 更新状态显示
+    updateStatusDisplay(D, L, t, characteristicLength);
+}
+
+// 更新状态显示
+function updateStatusDisplay(D, L, t, characteristicLength) {
+    const targetDistance = parseFloat(L);
+    const timeRatio = t / (targetDistance * targetDistance / D);
+    const reachedTarget = characteristicLength >= targetDistance * 0.95;
+    const completion = Math.min(100, (characteristicLength / targetDistance * 100)).toFixed(1);
+    
+    // 更新模拟信息
+    let statusText = reachedTarget ? "已达到目标" : "扩散中";
+    if (mode.value === "steady") statusText = "稳态扩散";
+    
+    simulationInfo.innerHTML = `
+        <b>扩散状态:</b> ${statusText}<br>
+        <b>扩散系数:</b> ${D} m²/s<br>
+        <b>目标距离:</b> ${targetDistance} m<br>
+        <b>特征时间:</b> ${(targetDistance * targetDistance / D).toFixed(1)} s
+    `;
+    
+    // 更新状态显示面板
+    if (mode.value === "dynamic") {
+        statusValue.textContent = simulationPaused ? "已暂停" : (simulationActive ? "扩散中" : "已停止");
+        timeValue.textContent = t.toFixed(1) + " s";
+        frontValue.textContent = characteristicLength.toFixed(2) + " m";
+        completionValue.textContent = completion + "%";
+        
+        if (reachedTarget && !achievementUnlocked) {
+            showAchievement("扩散目标达成!", `污染物在 ${t.toFixed(1)} s 内成功扩散到目标距离!`);
+            achievementUnlocked = true;
+        }
+    }
+}
+
+// 实时更新函数
+function realTimeUpdate() {
+    if (!isRealTimeUpdate) return;
+    
+    const D = parseFloat(Dslider.value);
+    const L = parseFloat(Lslider.value);
+    
+    if (simulationActive && !simulationPaused) {
+        // 如果模拟正在运行，动画循环会处理更新
+        return;
+    }
+    
+    // 否则，直接绘制当前状态
+    drawDiffusion(D, L, time);
+    updateTheoryAndAnalysis();
+}
+
+// 动画循环
+function animationLoop(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    
+    if (simulationActive && !simulationPaused) {
+        const D = parseFloat(Dslider.value);
+        const L = parseFloat(Lslider.value);
+        const speed = parseFloat(speedSlider.value);
+        
+        // 根据动画速度调整时间步长
+        const deltaTime = (timestamp - lastTime) * 0.001 * speed;
+        time += deltaTime;
+        
+        // 记录模拟时间
+        recordExploration('simulationTime', deltaTime);
+        
+        // 限制最大时间
+        const maxTime = L * L / D * 3;
+        if (time > maxTime) {
+            time = maxTime;
+        }
+        
+        drawDiffusion(D, L, time);
+        updateTheoryAndAnalysis();
+        
+        // 继续动画循环
+        animationId = requestAnimationFrame(animationLoop);
+    }
+    
+    lastTime = timestamp;
+}
+
+// 开始模拟
+function startSimulation() {
+    if (!simulationActive) {
+        simulationActive = true;
+        simulationPaused = false;
+        achievementUnlocked = false;
+        
+        // 记录模拟开始
+        recordExploration('simulationStart');
+        
+        if (mode.value === "dynamic") {
+            time = 0.01;
+            lastTime = 0;
+            animationId = requestAnimationFrame(animationLoop);
+            showAchievement("模拟启动!", "开始观察非稳态扩散过程");
+        } else {
+            // 稳态模式直接绘制
+            drawDiffusion(parseFloat(Dslider.value), parseFloat(Lslider.value), 1000);
+            showAchievement("稳态模式", "观察稳定的浓度分布和传质通量");
+        }
+    } else if (simulationPaused) {
+        simulationPaused = false;
+        lastTime = 0;
+        animationId = requestAnimationFrame(animationLoop);
+    }
+}
+
+// 暂停模拟
+function pauseSimulation() {
+    simulationPaused = true;
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+    }
+    drawDiffusion(parseFloat(Dslider.value), parseFloat(Lslider.value), time);
+}
+
+// 重置模拟
+function resetSimulation() {
+    simulationActive = false;
+    simulationPaused = false;
+    time = 0.01;
+    
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+    }
+    
+    drawDiffusion(parseFloat(Dslider.value), parseFloat(Lslider.value), time);
+    updateTheoryAndAnalysis();
+}
+
+// 显示成就/提示
+function showAchievement(title, message) {
+    achievementBox.innerHTML = `<b>${title}</b><br>${message}`;
+    achievementBox.style.display = "block";
+    
+    setTimeout(() => {
+        achievementBox.style.display = "none";
+    }, 3000);
+}
+
+// 显示工程提示
+function showHint() {
+    const hints = [
+        "💡 提示: 扩散时间与距离的平方成正比 (t ∝ L²)",
+        "💡 提示: 稳态扩散中，通量与浓度梯度成正比，与距离成反比",
+        "💡 提示: 菲克第一定律: J = -D·(dC/dx)",
+        "💡 提示: 特征扩散时间 τ = L²/D",
+        "💡 提示: 非稳态扩散前沿 x_f ≈ √(4Dt)"
+    ];
+    
+    const randomHint = hints[Math.floor(Math.random() * hints.length)];
+    showAchievement("工程洞察", randomHint);
+}
+
+// 模式切换处理
+function handleModeChange() {
+    const isSteady = mode.value === "steady";
+    
+    // 显示/隐藏稳态控制参数
+    steadyStateControls.style.display = isSteady ? "block" : "none";
+    fluxDisplay.style.display = isSteady ? "block" : "none";
+    
+    // 记录模式切换
+    recordExploration('modeSwitch');
+    
+    // 更新理论
+    updateTheoryAndAnalysis();
+    
+    // 重置模拟
+    resetSimulation();
+    achievementUnlocked = false;
+}
+
+// ==================== 评测部分 ====================
+let currentQuestionIndex = 0;
+let userAnswers = [];
+let assessmentStarted = false;
+
+const assessmentQuestions = [
+    {
+        question: "根据菲克第一定律，若扩散距离L加倍，稳态扩散通量将如何变化？",
+        options: [
+            { text: "保持不变", correct: false },
+            { text: "减小为原来的一半", correct: true },
+            { text: "增加为原来的两倍", correct: false },
+            { text: "与距离平方成反比", correct: false }
+        ],
+        explanation: "根据菲克第一定律 J = -D·(dC/dx)，在浓度梯度ΔC/L固定的情况下，当L加倍时，浓度梯度减半，因此扩散通量也减半。",
+        skill: "稳态扩散"
+    },
+    {
+        question: "菲克第一定律的数学表达式是什么？",
+        options: [
+            { text: "J = D·C", correct: false },
+            { text: "J = -D·(dC/dx)", correct: true },
+            { text: "J = D·t/L", correct: false },
+            { text: "J = C·L/t", correct: false }
+        ],
+        explanation: "菲克第一定律描述的是扩散通量与浓度梯度成正比，比例系数为扩散系数D，负号表示扩散方向与浓度梯度方向相反。",
+        skill: "基本概念"
+    },
+    {
+        question: "非稳态扩散的特征时间τ与扩散距离L的关系是什么？",
+        options: [
+            { text: "τ ∝ L", correct: false },
+            { text: "τ ∝ L²", correct: true },
+            { text: "τ ∝ 1/L", correct: false },
+            { text: "τ ∝ √L", correct: false }
+        ],
+        explanation: "特征扩散时间 τ = L²/D，表示扩散前沿到达距离L所需的时间，与距离的平方成正比。",
+        skill: "时间尺度"
+    },
+    {
+        question: "在稳态扩散中，浓度分布曲线是什么形状？",
+        options: [
+            { text: "指数衰减曲线", correct: false },
+            { text: "线性直线", correct: true },
+            { text: "抛物线", correct: false },
+            { text: "正弦曲线", correct: false }
+        ],
+        explanation: "稳态扩散满足∂C/∂t = 0，在一维情况下，浓度分布是线性的，C(x) = C₀ - (C₀ - C_L)·(x/L)。",
+        skill: "浓度分布"
+    },
+    {
+        question: "扩散系数D的主要影响因素不包括以下哪项？",
+        options: [
+            { text: "温度", correct: false },
+            { text: "介质性质", correct: false },
+            { text: "浓度大小", correct: true },
+            { text: "分子尺寸", correct: false }
+        ],
+        explanation: "扩散系数D主要取决于温度、介质粘度和分子尺寸，与浓度大小关系不大（除非浓度极高）。",
+        skill: "影响因素"
+    }
+];
+
+// 绘制雷达图
+function drawRadarChart(scores, dimensions, canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY) - 30;
+    const numPoints = scores.length;
+    const angleStep = (2 * Math.PI) / numPoints;
+    
+    // 清空画布
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 绘制网格线
+    ctx.strokeStyle = 'rgba(0, 150, 255, 0.3)';
+    ctx.lineWidth = 1;
+    
+    // 绘制同心多边形
+    for (let level = 1; level <= 4; level++) {
+        ctx.beginPath();
+        for (let i = 0; i <= numPoints; i++) {
+            const angle = i * angleStep - Math.PI / 2;
+            const r = radius * level / 4;
+            const x = centerX + r * Math.cos(angle);
+            const y = centerY + r * Math.sin(angle);
+            
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        ctx.closePath();
+        ctx.stroke();
+    }
+    
+    // 绘制轴线
+    ctx.strokeStyle = 'rgba(0, 200, 255, 0.5)';
+    ctx.lineWidth = 1;
+    
+    for (let i = 0; i < numPoints; i++) {
+        const angle = i * angleStep - Math.PI / 2;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    }
+    
+    // 绘制数据多边形
+    ctx.fillStyle = 'rgba(0, 170, 255, 0.3)';
+    ctx.strokeStyle = '#00aaff';
+    ctx.lineWidth = 2;
+    
+    ctx.beginPath();
+    for (let i = 0; i < numPoints; i++) {
+        const angle = i * angleStep - Math.PI / 2;
+        const score = scores[i];
+        const r = radius * score;
+        const x = centerX + r * Math.cos(angle);
+        const y = centerY + r * Math.sin(angle);
+        
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+        
+        // 绘制数据点
+        ctx.fillStyle = '#00aaff';
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    
+    // 绘制维度标签
+    ctx.fillStyle = '#cceeff';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    for (let i = 0; i < numPoints; i++) {
+        const angle = i * angleStep - Math.PI / 2;
+        const labelRadius = radius + 20;
+        const x = centerX + labelRadius * Math.cos(angle);
+        const y = centerY + labelRadius * Math.sin(angle);
+        
+        // 调整文本位置
+        let textAlign = 'center';
+        if (Math.abs(Math.cos(angle)) > 0.5) {
+            textAlign = Math.cos(angle) > 0 ? 'left' : 'right';
+        }
+        
+        ctx.textAlign = textAlign;
+        ctx.fillText(dimensions[i], x, y);
+    }
+}
+
+// 开始评测
+function startAssessment() {
+    mainContainer.style.display = "none";
+    assessmentContainer.style.display = "block";
+    assessmentStarted = true;
+    currentQuestionIndex = 0;
+    userAnswers = [];
+    
+    loadQuestion(currentQuestionIndex);
+    updateProgress();
+}
+
+// 返回主界面
+function returnToMain() {
+    assessmentContainer.style.display = "none";
+    mainContainer.style.display = "block";
+    assessmentStarted = false;
+}
+
+// 加载题目
+function loadQuestion(index) {
+    if (index < 0 || index >= assessmentQuestions.length) return;
+    
+    currentQuestionIndex = index;
+    const question = assessmentQuestions[index];
+    
+    let optionsHtml = "";
+    question.options.forEach((option, i) => {
+        const isSelected = userAnswers[index] === i;
+        optionsHtml += `
+            <div class="assessment-option ${isSelected ? 'selected' : ''}" onclick="selectOption(${i})">
+                ${option.text}
+            </div>
+        `;
+    });
+    
+    document.getElementById("questionContainer").innerHTML = `
+        <div class="assessment-question">
+            <h3>第${index + 1}题：${question.question}</h3>
+            <div class="assessment-options">
+                ${optionsHtml}
+            </div>
+        </div>
+    `;
+    
+    updateProgress();
+}
+
+// 选择选项
+function selectOption(optionIndex) {
+    userAnswers[currentQuestionIndex] = optionIndex;
+    
+    // 更新选项的选中状态
+    const options = document.querySelectorAll('.assessment-option');
+    options.forEach((option, i) => {
+        if (i === optionIndex) {
+            option.classList.add('selected');
+        } else {
+            option.classList.remove('selected');
+        }
+    });
+}
+
+// 下一题
+function nextQuestion() {
+    if (currentQuestionIndex < assessmentQuestions.length - 1) {
+        currentQuestionIndex++;
+        loadQuestion(currentQuestionIndex);
+    } else {
+        // 如果是最后一题，显示结果
+        showAssessmentResult();
+    }
+}
+
+// 上一题
+function prevQuestion() {
+    if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        loadQuestion(currentQuestionIndex);
+    }
+}
+
+// 更新进度
+function updateProgress() {
+    const progress = ((currentQuestionIndex + 1) / assessmentQuestions.length) * 100;
+    document.getElementById("progressFill").style.width = `${progress}%`;
+    document.getElementById("progressPercent").textContent = `${Math.round(progress)}%`;
+}
+
+// 生成调控建议
+function generateControlSuggestions(explorationScore) {
+    let suggestions = [];
+    
+    if (explorationData.modeSwitches < 2) {
+        suggestions.push("尝试切换稳态和非稳态模式，观察两种模式下的扩散差异");
+    }
+    
+    if (explorationData.parameterChanges < 10) {
+        suggestions.push("多调整扩散系数D和距离L，观察它们对扩散速率的影响");
+    }
+    
+    if (!explorationData.exploredSteady) {
+        suggestions.push("尝试稳态扩散模式，调节末端浓度C_L，观察传质通量的变化");
+    }
+    
+    if (!explorationData.exploredDynamic) {
+        suggestions.push("尝试非稳态扩散模式，观察扩散前沿随时间推进的过程");
+    }
+    
+    if (explorationData.simulationStarts < 3) {
+        suggestions.push("多启动几次模拟，观察不同参数组合下的扩散过程");
+    }
+    
+    if (explorationData.maxDvalue - explorationData.minDvalue < 2) {
+        suggestions.push("尝试更大范围地调整扩散系数D（从0.1到5），观察扩散速度的变化");
+    }
+    
+    if (explorationData.maxLvalue - explorationData.minLvalue < 15) {
+        suggestions.push("尝试更大范围地调整扩散距离L（从5到30），观察扩散时间的平方关系");
+    }
+    
+    // 如果建议太多，只取前3条
+    if (suggestions.length > 3) {
+        suggestions = suggestions.slice(0, 3);
+    }
+    
+    // 如果没有建议，添加默认建议
+    if (suggestions.length === 0) {
+        suggestions = [
+            "尝试极端参数组合，如高D值+长L值，观察扩散行为",
+            "比较稳态和非稳态在相同参数下的浓度分布差异",
+            "计算不同参数下的特征扩散时间τ，验证τ = L²/D关系"
+        ];
+    }
+    
+    return suggestions;
+}
+
+// 显示评测结果
+function showAssessmentResult() {
+    // 计算得分
+    let score = 0;
+    const skillScores = {
+        "稳态扩散": 0,
+        "基本概念": 0,
+        "时间尺度": 0,
+        "浓度分布": 0,
+        "影响因素": 0,
+        "探索能力": 0
+    };
+    
+    const skillCounts = {
+        "稳态扩散": 0,
+        "基本概念": 0,
+        "时间尺度": 0,
+        "浓度分布": 0,
+        "影响因素": 0,
+        "探索能力": 1
+    };
+    
+    assessmentQuestions.forEach((question, index) => {
+        if (userAnswers[index] !== undefined) {
+            const isCorrect = question.options[userAnswers[index]].correct;
+            if (isCorrect) {
+                score++;
+                skillScores[question.skill] += 1;
+            }
+            skillCounts[question.skill] += 1;
+        }
+    });
+    
+    // 计算探索能力得分
+    let explorationScore = 0;
+    explorationScore += Math.min(explorationData.modeSwitches, 5) * 2; // 最多10分
+    explorationScore += Math.min(explorationData.parameterChanges, 20) * 0.5; // 最多10分
+    explorationScore += Math.min(explorationData.simulationStarts, 5) * 2; // 最多10分
+    explorationScore += (explorationData.exploredSteady ? 10 : 0);
+    explorationScore += (explorationData.exploredDynamic ? 10 : 0);
+    explorationScore = Math.min(explorationScore, 50); // 最多50分
+    skillScores["探索能力"] = explorationScore / 50; // 转换为0-1比例
+    
+    // 计算技能得分比例
+    const skillPercentages = {};
+    for (const skill in skillScores) {
+        skillPercentages[skill] = skillCounts[skill] > 0 ? skillScores[skill] / skillCounts[skill] : 0;
+    }
+    
+    // 转换为数组用于雷达图
+    const dimensions = ["稳态扩散", "基本概念", "时间尺度", "浓度分布", "影响因素", "探索能力"];
+    const radarData = dimensions.map(dim => skillPercentages[dim]);
+    
+    const percentage = (score / assessmentQuestions.length) * 100;
+    
+    // 确定工程师等级
+    let level, levelClass, levelDescription, suggestions;
+    
+    if (percentage >= 90 && explorationScore >= 40) {
+        level = "🧠 资深扩散传质工程师";
+        levelClass = "level-expert";
+        levelDescription = "您对扩散传质原理有深入的理解，能够熟练运用菲克定律解决复杂工程问题，且探索能力出色。";
+        suggestions = `
+            <h4>下一步学习建议：</h4>
+            <ul>
+                <li>深入研究多维扩散传质问题</li>
+                <li>学习扩散-对流耦合传输模型</li>
+                <li>探索非恒定边界条件下的扩散问题</li>
+                <li>研究实际工程中的扩散系数测定方法</li>
+            </ul>
+        `;
+    } else if (percentage >= 70 && explorationScore >= 30) {
+        level = "📊 中级扩散传质工程师";
+        levelClass = "level-senior";
+        levelDescription = "您掌握了扩散传质的基本原理，能够正确应用菲克定律解决常见工程问题，具备良好的探索能力。";
+        suggestions = `
+            <h4>下一步学习建议：</h4>
+            <ul>
+                <li>加强对非稳态扩散特征时间的理解</li>
+                <li>学习不同边界条件下的扩散解</li>
+                <li>了解实际工程中扩散系数的取值</li>
+                <li>研究扩散传质与热量传递的类比</li>
+            </ul>
+        `;
+    } else if (percentage >= 50 && explorationScore >= 20) {
+        level = "🔧 初级扩散传质工程师";
+        levelClass = "level-junior";
+        levelDescription = "您对扩散传质有基本了解，但在某些概念理解上还需加强，探索能力有待提高。";
+        suggestions = `
+            <h4>下一步学习建议：</h4>
+            <ul>
+                <li>重新学习菲克第一定律和第二定律</li>
+                <li>理解稳态与非稳态扩散的本质区别</li>
+                <li>掌握特征扩散时间的计算方法</li>
+                <li>练习更多扩散传质计算例题</li>
+            </ul>
+        `;
+    } else {
+        level = "🎓 扩散传质实习生";
+        levelClass = "level-trainee";
+        levelDescription = "您刚开始学习扩散传质，需要系统学习相关基础知识，并加强参数探索。";
+        suggestions = `
+            <h4>下一步学习建议：</h4>
+            <ul>
+                <li>系统学习菲克定律的基本概念</li>
+                <li>理解浓度梯度与扩散通量的关系</li>
+                <li>掌握稳态扩散的基本计算</li>
+                <li>通过模拟工具加深对扩散过程的理解</li>
+            </ul>
+        `;
+    }
+    
+    // 生成调控探索反馈
+    const explorationStatsHtml = `
+        <div class="exploration-stats">
+            <div class="exploration-stat">
+                <div class="stat-name">模式切换次数</div>
+                <div class="stat-value">${explorationData.modeSwitches} 次</div>
+            </div>
+            <div class="exploration-stat">
+                <div class="stat-name">参数调整次数</div>
+                <div class="stat-value">${explorationData.parameterChanges} 次</div>
+            </div>
+            <div class="exploration-stat">
+                <div class="stat-name">模拟启动次数</div>
+                <div class="stat-value">${explorationData.simulationStarts} 次</div>
+            </div>
+            <div class="exploration-stat">
+                <div class="stat-name">探索模式</div>
+                <div class="stat-value">${explorationData.exploredSteady && explorationData.exploredDynamic ? "稳态+非稳态" : explorationData.exploredSteady ? "仅稳态" : explorationData.exploredDynamic ? "仅非稳态" : "未探索"}</div>
+            </div>
+        </div>
+    `;
+    
+    // 生成调控建议
+    const controlSuggestions = generateControlSuggestions(explorationScore);
+    const suggestionsHtml = controlSuggestions.map(suggestion => `<li>${suggestion}</li>`).join('');
+    
+    // 技能指标显示
+    let skillIndicatorsHtml = '';
+    dimensions.forEach(skill => {
+        const score = skillPercentages[skill] * 100;
+        skillIndicatorsHtml += `
+            <div class="skill-indicator">
+                <div class="skill-name">${skill}</div>
+                <div class="skill-bar">
+                    <div class="skill-fill" style="width: ${score}%"></div>
+                </div>
+                <div class="skill-score">${score.toFixed(0)}%</div>
+            </div>
+        `;
+    });
+    
+    document.getElementById("assessmentResult").innerHTML = `
+        <h2>评测完成！</h2>
+        
+        <div class="assessment-grid">
+            <div>
+                <div class="engineer-level ${levelClass}">
+                    ${level}
+                </div>
+                <p>理论得分: ${score}/${assessmentQuestions.length} (${percentage.toFixed(1)}%)</p>
+                <p>探索能力: ${explorationScore.toFixed(0)}/50 分</p>
+                <p>${levelDescription}</p>
+                
+                <div class="assessment-suggestion">
+                    ${suggestions}
+                </div>
+                
+                <div class="exploration-feedback">
+                    <h3>调控探索反馈</h3>
+                    ${explorationStatsHtml}
+                    <div class="control-suggestions">
+                        <h4>调控优化建议</h4>
+                        <ul class="suggestion-list">
+                            ${suggestionsHtml}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h3>技能雷达图</h3>
+                <div class="radar-container">
+                    <div class="radar-chart-container">
+                        <canvas id="radarCanvas" width="300" height="300"></canvas>
+                    </div>
+                </div>
+                
+                <div class="skill-indicators">
+                    ${skillIndicatorsHtml}
+                </div>
+            </div>
+        </div>
+        
+        <div class="assessment-buttons">
+            <button onclick="returnToMain()">← 返回模拟界面</button>
+            <button onclick="retryAssessment()">🔄 重新评测</button>
+        </div>
+    `;
+    
+    document.getElementById("assessmentResult").style.display = "block";
+    
+    // 绘制雷达图
+    setTimeout(() => {
+        drawRadarChart(radarData, dimensions, "radarCanvas");
+    }, 100);
+}
+
+// 重新评测
+function retryAssessment() {
+    currentQuestionIndex = 0;
+    userAnswers = [];
+    document.getElementById("assessmentResult").style.display = "none";
+    loadQuestion(currentQuestionIndex);
+}
+
+// ==================== 初始化 ====================
+// 初始化事件监听
+mode.onchange = handleModeChange;
+
+Dslider.oninput = () => { 
+    updateParamDisplays(); 
+    updateTheoryAndAnalysis();
+    realTimeUpdate();
+    recordExploration('parameterChange');
+};
+
+Lslider.oninput = () => { 
+    updateParamDisplays(); 
+    updateTheoryAndAnalysis();
+    realTimeUpdate();
+    recordExploration('parameterChange');
+};
+
+speedSlider.oninput = () => { 
+    updateParamDisplays(); 
+};
+
+CLslider.oninput = () => { 
+    updateParamDisplays(); 
+    updateTheoryAndAnalysis();
+    realTimeUpdate();
+    recordExploration('parameterChange');
+};
+
+// 调整canvas大小以适应容器
+function resizeCanvas() {
+    const container = document.querySelector('.canvas-container');
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    
+    // 重新绘制
+    realTimeUpdate();
+}
+
+// 窗口大小变化时调整canvas
+window.addEventListener('resize', resizeCanvas);
+
+// 初始化
+updateParamDisplays();
+handleModeChange(); // 初始调用以设置正确状态
+resizeCanvas(); // 初始调整canvas大小
+
+// 初始化探索数据
+explorationData.lastMode = mode.value;
+if (mode.value === 'steady') explorationData.exploredSteady = true;
+if (mode.value === 'dynamic') explorationData.exploredDynamic = true;
+</script>
+
+    <!-- 底部信息栏 -->
+    <div style="
+        text-align: center;
+        padding: 20px 30px;
+        margin-top: 40px;
+        color: #93c5fd;
+        font-size: 0.9rem;
+        border-top: 2px solid rgba(56, 189, 248, 0.5);
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9));
+        border-radius: 15px 15px 0 0;
+        box-shadow: 0 -10px 30px rgba(56, 189, 248, 0.1);
+        position: relative;
+        overflow: hidden;
+    ">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #38bdf8, #0ea5e9, #38bdf8);"></div>
+        
+        <p style="font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; color: #38bdf8;">
+            菲克定律扩散传质实战训练 &copy; 2025 | 工程思维训练系统 | 版本 1.0 | 
+        
+        <style="margin-bottom: 12px; color: #cbd5e1;">
+             <strong>邮箱:</strong> xgyanger@qq.com
+        </p>
+        
+      
+        <div style="margin-top: 15px; display: flex; justify-content: center; gap: 15px;">
+            <span style="color: #ff9e00; font-weight: bold; font-size: 1.1rem;">
+                版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+            </span>
+        </div>
+    </div>
+
+
+
+</body>
+</html>

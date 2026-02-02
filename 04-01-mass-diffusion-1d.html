@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>一维扩散传质：从微观到宏观模拟系统</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #0a0a1f 0%, #1a1a3f 100%);
+            color: #ffffff;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #88ffff;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        /* 主容器：4:6分栏布局 */
+        .main-container {
+            display: flex;
+            gap: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+            height: calc(100vh - 150px);
+        }
+        
+        /* 左侧控制面板 - 40% */
+        .control-panel {
+            flex: 0 0 40%;
+            background: rgba(0, 20, 40, 0.85);
+            border: 2px solid #00aaff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0, 170, 255, 0.3);
+            backdrop-filter: blur(5px);
+            overflow-y: auto;
+        }
+        
+        /* 右侧展示区域 - 60% */
+        .display-area {
+            flex: 0 0 60%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        /* 展示内容容器 - 共用同一位置 */
+        .display-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 10, 20, 0.9);
+            border: 2px solid #00aaff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0, 170, 255, 0.3);
+            backdrop-filter: blur(5px);
+            overflow-y: auto;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .display-content.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* 模拟展示页面 */
+        .simulation-display {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        /* 测试页面 */
+        .test-display {
+            padding: 25px;
+        }
+        
+        /* 评测页面 */
+        .evaluation-display {
+            padding: 25px;
+        }
+        
+        .panel-title {
+            color: #00aaff;
+            border-bottom: 1px solid #00aaff;
+            padding-bottom: 10px;
+            margin-top: 0;
+            font-size: 1.3em;
+        }
+        
+        /* 滑块和控件样式 */
+        .slider-container {
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+        label {
+            display: block;
+            color: #00ccff;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            background: linear-gradient(90deg, #003366 0%, #00aaff 100%);
+            border-radius: 4px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #00aaff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 8px #00aaff;
+        }
+        .value {
+            color: #ffff66;
+            font-weight: bold;
+            margin-left: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 2px 8px;
+            border-radius: 3px;
+        }
+        
+        /* 按钮样式 */
+        .control-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        button {
+            background: linear-gradient(135deg, #0088cc 0%, #00aaff 100%);
+            color: #000;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 170, 255, 0.3);
+            font-size: 14px;
+        }
+        button:hover {
+            background: linear-gradient(135deg, #00aaff 0%, #88ddff 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(0, 170, 255, 0.5);
+        }
+        button:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .button-danger {
+            background: linear-gradient(135deg, #cc3300 0%, #ff5500 100%);
+            box-shadow: 0 0 10px rgba(255, 85, 0, 0.3);
+        }
+        .button-danger:hover {
+            background: linear-gradient(135deg, #ff5500 0%, #ffaa88 100%);
+            box-shadow: 0 0 15px rgba(255, 85, 0, 0.5);
+        }
+        .button-info {
+            background: linear-gradient(135deg, #6633cc 0%, #9966ff 100%);
+            box-shadow: 0 0 10px rgba(153, 102, 255, 0.3);
+        }
+        .button-info:hover {
+            background: linear-gradient(135deg, #9966ff 0%, #ccbbff 100%);
+            box-shadow: 0 0 15px rgba(153, 102, 255, 0.5);
+        }
+        .button-success {
+            background: linear-gradient(135deg, #00aa33 0%, #00ff66 100%);
+            box-shadow: 0 0 10px rgba(0, 255, 102, 0.3);
+        }
+        .button-success:hover {
+            background: linear-gradient(135deg, #00ff66 0%, #88ffaa 100%);
+            box-shadow: 0 0 15px rgba(0, 255, 102, 0.5);
+        }
+        .button-warning {
+            background: linear-gradient(135deg, #ffaa00 0%, #ffcc00 100%);
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+        }
+        .button-warning:hover {
+            background: linear-gradient(135deg, #ffcc00 0%, #ffdd88 100%);
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
+        }
+        
+        /* 统计信息 */
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .stat-item {
+            background: rgba(0, 30, 60, 0.7);
+            padding: 8px;
+            border-radius: 5px;
+            border-left: 4px solid #00ffff;
+        }
+        .stat-label {
+            color: #88ffff;
+            font-size: 0.85em;
+        }
+        .stat-value {
+            color: #ffff66;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        
+        /* 画布区域 */
+        .canvas-section {
+            background: rgba(0, 10, 20, 0.7);
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid #00aaff;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .canvas-title {
+            color: #00aaff;
+            margin-top: 0;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        canvas {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+            border: 1px solid #00aaff;
+            display: block;
+            margin: 10px auto;
+            width: 100%;
+            flex: 1;
+        }
+        
+        /* 进度条 */
+        .progress-container {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 10px;
+            background: linear-gradient(90deg, #003366, #00aaff, #00ffff);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        /* 时间显示 */
+        .time-display {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #ffff66;
+            font-size: 0.9em;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        
+        /* 柱状图标签 */
+        .bar-label {
+            position: absolute;
+            bottom: 25px;
+            color: #88ffff;
+            font-size: 0.7em;
+            text-align: center;
+            width: 100%;
+        }
+        
+        /* 柱状图数值显示 */
+        .bar-value {
+            position: absolute;
+            top: -20px;
+            color: #ffff66;
+            font-size: 0.7em;
+            text-align: center;
+            width: 100%;
+            font-weight: bold;
+        }
+        
+        /* 问题样式 */
+        .question {
+            background: rgba(0, 30, 60, 0.7);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 5px solid #ff66ff;
+        }
+        .question h4 {
+            color: #ff99ff;
+            margin-top: 0;
+            font-size: 1.1em;
+        }
+        .question-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .question-options label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: #aaddff;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .question-options label:hover {
+            background: rgba(0, 100, 200, 0.3);
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00aaff;
+            color: white;
+            font-family: inherit;
+            resize: vertical;
+        }
+        
+        /* 答案解释 */
+        .answer-explanation {
+            background: rgba(0, 40, 80, 0.7);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid #00ffaa;
+            display: none;
+        }
+        .answer-explanation.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 雷达图容器 */
+        .radar-container {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        /* 技能项 */
+        .skill-item {
+            background: rgba(0, 30, 60, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #00ffff;
+        }
+        .skill-name {
+            color: #88ffff;
+            font-weight: bold;
+        }
+        .skill-value {
+            color: #ffff66;
+            float: right;
+            font-weight: bold;
+        }
+        
+        /* 建议框 - 修改为全宽 */
+        .recommendation {
+            background: rgba(0, 40, 80, 0.7);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            border-left: 6px solid #ffaa00;
+            width: 100%;
+            grid-column: 1 / -1; /* 占据全部列 */
+        }
+        
+        /* 评测页面新的网格布局 */
+        .evaluation-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .radar-section, .skills-section {
+            background: rgba(0, 20, 40, 0.6);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #00aaff;
+        }
+        
+        /* 导航按钮 */
+        .navigation-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        /* 说明文本 */
+        .explanation {
+            background: rgba(0, 40, 80, 0.5);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        
+        /* 测试结果 */
+        .test-result {
+            background: linear-gradient(135deg, rgba(0, 100, 200, 0.3), rgba(100, 0, 200, 0.3));
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid #ff66ff;
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 5px #ff66ff; }
+            50% { box-shadow: 0 0 20px #ff66ff; }
+            100% { box-shadow: 0 0 5px #ff66ff; }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .main-container {
+                flex-direction: column;
+                height: auto;
+            }
+            .control-panel, .display-area {
+                flex: none;
+                width: 100%;
+            }
+            .display-area {
+                height: 800px;
+            }
+            
+            .evaluation-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>一维扩散传质：从微观到宏观模拟系统</h1>
+    <div class="subtitle">探索扩散现象的多尺度表现与工程应用</div>
+    
+    <!-- 主容器：4:6分栏 -->
+    <div class="main-container">
+        <!-- 左侧控制面板 (40%) -->
+        <div class="control-panel">
+            <h2 class="panel-title">控制面板</h2>
+            
+            <div class="slider-container">
+                <label>扩散系数 D: <span class="value" id="d-value">2.0</span> (m²/s)</label>
+                <input type="range" id="d-slider" min="0.1" max="10" step="0.1" value="2.0">
+                <div class="progress-container">
+                    <div class="progress-bar" id="d-progress"></div>
+                </div>
+                <div class="explanation">
+                    控制粒子运动的活跃程度。值越大，扩散越快。<br>
+                    <small>注意：宏观扩散使用连续介质D，已自动缩小1000倍</small>
+                </div>
+            </div>
+            
+            <div class="slider-container">
+                <label>粒子数量 N: <span class="value" id="n-value">300</span></label>
+                <input type="range" id="n-slider" min="10" max="1000" step="10" value="300">
+                <div class="progress-container">
+                    <div class="progress-bar" id="n-progress"></div>
+                </div>
+                <div class="explanation">
+                    模拟的粒子总数。数量越多，统计规律越明显。
+                </div>
+            </div>
+            
+            <div class="slider-container">
+                <label>时间步长 Δt: <span class="value" id="dt-value">0.03</span> (s)</label>
+                <input type="range" id="dt-slider" min="0.01" max="0.2" step="0.01" value="0.03">
+                <div class="progress-container">
+                    <div class="progress-bar" id="dt-progress"></div>
+                </div>
+                <div class="explanation">
+                    模拟的时间间隔。值越小，模拟越精细。
+                </div>
+            </div>
+            
+            <div class="slider-container">
+                <label>柱状图数量: <span class="value" id="bar-value">20</span></label>
+                <input type="range" id="bar-slider" min="5" max="40" step="1" value="20">
+                <div class="progress-container">
+                    <div class="progress-bar" id="bar-progress"></div>
+                </div>
+                <div class="explanation">
+                    宏观浓度分布的柱状图数量。数量越多，显示越精细。
+                </div>
+            </div>
+            
+            <div class="control-buttons">
+                <button id="start-btn">▶ 开始模拟</button>
+                <button id="pause-btn" style="display:none">⏸ 暂停模拟</button>
+                <button id="remove-barrier-btn" class="button-danger" disabled>移除隔板</button>
+                <button id="reset-btn" class="button-info">↻ 重置模拟</button>
+                <button id="step-btn" class="button-info">⏭ 单步执行</button>
+                <button id="test-btn" class="button-success">📝 进入测试</button>
+                <button id="eval-btn" class="button-warning" disabled>📊 工程师评测</button>
+                <button id="back-btn" class="button-info" style="display:none">← 返回模拟</button>
+            </div>
+            
+            <div class="stats-panel">
+                <div class="stat-item">
+                    <div class="stat-label">模拟时间</div>
+                    <div class="stat-value" id="sim-time">0.0 秒</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">左侧浓度</div>
+                    <div class="stat-value" id="left-conc">100%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">右侧浓度</div>
+                    <div class="stat-value" id="right-conc">0%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">扩散时间</div>
+                    <div class="stat-value" id="diffusion-time">0.0 秒</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">平衡进度</div>
+                    <div class="stat-value" id="equilibrium">0%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">宏观D(缩放)</div>
+                    <div class="stat-value" id="macro-d-value">0.002</div>
+                </div>
+            </div>
+            
+            <div class="explanation" style="margin-top: 20px;">
+                <strong>使用说明：</strong><br>
+                1. 调整参数，点击"开始模拟"观察扩散现象<br>
+                2. 点击"移除隔板"观察扩散平衡过程<br>
+                3. 完成探索后点击"进入测试"进行知识评估<br>
+                4. 测试完成后可进行"工程师评测"获得能力评估<br>
+                <br>
+                <strong>宏观扩散模型：</strong><br>
+                使用菲克第二定律误差函数解：<br>
+                C(x,t) = 0.5·erfc[x/√(4D_macro·t)]<br>
+                <small>D_macro = D × 0.00005 (连续介质扩散系数)</small>
+            </div>
+        </div>
+        
+        <!-- 右侧展示区域 (60%) - 所有内容共用同一位置 -->
+        <div class="display-area">
+            <!-- 模拟展示页面 -->
+            <div class="display-content simulation-display active" id="simulation-display">
+                <h2 class="panel-title">扩散现象模拟</h2>
+                
+                <div class="canvas-section">
+                    <h3 class="canvas-title">微观层面 (单粒子随机游走)</h3>
+                    <div style="position: relative; flex: 1;">
+                        <canvas id="microCanvas"></canvas>
+                        <div class="time-display" style="top: 15px; right: 60px;">粒子位置: <span id="micro-pos">(0,0)</span></div>
+                    </div>
+                    <div class="explanation">
+                        观察单个粒子的布朗运动：完全随机，无方向性。这是扩散的微观本质。
+                    </div>
+                </div>
+                
+                <div class="canvas-section">
+                    <h3 class="canvas-title">介观层面 (多粒子统计行为)</h3>
+                    <div style="position: relative; flex: 1;">
+                        <canvas id="mesoCanvas"></canvas>
+                        <div class="time-display"style="top: 15px; right: 60px;">左侧粒子: <span id="left-particles">300</span></div>
+                        <div class="time-display" style="top: 40px; right: 40px;">右侧粒子: <span id="right-particles">0</span></div>
+                        <div class="time-display" style="top: 70px; right: 10px; background: rgba(255,102,255,0.7);" id="barrier-indicator">隔板激活</div>
+                    </div>
+                    <div class="explanation">
+                        多个粒子的集体行为呈现统计规律：从高浓度区域向低浓度区域扩散。
+                    </div>
+                </div>
+                
+                <div class="canvas-section">
+                    <h3 class="canvas-title">宏观层面 (误差函数解析解 - 菲克定律)</h3>
+                    <div style="position: relative; flex: 1;">
+                        <canvas id="macroCanvas"></canvas>
+                        <div class="time-display" style="top: 15px; right: 40px;">扩散状态: <span id="macro-state">等待隔板移除</span></div>
+                        <div class="time-display" style="top: 40px; right: 40px;">特征长度: <span id="diffusion-length">0.0</span> m</div>
+                    </div>
+                    <div class="explanation">
+                        使用菲克第二定律误差函数解：C(x,t) = 0.5·erfc[x/√(4D_macro·t)]。连续介质扩散系数D_macro = D×0.00005，扩散过程在合理时间尺度发生。
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 测试页面 -->
+            <div class="display-content test-display" id="test-display">
+                <h2 class="panel-title">扩散知识测试</h2>
+                <p style="color: #88ffff; text-align: center;">完成以下问题以测试您对扩散现象的理解</p>
+                
+                <div class="question">
+                    <h4>问题1: 在微观层面，单个粒子的运动具有什么特征？</h4>
+                    <div class="question-options">
+                        <label><input type="radio" name="q1" value="a"> A. 沿浓度梯度方向定向运动</label>
+                        <label><input type="radio" name="q1" value="b"> B. 完全随机的布朗运动</label>
+                        <label><input type="radio" name="q1" value="c"> C. 周期性振荡运动</label>
+                        <label><input type="radio" name="q1" value="d"> D. 静止不动</label>
+                    </div>
+                    <div class="answer-explanation" id="explanation-q1">
+                        <strong>正确答案：B</strong><br>
+                        微观层面单个粒子的运动是完全随机的布朗运动，没有方向性。只有当大量粒子集体作用时，才会表现出从高浓度向低浓度扩散的宏观趋势。
+                    </div>
+                </div>
+                
+                <div class="question">
+                    <h4>问题2: 根据菲克第一定律，扩散通量与什么成正比？</h4>
+                    <div class="question-options">
+                        <label><input type="radio" name="q2" value="a"> A. 浓度</label>
+                        <label><input type="radio" name="q2" value="b"> B. 浓度梯度</label>
+                        <label><input type="radio" name="q2" value="c"> C. 温度</label>
+                        <label><input type="radio" name="q2" value="d"> D. 压力</label>
+                    </div>
+                    <div class="answer-explanation" id="explanation-q2">
+                        <strong>正确答案：B</strong><br>
+                        菲克第一定律：J = -D * (∂C/∂x)，其中J是扩散通量，D是扩散系数，∂C/∂x是浓度梯度。负号表示扩散方向与浓度梯度方向相反。
+                    </div>
+                </div>
+                
+                <div class="question">
+                    <h4>问题3: 菲克第二定律的非稳态扩散误差函数解是什么形式？</h4>
+                    <div class="question-options">
+                        <label><input type="radio" name="q3" value="a"> A. C(x,t) = A·sin(ωt-kx)</label>
+                        <label><input type="radio" name="q3" value="b"> B. C(x,t) = C₀·exp(-x²/4Dt)</label>
+                        <label><input type="radio" name="q3" value="c"> C. C(x,t) = C₀·erfc[x/√(4Dt)]</label>
+                        <label><input type="radio" name="q3" value="d"> D. C(x,t) = C₀·(1 - x/L)</label>
+                    </div>
+                    <div class="answer-explanation" id="explanation-q3">
+                        <strong>正确答案：C</strong><br>
+                        菲克第二定律在一维半无限空间中的非稳态扩散解为误差函数形式：C(x,t) = C₀·erfc[x/√(4Dt)]，其中erfc是互补误差函数。
+                    </div>
+                </div>
+                
+                <div class="question">
+                    <h4>问题4: 在达到扩散平衡时，系统的浓度分布如何？</h4>
+                    <div class="question-options">
+                        <label><input type="radio" name="q4" value="a"> A. 浓度梯度最大</label>
+                        <label><input type="radio" name="q4" value="b"> B. 浓度均匀分布</label>
+                        <label><input type="radio" name="q4" value="c"> C. 浓度周期性变化</label>
+                        <label><input type="radio" name="q4" value="d"> D. 浓度梯度恒定</label>
+                    </div>
+                    <div class="answer-explanation" id="explanation-q4">
+                        <strong>正确答案：B</strong><br>
+                        扩散平衡时，系统中各处的浓度达到均匀分布，浓度梯度为零，扩散通量为零。
+                    </div>
+                </div>
+                
+                <div class="navigation-buttons">
+                    <button onclick="submitTest()" class="button-success">提交测试答案</button>
+                    <button onclick="showAnswers()" class="button-info">查看正确答案</button>
+                    <button onclick="goToSimulation()" class="button-info">返回模拟</button>
+                </div>
+            </div>
+            
+            <!-- 工程师评测页面 -->
+            <div class="display-content evaluation-display" id="evaluation-display">
+                <h2 class="panel-title">工程师能力评测</h2>
+                <p style="color: #88ffff; text-align: center;">基于您的测试表现和参数调节能力评估</p>
+                
+                <div id="test-result-container" style="display: none;">
+                    <!-- 测试结果会动态显示在这里 -->
+                </div>
+                
+                <!-- 新的网格布局 -->
+                <div class="evaluation-grid">
+                    <!-- 左侧：雷达图 -->
+                    <div class="radar-section">
+                        <h3 style="color: #00aaff; margin-top: 0;">能力雷达图</h3>
+                        <div class="radar-container">
+                            <canvas id="radarCanvas"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- 右侧：技能评分 -->
+                    <div class="skills-section">
+                        <h3 style="color: #00aaff; margin-top: 0;">能力维度评分</h3>
+                        
+                        <div class="skill-item">
+                            <span class="skill-name">微观理解</span>
+                            <span class="skill-value" id="skill1">0%</span>
+                            <div class="progress-container" style="margin-top: 5px;">
+                                <div class="progress-bar" id="skill1-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="skill-item">
+                            <span class="skill-name">宏观把握</span>
+                            <span class="skill-value" id="skill2">0%</span>
+                            <div class="progress-container" style="margin-top: 5px;">
+                                <div class="progress-bar" id="skill2-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="skill-item">
+                            <span class="skill-name">参数调节</span>
+                            <span class="skill-value" id="skill3">0%</span>
+                            <div class="progress-container" style="margin-top: 5px;">
+                                <div class="progress-bar" id="skill3-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="skill-item">
+                            <span class="skill-name">理论应用</span>
+                            <span class="skill-value" id="skill4">0%</span>
+                            <div class="progress-container" style="margin-top: 5px;">
+                                <div class="progress-bar" id="skill4-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="skill-item">
+                            <span class="skill-name">问题解决</span>
+                            <span class="skill-value" id="skill5">0%</span>
+                            <div class="progress-container" style="margin-top: 5px;">
+                                <div class="progress-bar" id="skill5-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 发展建议 - 现在占据全部宽度 -->
+                <div class="recommendation">
+                    <h4 style="color: #ffaa00; margin-top: 0;">发展建议</h4>
+                    <p id="recommendation-text">
+                        请先完成知识测试以获得个性化建议。
+                    </p>
+                </div>
+                
+                <div class="navigation-buttons">
+                    <button onclick="goToTest()" class="button-success">返回测试</button>
+                    <button onclick="goToSimulation()" class="button-info">返回模拟</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 模拟参数 ====================
+        let D = 2.0;      // 扩散系数（离散模型值）
+        const D_macro_scale = 0.00005; // 宏观扩散缩放因子：连续介质D需要缩小20000倍
+        let D_macro = D * D_macro_scale; // 宏观扩散系数（连续介质值）
+        
+        let N = 300;      // 粒子数量
+        let dt = 0.03;    // 时间步长
+        let barCount = 20; // 柱状图数量
+        let canvasWidth = 0;
+        let canvasHeight = 0;
+        const barrierX = 0.5; // 隔板位置比例
+        let barrierPresent = true;
+        let animationRunning = true;
+        let animationId = null;
+        let simulationTime = 0;
+        let diffusionStartTime = null; // 扩散开始时间（隔板移除时）
+        let particles = [];
+        let microParticle = {x: 0, y: 0, trail: []};
+        let macroConc = []; // 宏观浓度数组（误差函数解）
+        let macroFlux = []; // 宏观通量数组
+        
+        // 宏观扩散参数
+        let macroActive = true;
+        let equilibriumReached = false;
+        let testCompleted = false; // 标记测试是否完成
+
+        // ==================== Canvas上下文 ====================
+        let microCtx, mesoCtx, macroCtx, radarCtx;
+        
+        // ==================== 误差函数实现 ====================
+        // 高精度误差函数计算
+        function erf(x) {
+            // Abramowitz和Stegun近似公式，精度约1.5e-7
+            const a1 = 0.254829592;
+            const a2 = -0.284496736;
+            const a3 = 1.421413741;
+            const a4 = -1.453152027;
+            const a5 = 1.061405429;
+            const p = 0.3275911;
+            
+            const sign = (x < 0) ? -1 : 1;
+            x = Math.abs(x);
+            
+            const t = 1.0 / (1.0 + p * x);
+            const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+            
+            return sign * y;
+        }
+        
+        // 互补误差函数
+        function erfc(x) {
+            return 1 - erf(x);
+        }
+        
+        // ==================== 初始化函数 ====================
+        function initSimulation() {
+            // 获取画布上下文
+            microCtx = document.getElementById('microCanvas').getContext('2d');
+            mesoCtx = document.getElementById('mesoCanvas').getContext('2d');
+            macroCtx = document.getElementById('macroCanvas').getContext('2d');
+            radarCtx = document.getElementById('radarCanvas').getContext('2d');
+            
+            // 初始化画布尺寸
+            updateCanvasSize();
+            
+            // 初始化宏观浓度（误差函数解）
+            initMacro();
+            
+            // 初始化微观粒子
+            microParticle = {
+                x: barrierX * canvasWidth * 0.8,
+                y: canvasHeight * 0.5,
+                trail: []
+            };
+            
+            // 初始化粒子
+            resetParticles();
+            
+            // 设置滑块和按钮
+            updateSliders();
+            setupButtons();
+            
+            // 开始动画
+            animate();
+        }
+        
+        // 更新画布尺寸
+        function updateCanvasSize() {
+            const canvasContainer = document.getElementById('microCanvas').parentElement;
+            canvasWidth = canvasContainer.clientWidth - 40;
+            canvasHeight = canvasContainer.clientHeight - 40;
+            
+            // 设置所有画布尺寸
+            document.getElementById('microCanvas').width = canvasWidth;
+            document.getElementById('microCanvas').height = canvasHeight;
+            document.getElementById('mesoCanvas').width = canvasWidth;
+            document.getElementById('mesoCanvas').height = canvasHeight;
+            document.getElementById('macroCanvas').width = canvasWidth;
+            document.getElementById('macroCanvas').height = canvasHeight;
+        }
+        
+        // 初始化宏观浓度（误差函数解）
+        function initMacro() {
+            macroConc = new Array(barCount).fill(0);
+            macroFlux = new Array(barCount).fill(0);
+            const barrierPos = Math.floor(barrierX * barCount);
+            
+            for (let i = 0; i < barCount; i++) {
+                if (i < barrierPos) {
+                    macroConc[i] = 1.0; // 左侧高浓度
+                } else {
+                    macroConc[i] = 0.0; // 右侧低浓度
+                }
+            }
+            
+            macroActive = true;
+            equilibriumReached = false;
+            diffusionStartTime = barrierPresent ? null : 0; // 记录扩散开始时间
+            
+            // 更新宏观D值显示
+            updateMacroDDisplay();
+        }
+        
+        // 更新宏观D值显示
+        function updateMacroDDisplay() {
+            D_macro = D * D_macro_scale;
+            document.getElementById('macro-d-value').textContent = D_macro.toFixed(6);
+        }
+        
+        // 更新宏观浓度（使用误差函数解析解）
+        function updateMacro() {
+            if (!macroActive || barrierPresent) {
+                // 隔板存在时，保持初始浓度
+                return;
+            }
+            
+            if (diffusionStartTime === null) {
+                diffusionStartTime = simulationTime; // 记录隔板移除的时间
+            }
+            
+            const elapsedTime = simulationTime - diffusionStartTime;
+            
+            if (elapsedTime <= 0) {
+                // 扩散刚开始，保持初始条件
+                return;
+            }
+            
+            // 使用缩放后的宏观扩散系数计算特征扩散长度
+            const diffusionLength = Math.sqrt(4 * D_macro * elapsedTime);
+            
+            if (diffusionLength === 0) {
+                return;
+            }
+            
+            // 更新扩散长度显示
+            document.getElementById('diffusion-length').textContent = diffusionLength.toFixed(4);
+            
+            // 使用误差函数解：C(x,t) = 0.5 * erfc[x/√(4D_macro·t)]
+            // 对于左侧区域：C(x,t) = 1 - 0.5 * erfc[x/√(4D_macro·t)]
+            // 对于右侧区域：C(x,t) = 0.5 * erfc[x/√(4D_macro·t)]
+            
+            for (let i = 0; i < barCount; i++) {
+                // 归一化位置 (0到1)
+                const normalizedPos = i / barCount;
+                // 到隔板的距离
+                const distanceToBarrier = Math.abs(normalizedPos - barrierX);
+                
+                // 计算 xi = x / √(4D_macro·t)
+                const xi = distanceToBarrier / diffusionLength;
+                
+                if (xi > 5) {
+                    // xi很大时，erfc接近0
+                    if (normalizedPos < barrierX) {
+                        macroConc[i] = 1.0; // 左侧保持高浓度
+                    } else {
+                        macroConc[i] = 0.0; // 右侧保持低浓度
+                    }
+                } else {
+                    // 计算误差函数解
+                    const erfcValue = erfc(xi);
+                    
+                    if (normalizedPos < barrierX) {
+                        // 左侧：浓度从1逐渐下降
+                        macroConc[i] = 1 - 0.5 * erfcValue;
+                    } else {
+                        // 右侧：浓度从0逐渐上升
+                        macroConc[i] = 0.5 * erfcValue;
+                    }
+                }
+                
+                // 确保浓度在0-1之间
+                macroConc[i] = Math.max(0, Math.min(1, macroConc[i]));
+                
+                // 计算通量（菲克第一定律）- 使用宏观D
+                if (i > 0 && i < barCount - 1) {
+                    const dx = 1.0 / barCount;
+                    const dCdx = (macroConc[i+1] - macroConc[i-1]) / (2 * dx);
+                    macroFlux[i] = -D_macro * dCdx;
+                }
+            }
+            
+            // 检查是否达到平衡
+            checkEquilibrium();
+        }
+        
+        // 检查扩散平衡状态
+        function checkEquilibrium() {
+            if (barrierPresent || diffusionStartTime === null) {
+                equilibriumReached = false;
+                return;
+            }
+            
+            const elapsedTime = simulationTime - diffusionStartTime;
+            if (elapsedTime <= 0) {
+                equilibriumReached = false;
+                return;
+            }
+            
+            // 计算浓度分布的均匀性
+            let maxDiff = 0;
+            let sum = 0;
+            
+            for (let i = 0; i < barCount; i++) {
+                sum += macroConc[i];
+                if (i > 0) {
+                    const diff = Math.abs(macroConc[i] - macroConc[i-1]);
+                    if (diff > maxDiff) maxDiff = diff;
+                }
+            }
+            
+            const avgConc = sum / barCount;
+            
+            // 平衡条件：浓度差很小且平均浓度接近0.5
+            // 由于扩散系数小，需要更长的平衡时间，放宽条件
+            if (maxDiff < 0.01 && Math.abs(avgConc - 0.5) < 0.1) {
+                if (!equilibriumReached) {
+                    equilibriumReached = true;
+                    console.log(`达到扩散平衡，时间: ${elapsedTime.toFixed(2)}s`);
+                }
+            } else {
+                equilibriumReached = false;
+            }
+        }
+
+        // ==================== 滑块控制 ====================
+        function updateSliders() {
+            // D滑块
+            document.getElementById('d-slider').oninput = (e) => {
+                D = parseFloat(e.target.value);
+                document.getElementById('d-value').textContent = D.toFixed(1);
+                document.getElementById('d-progress').style.width = ((D - 0.1) / 9.9 * 100) + '%';
+                
+                // 更新宏观D值
+                updateMacroDDisplay();
+                
+                macroActive = true;
+                equilibriumReached = false;
+            };
+            
+            // N滑块
+            document.getElementById('n-slider').oninput = (e) => {
+                N = parseInt(e.target.value);
+                document.getElementById('n-value').textContent = N;
+                document.getElementById('n-progress').style.width = ((N - 10) / 990 * 100) + '%';
+                resetParticles();
+            };
+            
+            // dt滑块
+            document.getElementById('dt-slider').oninput = (e) => {
+                dt = parseFloat(e.target.value);
+                document.getElementById('dt-value').textContent = dt.toFixed(2);
+                document.getElementById('dt-progress').style.width = ((dt - 0.01) / 0.19 * 100) + '%';
+            };
+            
+            // 柱状图数量滑块
+            document.getElementById('bar-slider').oninput = (e) => {
+                barCount = parseInt(e.target.value);
+                document.getElementById('bar-value').textContent = barCount;
+                document.getElementById('bar-progress').style.width = ((barCount - 5) / 35 * 100) + '%';
+                initMacro(); // 重新初始化宏观浓度
+            };
+            
+            // 初始化进度条
+            document.getElementById('d-progress').style.width = ((D - 0.1) / 9.9 * 100) + '%';
+            document.getElementById('n-progress').style.width = ((N - 10) / 990 * 100) + '%';
+            document.getElementById('dt-progress').style.width = ((dt - 0.01) / 0.19 * 100) + '%';
+            document.getElementById('bar-progress').style.width = ((barCount - 5) / 35 * 100) + '%';
+            
+            // 更新宏观D值显示
+            updateMacroDDisplay();
+        }
+
+        // ==================== 按钮控制 ====================
+        function setupButtons() {
+            // 开始按钮
+            document.getElementById('start-btn').onclick = () => {
+                if (!animationRunning) {
+                    animationRunning = true;
+                    document.getElementById('start-btn').style.display = 'none';
+                    document.getElementById('pause-btn').style.display = 'block';
+                    animate();
+                }
+            };
+            
+            // 暂停按钮
+            document.getElementById('pause-btn').onclick = () => {
+                animationRunning = false;
+                document.getElementById('start-btn').style.display = 'block';
+                document.getElementById('pause-btn').style.display = 'none';
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+            };
+            
+            // 移除隔板按钮
+            document.getElementById('remove-barrier-btn').onclick = () => {
+                barrierPresent = false;
+                diffusionStartTime = simulationTime; // 记录扩散开始时间
+                document.getElementById('barrier-indicator').style.display = 'none';
+                document.getElementById('remove-barrier-btn').disabled = true;
+                document.getElementById('barrier-indicator').textContent = '隔板已移除';
+                document.getElementById('barrier-indicator').style.background = 'rgba(0,255,170,0.7)';
+                macroActive = true;
+                equilibriumReached = false;
+                
+                // 重置宏观浓度（开始扩散）
+                initMacro();
+            };
+            
+            // 重置按钮
+            document.getElementById('reset-btn').onclick = () => {
+                resetSimulation();
+            };
+            
+            // 单步执行按钮
+            document.getElementById('step-btn').onclick = () => {
+                if (!animationRunning) {
+                    simulationStep();
+                    drawAll();
+                }
+            };
+            
+            // 测试按钮
+            document.getElementById('test-btn').onclick = () => {
+                goToTest();
+            };
+            
+            // 评测按钮
+            document.getElementById('eval-btn').onclick = () => {
+                goToEvaluation();
+            };
+            
+            // 返回按钮
+            document.getElementById('back-btn').onclick = () => {
+                goToSimulation();
+            };
+        }
+
+        // ==================== 粒子管理 ====================
+        function resetParticles() {
+            particles = [];
+            const barrierPos = barrierX * canvasWidth;
+            
+            for (let i = 0; i < N; i++) {
+                particles.push({
+                    x: Math.random() * barrierPos * 0.9,
+                    y: Math.random() * canvasHeight,
+                    vx: 0,
+                    vy: 0,
+                    color: `hsl(${Math.random() * 60 + 120}, 100%, 60%)`
+                });
+            }
+        }
+
+        // ==================== 重置模拟 ====================
+        function resetSimulation() {
+            barrierPresent = true;
+            animationRunning = true;
+            simulationTime = 0;
+            diffusionStartTime = null;
+            
+            // 更新画布尺寸
+            updateCanvasSize();
+            
+            // 重置微观粒子
+            microParticle = {
+                x: barrierX * canvasWidth * 0.8,
+                y: canvasHeight * 0.5,
+                trail: []
+            };
+            
+            // 重置粒子
+            resetParticles();
+            
+            // 重置宏观
+            initMacro();
+            
+            // 重置按钮状态
+            document.getElementById('remove-barrier-btn').disabled = false;
+            document.getElementById('barrier-indicator').style.display = 'block';
+            document.getElementById('barrier-indicator').textContent = '隔板激活';
+            document.getElementById('barrier-indicator').style.background = 'rgba(255,102,255,0.7)';
+            
+            document.getElementById('start-btn').style.display = 'none';
+            document.getElementById('pause-btn').style.display = 'block';
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            
+            drawAll();
+            animate();
+        }
+
+        // ==================== 粒子运动 ====================
+        function updateParticle(p, isMicro = false) {
+            // 提高粒子活跃度
+            let stepSize = Math.sqrt(2 * D * dt) * 30;
+            let newX = p.x + (Math.random() - 0.5) * stepSize * 2;
+            let newY = p.y + (Math.random() - 0.5) * stepSize * 2;
+            
+            // 边界条件（反射）
+            if (newX < 0) newX = Math.abs(newX);
+            if (newX > canvasWidth) newX = 2 * canvasWidth - newX;
+            if (newY < 0) newY = Math.abs(newY);
+            if (isMicro) {
+                if (newY > canvasHeight) newY = 2 * canvasHeight - newY;
+            } else {
+                if (newY > canvasHeight) newY = 2 * canvasHeight - newY;
+            }
+            
+            // 隔板条件
+            const barrierPos = barrierX * canvasWidth;
+            if (barrierPresent && ((p.x < barrierPos && newX > barrierPos) || (p.x > barrierPos && newX < barrierPos))) {
+                newX = p.x; // 在隔板处反射
+            }
+            
+            // 更新速度用于可视化
+            p.vx = (newX - p.x) / dt;
+            p.vy = (newY - p.y) / dt;
+            
+            p.x = newX;
+            p.y = newY;
+            
+            // 为微观粒子添加轨迹
+            if (isMicro) {
+                microParticle.trail.push({x: p.x, y: p.y});
+                if (microParticle.trail.length > 50) {
+                    microParticle.trail.shift();
+                }
+            }
+        }
+
+        // ==================== 绘制函数 ====================
+        function drawMicro() {
+            microCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+            
+            // 渐变背景
+            let gradient = microCtx.createLinearGradient(0, 0, canvasWidth, 0);
+            gradient.addColorStop(0, 'rgba(0, 100, 200, 0.3)');
+            gradient.addColorStop(0.5, 'rgba(100, 100, 200, 0.1)');
+            gradient.addColorStop(1, 'rgba(100, 0, 200, 0.3)');
+            microCtx.fillStyle = gradient;
+            microCtx.fillRect(0, 0, canvasWidth, canvasHeight);
+            
+            // 绘制轨迹
+            microParticle.trail.forEach((point, i) => {
+                let alpha = i / microParticle.trail.length;
+                microCtx.beginPath();
+                microCtx.arc(point.x, point.y, 2, 0, Math.PI * 2);
+                microCtx.fillStyle = `rgba(0, 255, 255, ${alpha * 0.5})`;
+                microCtx.fill();
+            });
+            
+            // 绘制隔板
+            if (barrierPresent) {
+                const barrierPos = barrierX * canvasWidth;
+                microCtx.strokeStyle = '#ff66ff';
+                microCtx.lineWidth = 3;
+                microCtx.setLineDash([5, 5]);
+                microCtx.beginPath();
+                microCtx.moveTo(barrierPos, 0);
+                microCtx.lineTo(barrierPos, canvasHeight);
+                microCtx.stroke();
+                microCtx.setLineDash([]);
+            }
+            
+            // 绘制粒子
+            microCtx.beginPath();
+            microCtx.arc(microParticle.x, microParticle.y, 6, 0, Math.PI * 2);
+            microCtx.fillStyle = '#00ffff';
+            microCtx.fill();
+            microCtx.strokeStyle = '#ffffff';
+            microCtx.lineWidth = 2;
+            microCtx.stroke();
+            
+            // 绘制速度矢量
+            let speed = Math.sqrt(microParticle.vx * microParticle.vx + microParticle.vy * microParticle.vy);
+            if (speed > 0.1) {
+                microCtx.beginPath();
+                microCtx.moveTo(microParticle.x, microParticle.y);
+                microCtx.lineTo(
+                    microParticle.x + microParticle.vx * 0.05,
+                    microParticle.y + microParticle.vy * 0.05
+                );
+                microCtx.strokeStyle = '#ffff66';
+                microCtx.lineWidth = 2;
+                microCtx.stroke();
+                
+                // 绘制箭头
+                microCtx.beginPath();
+                microCtx.arc(
+                    microParticle.x + microParticle.vx * 5,
+                    microParticle.y + microParticle.vy * 5,
+                    3, 0, Math.PI * 2
+                );
+                microCtx.fillStyle = '#ffff66';
+                microCtx.fill();
+            }
+        }
+
+        function drawMeso() {
+            mesoCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+            
+            // 浓度梯度背景
+            for (let i = 0; i < canvasWidth; i++) {
+                let conc = particles.filter(p => Math.abs(p.x - i) < 5).length / (N * 0.05);
+                mesoCtx.fillStyle = `rgba(0, ${Math.min(255, conc * 500)}, 200, 0.1)`;
+                mesoCtx.fillRect(i, 0, 1, canvasHeight);
+            }
+            
+            // 绘制隔板
+            if (barrierPresent) {
+                const barrierPos = barrierX * canvasWidth;
+                mesoCtx.strokeStyle = '#ff66ff';
+                mesoCtx.lineWidth = 3;
+                mesoCtx.beginPath();
+                mesoCtx.moveTo(barrierPos, 0);
+                mesoCtx.lineTo(barrierPos, canvasHeight);
+                mesoCtx.stroke();
+                
+                // 发光效果
+                mesoCtx.shadowColor = '#ff66ff';
+                mesoCtx.shadowBlur = 10;
+                mesoCtx.stroke();
+                mesoCtx.shadowBlur = 0;
+            }
+            
+            // 绘制粒子
+            particles.forEach(p => {
+                mesoCtx.beginPath();
+                mesoCtx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                mesoCtx.fillStyle = p.color;
+                mesoCtx.fill();
+                
+                mesoCtx.shadowColor = p.color;
+                mesoCtx.shadowBlur = 5;
+                mesoCtx.fill();
+                mesoCtx.shadowBlur = 0;
+            });
+            
+            // 直方图
+            let binSize = Math.max(10, Math.floor(canvasWidth / 50));
+            let bins = new Array(Math.ceil(canvasWidth / binSize)).fill(0);
+            
+            particles.forEach(p => {
+                let bin = Math.floor(p.x / binSize);
+                if (bin >= 0 && bin < bins.length) {
+                    bins[bin]++;
+                }
+            });
+            
+            let maxBin = Math.max(...bins) || 1;
+            mesoCtx.fillStyle = 'rgba(0, 255, 255, 0.5)';
+            for (let i = 0; i < bins.length; i++) {
+                let height = (bins[i] / maxBin) * 40;
+                mesoCtx.fillRect(i * binSize, canvasHeight - height, binSize - 1, height);
+            }
+        }
+
+        function drawMacro() {
+            macroCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+            
+            if (macroConc.length === 0) return;
+            
+            // 绘制网格背景
+            macroCtx.strokeStyle = 'rgba(0, 170, 255, 0.1)';
+            macroCtx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                let y = canvasHeight * (1 - i / 10);
+                macroCtx.beginPath();
+                macroCtx.moveTo(0, y);
+                macroCtx.lineTo(canvasWidth, y);
+                macroCtx.stroke();
+                
+                // 绘制刻度标签
+                macroCtx.fillStyle = 'rgba(136, 255, 255, 0.1)';
+                macroCtx.font = '10px Arial';
+                macroCtx.fillText((i / 10).toFixed(1), 5, y - 2);
+            }
+            
+            // 计算柱状图参数
+            const barWidth = canvasWidth / barCount;
+            const maxBarHeight = canvasHeight * 0.8;
+            const barPadding = barWidth * 0.1;
+            const drawWidth = barWidth - barPadding * 2;
+            
+            // 绘制所有柱状图
+            for (let i = 0; i < macroConc.length; i++) {
+                const barHeight = macroConc[i] * maxBarHeight;
+                const x = i * barWidth + barPadding;
+                const y = canvasHeight - barHeight;
+                
+                // 创建柱状图渐变
+                const gradient = macroCtx.createLinearGradient(0, y, 0, canvasHeight);
+                const conc = macroConc[i];
+                
+                // 根据浓度设置颜色渐变（高浓度红色，低浓度蓝色，中等浓度绿色）
+                if (conc > 0.7) {
+                    gradient.addColorStop(0, 'rgba(255, 100, 100, 0.9)');
+                    gradient.addColorStop(1, 'rgba(255, 50, 50, 0.3)');
+                } else if (conc > 0.3) {
+                    gradient.addColorStop(0, 'rgba(100, 255, 100, 0.9)');
+                    gradient.addColorStop(1, 'rgba(50, 255, 50, 0.3)');
+                } else {
+                    gradient.addColorStop(0, 'rgba(100, 100, 255, 0.9)');
+                    gradient.addColorStop(1, 'rgba(50, 50, 255, 0.3)');
+                }
+                
+                // 绘制柱体
+                macroCtx.fillStyle = gradient;
+                macroCtx.fillRect(x, y, drawWidth, barHeight);
+                
+                // 绘制柱体边框
+                macroCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                macroCtx.lineWidth = 1;
+                macroCtx.strokeRect(x, y, drawWidth, barHeight);
+                
+                // 绘制柱体顶部数值
+                macroCtx.fillStyle = '#ffff66';
+                macroCtx.font = 'bold 10px Arial';
+                macroCtx.textAlign = 'center';
+                macroCtx.fillText(macroConc[i].toFixed(2), x + drawWidth / 2, y - 5);
+                
+                // 绘制柱体底部标签
+                macroCtx.fillStyle = '#88ffff';
+                macroCtx.font = '1px Arial';
+                macroCtx.fillText(`位置 ${i+1}`, x + drawWidth / 2, canvasHeight - 5);
+            }
+            
+            // 绘制隔板
+            if (barrierPresent) {
+                const barrierPos = barrierX * canvasWidth;
+                macroCtx.strokeStyle = '#ff66ff';
+                macroCtx.lineWidth = 3;
+                macroCtx.beginPath();
+                macroCtx.moveTo(barrierPos, 0);
+                macroCtx.lineTo(barrierPos, canvasHeight);
+                macroCtx.stroke();
+                
+                // 添加隔板标签
+                macroCtx.fillStyle = '#ff66ff';
+                macroCtx.font = 'bold 14px Arial';
+                macroCtx.textAlign = 'center';
+                macroCtx.fillText('隔板', barrierPos, 20);
+            }
+            
+            // 绘制平衡线（50%浓度线）
+            macroCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            macroCtx.setLineDash([5, 5]);
+            macroCtx.beginPath();
+            const equilibriumY = canvasHeight - maxBarHeight * 0.5;
+            macroCtx.moveTo(0, equilibriumY);
+            macroCtx.lineTo(canvasWidth, equilibriumY);
+            macroCtx.stroke();
+            macroCtx.setLineDash([]);
+            
+            // 绘制平衡线标签
+            macroCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            macroCtx.font = '10px Arial';
+            macroCtx.textAlign = 'left';
+            macroCtx.fillText('平衡浓度 (0.5)', 5, equilibriumY - 5);
+            
+            // 绘制扩散箭头（表示物质流动方向）
+            if (!equilibriumReached && !barrierPresent) {
+                // 计算平均浓度梯度方向
+                let leftAvg = 0, rightAvg = 0;
+                const mid = Math.floor(macroConc.length / 2);
+                for (let i = 0; i < mid; i++) leftAvg += macroConc[i];
+                for (let i = mid; i < macroConc.length; i++) rightAvg += macroConc[i];
+                leftAvg /= mid;
+                rightAvg /= (macroConc.length - mid);
+                
+                // 如果左侧平均浓度高于右侧，绘制向右的箭头
+                if (leftAvg > rightAvg) {
+                    const arrowX = canvasWidth / 2;
+                    const arrowY = canvasHeight * 0.12;
+                    
+                    macroCtx.fillStyle = 'rgba(255, 255, 100, 1)';
+                    macroCtx.font = 'bold 14px Arial';
+                    macroCtx.textAlign = 'center';
+                    macroCtx.fillText('→ 扩散方向 →', arrowX, arrowY);
+                }
+            }
+            
+            // 如果已平衡，显示平衡状态
+            if (equilibriumReached) {
+                const elapsedTime = diffusionStartTime ? (simulationTime - diffusionStartTime).toFixed(1) : "0.0";
+                macroCtx.fillStyle = 'rgba(0, 255, 170, 0.8)';
+                macroCtx.font = 'bold 16px Arial';
+                macroCtx.textAlign = 'center';
+                macroCtx.fillText('✓ 已达到扩散平衡', canvasWidth / 2, 30);
+                
+                macroCtx.font = '14px Arial';
+                macroCtx.fillText(`平衡时间: ${elapsedTime}s`, canvasWidth / 2, 50);
+            }
+            
+            // 绘制图例
+            const legendX = canvasWidth - 150;
+            const legendY = 50;
+            macroCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            macroCtx.fillRect(legendX, legendY, 140, 80);
+            
+            macroCtx.fillStyle = '#ffffff';
+            macroCtx.font = 'bold 12px Arial';
+            macroCtx.textAlign = 'left';
+            macroCtx.fillText('浓度图例', legendX + 10, legendY + 20);
+            
+            macroCtx.font = '10px Arial';
+            macroCtx.fillStyle = 'rgba(255, 100, 100, 1)';
+            macroCtx.fillRect(legendX + 10, legendY + 30, 15, 10);
+            macroCtx.fillStyle = '#ffffff';
+            macroCtx.fillText('高浓度 (>0.7)', legendX + 30, legendY + 38);
+            
+            macroCtx.fillStyle = 'rgba(100, 255, 100, 1)';
+            macroCtx.fillRect(legendX + 10, legendY + 45, 15, 10);
+            macroCtx.fillStyle = '#ffffff';
+            macroCtx.fillText('中浓度 (0.3-0.7)', legendX + 30, legendY + 53);
+            
+            macroCtx.fillStyle = 'rgba(100, 100, 255, 1)';
+            macroCtx.fillRect(legendX + 10, legendY + 60, 15, 10);
+            macroCtx.fillStyle = '#ffffff';
+            macroCtx.fillText('低浓度 (<0.3)', legendX + 30, legendY + 68);
+            
+            // 绘制理论公式
+            if (!barrierPresent) {
+                const elapsedTime = diffusionStartTime ? (simulationTime - diffusionStartTime).toFixed(1) : "0.0";
+                const diffusionLength = Math.sqrt(4 * D_macro * (elapsedTime || 0.001)).toFixed(4);
+                
+                macroCtx.fillStyle = 'rgba(255, 255, 200, 1)';
+                macroCtx.font = 'bold 12px Arial';
+                macroCtx.textAlign = 'middle';
+                macroCtx.fillText(`理论模型: C(x,t) = 0.5·erfc[x/√(4D_macro·t)]`, 20, 15);
+
+            }
+        }
+
+        // ==================== 绘制雷达图 ====================
+        function drawRadarChart(skillScores) {
+            const canvas = document.getElementById('radarCanvas');
+            const ctx = radarCtx;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) * 0.7;
+            const sides = 5;
+            const angle = (Math.PI * 2) / sides;
+            
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 技能数据
+            const skills = [
+                { name: "微观理解", value: skillScores[0] },
+                { name: "宏观把握", value: skillScores[1] },
+                { name: "参数调节", value: skillScores[2] },
+                { name: "理论应用", value: skillScores[3] },
+                { name: "问题解决", value: skillScores[4] }
+            ];
+            
+            // 绘制雷达图网格
+            ctx.strokeStyle = 'rgba(0, 170, 255, 0.3)';
+            ctx.lineWidth = 1;
+            
+            // 绘制同心多边形
+            for (let level = 1; level <= 5; level++) {
+                ctx.beginPath();
+                for (let i = 0; i <= sides; i++) {
+                    const r = radius * (level / 5);
+                    const x = centerX + r * Math.cos(i * angle - Math.PI / 2);
+                    const y = centerY + r * Math.sin(i * angle - Math.PI / 2);
+                    
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+            
+            // 绘制坐标轴
+            ctx.strokeStyle = 'rgba(0, 170, 255, 0.5)';
+            ctx.lineWidth = 1.5;
+            for (let i = 0; i < sides; i++) {
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                const x = centerX + radius * Math.cos(i * angle - Math.PI / 2);
+                const y = centerY + radius * Math.sin(i * angle - Math.PI / 2);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                
+                // 标注技能名称
+                const labelX = centerX + (radius + 20) * Math.cos(i * angle - Math.PI / 2);
+                const labelY = centerY + (radius + 20) * Math.sin(i * angle - Math.PI / 2);
+                ctx.fillStyle = '#88ffff';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(skills[i].name, labelX, labelY);
+            }
+            
+            // 绘制技能多边形
+            ctx.beginPath();
+            for (let i = 0; i < sides; i++) {
+                const value = skills[i].value;
+                const r = radius * value;
+                const x = centerX + r * Math.cos(i * angle - Math.PI / 2);
+                const y = centerY + r * Math.sin(i * angle - Math.PI / 2);
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.closePath();
+            
+            // 填充多边形
+            ctx.fillStyle = 'rgba(0, 170, 255, 0.3)';
+            ctx.fill();
+            ctx.strokeStyle = '#00aaff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 绘制数据点
+            for (let i = 0; i < sides; i++) {
+                const value = skills[i].value;
+                const r = radius * value;
+                const x = centerX + r * Math.cos(i * angle - Math.PI / 2);
+                const y = centerY + r * Math.sin(i * angle - Math.PI / 2);
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#00aaff';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        // ==================== 绘制所有 ====================
+        function drawAll() {
+            drawMicro();
+            drawMeso();
+            drawMacro();
+            updateStats();
+        }
+
+        // ==================== 更新统计信息 ====================
+        function updateStats() {
+            simulationTime += dt;
+            document.getElementById('sim-time').textContent = simulationTime.toFixed(1) + ' 秒';
+            
+            // 更新宏观状态
+            if (barrierPresent) {
+                document.getElementById('macro-state').textContent = '等待隔板移除';
+                document.getElementById('diffusion-time').textContent = '0.0 秒';
+            } else {
+                const elapsedTime = diffusionStartTime ? (simulationTime - diffusionStartTime).toFixed(1) : "0.0";
+                document.getElementById('macro-state').textContent = equilibriumReached ? '已平衡' : '扩散中';
+                document.getElementById('diffusion-time').textContent = elapsedTime + ' 秒';
+            }
+            
+            const barrierPos = barrierX * canvasWidth;
+            let leftParticles = particles.filter(p => p.x < barrierPos).length;
+            let rightParticles = particles.filter(p => p.x >= barrierPos).length;
+            let totalParticles = leftParticles + rightParticles;
+            
+            let leftConc, rightConc;
+            if (barrierPresent) {
+                leftConc = (leftParticles / N * 100).toFixed(1);
+                rightConc = (rightParticles / N * 100).toFixed(1);
+            } else {
+                leftConc = (leftParticles / totalParticles * 100).toFixed(1);
+                rightConc = (rightParticles / totalParticles * 100).toFixed(1);
+            }
+            
+            document.getElementById('left-particles').textContent = leftParticles;
+            document.getElementById('right-particles').textContent = rightParticles;
+            document.getElementById('left-conc').textContent = leftConc + '%';
+            document.getElementById('right-conc').textContent = rightConc + '%';
+            
+            // 计算平衡进度
+            let equilibriumProgress = 0;
+            if (!barrierPresent && macroConc.length > 0) {
+                // 计算左侧和右侧的平均浓度
+                const mid = Math.floor(macroConc.length / 2);
+                let leftAvg = 0, rightAvg = 0;
+                for (let i = 0; i < mid; i++) leftAvg += macroConc[i];
+                for (let i = mid; i < macroConc.length; i++) rightAvg += macroConc[i];
+                leftAvg /= mid;
+                rightAvg /= (macroConc.length - mid);
+                
+                // 计算浓度差异
+                const diff = Math.abs(leftAvg - rightAvg);
+                
+                // 计算平衡进度
+                const initialDiff = 1.0; // 初始差异为1.0
+                equilibriumProgress = Math.min(100, (1 - diff / initialDiff) * 100).toFixed(1);
+                
+                if (equilibriumProgress > 99.5) {
+                    equilibriumProgress = 100;
+                }
+            }
+            
+            document.getElementById('equilibrium').textContent = equilibriumProgress + '%';
+            
+            // 更新粒子位置
+            document.getElementById('micro-pos').textContent = 
+                `(${microParticle.x.toFixed(1)}, ${microParticle.y.toFixed(1)})`;
+        }
+
+        // ==================== 模拟单步 ====================
+        function simulationStep() {
+            updateParticle(microParticle, true);
+            particles.forEach(p => updateParticle(p));
+            updateMacro();
+            updateStats();
+        }
+
+        // ==================== 动画循环 ====================
+        function animate() {
+            if (!animationRunning) return;
+            
+            simulationStep();
+            drawAll();
+            
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // ==================== 页面导航 ====================
+        function goToSimulation() {
+            document.getElementById('simulation-display').classList.add('active');
+            document.getElementById('test-display').classList.remove('active');
+            document.getElementById('evaluation-display').classList.remove('active');
+            document.getElementById('back-btn').style.display = 'none';
+            
+            // 重新开始动画
+            if (!animationRunning) {
+                animationRunning = true;
+                document.getElementById('start-btn').style.display = 'none';
+                document.getElementById('pause-btn').style.display = 'block';
+                animate();
+            }
+            
+            // 更新画布尺寸
+            updateCanvasSize();
+            drawAll();
+        }
+        
+        function goToTest() {
+            document.getElementById('simulation-display').classList.remove('active');
+            document.getElementById('test-display').classList.add('active');
+            document.getElementById('evaluation-display').classList.remove('active');
+            document.getElementById('back-btn').style.display = 'block';
+            
+            // 暂停模拟
+            if (animationRunning) {
+                animationRunning = false;
+                document.getElementById('start-btn').style.display = 'block';
+                document.getElementById('pause-btn').style.display = 'none';
+                if (animationId) cancelAnimationFrame(animationId);
+            }
+        }
+        
+        function goToEvaluation() {
+            document.getElementById('simulation-display').classList.remove('active');
+            document.getElementById('test-display').classList.remove('active');
+            document.getElementById('evaluation-display').classList.add('active');
+            document.getElementById('back-btn').style.display = 'block';
+            
+            // 如果测试已完成，更新评测
+            if (testCompleted) {
+                updateEvaluation();
+            }
+        }
+
+        // ==================== 测试功能 ====================
+        function submitTest() {
+            let score = 0;
+            let totalQuestions = 4;
+            
+            // 问题1
+            const q1 = document.querySelector('input[name="q1"]:checked');
+            if (q1 && q1.value === 'b') {
+                score++;
+                document.getElementById('explanation-q1').classList.add('show');
+            } else {
+                document.getElementById('explanation-q1').classList.add('show');
+            }
+            
+            // 问题2
+            const q2 = document.querySelector('input[name="q2"]:checked');
+            if (q2 && q2.value === 'b') {
+                score++;
+                document.getElementById('explanation-q2').classList.add('show');
+            } else {
+                document.getElementById('explanation-q2').classList.add('show');
+            }
+            
+            // 问题3
+            const q3 = document.querySelector('input[name="q3"]:checked');
+            if (q3 && q3.value === 'c') {
+                score++;
+                document.getElementById('explanation-q3').classList.add('show');
+            } else {
+                document.getElementById('explanation-q3').classList.add('show');
+            }
+            
+            // 问题4
+            const q4 = document.querySelector('input[name="q4"]:checked');
+            if (q4 && q4.value === 'b') {
+                score++;
+                document.getElementById('explanation-q4').classList.add('show');
+            } else {
+                document.getElementById('explanation-q4').classList.add('show');
+            }
+            
+            // 显示测试结果
+            const percentage = (score / totalQuestions * 100).toFixed(1);
+            let resultHtml = `
+                <div class="test-result">
+                    <h3 style="color: #ff66ff; margin-top: 0;">测试完成！</h3>
+                    <p style="font-size: 1.2em;">得分: <strong>${score}/${totalQuestions}</strong></p>
+                    <p style="font-size: 1.2em;">正确率: <strong>${percentage}%</strong></p>
+                    <p style="margin-top: 15px;">
+                        <button onclick="goToEvaluation()" class="button-success">前往工程师评测</button>
+                    </p>
+                </div>
+            `;
+            
+            document.getElementById('test-result-container').innerHTML = resultHtml;
+            document.getElementById('test-result-container').style.display = 'block';
+            
+            // 标记测试已完成
+            testCompleted = true;
+            
+            // 启用评测按钮
+            document.getElementById('eval-btn').disabled = false;
+            
+            // 保存测试得分用于评测
+            window.testScore = score;
+            window.totalQuestions = totalQuestions;
+        }
+        
+        function showAnswers() {
+            // 显示所有答案解释
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`explanation-q${i}`).classList.add('show');
+            }
+        }
+        
+        // ==================== 更新评测 ====================
+        function updateEvaluation() {
+            if (!testCompleted) return;
+            
+            // 根据测试得分计算能力评分
+            const testRatio = window.testScore / window.totalQuestions;
+            
+            // 基础能力评分（基于测试得分和模拟参数调节）
+            const paramAdjustmentScore = Math.min(0.9, D / 5); // 基于扩散系数的调节能力
+            const particleCountScore = Math.min(0.8, N / 500); // 基于粒子数量的理解
+            
+            // 计算各项能力得分
+            const skillScores = [
+                testRatio * 0.7 + 0.3, // 微观理解
+                testRatio * 0.8 + 0.2, // 宏观把握
+                paramAdjustmentScore, // 参数调节
+                testRatio * 0.6 + 0.4, // 理论应用
+                testRatio * 0.9 + particleCountScore * 0.1 // 问题解决
+            ];
+            
+            // 确保得分在0-1之间
+            const adjustedScores = skillScores.map(score => Math.min(0.95, Math.max(0.3, score)));
+            
+            // 更新雷达图
+            const radarCanvas = document.getElementById('radarCanvas');
+            radarCanvas.width = radarCanvas.parentElement.clientWidth;
+            radarCanvas.height = 300;
+            drawRadarChart(adjustedScores);
+            
+            // 更新技能评分显示
+            const skillElements = [
+                document.getElementById('skill1'),
+                document.getElementById('skill2'),
+                document.getElementById('skill3'),
+                document.getElementById('skill4'),
+                document.getElementById('skill5')
+            ];
+            
+            const barElements = [
+                document.getElementById('skill1-bar'),
+                document.getElementById('skill2-bar'),
+                document.getElementById('skill3-bar'),
+                document.getElementById('skill4-bar'),
+                document.getElementById('skill5-bar')
+            ];
+            
+            adjustedScores.forEach((score, index) => {
+                const percentage = Math.round(score * 100);
+                skillElements[index].textContent = `${percentage}%`;
+                barElements[index].style.width = `${percentage}%`;
+            });
+            
+            // 更新建议
+            let recommendationText = "";
+            const avgScore = adjustedScores.reduce((a, b) => a + b) / adjustedScores.length;
+            
+            if (avgScore >= 0.85) {
+                recommendationText = "🎯 <strong>卓越水平</strong><br>您对扩散现象有深入理解，能够熟练应用误差函数解和菲克定律。<br><br><strong>发展建议：</strong><br>1. 探索多维扩散和复杂边界条件<br>2. 研究非均匀介质中的扩散<br>3. 学习耦合输运现象（热质耦合）<br>4. 尝试开发更复杂的扩散模拟系统";
+            } else if (avgScore >= 0.70) {
+                recommendationText = "👍 <strong>熟练水平</strong><br>您掌握了扩散的基本原理，能够理解误差函数解的应用。<br><br><strong>发展建议：</strong><br>1. 深入理解误差函数的数学性质<br>2. 研究变扩散系数问题<br>3. 学习数值方法求解复杂扩散方程<br>4. 探索浓度场随时间演化的细节";
+            } else if (avgScore >= 0.50) {
+                recommendationText = "📚 <strong>基础水平</strong><br>您对扩散现象有基本理解，需要进一步加强理论学习。<br><br><strong>发展建议：</strong><br>1. 复习布朗运动与扩散的关系<br>2. 理解误差函数解的物理意义<br>3. 多做模拟实验观察不同参数的影响<br>4. 学习菲克定律的应用场景";
+            } else {
+                recommendationText = "🔍 <strong>入门水平</strong><br>您刚开始接触扩散现象，需要建立基本概念框架。<br><br><strong>发展建议：</strong><br>1. 从微观粒子运动开始观察<br>2. 理解随机性与统计规律的关系<br>3. 尝试调节简单参数观察变化<br>4. 学习扩散的基本定义和术语";
+            }
+            
+            document.getElementById('recommendation-text').innerHTML = recommendationText;
+        }
+
+        // ==================== 初始化 ====================
+        function init() {
+            // 初始化雷达图画布
+            const radarCanvas = document.getElementById('radarCanvas');
+            radarCanvas.width = 400;
+            radarCanvas.height = 300;
+            
+            // 初始化模拟
+            initSimulation();
+            
+            // 3秒后启用移除隔板按钮
+            setTimeout(() => {
+                document.getElementById('remove-barrier-btn').disabled = false;
+            }, 3000);
+            
+            // 监听窗口大小变化
+            window.addEventListener('resize', () => {
+                updateCanvasSize();
+                drawAll();
+            });
+        }
+
+        // 启动系统
+        init();
+    </script>
+
+
+    <!-- 底部信息栏 -->
+    <div style="
+        text-align: center;
+        padding: 20px 30px;
+        margin-top: 40px;
+        color: #93c5fd;
+        font-size: 0.9rem;
+        border-top: 2px solid rgba(56, 189, 248, 0.5);
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9));
+        border-radius: 15px 15px 0 0;
+        box-shadow: 0 -10px 30px rgba(56, 189, 248, 0.1);
+        position: relative;
+        overflow: hidden;
+    ">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #38bdf8, #0ea5e9, #38bdf8);"></div>
+        
+        <p style="font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; color: #38bdf8;">
+            Fick定律一维扩散传质模拟 &copy; 2025 | 工程直觉训练系统 | 版本 1.0 | 
+        
+        <style="margin-bottom: 12px; color: #cbd5e1;">
+             <strong>邮箱:</strong> xgyanger@qq.com
+        </p>
+        
+      
+        <div style="margin-top: 15px; display: flex; justify-content: center; gap: 15px;">
+            <span style="color: #ff9e00; font-weight: bold; font-size: 1.1rem;">
+                版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+            </span>
+        </div>
+    </div>
+
+</body>
+</html>

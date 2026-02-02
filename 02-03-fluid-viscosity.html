@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>牛顿粘性定律工程仿真 - 教学评价版</title>
+    <style>
+        :root { 
+            --primary: #38bdf8; 
+            --primary-dark: #0284c7;
+            --primary-light: #7dd3fc;
+            --secondary: #fbbf24;
+            --danger: #ef4444; 
+            --success: #22c55e;
+            --expert: #8b5cf6;
+            --advanced: #10b981;
+            --bg: #020617; 
+            --card-bg: #1e293b;
+            --card-light: rgba(30, 41, 59, 0.8);
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --glow-blue: rgba(56, 189, 248, 0.3);
+            --glow-yellow: rgba(251, 191, 36, 0.3);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: all 0.3s ease;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', system-ui, 'Microsoft YaHei', sans-serif; 
+            background: var(--bg); 
+            color: var(--text-primary);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(251, 191, 36, 0.05) 0%, transparent 40%);
+        }
+        
+        /* 头部区域 */
+        .header {
+            text-align: center;
+            padding: 1.5rem 2rem;
+            background: linear-gradient(90deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.8));
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 10;
+        }
+        
+        .header h1 {
+            font-size: 2.2rem;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        
+        .header p {
+            color: var(--text-secondary);
+            max-width: 800px;
+            margin: 0 auto;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+        
+        /* 主容器 */
+        #app { 
+            width: 100%; 
+            max-width: 1200px; 
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid; 
+            grid-template-columns: 1.3fr 0.7fr; 
+            gap: 2rem; 
+        }
+        
+        .card { 
+            background: var(--card-light); 
+            border-radius: 20px; 
+            padding: 2rem; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            border: 1px solid rgba(56, 189, 248, 0.1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), transparent);
+        }
+        
+        h2 { 
+            color: var(--primary); 
+            margin: 0 0 1.5rem 0; 
+            font-size: 1.5rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 0.75rem; 
+        }
+        
+        .formula-display { 
+            background: rgba(56, 189, 248, 0.05); 
+            padding: 1.5rem; 
+            border-radius: 12px; 
+            text-align: center; 
+            margin-bottom: 1.5rem; 
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            position: relative;
+        }
+        
+        .formula-display::after {
+            content: 'τ = 剪切应力 | η = 粘度 | du/dy = 速度梯度';
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.75rem;
+            font-style: italic;
+        }
+        
+        .math { 
+            font-family: "Cambria Math", "Times New Roman", serif; 
+            font-size: 1.8rem; 
+            color: var(--primary); 
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px var(--glow-blue);
+        }
+        
+        #sim-container { 
+            position: relative; 
+            background: linear-gradient(180deg, #000 0%, #0f172a 100%); 
+            border-radius: 12px; 
+            height: 400px; 
+            overflow: hidden; 
+            border: 2px solid rgba(71, 85, 105, 0.5);
+            margin-bottom: 1.5rem;
+        }
+        
+        canvas { 
+            width: 100%; 
+            height: 100%; 
+            display: block;
+        }
+        
+        .dashboard { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 1rem; 
+            margin-top: 1rem; 
+        }
+        
+        .stat-box { 
+            background: linear-gradient(135deg, #0f172a 0%, var(--card-bg) 100%); 
+            padding: 1.25rem 1rem; 
+            border-radius: 12px; 
+            text-align: center; 
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stat-label { 
+            font-size: 0.9rem; 
+            color: var(--text-muted); 
+            margin-bottom: 0.5rem; 
+        }
+        
+        .stat-value { 
+            font-size: 1.5rem; 
+            font-weight: bold; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+        }
+        
+        .control-panel { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 1.5rem; 
+        }
+        
+        .control-group { 
+            background: rgba(255,255,255,0.03); 
+            padding: 1.5rem; 
+            border-radius: 12px; 
+            border: 1px solid rgba(71, 85, 105, 0.2);
+        }
+        
+        label { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 1rem; 
+            font-weight: 500; 
+            color: var(--text-primary);
+        }
+        
+        input[type="range"] { 
+            width: 100%; 
+            height: 8px;
+            background: linear-gradient(90deg, #0f172a, var(--card-bg));
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            border: 1px solid #475569;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 0 10px var(--glow-blue);
+            transition: all 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px var(--glow-blue);
+        }
+        
+        select { 
+            width: 100%; 
+            padding: 0.75rem; 
+            border-radius: 8px; 
+            background: #0f172a; 
+            color: white; 
+            border: 1px solid #475569; 
+            outline: none;
+            font-family: inherit;
+        }
+        
+        select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--glow-blue);
+        }
+        
+        .engineer-comment { 
+            background: rgba(2, 8, 23, 0.7); 
+            border-radius: 12px; 
+            padding: 1.5rem; 
+            border-left: 5px solid var(--primary); 
+            min-height: 120px; 
+        }
+        
+        .comment-title { 
+            font-size: 1.1rem; 
+            color: var(--primary); 
+            font-weight: bold; 
+            margin-bottom: 0.75rem; 
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .comment-text {
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+        
+        #finishBtn {
+            margin-top: 0.5rem; 
+            padding: 1rem; 
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border: none;
+            color: white; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+        
+        #finishBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--glow-blue);
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        }
+        
+        /* 模态窗口 */
+        .modal-overlay { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.85); 
+            z-index: 1000; 
+            backdrop-filter: blur(5px);
+        }
+        
+        #reportModal { 
+            display: none; 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 90%; 
+            max-width: 700px; 
+            background: var(--card-bg); 
+            border: 2px solid var(--primary); 
+            border-radius: 20px; 
+            z-index: 1001; 
+            padding: 2.5rem; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .report-section {
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+        }
+        
+        .report-stat { 
+            display: flex; 
+            justify-content: space-between; 
+            margin: 1rem 0; 
+            border-bottom: 1px solid var(--border-color); 
+            padding-bottom: 0.75rem;
+            font-size: 1.1rem;
+        }
+        
+        .stat-name {
+            color: var(--text-muted);
+        }
+        
+        .stat-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        .rank-badge { 
+            font-size: 1.8rem; 
+            font-weight: bold; 
+            text-align: center; 
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(251, 191, 36, 0.1));
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+        
+        .suggestion-box {
+            background: rgba(56, 189, 248, 0.05);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .suggestion-title {
+            color: var(--primary);
+            font-weight: bold;
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
+        }
+        
+        .suggestion-list {
+            padding-left: 1.5rem;
+            margin: 0.75rem 0;
+        }
+        
+        .suggestion-list li {
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+            color: var(--text-secondary);
+        }
+        
+        .exploration-tip {
+            color: var(--secondary);
+            font-style: italic;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(251, 191, 36, 0.2);
+        }
+        
+        #closeReport { 
+            width: 100%; 
+            padding: 1rem; 
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark)); 
+            border: none; 
+            border-radius: 12px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            color: white;
+            margin-top: 1.5rem;
+            font-size: 1.1rem;
+        }
+        
+        #closeReport:hover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        }
+        
+        .visual-meter {
+            height: 10px;
+            background: #0f172a;
+            border-radius: 5px;
+            margin: 0.75rem 0;
+            overflow: hidden;
+        }
+        
+        .meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            border-radius: 5px;
+            transition: width 1s ease;
+        }
+        
+        .highlight {
+            color: var(--secondary);
+            font-weight: bold;
+        }
+        
+        .achievement-badge {
+            display: inline-block;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--primary);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin: 0.25rem 0.5rem;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        
+        /* 底部信息栏 */
+        .footer {
+            text-align: center;
+            padding: 1.5rem 2rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            border-top: 2px solid rgba(56, 189, 248, 0.5);
+            background: linear-gradient(135deg, rgba(2, 8, 23, 0.95), rgba(30, 41, 59, 0.9));
+            margin-top: 2rem;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light), var(--primary));
+        }
+        
+        .footer-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 0.75rem;
+            color: var(--primary);
+        }
+        
+        .footer-info {
+            margin-bottom: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .footer-copyright {
+            color: var(--secondary);
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 1rem;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 900px) {
+            #app {
+                grid-template-columns: 1fr;
+                padding: 1.5rem;
+                gap: 1.5rem;
+            }
+            
+            .dashboard {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .header {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            #app {
+                padding: 1rem;
+            }
+            
+            .card {
+                padding: 1.5rem;
+                border-radius: 16px;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            #reportModal {
+                padding: 1.5rem;
+                width: 95%;
+                max-width: 95%;
+            }
+            
+            .formula-display {
+                padding: 1rem;
+            }
+            
+            .math {
+                font-size: 1.5rem;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .footer {
+                padding: 1rem;
+            }
+            
+            .footer-title {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 头部区域 -->
+<header class="header">
+    <h1>🔬 牛顿粘性定律工程仿真</h1>
+    <p>探索剪切应力、粘度与速度梯度的关系，理解牛顿流体力学的基本原理</p>
+</header>
+
+<!-- 主内容区 -->
+<div id="app">
+    <!-- 左侧：仿真区域 -->
+    <div class="card">
+        <div class="formula-display">
+            <div style="font-size: 1.6rem; color: var(--primary); margin-bottom: 0.5rem; font-weight: bold;">牛顿粘性定律</div>
+            <div class="math">τ = η · (du / dy)</div>
+        </div>
+        <div id="sim-container"><canvas id="fluidCanvas"></canvas></div>
+        <div class="dashboard">
+            <div class="stat-box">
+                <div class="stat-label">粘度 (η)</div>
+                <div id="val-eta" class="stat-value" style="color:var(--secondary)">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">速度梯度 (du/dy)</div>
+                <div id="val-grad" class="stat-value" style="color:var(--primary)">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">剪切应力 (τ)</div>
+                <div id="val-tau" class="stat-value" style="color:var(--danger)">-</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧：控制面板 -->
+    <div class="card control-panel">
+        <h2>🛠️ 实验控制终端</h2>
+        <div class="control-group">
+            <label>流体介质</label>
+            <select id="fluidSelect">
+                <option value="0.001">纯水 (1 mPa·s)</option>
+                <option value="0.06">工业润滑油 (60 mPa·s)</option>
+                <option value="1.2">浓缩甘油 (1200 mPa·s)</option>
+                <option value="15">沥青熔体 (15000 mPa·s)</option>
+            </select>
+            <small style="color:var(--text-muted); display:block; margin-top:0.5rem;">粘度越大，流体流动越困难</small>
+        </div>
+        <div class="control-group">
+            <label>上板速度 U (m/s) <span id="u-txt" style="color:var(--primary)">1.00</span></label>
+            <input type="range" id="uRange" min="0" max="5" step="0.01" value="1.0">
+            <small style="color:var(--text-muted); display:block; margin-top:0.5rem;">0 = 静止 | 5 = 高速</small>
+        </div>
+        <div class="control-group">
+            <label>板间距 h (m) <span id="h-txt" style="color:var(--primary)">0.10</span></label>
+            <input type="range" id="hRange" min="0.02" max="0.2" step="0.01" value="0.1">
+            <small style="color:var(--text-muted); display:block; margin-top:0.5rem;">间距越小，剪切作用越强</small>
+        </div>
+        <div class="engineer-comment" id="commentBox">
+            <div class="comment-title">👨‍💻 实时工程评价</div>
+            <div id="commentText" class="comment-text">系统就绪，请调整参数开始实验...</div>
+        </div>
+        <button id="finishBtn">
+            <span>📊 结束探索并获取评估报告</span>
+        </button>
+    </div>
+</div>
+
+<!-- 底部信息栏 -->
+<footer class="footer">
+    <div class="footer-title">牛顿粘性定律工程仿真系统 © 2025 | 流体力学教学实验平台 | 版本 1.0 | 邮箱:</strong> xgyanger@qq.com</div>
+    <div class="footer-copyright">版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.</div>
+</footer>
+
+<!-- 评估报告模态窗口 -->
+<div id="reportOverlay" class="modal-overlay"></div>
+<div id="reportModal">
+    <h2 style="text-align: center; color: var(--primary); margin-bottom: 0.5rem;">🎓 牛顿流体力学实验探索报告</h2>
+    <p style="text-align: center; color: var(--text-muted); margin-bottom: 1.5rem;">基于您的探索行为生成个性化评估</p>
+    
+    <div class="report-section">
+        <div class="report-stat">
+            <span class="stat-name">探索时长</span>
+            <span id="duration" class="stat-value">-</span>
+        </div>
+        <div class="report-stat">
+            <span class="stat-name">实验互动次数</span>
+            <span id="interactionCount" class="stat-value">-</span>
+        </div>
+    </div>
+    
+    <div class="report-section">
+        <h3 style="color: var(--primary); margin-top: 0;">探索覆盖率</h3>
+        
+        <div class="report-stat">
+            <span class="stat-name">流体类型覆盖率</span>
+            <span id="fluidCoverage" class="stat-value">-</span>
+        </div>
+        <div class="visual-meter">
+            <div id="fluidMeter" class="meter-fill" style="width: 0%"></div>
+        </div>
+        
+        <div class="report-stat">
+            <span class="stat-name">参数范围探索度</span>
+            <span id="paramCoverage" class="stat-value">-</span>
+        </div>
+        <div class="visual-meter">
+            <div id="paramMeter" class="meter-fill" style="width: 0%"></div>
+        </div>
+        
+        <div class="report-stat">
+            <span class="stat-name">现象发现度</span>
+            <span id="phenomenaCoverage" class="stat-value">-</span>
+        </div>
+        <div class="visual-meter">
+            <div id="phenomenaMeter" class="meter-fill" style="width: 0%"></div>
+        </div>
+    </div>
+    
+    <div id="rankDisplay" class="rank-badge"></div>
+    
+    <div class="suggestion-box">
+        <div class="suggestion-title">💡 个性化学习建议</div>
+        <div id="suggestions"></div>
+    </div>
+    
+    <div class="suggestion-box" style="border-left-color: var(--secondary);">
+        <div class="suggestion-title">🔬 推荐探索路径</div>
+        <ul class="suggestion-list" id="recommendedPath"></ul>
+    </div>
+    
+    <div class="report-section">
+        <div class="suggestion-title">🏆 已解锁成就</div>
+        <div id="achievements"></div>
+    </div>
+    
+    <button id="closeReport">返回实验室继续探索</button>
+</div>
+
+<script>
+    const canvas = document.getElementById('fluidCanvas');
+    const ctx = canvas.getContext('2d');
+    const uRange = document.getElementById('uRange');
+    const hRange = document.getElementById('hRange');
+    const fluidSelect = document.getElementById('fluidSelect');
+    
+    // --- 改进的追踪器逻辑 ---
+    const Tracker = {
+        startTime: Date.now(),
+        uniqueFluids: new Set(),
+        speedPoints: new Set(),
+        gapPoints: new Set(),
+        interactionCount: 0,
+        highStressExplored: false,
+        lowStressExplored: false,
+        highGradientExplored: false,
+        lowGradientExplored: false,
+        maxTau: 0,
+        maxGradient: 0,
+        exploredCombinations: new Set(),
+        
+        logInteraction(type, val) {
+            this.interactionCount++;
+            
+            if(type === 'fluid') {
+                this.uniqueFluids.add(val);
+                
+                // 记录具体流体类型
+                const fluidNames = {
+                    '0.001': '纯水',
+                    '0.06': '工业润滑油',
+                    '1.2': '浓缩甘油',
+                    '15': '沥青熔体'
+                };
+                
+                if(!this.fluidNames) this.fluidNames = new Set();
+                this.fluidNames.add(fluidNames[val] || '未知流体');
+            }
+            
+            if(type === 'speed') {
+                const speedVal = Math.round(parseFloat(val) * 10) / 10;
+                this.speedPoints.add(speedVal);
+            }
+            
+            if(type === 'gap') {
+                const gapVal = Math.round(parseFloat(val) * 100);
+                this.gapPoints.add(gapVal);
+            }
+            
+            // 记录参数组合
+            const U = parseFloat(uRange.value);
+            const h = parseFloat(hRange.value);
+            const eta = parseFloat(fluidSelect.value);
+            const comboKey = `${eta.toFixed(3)}_${U.toFixed(2)}_${h.toFixed(2)}`;
+            this.exploredCombinations.add(comboKey);
+        },
+        
+        updateExtremes(tau, grad) {
+            if(tau > this.maxTau) this.maxTau = tau;
+            if(grad > this.maxGradient) this.maxGradient = grad;
+            
+            if(tau > 45) this.highStressExplored = true;
+            if(tau > 0 && tau < 0.1) this.lowStressExplored = true;
+            if(grad > 120) this.highGradientExplored = true;
+            if(grad > 0 && grad < 5) this.lowGradientExplored = true;
+        },
+        
+        getCoverageScore() {
+            // 流体覆盖率 (0-40分)
+            const fluidScore = (this.uniqueFluids.size / 4) * 40;
+            
+            // 参数探索度 (0-30分)
+            const speedRange = this.speedPoints.size / 50 * 15; // 最多15分
+            const gapRange = this.gapPoints.size / 18 * 15;    // 最多15分
+            const paramScore = speedRange + gapRange;
+            
+            // 现象发现度 (0-30分)
+            let phenomenaScore = 0;
+            if(this.highStressExplored) phenomenaScore += 10;
+            if(this.lowStressExplored) phenomenaScore += 5;
+            if(this.highGradientExplored) phenomenaScore += 10;
+            if(this.lowGradientExplored) phenomenaScore += 5;
+            
+            return {
+                total: Math.round(fluidScore + paramScore + phenomenaScore),
+                fluid: Math.round(fluidScore),
+                param: Math.round(paramScore),
+                phenomena: phenomenaScore,
+                maxTau: this.maxTau,
+                maxGradient: this.maxGradient
+            };
+        }
+    };
+
+    let particles = [];
+    
+    function initParticles() {
+        particles = [];
+        for(let i = 0; i < 200; i++) {
+            particles.push({ 
+                x: Math.random() * 800, 
+                y: Math.random(), 
+                size: Math.random() * 2 + 1,
+                speedMod: Math.random() * 0.5 + 0.5
+            });
+        }
+    }
+
+    function updatePhysics() {
+        const U = parseFloat(uRange.value);
+        const h = parseFloat(hRange.value);
+        const eta = parseFloat(fluidSelect.value);
+        const grad = U / h;
+        const tau = eta * grad;
+
+        // 更新追踪器
+        Tracker.updateExtremes(tau, grad);
+
+        // 更新仪表盘
+        document.getElementById('u-txt').textContent = U.toFixed(2);
+        document.getElementById('h-txt').textContent = h.toFixed(2);
+        document.getElementById('val-eta').textContent = (eta * 1000).toFixed(0) + " mPa·s";
+        document.getElementById('val-grad').textContent = grad.toFixed(1) + " s⁻¹";
+        document.getElementById('val-tau').textContent = tau.toFixed(3) + " Pa";
+
+        draw(U, h, tau, eta, grad);
+        evalEngineer(tau, eta, grad);
+    }
+
+    function draw(U, h, tau, eta, grad) {
+        const w = canvas.width = canvas.offsetWidth;
+        const hc = canvas.height = canvas.offsetHeight;
+        const visualH = h * 1200; 
+        const topY = (hc - visualH) / 2;
+        const bottomY = (hc + visualH) / 2;
+
+        // 清空画布
+        ctx.clearRect(0, 0, w, hc);
+        
+        // 绘制渐变背景
+        const gradient = ctx.createLinearGradient(0, topY, 0, bottomY);
+        gradient.addColorStop(0, 'rgba(56, 189, 248, 0.05)');
+        gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0)');
+        gradient.addColorStop(1, 'rgba(56, 189, 248, 0.05)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, topY, w, visualH);
+
+        // 绘制流层
+        for(let j = 0; j < visualH; j += 4) {
+            let ratio = 1 - (j / visualH);
+            let hue = 200 + ratio * 40;
+            let lightness = 20 + ratio * 30;
+            ctx.fillStyle = `hsl(${hue}, 80%, ${lightness}%)`;
+            ctx.fillRect(0, topY + j, w, 4);
+        }
+
+        // 绘制粒子
+        particles.forEach(p => {
+            const verticalPos = p.y;
+            const speedFactor = verticalPos * U * 20 * p.speedMod;
+            p.x += speedFactor;
+            
+            if(p.x > w) {
+                p.x = 0;
+                p.y = Math.random();
+            }
+            
+            // 根据应力大小改变粒子颜色
+            let particleColor;
+            if(tau > 40) {
+                particleColor = `rgba(239, 68, 68, ${0.5 + 0.3 * p.y})`;
+            } else if(tau > 20) {
+                particleColor = `rgba(251, 191, 36, ${0.4 + 0.3 * p.y})`;
+            } else {
+                particleColor = `rgba(56, 189, 248, ${0.3 + 0.3 * p.y})`;
+            }
+            
+            ctx.fillStyle = particleColor;
+            ctx.beginPath();
+            ctx.arc(p.x, topY + p.y * visualH, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // 绘制速度矢量
+        for(let k = 0; k <= 8; k++) {
+            let r = k / 8;
+            let py = bottomY - r * visualH;
+            ctx.strokeStyle = `hsl(${200 + r * 60}, 100%, 75%)`;
+            drawArrow(50, py, 50 + r * U * 80, py);
+        }
+
+        // 绘制应力箭头
+        if(tau > 0.1) {
+            let len = Math.min(tau * 30, 250);
+            drawArrow(300 + U * 80, topY - 6, 300 + U * 80 - len, topY - 6, "#ef4444", 4);
+            
+            ctx.fillStyle = "#ef4444";
+            ctx.font = "bold 16px Consolas";
+            ctx.fillText(`τ: ${tau.toFixed(2)} Pa`, 300 + U * 80 - len, topY - 20);
+        }
+
+        // 绘制板块
+        ctx.fillStyle = "#475569";
+        ctx.fillRect(0, topY - 12, w, 12);
+        ctx.fillStyle = "#334155";
+        ctx.fillRect(0, bottomY, w, 12);
+        
+        // 标注
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "14px Segoe UI";
+        ctx.fillText("上板 (移动)", 20, topY - 5);
+        ctx.fillText("下板 (固定)", 20, bottomY + 10);
+    }
+
+    function drawArrow(x1, y1, x2, y2, color = "#fff", width = 2) {
+        const head = 7;
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - head * Math.cos(angle - Math.PI / 6), y2 - head * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(x2 - head * Math.cos(angle + Math.PI / 6), y2 - head * Math.sin(angle + Math.PI / 6));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+
+    function evalEngineer(tau, eta, grad) {
+        const text = document.getElementById('commentText');
+        const box = document.getElementById('commentBox');
+        
+        if (tau > 50) {
+            text.innerHTML = "💀 <b>警告：</b> 剪切应力极高！工程应用中可能导致材料失效。";
+            box.style.borderLeftColor = "var(--danger)";
+        } else if (grad > 120) {
+            text.innerHTML = "🌪️ <b>提示：</b> 极高剪切率！注意非牛顿流体效应可能显现。";
+            box.style.borderLeftColor = "var(--secondary)";
+        } else if (tau < 0.1 && grad < 5) {
+            text.innerHTML = "🌀 <b>状态：</b> 低剪切状态，流体几乎不受扰动。";
+            box.style.borderLeftColor = "var(--primary)";
+        } else {
+            text.innerHTML = "📋 <b>状态：</b> 牛顿流体稳定层流，符合线性粘性定律。";
+            box.style.borderLeftColor = "var(--success)";
+        }
+    }
+
+    // --- 改进的报告系统 ---
+    document.getElementById('finishBtn').onclick = () => {
+        const duration = Math.floor((Date.now() - Tracker.startTime) / 1000);
+        const coverage = Tracker.getCoverageScore();
+        
+        // 更新基础数据
+        document.getElementById('duration').textContent = `${duration} 秒`;
+        document.getElementById('interactionCount').textContent = Tracker.interactionCount;
+        
+        // 更新覆盖率
+        const fluidPercentage = Math.round((Tracker.uniqueFluids.size / 4) * 100);
+        document.getElementById('fluidCoverage').textContent = `${fluidPercentage}%`;
+        document.getElementById('fluidMeter').style.width = `${fluidPercentage}%`;
+        
+        const paramPercentage = Math.min(100, Math.round((coverage.param / 30) * 100));
+        document.getElementById('paramCoverage').textContent = `${paramPercentage}%`;
+        document.getElementById('paramMeter').style.width = `${paramPercentage}%`;
+        
+        const phenomenaPercentage = Math.round((coverage.phenomena / 30) * 100);
+        document.getElementById('phenomenaCoverage').textContent = `${phenomenaPercentage}%`;
+        document.getElementById('phenomenaMeter').style.width = `${phenomenaPercentage}%`;
+        
+        // 确定评级
+        let rank = "";
+        let rankColor = "";
+        let rankDescription = "";
+        
+        if(coverage.total >= 90 && Tracker.highStressExplored && Tracker.highGradientExplored) {
+            rank = "🏆 资深流体专家";
+            rankColor = "var(--expert)";
+            rankDescription = "您已全面掌握牛顿流体力学，理解粘性系数的工程意义。";
+        } else if(coverage.total >= 70) {
+            rank = "🛠️ 专业工程师";
+            rankColor = "var(--advanced)";
+            rankDescription = "您已理解基础规律，具备工程应用能力。";
+        } else if(coverage.total >= 40) {
+            rank = "📚 学习工程师";
+            rankColor = "var(--primary)";
+            rankDescription = "您已掌握基本概念，需要进一步探索参数关系。";
+        } else {
+            rank = "🔍 见习工程师";
+            rankColor = "var(--secondary)";
+            rankDescription = "您已开始探索，建议系统化实验设计。";
+        }
+        
+        // 显示评级
+        const rankDisplay = document.getElementById('rankDisplay');
+        rankDisplay.innerHTML = `
+            <div style="color:${rankColor}; font-size: 2rem; margin-bottom: 10px;">${rank}</div>
+            <div style="font-size: 1.1rem; color: var(--text-secondary);">${rankDescription}</div>
+        `;
+        
+        // 生成个性化建议
+        generateSuggestions(coverage);
+        
+        // 显示报告
+        document.getElementById('reportOverlay').style.display = 'block';
+        document.getElementById('reportModal').style.display = 'block';
+    };
+
+    function generateSuggestions(coverage) {
+        const suggestionsDiv = document.getElementById('suggestions');
+        const recommendedPathDiv = document.getElementById('recommendedPath');
+        const achievementsDiv = document.getElementById('achievements');
+        
+        let suggestions = [];
+        let recommendations = [];
+        let achievements = [];
+        
+        // 基于探索不足给出建议
+        if(Tracker.uniqueFluids.size < 3) {
+            suggestions.push("尝试更多流体类型，特别是<span class='highlight'>高粘度流体</span>（如沥青）和<span class='highlight'>低粘度流体</span>（如水）的对比。");
+        }
+        
+        if(!Tracker.highStressExplored && coverage.maxTau < 30) {
+            suggestions.push("尝试<span class='highlight'>高速(U>4)</span>结合<span class='highlight'>小间距(h<0.05)</span>和高粘度流体，观察极限剪切应力。");
+        }
+        
+        if(!Tracker.lowStressExplored) {
+            suggestions.push("尝试<span class='highlight'>低速(U<0.5)</span>或<span class='highlight'>大间距(h>0.15)</span>组合，观察低剪切现象。");
+        }
+        
+        if(Tracker.speedPoints.size < 5) {
+            suggestions.push("系统化探索速度参数：尝试<span class='highlight'>极低速度(0-0.5)</span>、<span class='highlight'>中速(1-2)</span>和<span class='highlight'>高速(3-5)</span>。");
+        }
+        
+        // 基于成就给予反馈
+        if(Tracker.highStressExplored) {
+            achievements.push('<span class="achievement-badge">💥 极限载荷探索者</span>');
+            recommendations.push("您已探索高剪切区域，接下来可以研究<span class='highlight'>不同流体</span>在相同条件下的表现差异。");
+        }
+        
+        if(Tracker.uniqueFluids.size >= 4) {
+            achievements.push('<span class="achievement-badge">🧪 全流体实验员</span>');
+            recommendations.push("您已尝试所有流体，接下来可以探索<span class='highlight'>温度对粘度的影响</span>（假设场景）。");
+        }
+        
+        if(coverage.maxTau > 50) {
+            achievements.push('<span class="achievement-badge">⚡ 高应力工程师</span>');
+            recommendations.push("您已触达工程极限，接下来可以思考<span class='highlight'>如何降低系统应力</span>（通过调整参数）。");
+        }
+        
+        if(Tracker.interactionCount > 30) {
+            achievements.push('<span class="achievement-badge">🔬 深度探索者</span>');
+        }
+        
+        // 通用建议
+        recommendations.push("系统记录不同<span class='highlight'>参数组合</span>下的剪切应力值，寻找规律。");
+        recommendations.push("思考<span class='highlight'>工程应用</span>：润滑系统、涂料涂布、聚合物加工等场景。");
+        recommendations.push("尝试固定剪切应力，调整<span class='highlight'>其他两个参数</span>，观察变化规律。");
+        
+        // 如果没有特定成就
+        if(achievements.length === 0) {
+            achievements.push('<span class="achievement-badge">🚀 探索启程者</span>');
+        }
+        
+        // 渲染建议
+        if(suggestions.length > 0) {
+            suggestionsDiv.innerHTML = `
+                <div style="margin-bottom: 10px; color: var(--text-secondary);">以下方面可以进一步探索：</div>
+                <ul class="suggestion-list">
+                    ${suggestions.map(s => `<li>${s}</li>`).join('')}
+                </ul>
+            `;
+        } else {
+            suggestionsDiv.innerHTML = `
+                <div style="color: var(--success);">🎯 您的探索已相当全面！建议深化工程应用思考。</div>
+            `;
+        }
+        
+        // 渲染推荐路径
+        recommendedPathDiv.innerHTML = recommendations.map(r => `<li>${r}</li>`).join('');
+        
+        // 渲染成就
+        achievementsDiv.innerHTML = achievements.join('');
+    }
+
+    document.getElementById('closeReport').onclick = () => {
+        document.getElementById('reportOverlay').style.display = 'none';
+        document.getElementById('reportModal').style.display = 'none';
+    };
+
+    // 绑定交互监控
+    uRange.addEventListener('input', () => { 
+        Tracker.logInteraction('speed', uRange.value); 
+        updatePhysics(); 
+    });
+    
+    hRange.addEventListener('input', () => { 
+        Tracker.logInteraction('gap', hRange.value); 
+        updatePhysics(); 
+    });
+    
+    fluidSelect.addEventListener('change', () => { 
+        Tracker.logInteraction('fluid', fluidSelect.value); 
+        updatePhysics(); 
+    });
+
+    // 初始化
+    initParticles();
+    
+    function animate() { 
+        updatePhysics(); 
+        requestAnimationFrame(animate); 
+    }
+    
+    // 初始更新
+    updatePhysics();
+    animate();
+</script>
+</body>
+</html>

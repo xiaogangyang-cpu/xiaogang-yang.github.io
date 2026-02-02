@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管道流体欧拉公式仿真 - 教学评价版</title>
+<style>
+:root {
+    --primary: #38bdf8;
+    --primary-dark: #0ea5e9;
+    --secondary: #8b5cf6;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card-light: #2d3748;
+    --text: #f8fafc;
+    --text-secondary: #94a3b8;
+    --border: #334155;
+    --local: #a855f7;
+    --conv: #f87171;
+    --sourceRed: #ef4444;
+    --sourceBlue: #3b82f6;
+}
+
+* {
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+body {
+    font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
+    background: linear-gradient(135deg, #0b1220 0%, #1a1f2e 100%);
+    color: var(--text);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.bg-pattern {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.03) 0%, transparent 40%);
+    z-index: -1;
+}
+
+.main-container {
+    width: 100%;
+    max-width: 1500px;
+    z-index: 1;
+    flex: 1;
+    margin-bottom: 30px;
+}
+
+#app {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 25px;
+    width: 100%;
+}
+
+.card {
+    background: rgba(30, 41, 59, 0.85);
+    border-radius: 20px;
+    padding: 25px;
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+    backdrop-filter: blur(10px);
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    border-radius: 20px 20px 0 0;
+}
+
+#simulationTitle {
+    color: var(--primary);
+    margin-bottom: 15px;
+    font-size: 1.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.math-overlay {
+    position: absolute;
+    top: 120px;
+    right: 40px;
+    background: rgba(15, 23, 42, 0.9);
+    padding: 15px;
+    border-radius: 12px;
+    border: 2px solid var(--primary);
+    font-size: 1.1rem;
+    pointer-events: none;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    max-width: 350px;
+}
+
+.formula-parts {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.formula-part {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.local-term {
+    background: rgba(168, 85, 247, 0.15);
+    color: var(--local);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.conv-term {
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--conv);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.source-term {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+#canvasContainer {
+    position: relative;
+    background: linear-gradient(180deg, #000 0%, #0f172a 100%);
+    border-radius: 16px;
+    height: 550px;
+    overflow: hidden;
+    border: 2px solid var(--border);
+    margin-bottom: 15px;
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.pipe-labels {
+    position: absolute;
+    bottom: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+}
+
+.pipe-label {
+    background: rgba(15, 23, 42, 0.9);
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: 1px solid;
+    font-family: 'Consolas', monospace;
+    font-size: 0.9rem;
+    backdrop-filter: blur(10px);
+    min-width: 280px;
+}
+
+.coarse-label {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.fine-label {
+    border-color: var(--secondary);
+    color: var(--secondary);
+}
+
+.label-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.label-values {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.label-value {
+    text-align: center;
+    flex: 1;
+}
+
+.value-name {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.value-number {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 3px;
+}
+
+.simulation-info {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 15px;
+    padding: 12px;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.control-panel h3 {
+    color: var(--primary);
+    margin-bottom: 25px;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-group {
+    background: rgba(15, 23, 42, 0.6);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+}
+
+.control-group:hover {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.2);
+}
+
+.control-group label {
+    display: block;
+    font-size: 0.95rem;
+    color: var(--text);
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.value-display {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    align-items: center;
+}
+
+.value-number-display {
+    font-family: 'Consolas', monospace;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--primary);
+    background: rgba(56, 189, 248, 0.1);
+    padding: 5px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.unit {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+input[type="range"] {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #1e293b, #334155);
+    outline: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    border: 1px solid #475569;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+}
+
+.slider-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 8px;
+}
+
+.feedback-box {
+    margin-top: 20px;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.7);
+    border-radius: 12px;
+    border: 1px solid var(--primary);
+    font-size: 0.95rem;
+}
+
+.feedback-title {
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1rem;
+}
+
+.feedback-content {
+    line-height: 1.6;
+    color: var(--text);
+}
+
+.key-insight {
+    background: rgba(248, 113, 113, 0.1);
+    border-left: 4px solid var(--conv);
+    padding: 10px 15px;
+    margin: 15px 0;
+    border-radius: 0 8px 8px 0;
+}
+
+.equation-term {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-family: 'Consolas', monospace;
+}
+
+.term-local {
+    background: rgba(168, 85, 247, 0.15);
+    color: var(--local);
+}
+
+.term-conv {
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--conv);
+}
+
+.term-source {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+button {
+    flex: 1;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+#genReport {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+}
+
+#genReport:hover {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(56, 189, 248, 0.4);
+}
+
+#resetSim {
+    background: rgba(71, 85, 105, 0.5);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+#resetSim:hover {
+    background: rgba(71, 85, 105, 0.8);
+    transform: translateY(-2px);
+}
+
+/* Footer样式 */
+.footer {
+    width: 100%;
+    max-width: 1500px;
+    padding: 20px 0;
+    margin-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    z-index: 1;
+}
+
+.footer-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    width: 100%;
+    gap: 20px;
+}
+
+.footer-section {
+    flex: 1;
+    min-width: 250px;
+}
+
+.footer-title {
+    color: var(--primary);
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.footer-links li {
+    margin-bottom: 8px;
+}
+
+.footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+    color: var(--primary);
+}
+
+.contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.footer-note {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+}
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(2, 6, 23, 0.95);
+    z-index: 100;
+    backdrop-filter: blur(10px);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    background: var(--card);
+    border-radius: 20px;
+    z-index: 101;
+    overflow: hidden;
+    border: 2px solid var(--primary);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    padding: 30px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    color: white;
+}
+
+.modal-subtitle {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.modal-content {
+    padding: 30px;
+    overflow-y: auto;
+    max-height: 60vh;
+}
+
+.evaluation-section {
+    margin-bottom: 30px;
+    padding: 25px;
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.section-title {
+    font-size: 1.3rem;
+    color: var(--primary);
+    margin-top: 0;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.parameter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.parameter-card {
+    background: rgba(30, 41, 59, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+    border-left: 4px solid var(--primary);
+}
+
+.param-name {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.param-value {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--primary);
+    font-family: 'Consolas', monospace;
+}
+
+.insight-box {
+    background: rgba(248, 113, 113, 0.1);
+    padding: 20px;
+    border-radius: 12px;
+    margin: 20px 0;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.insight-title {
+    color: var(--conv);
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.recommendation-list {
+    padding-left: 20px;
+    margin: 15px 0;
+}
+
+.recommendation-list li {
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.highlight {
+    color: var(--warning);
+    font-weight: 600;
+}
+
+.learning-level {
+    display: inline-block;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-weight: 600;
+    margin: 10px 0;
+}
+
+.level-expert {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.level-intermediate {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: white;
+}
+
+.level-beginner {
+    background: linear-gradient(135deg, #6b7280, #9ca3af);
+    color: white;
+}
+
+.close-btn {
+    display: block;
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    border: none;
+    border-radius: 0 0 18px 18px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.close-btn:hover {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+}
+
+.achievement-badge {
+    display: inline-block;
+    background: rgba(56, 189, 248, 0.1);
+    color: var(--primary);
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    margin: 5px;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    #app {
+        grid-template-columns: 1fr;
+    }
+    
+    .pipe-labels {
+        flex-direction: column;
+        gap: 15px;
+        align-items: center;
+    }
+    
+    .pipe-label {
+        width: 90%;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .card {
+        padding: 20px;
+    }
+    
+    .math-overlay {
+        position: relative;
+        top: 0;
+        right: 0;
+        margin-bottom: 20px;
+        max-width: 100%;
+    }
+    
+    .modal {
+        width: 95%;
+        padding: 15px;
+    }
+    
+    .footer-content {
+        flex-direction: column;
+        gap: 25px;
+    }
+    
+    .footer-section {
+        min-width: 100%;
+    }
+}
+</style>
+</head>
+<body>
+<div class="bg-pattern"></div>
+
+<div class="main-container">
+    <div id="app">
+        <div class="card">
+            <h1 id="simulationTitle">🧪 欧拉公式仿真 - 变截面管道流体动力学</h1>
+            
+            <div class="math-overlay">
+                <div style="font-weight: 600; margin-bottom: 10px; color: var(--primary);">欧拉公式 (控制体积法)</div>
+                <div class="formula-parts">
+                    <span>Dv/Dt =</span>
+                    <span class="formula-part local-term">∂v/∂t</span>
+                    <span>+</span>
+                    <span class="formula-part conv-term">(v·∇)v</span>
+                    <span>+</span>
+                    <span class="formula-part source-term">S</span>
+                </div>
+            </div>
+            
+            <div id="canvasContainer">
+                <canvas id="flowCanvas"></canvas>
+                <div class="pipe-labels">
+                    <div class="pipe-label coarse-label">
+                        <div class="label-title">粗管段 (入口)</div>
+                        <div id="coarseLabel" class="label-values">
+                            <div class="label-value">
+                                <div class="value-name">∂v/∂t</div>
+                                <div id="localCoarseValue" class="value-number">0.00</div>
+                            </div>
+                            <div class="label-value">
+                                <div class="value-name">(v·∇)v</div>
+                                <div id="convCoarseValue" class="value-number">0.00</div>
+                            </div>
+                            <div class="label-value">
+                                <div class="value-name">源项 S</div>
+                                <div id="sourceCoarseValue" class="value-number">0.00</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="pipe-label fine-label">
+                        <div class="label-title">细管段 (出口)</div>
+                        <div id="fineLabel" class="label-values">
+                            <div class="label-value">
+                                <div class="value-name">∂v/∂t</div>
+                                <div id="localFineValue" class="value-number">0.00</div>
+                            </div>
+                            <div class="label-value">
+                                <div class="value-name">(v·∇)v</div>
+                                <div id="convFineValue" class="value-number">0.00</div>
+                            </div>
+                            <div class="label-value">
+                                <div class="value-name">源项 S</div>
+                                <div id="sourceFineValue" class="value-number">0.00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="simulation-info">
+                <div style="font-weight: 600; color: var(--primary); margin-bottom: 5px;">仿真说明</div>
+                <div>管道分段：粗管 40% / 变径收缩区 20% / 细管 40%</div>
+                <div>红色粒子：入口源项 | 蓝色粒子：变径区源项</div>
+                <div>观察不同截面处欧拉公式各项的变化规律</div>
+            </div>
+        </div>
+
+        <div class="card control-panel">
+            <h3>🛠️ 参数控制面板</h3>
+            
+            <div class="control-group">
+                <label>整体流速 (m/s)</label>
+                <div class="value-display">
+                    <span id="flowSpeedDisp" class="value-number-display">1.0</span>
+                    <span class="unit">m/s</span>
+                </div>
+                <input type="range" id="flowSpeed" min="0.1" max="5" step="0.1" value="1">
+                <div class="slider-info">
+                    <span>低速</span>
+                    <span>高速</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>红色源项强度 (入口)</label>
+                <div class="value-display">
+                    <span id="sourceSpeedDisp" class="value-number-display">20</span>
+                    <span class="unit">粒子/s</span>
+                </div>
+                <input type="range" id="sourceSpeed" min="0" max="60" step="1" value="20">
+                <div class="slider-info">
+                    <span>无源</span>
+                    <span>强源</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>蓝色源项强度 (变径区)</label>
+                <div class="value-display">
+                    <span id="blueSourceSpeedDisp" class="value-number-display">10</span>
+                    <span class="unit">粒子/s</span>
+                </div>
+                <input type="range" id="blueSourceSpeed" min="0" max="50" step="1" value="10">
+                <div class="slider-info">
+                    <span>无源</span>
+                    <span>强源</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>截面收缩比例</label>
+                <div class="value-display">
+                    <span id="ratioDisp" class="value-number-display">2.5</span>
+                    <span class="unit">倍</span>
+                </div>
+                <input type="range" id="ratioRange" min="1.1" max="4.5" step="0.1" value="2.5">
+                <div class="slider-info">
+                    <span>轻微</span>
+                    <span>强烈</span>
+                </div>
+            </div>
+            
+            <div class="feedback-box" id="aiBox">
+                <div class="feedback-title">💡 实时工程洞察</div>
+                <div id="feedback" class="feedback-content">
+                    调整参数观察欧拉公式各项变化。注意<span class="term-local">本地加速度项</span>、
+                    <span class="term-conv">迁移加速度项</span>和<span class="term-source">源项</span>
+                    在不同截面处的差异。
+                </div>
+                <div class="key-insight" id="keyInsight">
+                    关键发现：截面收缩导致流速增加，迁移项增大。
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="genReport">
+                    <span>📊 生成评估报告</span>
+                </button>
+                <button id="resetSim">
+                    <span>🔄 重置仿真</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+ 
+<!-- 底部信息栏 -->
+<div style="
+    text-align: center;
+    padding: 20px 30px;
+    margin-top: 40px;
+    color: #e6f7ff;
+    font-size: 0.9rem;
+    border-top: 2px solid rgba(0, 180, 255, 0.5);
+    background: linear-gradient(135deg, rgba(10, 15, 43, 0.95), rgba(18, 26, 58, 0.9));
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    /* 新增以下，确保完全宽度 */
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+">    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+        
+    <p style="font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; color: #00b4ff;">
+
+流体力学教学仿真平台© 2025 | 微元体欧拉公式评估系统 | 版本1.0  |  
+    <style="margin-bottom: 12px; color: #cbd5e1;">
+        <strong>邮箱:</strong> xgyanger@qq.com
+    <div style="margin-top: 15px;">
+        <span style="color: #ffcc00; font-weight: bold; font-size: 1rem;">
+            版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+        </span>
+    </div>
+
+</footer>
+
+<div id="reportOverlay" class="modal-overlay"></div>
+<div id="reportModal" class="modal">
+    <div class="modal-header">
+        <div class="modal-title">欧拉公式仿真探索评估报告</div>
+        <div class="modal-subtitle">基于当前实验参数的流体动力学分析</div>
+    </div>
+    
+    <div class="modal-content">
+        <div class="evaluation-section">
+            <h3 class="section-title">📈 当前实验参数</h3>
+            <div class="parameter-grid">
+                <div class="parameter-card">
+                    <div class="param-name">整体流速</div>
+                    <div id="reportFlowSpeed" class="param-value">1.0 m/s</div>
+                </div>
+                
+                <div class="parameter-card">
+                    <div class="param-name">红色源强度</div>
+                    <div id="reportRedSource" class="param-value">20 粒子/s</div>
+                </div>
+                
+                <div class="parameter-card">
+                    <div class="param-name">蓝色源强度</div>
+                    <div id="reportBlueSource" class="param-value">10 粒子/s</div>
+                </div>
+                
+                <div class="parameter-card">
+                    <div class="param-name">收缩比例</div>
+                    <div id="reportRatio" class="param-value">2.5 倍</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="evaluation-section">
+            <h3 class="section-title">🔬 欧拉公式项分析</h3>
+            
+            <div class="parameter-grid">
+                <div class="parameter-card">
+                    <div class="param-name">粗管段本地项</div>
+                    <div id="reportLocalCoarse" class="param-value">0.00</div>
+                    <div class="param-name" style="margin-top: 10px;">状态</div>
+                    <div id="localCoarseStatus" class="param-value">稳定</div>
+                </div>
+                
+                <div class="parameter-card">
+                    <div class="param-name">粗管段迁移项</div>
+                    <div id="reportConvCoarse" class="param-value">0.00</div>
+                    <div class="param-name" style="margin-top: 10px;">状态</div>
+                    <div id="convCoarseStatus" class="param-value">均匀</div>
+                </div>
+                
+                <div class="parameter-card">
+                    <div class="param-name">细管段本地项</div>
+                    <div id="reportLocalFine" class="param-value">0.00</div>
+                    <div class="param-name" style="margin-top: 10px;">状态</div>
+                    <div id="localFineStatus" class="param-value">稳定</div>
+                </div>
+                
+                <div class="parameter-card">
+                    <div class="param-name">细管段迁移项</div>
+                    <div id="reportConvFine" class="param-value">0.00</div>
+                    <div class="param-name" style="margin-top: 10px;">状态</div>
+                    <div id="convFineStatus" class="param-value">加速</div>
+                </div>
+            </div>
+            
+            <div class="insight-box">
+                <div class="insight-title">💡 物理洞察</div>
+                <div id="physicalInsight">
+                    根据连续方程，截面收缩导致流速增加。迁移项(v·∇)v反映了流速变化对加速度的贡献，
+                    在细管段此项增大，符合理论预期。
+                </div>
+            </div>
+        </div>
+        
+        <div class="evaluation-section">
+            <h3 class="section-title">🎯 学习水平评估</h3>
+            <div id="learningLevel" class="learning-level level-beginner">实习工程师</div>
+            <p id="levelDescription">您刚开始探索欧拉公式各项的变化规律。</p>
+            
+            <div style="margin-top: 20px;">
+                <div class="section-title" style="font-size: 1.1rem;">🏆 已解锁成就</div>
+                <div id="achievementsList"></div>
+            </div>
+        </div>
+        
+        <div class="evaluation-section">
+            <h3 class="section-title">📚 针对性学习建议</h3>
+            <ul class="recommendation-list" id="recommendations">
+                <li>尝试调整<span class="highlight">收缩比例</span>，观察迁移项的变化规律</li>
+                <li>设置<span class="highlight">蓝色源为0</span>，观察纯收缩管道的流动特性</li>
+                <li>对比<span class="highlight">高速和低速</span>下各项的相对大小变化</li>
+            </ul>
+        </div>
+    </div>
+    
+    <button id="closeReport" class="close-btn">返回仿真实验室</button>
+</div>
+
+<script>
+// 全局变量
+const canvas = document.getElementById('flowCanvas');
+const ctx = canvas.getContext('2d');
+const ratioRange = document.getElementById('ratioRange');
+const flowSpeedSlider = document.getElementById('flowSpeed');
+const sourceSpeedSlider = document.getElementById('sourceSpeed');
+const blueSourceSlider = document.getElementById('blueSourceSpeed');
+const reportOverlay = document.getElementById('reportOverlay');
+const reportModal = document.getElementById('reportModal');
+const closeReportBtn = document.getElementById('closeReport');
+const resetSimBtn = document.getElementById('resetSim');
+const genReportBtn = document.getElementById('genReport');
+
+// 粒子系统
+let particles = [];
+let time = 0;
+const frameRate = 60;
+const deltaT = 1.0; // 用于本地加速度计算的时间间隔
+
+// 追踪器 - 记录用户探索行为
+const Tracker = {
+    startTime: Date.now(),
+    flowSpeeds: new Set(),
+    redSources: new Set(),
+    blueSources: new Set(),
+    ratios: new Set(),
+    interactionCount: 0,
+    maxLocalCoarse: 0,
+    maxConvFine: 0,
+    sourceCombinations: new Set(),
+    
+    logInteraction(type, value) {
+        this.interactionCount++;
+        
+        switch(type) {
+            case 'flowSpeed':
+                this.flowSpeeds.add(Math.round(value * 10) / 10);
+                break;
+            case 'redSource':
+                this.redSources.add(Math.round(value));
+                break;
+            case 'blueSource':
+                this.blueSources.add(Math.round(value));
+                break;
+            case 'ratio':
+                this.ratios.add(Math.round(value * 10) / 10);
+                break;
+        }
+        
+        // 记录源组合
+        const red = parseFloat(sourceSpeedSlider.value);
+        const blue = parseFloat(blueSourceSlider.value);
+        this.sourceCombinations.add(`${red}_${blue}`);
+    },
+    
+    updateExtremes(localCoarse, convFine) {
+        if (Math.abs(localCoarse) > Math.abs(this.maxLocalCoarse)) {
+            this.maxLocalCoarse = localCoarse;
+        }
+        if (Math.abs(convFine) > Math.abs(this.maxConvFine)) {
+            this.maxConvFine = convFine;
+        }
+    },
+    
+    getCoverageScore() {
+        // 参数探索度 (0-40分)
+        const paramScore = Math.min(40, 
+            (this.flowSpeeds.size * 5) + 
+            (this.redSources.size * 3) + 
+            (this.blueSources.size * 3) + 
+            (this.ratios.size * 4));
+        
+        // 现象发现度 (0-30分)
+        let phenomenaScore = 0;
+        if (this.maxLocalCoarse !== 0) phenomenaScore += 5;
+        if (this.maxConvFine > 0.5) phenomenaScore += 10;
+        if (this.sourceCombinations.size >= 3) phenomenaScore += 10;
+        if (this.redSources.size >= 3 && this.blueSources.size >= 3) phenomenaScore += 5;
+        
+        // 互动深度 (0-30分)
+        const interactionScore = Math.min(30, this.interactionCount / 2);
+        
+        return {
+            total: Math.round(paramScore + phenomenaScore + interactionScore),
+            param: Math.round(paramScore),
+            phenomena: phenomenaScore,
+            interaction: Math.round(interactionScore)
+        };
+    }
+};
+
+// 初始化粒子系统
+function createParticle(x, h, color = 'red') {
+    const relY = Math.random() * 2 - 1;
+    const y = h / 2 + relY * h * 0.38;
+    const speed = (color === 'red' ? parseFloat(sourceSpeedSlider.value) : parseFloat(blueSourceSlider.value)) + Math.random() * 5;
+    const radius = 3 + Math.random() * 2;
+    const colorHue = color === 'red' ? 0 : 220;
+    return { x, y, relY, speed, colorHue, radius, life: 12000, color, prevSpeeds: [] };
+}
+
+function initParticles() {
+    particles = [];
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    
+    // 创建初始粒子
+    for (let i = 0; i < 300; i++) {
+        particles.push(createParticle(Math.random() * w, h, 'red'));
+        particles.push(createParticle(Math.random() * w * 0.4, h, 'blue'));
+    }
+}
+
+// 获取管道边界
+function getBoundary(x, w, h) {
+    const ratio = parseFloat(ratioRange.value);
+    const seg1 = w * 0.4, seg2 = w * 0.2, seg3 = w * 0.4;
+    const hMax = h * 0.38, hMin = hMax / ratio;
+    let currentH = hMax;
+    
+    if (x <= seg1) {
+        currentH = hMax;
+    } else if (x <= seg1 + seg2) {
+        const t = (x - seg1) / seg2;
+        const smoothT = t * t * (3 - 2 * t);
+        currentH = hMax + (hMin - hMax) * smoothT;
+    } else {
+        currentH = hMin;
+    }
+    
+    return { top: h / 2 - currentH, bottom: h / 2 + currentH, h: currentH };
+}
+
+// 绘制函数
+function draw() {
+    const w = canvas.width = canvas.offsetWidth;
+    const h = canvas.height = canvas.offsetHeight;
+    time += 2 / frameRate;
+
+    // 拖尾效果
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.fillRect(0, 0, w, h);
+
+    // 绘制管道壁
+    ctx.fillStyle = "#0f172a";
+    
+    const drawWall = (isTop) => {
+        ctx.beginPath();
+        ctx.moveTo(0, isTop ? 0 : h);
+        
+        for (let x = 0; x <= w; x += 10) {
+            const b = getBoundary(x, w, h);
+            ctx.lineTo(x, isTop ? b.top : b.bottom);
+        }
+        
+        ctx.lineTo(w, isTop ? 0 : h);
+        ctx.fill();
+    };
+    
+    drawWall(true);
+    drawWall(false);
+    
+    // 管道壁高光
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.1)';
+    ctx.lineWidth = 2;
+    
+    // 上壁面
+    ctx.beginPath();
+    ctx.moveTo(0, getBoundary(0, w, h).top);
+    for (let x = 0; x <= w; x += 20) {
+        const b = getBoundary(x, w, h);
+        ctx.lineTo(x, b.top);
+    }
+    ctx.stroke();
+    
+    // 下壁面
+    ctx.beginPath();
+    ctx.moveTo(0, getBoundary(0, w, h).bottom);
+    for (let x = 0; x <= w; x += 20) {
+        const b = getBoundary(x, w, h);
+        ctx.lineTo(x, b.bottom);
+    }
+    ctx.stroke();
+
+    // 添加红色源粒子
+    for (let i = 0; i < parseFloat(sourceSpeedSlider.value) / 10; i++) {
+        if (particles.length < 2000) {
+            particles.push(createParticle(0, h, 'red'));
+        }
+    }
+    
+    // 添加蓝色源粒子 (变径区)
+    const seg2Start = w * 0.4, seg2End = w * 0.6;
+    for (let i = 0; i < parseFloat(blueSourceSlider.value) / 15; i++) {
+        if (particles.length < 2000) {
+            const relY = Math.random() * 0.4 - 0.2;
+            const x = Math.random() * (seg2End - seg2Start) + seg2Start;
+            const y = h / 2 + relY * h * 0.38;
+            particles.push({
+                x, y, relY,
+                speed: parseFloat(blueSourceSlider.value),
+                colorHue: 220,
+                radius: 3 + Math.random() * 2,
+                life: 12000,
+                color: 'blue',
+                prevSpeeds: []
+            });
+        }
+    }
+
+    const globalSpeed = parseFloat(flowSpeedSlider.value);
+    let localCoarseSum = 0, convCoarseSum = 0;
+    let localFineSum = 0, convFineSum = 0;
+    let coarseCount = 0, fineCount = 0;
+
+    // 更新和绘制粒子
+    particles = particles.filter(p => {
+        const b = getBoundary(p.x, w, h);
+        const hRef = (p.x <= w * 0.4) ? h * 0.38 : ((p.x >= w * 0.6) ? h * 0.38 / parseFloat(ratioRange.value) : h * 0.38);
+        const vx = p.speed * 0.1 * (h * 0.38) / hRef * (1 - Math.pow(p.relY, 4) * 0.4) * globalSpeed / 2;
+        
+        p.x += vx;
+        p.y = h / 2 + p.relY * b.h;
+
+        // 更新速度历史 (用于计算本地加速度)
+        p.prevSpeeds.push(p.speed);
+        const maxHistory = frameRate * deltaT;
+        if (p.prevSpeeds.length > maxHistory) {
+            p.prevSpeeds.shift();
+        }
+        
+        // 计算本地加速度
+        let localAcc = 0;
+        if (p.prevSpeeds.length >= maxHistory) {
+            localAcc = (p.speed - p.prevSpeeds[0]) / deltaT;
+        }
+        p.localAcc = localAcc;
+
+        // 绘制粒子
+        const brightness = 40 + Math.min(vx * 2, 60);
+        const alpha = p.life > 1000 ? 0.8 : p.life / 1250;
+        ctx.fillStyle = `hsla(${p.colorHue}, 90%, ${brightness}%, ${alpha})`;
+        
+        // 粒子光晕
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius * 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.colorHue}, 50%, ${brightness}%, ${alpha * 0.3})`;
+        ctx.fill();
+        
+        // 粒子主体
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.colorHue}, 90%, ${brightness}%, ${alpha})`;
+        ctx.fill();
+        
+        // 收集统计信息
+        if (p.x <= 0.05 * w) { // 粗管段
+            localCoarseSum += p.localAcc;
+            convCoarseSum += Math.abs(p.x * 0.001);
+            coarseCount++;
+        } else if (p.x >= 0.95 * w) { // 细管段
+            localFineSum += p.localAcc;
+            convFineSum += Math.abs(p.x * 0.001);
+            fineCount++;
+        }
+
+        // 粒子寿命
+        p.life -= 0.3;
+        return p.life > 0 && p.x <= w;
+    });
+
+    // 计算各项平均值
+    const localCoarse = coarseCount > 0 ? localCoarseSum / coarseCount : 0;
+    const convCoarse = coarseCount > 0 ? convCoarseSum / coarseCount : 0;
+    const SCoarse = parseFloat(blueSourceSlider.value) / 10;
+
+    const localFine = fineCount > 0 ? localFineSum / fineCount : 0;
+    const convFine = fineCount > 0 ? convFineSum / fineCount : 0;
+    const SFine = (parseFloat(sourceSpeedSlider.value) + parseFloat(blueSourceSlider.value)) / 10;
+
+    // 更新追踪器
+    Tracker.updateExtremes(localCoarse, convFine);
+
+    // 更新显示
+    document.getElementById('localCoarseValue').textContent = localCoarse.toFixed(2);
+    document.getElementById('convCoarseValue').textContent = convCoarse.toFixed(2);
+    document.getElementById('sourceCoarseValue').textContent = SCoarse.toFixed(2);
+    
+    document.getElementById('localFineValue').textContent = localFine.toFixed(2);
+    document.getElementById('convFineValue').textContent = convFine.toFixed(2);
+    document.getElementById('sourceFineValue').textContent = SFine.toFixed(2);
+
+    // 更新反馈
+    updateFeedback(localCoarse, convCoarse, localFine, convFine, SCoarse, SFine);
+    
+    // 继续动画
+    requestAnimationFrame(draw);
+}
+
+// 更新实时反馈
+function updateFeedback(localCoarse, convCoarse, localFine, convFine, SCoarse, SFine) {
+    const feedback = document.getElementById('feedback');
+    const keyInsight = document.getElementById('keyInsight');
+    
+    // 基本反馈
+    let feedbackText = `粗管段: 本地项=${localCoarse.toFixed(2)}, 迁移项=${convCoarse.toFixed(2)}, 源项=${SCoarse.toFixed(2)}<br>`;
+    feedbackText += `细管段: 本地项=${localFine.toFixed(2)}, 迁移项=${convFine.toFixed(2)}, 源项=${SFine.toFixed(2)}`;
+    
+    feedback.innerHTML = feedbackText;
+    
+    // 关键洞察
+    let insightText = "";
+    const ratio = parseFloat(ratioRange.value);
+    
+    if (convFine > convCoarse * 1.5) {
+        insightText = "关键发现: 截面收缩导致流速增加，迁移项显著增大。";
+    } else if (SFine > SCoarse * 2) {
+        insightText = "关键发现: 源项在细管段累积效应明显。";
+    } else if (Math.abs(localFine) > 0.1) {
+        insightText = "关键发现: 细管段出现明显的本地加速度变化。";
+    } else {
+        insightText = "关键发现: 截面收缩导致流速增加，迁移项增大。";
+    }
+    
+    keyInsight.textContent = insightText;
+}
+
+// 生成评估报告
+function generateReport() {
+    const flowSpeed = parseFloat(flowSpeedSlider.value);
+    const redSource = parseFloat(sourceSpeedSlider.value);
+    const blueSource = parseFloat(blueSourceSlider.value);
+    const ratio = parseFloat(ratioRange.value);
+    
+    // 获取当前各项值
+    const localCoarse = parseFloat(document.getElementById('localCoarseValue').textContent);
+    const convCoarse = parseFloat(document.getElementById('convCoarseValue').textContent);
+    const localFine = parseFloat(document.getElementById('localFineValue').textContent);
+    const convFine = parseFloat(document.getElementById('convFineValue').textContent);
+    
+    // 更新报告参数
+    document.getElementById('reportFlowSpeed').textContent = flowSpeed.toFixed(1) + " m/s";
+    document.getElementById('reportRedSource').textContent = redSource + " 粒子/s";
+    document.getElementById('reportBlueSource').textContent = blueSource + " 粒子/s";
+    document.getElementById('reportRatio').textContent = ratio.toFixed(1) + " 倍";
+    
+    document.getElementById('reportLocalCoarse').textContent = localCoarse.toFixed(2);
+    document.getElementById('reportConvCoarse').textContent = convCoarse.toFixed(2);
+    document.getElementById('reportLocalFine').textContent = localFine.toFixed(2);
+    document.getElementById('reportConvFine').textContent = convFine.toFixed(2);
+    
+    // 更新状态描述
+    document.getElementById('localCoarseStatus').textContent = Math.abs(localCoarse) < 0.1 ? "稳定" : "变化中";
+    document.getElementById('convCoarseStatus').textContent = convCoarse < 0.1 ? "均匀" : "有梯度";
+    document.getElementById('localFineStatus').textContent = Math.abs(localFine) < 0.1 ? "稳定" : "变化中";
+    document.getElementById('convFineStatus').textContent = convFine > convCoarse * 1.2 ? "加速" : "稳定";
+    
+    // 计算学习水平
+    const coverage = Tracker.getCoverageScore();
+    let level = "实习工程师";
+    let levelClass = "level-beginner";
+    let levelDescription = "";
+    
+    if (coverage.total >= 70) {
+        level = "高级工程师";
+        levelClass = "level-expert";
+        levelDescription = "您已深入理解欧拉公式各项的物理意义和变化规律。";
+    } else if (coverage.total >= 40) {
+        level = "中级工程师";
+        levelClass = "level-intermediate";
+        levelDescription = "您已掌握欧拉公式的基本规律，可以进一步探索参数间的关系。";
+    } else {
+        levelDescription = "您刚开始探索欧拉公式各项的变化规律，建议尝试更多参数组合。";
+    }
+    
+    // 更新学习水平
+    const levelElement = document.getElementById('learningLevel');
+    levelElement.textContent = level;
+    levelElement.className = `learning-level ${levelClass}`;
+    document.getElementById('levelDescription').textContent = levelDescription;
+    
+    // 生成物理洞察
+    let physicalInsight = "";
+    if (convFine > convCoarse * 1.5) {
+        physicalInsight = "根据连续方程，截面收缩导致流速增加。迁移项(v·∇)v反映了流速变化对加速度的贡献，在细管段此项显著增大，符合理论预期。这体现了流体通过收缩截面时的加速效应。";
+    } else if (redSource > blueSource * 2) {
+        physicalInsight = "红色源项占主导，入口效应明显。欧拉公式中的源项体现了外部输入对流体动量的影响，当前设置下入口源项对流动的影响更为显著。";
+    } else {
+        physicalInsight = "当前参数设置下，欧拉公式各项的变化规律符合不可压缩流体在变截面管道中的流动特性。本地加速度项较小，表明流动接近稳态。";
+    }
+    
+    document.getElementById('physicalInsight').textContent = physicalInsight;
+    
+    // 生成成就列表
+    const achievementsList = document.getElementById('achievementsList');
+    let achievementsHTML = "";
+    
+    if (Tracker.flowSpeeds.size >= 3) {
+        achievementsHTML += '<span class="achievement-badge">🎯 多流速探索者</span>';
+    }
+    if (Tracker.sourceCombinations.size >= 4) {
+        achievementsHTML += '<span class="achievement-badge">🧪 源项实验专家</span>';
+    }
+    if (Tracker.maxConvFine > 1.0) {
+        achievementsHTML += '<span class="achievement-badge">⚡ 高迁移项发现者</span>';
+    }
+    if (Tracker.interactionCount >= 20) {
+        achievementsHTML += '<span class="achievement-badge">🔬 深度探索者</span>';
+    }
+    
+    achievementsList.innerHTML = achievementsHTML || '<span class="achievement-badge">🚀 探索启程者</span>';
+    
+    // 生成针对性建议
+    const recommendations = document.getElementById('recommendations');
+    let recommendationsHTML = "";
+    
+    if (Tracker.ratios.size < 2) {
+        recommendationsHTML += "<li>尝试调整<span class='highlight'>收缩比例</span>，观察迁移项的变化规律</li>";
+    }
+    
+    if (!Tracker.blueSources.has(0)) {
+        recommendationsHTML += "<li>设置<span class='highlight'>蓝色源为0</span>，观察纯收缩管道的流动特性</li>";
+    }
+    
+    if (Tracker.flowSpeeds.size < 2) {
+        recommendationsHTML += "<li>对比<span class='highlight'>高速和低速</span>下各项的相对大小变化</li>";
+    }
+    
+    if (Tracker.redSources.size < 3) {
+        recommendationsHTML += "<li>尝试不同的<span class='highlight'>红色源强度</span>，观察对细管段源项的累积效应</li>";
+    }
+    
+    // 默认建议
+    if (!recommendationsHTML) {
+        recommendationsHTML = `
+            <li>尝试<span class='highlight'>极端收缩比例(>4)</span>，观察迁移项的显著变化</li>
+            <li>设置<span class='highlight'>两个源项均为0</span>，观察无源项的纯对流流动</li>
+            <li>对比<span class='highlight'>高流速高源项</span>与<span class='highlight'>低流速低源项</span>的组合效应</li>
+        `;
+    }
+    
+    recommendations.innerHTML = recommendationsHTML;
+    
+    // 显示报告
+    reportOverlay.style.display = 'block';
+    reportModal.style.display = 'block';
+}
+
+// 事件监听
+function initEventListeners() {
+    // 滑块事件
+    flowSpeedSlider.oninput = () => {
+        document.getElementById('flowSpeedDisp').textContent = flowSpeedSlider.value;
+        Tracker.logInteraction('flowSpeed', parseFloat(flowSpeedSlider.value));
+    };
+    
+    sourceSpeedSlider.oninput = () => {
+        document.getElementById('sourceSpeedDisp').textContent = sourceSpeedSlider.value;
+        Tracker.logInteraction('redSource', parseFloat(sourceSpeedSlider.value));
+    };
+    
+    blueSourceSlider.oninput = () => {
+        document.getElementById('blueSourceSpeedDisp').textContent = blueSourceSlider.value;
+        Tracker.logInteraction('blueSource', parseFloat(blueSourceSlider.value));
+    };
+    
+    ratioRange.oninput = () => {
+        document.getElementById('ratioDisp').textContent = ratioRange.value;
+        Tracker.logInteraction('ratio', parseFloat(ratioRange.value));
+    };
+    
+    // 报告相关事件
+    genReportBtn.addEventListener('click', generateReport);
+    closeReportBtn.addEventListener('click', () => {
+        reportOverlay.style.display = 'none';
+        reportModal.style.display = 'none';
+    });
+    
+    reportOverlay.addEventListener('click', () => {
+        reportOverlay.style.display = 'none';
+        reportModal.style.display = 'none';
+    });
+    
+    // 重置按钮
+    resetSimBtn.addEventListener('click', () => {
+        // 重置滑块
+        flowSpeedSlider.value = 1;
+        sourceSpeedSlider.value = 20;
+        blueSourceSlider.value = 10;
+        ratioRange.value = 2.5;
+        
+        // 更新显示
+        document.getElementById('flowSpeedDisp').textContent = '1.0';
+        document.getElementById('sourceSpeedDisp').textContent = '20';
+        document.getElementById('blueSourceSpeedDisp').textContent = '10';
+        document.getElementById('ratioDisp').textContent = '2.5';
+        
+        // 重新初始化粒子
+        initParticles();
+        
+        // 重置追踪器
+        Tracker.startTime = Date.now();
+        Tracker.flowSpeeds.clear();
+        Tracker.redSources.clear();
+        Tracker.blueSources.clear();
+        Tracker.ratios.clear();
+        Tracker.interactionCount = 0;
+        Tracker.maxLocalCoarse = 0;
+        Tracker.maxConvFine = 0;
+        Tracker.sourceCombinations.clear();
+    });
+    
+    // 窗口大小调整
+    window.onresize = () => {
+        initParticles();
+    };
+}
+
+// 初始化
+function init() {
+    initParticles();
+    initEventListeners();
+    draw();
+}
+
+// 启动应用
+init();
+</script>
+</body>
+</html>
