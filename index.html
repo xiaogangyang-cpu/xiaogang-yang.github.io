@@ -16,7 +16,7 @@
             --accent-teal: #1eb9c5;
             --light-bg: #f8f9fa;
             --dark-bg: #121f3d;
-      --background-dark: #e1e5eb;
+            --background-dark: #e1e5eb;
             --card-bg: #ffffff;
             --text-dark: #333333;
             --text-light: #f8f9fa;
@@ -36,7 +36,7 @@
             --success-color: #10b981;
             --warning-color: #f59e0b;
             --info-color: #3b82f6;
-             
+            
             /* 专家身份配色 - 活力橙 */
             --expert-primary: #FF8A5C;
             --expert-light: #FFA885;
@@ -58,6 +58,7 @@
             /* 其他配色变量 */
             --border-radius: 12px;
             --warm-color: #f59e0b; /* 使用project-index.html的警告色作为温暖色 */
+            --error-color: #ef4444; /* 错误提示颜色 */
         }
         
         :root[lang="zh-CN"] {
@@ -284,8 +285,7 @@
         }
         
         .identity-option {
-   
-  background-color: var(--background-dark);
+            background-color: var(--background-dark);
             border-radius: var(--border-radius);
             padding: 40px 30px;
             text-align: center;
@@ -501,6 +501,58 @@
         .modal-actions {
             display: flex;
             justify-content: flex-end;
+            gap: 15px;
+        }
+        
+        /* ===== 密码输入框样式 ===== */
+        .password-input-container {
+            margin: 20px 0;
+        }
+        
+        .password-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--primary-blue);
+        }
+        
+        .password-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-family: var(--font-family);
+            transition: border-color var(--transition-fast);
+            background-color: #ffffff;
+        }
+        
+        .password-input:focus {
+            outline: none;
+            border-color: var(--secondary-blue);
+            box-shadow: 0 0 0 3px rgba(62, 146, 204, 0.1);
+        }
+        
+        .password-input.error {
+            border-color: var(--error-color);
+        }
+        
+        .password-error {
+            color: var(--error-color);
+            font-size: 0.9rem;
+            margin-top: 8px;
+            display: none;
+        }
+        
+        .password-error.show {
+            display: block;
+        }
+        
+        .password-hint {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            margin-top: 8px;
+            font-style: italic;
         }
         
         /* ===== 顶部操作栏 ===== */
@@ -1039,6 +1091,10 @@
                 font-size: 1.1rem;
                 line-height: 1.6;
             }
+            
+            .modal {
+                padding: 30px 25px;
+            }
         }
         
         @media (max-width: 575px) {
@@ -1051,7 +1107,7 @@
             }
             
             .modal {
-                padding: 30px 25px;
+                padding: 25px 20px;
             }
         }
         
@@ -1080,7 +1136,7 @@
         <div class="container">
             <div class="identity-title fade-in">
                 <h1>轻量化html智慧教学虚拟仿真实践库</h1>
-                <p>本项目构建了一个基于AIGC的新能源/新材料虚拟仿真教学平台。它高度还原工业级软件界面与操作逻辑，旨在让学生免于纠缠复杂的软件参数与功能操作，从而将时间和精力聚焦于工程问题的本质与科学原理的探究，真正实现“以学生为中心”的深度沉浸式学习体验。</p>
+                <p>本项目构建了一个基于AIGC的新能源/新材料虚拟仿真教学平台。它高度还原工业级软件界面与操作逻辑，旨在让学生免于纠缠复杂的软件参数与功能操作，从而将时间和精力聚焦于工程问题的本质与科学原理的探究，真正实现"以学生为中心"的深度沉浸式学习体验。</p>
                 <p>请选择您的身份以继续</p>
             </div>
             
@@ -1124,7 +1180,17 @@
             <div class="modal-content" id="modal-content">
                 <!-- 弹框内容将通过JavaScript动态填充 -->
             </div>
+            
+            <!-- 密码输入区域 -->
+            <div class="password-input-container">
+                <label for="password-input" class="password-label" id="password-label">请输入8位密码</label>
+                <input type="password" id="password-input" class="password-input" placeholder="输入8位数字密码" maxlength="8">
+                <div class="password-error" id="password-error">密码错误，请重新输入</div>
+                <div class="password-hint" id="password-hint"></div>
+            </div>
+            
             <div class="modal-actions">
+                <button class="btn btn-outline" id="modal-cancel">取消</button>
                 <button class="btn" id="modal-confirm">确认</button>
             </div>
         </div>
@@ -1180,33 +1246,31 @@
                     <p class="course-description">基于先进的AIGC与虚拟仿真技术，为材料工程与物理化学课程提供沉浸式实践教学环境，支持多角色协同，实现智能化教学管理。</p>
                 </div>
                 
-  
-                    <div class="courses-grid">
-                        <!-- 材料工程基础课程 -->
-                        <div class="course-card fade-in">
-                            <img src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80" alt="材料工程基础虚拟仿真" class="course-img">
-                            <div class="course-info">
-                                <h3>材料工程基础虚拟仿真</h3>
-                                <p class="en" style="display: none;">Fundamentals of Materials Engineering Virtual Simulation</p>
-                                <p>本课程通过虚拟仿真技术，模拟流体力学、传热过程，传质过程、干燥过程、特别是新能源新材料相关应用等核心内容。</p>
-                                <div class="course-meta">
-                                    <span>实践时长: 12学时</span>
-                                    <button class="btn" data-course="material">进入实践</button>
-                                </div>
+                <div class="courses-grid">
+                    <!-- 材料工程基础课程 -->
+                    <div class="course-card fade-in">
+                        <img src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80" alt="材料工程基础虚拟仿真" class="course-img">
+                        <div class="course-info">
+                            <h3>材料工程基础虚拟仿真</h3>
+                            <p class="en" style="display: none;">Fundamentals of Materials Engineering Virtual Simulation</p>
+                            <p>本课程通过虚拟仿真技术，模拟流体力学、传热过程，传质过程、干燥过程、特别是新能源新材料相关应用等核心内容。</p>
+                            <div class="course-meta">
+                                <span>实践时长: 12学时</span>
+                                <button class="btn" data-course="material">进入实践</button>
                             </div>
                         </div>
-                        
-                        <!-- 物理化学虚拟仿真课程 -->
-                        <div class="course-card fade-in">
-                            <img src="https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80" alt="物理化学虚拟仿真" class="course-img">
-                            <div class="course-info">
-                                <h3>物理化学虚拟仿真(建设中...)</h3>
-                                <p class="en" style="display: none;">Physical Chemistry Virtual Simulation</p>
-                                <p>本课程通过虚拟仿真技术，模拟化学热力学、相图、电化学、粒子表面科学、动力学等物理化学实验，提供新能源新材料应用的实验环境与可视化分析。</p>
-                                <div class="course-meta">
-                                    <span>实践时长: 24学时</span>
-                                    <button class="btn" data-course="chemistry">进入实践</button>
-                                </div>
+                    </div>
+                    
+                    <!-- 物理化学虚拟仿真课程 -->
+                    <div class="course-card fade-in">
+                        <img src="https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80" alt="物理化学虚拟仿真" class="course-img">
+                        <div class="course-info">
+                            <h3>物理化学虚拟仿真(建设中...)</h3>
+                            <p class="en" style="display: none;">Physical Chemistry Virtual Simulation</p>
+                            <p>本课程通过虚拟仿真技术，模拟化学热力学、相图、电化学、粒子表面科学、动力学等物理化学实验，提供新能源新材料应用的实验环境与可视化分析。</p>
+                            <div class="course-meta">
+                                <span>实践时长: 24学时</span>
+                                <button class="btn" data-course="chemistry">进入实践</button>
                             </div>
                         </div>
                     </div>
@@ -1254,14 +1318,12 @@
                     </div>
                     
                     <div class="explore-section">
-       
                         <button class="btn pulse" style="margin-top: 20px; padding: 16px 40px; font-size: 1.2rem;">
                             <i class="fas fa-play-circle" style="margin-right: 10px;"></i>进入虚拟仿真实践
                         </button>
-                      </div>
+                    </div>
                 </div>
-                
-       
+            </div>
         </section>
         
         <!-- 物理化学详情页 -->
@@ -1304,661 +1366,516 @@
                     </div>
                     
                     <div class="explore-section">
-
                         <button class="btn pulse" style="margin-top: 20px; padding: 16px 40px; font-size: 1.2rem;">
                             <i class="fas fa-play-circle" style="margin-right: 10px;"></i>进入虚拟仿真实践
                         </button>
                     </div>
                 </div>
-                
-       
+            </div>
         </section>
-        
+    </div>
 
+    <!-- 底部信息栏 -->
+    <div style="
+        text-align: center;
+        padding: 20px 30px;
+        margin-top: 40px;
+        color: #e6f7ff;
+        font-size: 0.9rem;
+        border-top: 2px solid rgba(0, 180, 255, 0.5);
+        background: linear-gradient(135deg, rgba(10, 15, 43, 0.95), rgba(18, 26, 58, 0.9));
+        border-radius: 15px 15px 0 0;
+        box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
+        position: relative;
+        overflow: hidden;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: none;
+    ">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+        
+        <p style="font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; color: #00b4ff;">
+           智慧教学虚拟仿真实践库 © 2025 | AIknow轻量化html仿真系统 | 版本 1.0 |
+        </p>
+        
+        <p style="margin-bottom: 12px; color: #cbd5e1;">
+            <strong>邮箱:</strong> xgyanger@qq.com
+        </p>
+        
+        <div style="margin-top: 15px;">
+            <span style="color: #ffcc00; font-weight: bold; font-size: 1.1rem;">
+                版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+            </span>
+        </div>
+    </div>
+                
+
+<script>
+    // ===== 全局变量与状态管理 =====
+    let currentIdentity = null;
+    let currentLanguage = 'zh-CN';
+    let currentPage = 'home';
+    let currentCourse = null;
     
-    <script>
-        // ===== 全局变量与状态管理 =====
-        let currentIdentity = null;
-        let currentLanguage = 'zh-CN';
-        let currentPage = 'home';
-        let currentCourse = null;
+    // ===== 身份密码配置 =====
+    const identityPasswords = {
+        'expert': '20240815',    // 专家密码: 20240815
+        'teacher': '87654321',   // 教师密码: 87654321
+        'student': '12345678'    // 学生密码: 12345678
+    };
+    
+    // ===== 多语言文本库 =====
+    const translations = {
+        'zh-CN': {
+            // 身份选择页面
+            '轻量化html智慧教学虚拟仿真实践库': '轻量化html智慧教学虚拟仿真实践库',
+            '基于AIGC的项目教学库，为材料工程基础虚拟仿真实践提供沉浸式学习体验': '基于AIGC的项目教学库，为材料工程基础虚拟仿真实践提供沉浸式学习体验',
+            '请选择您的身份以继续': '请选择您的身份以继续',
+            '专家身份': '专家身份',
+            '教育评估专家，评估虚拟仿真系统': '教育评估专家，评估虚拟仿真系统',
+            '教师身份': '教师身份',
+            '高校教师，进行课程管理与教学': '高校教师，进行课程管理与教学',
+            '学生身份': '学生身份',
+            '在校学生，进行虚拟仿真学习': '在校学生，进行虚拟仿真学习',
+            
+            // 弹框内容
+            'expert-modal-title': '欢迎专家莅临指导',
+            'expert-modal-content': '尊敬的专家，欢迎您评估本虚拟仿真实践系统！我们恳请您提出宝贵建议，以帮助我们不断改进和完善系统功能。您的反馈可通过邮箱xgyanger@qq.com、QQ2497059899或微信wxid_o8szbkscq1xl11方式发送给我们。',
+            'teacher-modal-title': '欢迎教师使用系统',
+            'teacher-modal-content': '尊敬的教师，欢迎您使用虚拟仿真实践系统！请按照教学大纲计划，选择相应的实践环节进行虚拟仿真教学。系统将为您提供全面的教学支持。',
+            'student-modal-title': '欢迎学生开始学习',
+            'student-modal-content': '亲爱的同学，欢迎您使用虚拟仿真实践系统！请按照教学大纲计划，选择相应的实践环节进行虚拟仿真学习。祝您学习愉快，收获满满！',
+            '确认': '确认',
+            '取消': '取消',
+            '请输入8位密码': '请输入8位密码',
+            '密码错误，请重新输入': '密码错误，请重新输入',
+            '密码提示': '密码提示：请向管理员获取对应身份的8位数字密码',
+            
+            // 顶部操作栏
+            '虚拟仿真实践库': '虚拟仿真实践库',
+            '返回首页': '返回首页',
+            
+            // 首页
+            '智慧教学虚拟仿真实践库': '智慧教学虚拟仿真实践库',
+            '基于先进虚拟仿真技术，为材料工程与物理化学课程提供沉浸式实践教学环境，支持多角色协同，实现智能化教学管理。': '基于先进虚拟仿真技术，为材料工程与物理化学课程提供沉浸式实践教学环境，支持多角色协同，实现智能化教学管理。',
+            '核心课程': '核心课程',
+            '选择课程进入虚拟仿真实践环境': '选择课程进入虚拟仿真实践环境',
+            '材料工程基础虚拟仿真': '材料工程基础虚拟仿真',
+            '本课程通过虚拟仿真技术，模拟流体力学、传热过程，传质过程、干燥过程、特别是新能源新材料相关应用等核心内容。': '本课程通过虚拟仿真技术，模拟流体力学、传热过程，传质过程、干燥过程、特别是新能源新材料相关应用等核心内容。',
+            '实践时长: 12学时': '实践时长: 12学时',
+            '进入实践': '进入实践',
+            '物理化学虚拟仿真(建设中...)': '物理化学虚拟仿真',
+            '本课程通过虚拟仿真技术，模拟化学热力学、相图、电化学、粒子表面科学、动力学等物理化学实验，提供新能源新材料应用的实验环境与可视化分析。': '本课程通过虚拟仿真技术，模拟化学热力学、相图、电化学、粒子表面科学、动力学等物理化学实验，提供新能源新材料应用的实验环境与可视化分析。',
+            '实践时长: 24学时': '实践时长: 24学时',
+        },
+        'en': {
+            // 身份选择页面
+            '轻量化html智慧教学虚拟仿真实践库': 'Lightweight HTML Intelligent Teaching Virtual Simulation Practice Library',
+            '基于AIGC的项目教学库，为材料工程基础虚拟仿真实践提供沉浸式学习体验': 'An AIGC-based project teaching library providing immersive learning experience for Fundamentals of Materials Engineering virtual simulation practice',
+            '请选择您的身份以继续': 'Please select your identity to continue',
+            '专家身份': 'Expert Identity',
+            '教育评估专家，评估虚拟仿真系统': 'Educational evaluation expert, assessing virtual simulation systems',
+            '教师身份': 'Teacher Identity',
+            '高校教师，进行课程管理与教学': 'University teacher, conducting course management and teaching',
+            '学生身份': 'Student Identity',
+            '在校学生，进行虚拟仿真学习': 'University student, engaging in virtual simulation learning',
+            
+            // 弹框内容
+            'expert-modal-title': 'Welcome Expert',
+            'expert-modal-content': 'Dear expert, welcome to evaluate our virtual simulation practice system! We sincerely request your valuable suggestions to help us continuously improve and perfect the system functions. Your feedback can be sent to us via email, phone, QQ or WeChat.',
+            'teacher-modal-title': 'Welcome Teacher',
+            'teacher-modal-content': 'Dear teacher, welcome to use the virtual simulation practice system! Please select corresponding practice sessions for virtual simulation teaching according to the teaching syllabus. The system will provide you with comprehensive teaching support.',
+            'student-modal-title': 'Welcome Student',
+            'student-modal-content': 'Dear student, welcome to use the virtual simulation practice system! Please select corresponding practice sessions for virtual simulation learning according to the teaching syllabus. Wish you a pleasant learning experience with fruitful results!',
+            '确认': 'Confirm',
+            '取消': 'Cancel',
+            '请输入8位密码': 'Please enter 8-digit password',
+            '密码错误，请重新输入': 'Incorrect password, please try again',
+            '密码提示': 'Password hint: Please contact administrator for the 8-digit password of your identity',
+            
+            // 顶部操作栏
+            '虚拟仿真实践库': 'Virtual Simulation Practice Library',
+            '返回首页': 'Back to Home',
+            
+            // 首页
+            '智慧教学虚拟仿真实践库': 'Intelligent Teaching Virtual Simulation Practice Library',
+            '基于先进虚拟仿真技术，为材料工程与物理化学课程提供沉浸式实践教学环境，支持多角色协同，实现智能化教学管理。': 'Based on advanced virtual simulation technology, it provides immersive practical teaching environment for Materials Engineering and Physical Chemistry courses, supports multi-role collaboration, and achieves intelligent teaching management.',
+            '核心课程': 'Core Courses',
+            '选择课程进入虚拟仿真实践环境': 'Select courses to enter virtual simulation practice environment',
+            '材料工程基础虚拟仿真': 'Fundamentals of Materials Engineering Virtual Simulation',
+            '本课程通过虚拟仿真技术，模拟流体力学、传热过程，传质过程、干燥过程、特别是新能源新材料相关应用等核心内容。': 'This course uses virtual simulation technology to simulate core contents such as fluid mechanics, heat transfer processes, mass transfer processes, drying processes, and especially applications related to new energy and new materials.',
+            '实践时长: 12学时': 'Practice duration: 12 credit hours',
+            '进入实践': 'Enter Practice',
+            '物理化学虚拟仿真(建设中...)': 'Physical Chemistry Virtual Simulation',
+            '本课程通过虚拟仿真技术，模拟化学热力学、相图、电化学、粒子表面科学、动力学等物理化学实验，提供新能源新材料应用的实验环境与可视化分析。': 'This course uses virtual simulation technology to simulate physical and chemical experiments such as chemical thermodynamics, phase diagrams, electrochemistry, particle surface science, and kinetics, providing an experimental environment and visual analysis for new energy and new materials applications.',
+            '实践时长: 24学时': 'Practice duration: 24 credit hours',
+        }
+    };
+    
+    // ===== DOM元素缓存 =====
+    const elements = {
+        identitySelectPage: document.getElementById('identity-select-page'),
+        mainWebsite: document.getElementById('main-website'),
+        identityOptions: document.querySelectorAll('.identity-option'),
+        identityModal: document.getElementById('identity-modal'),
+        modalTitle: document.getElementById('modal-title'),
+        modalContent: document.getElementById('modal-content'),
+        modalConfirm: document.getElementById('modal-confirm'),
+        modalCancel: document.getElementById('modal-cancel'),
+        modalClose: document.getElementById('modal-close'),
+        passwordInput: document.getElementById('password-input'),
+        passwordLabel: document.getElementById('password-label'),
+        passwordError: document.getElementById('password-error'),
+        passwordHint: document.getElementById('password-hint'),
+        refreshLogo: document.getElementById('refresh-logo'),
+        refreshButton: document.getElementById('refresh-button'),
+        langButtons: document.querySelectorAll('.lang-btn'),
+        pages: document.querySelectorAll('.page'),
+        mobileMenuBtn: document.getElementById('mobileMenuBtn'),
+        mobileMenu: document.getElementById('mobileMenu'),
+        courseButtons: document.querySelectorAll('[data-course]'),
+        fadeInElements: document.querySelectorAll('.fade-in')
+    };
+    
+    // ===== 统一语言设置函数 =====
+    function setLanguage(lang) {
+        // 更新当前语言
+        currentLanguage = lang;
         
-        // ===== 多语言文本库 =====
-        const translations = {
-            'zh-CN': {
-                // 身份选择页面
-                '轻量化html智慧教学虚拟仿真实践库': '轻量化html智慧教学虚拟仿真实践库',
-                '基于AIGC的项目教学库，为材料工程基础虚拟仿真实践提供沉浸式学习体验': '基于AIGC的项目教学库，为材料工程基础虚拟仿真实践提供沉浸式学习体验',
-                '请选择您的身份以继续': '请选择您的身份以继续',
-                '专家身份': '专家身份',
-                '教育评估专家，评估虚拟仿真系统': '教育评估专家，评估虚拟仿真系统',
-                '教师身份': '教师身份',
-                '高校教师，进行课程管理与教学': '高校教师，进行课程管理与教学',
-                '学生身份': '学生身份',
-                '在校学生，进行虚拟仿真学习': '在校学生，进行虚拟仿真学习',
-                
-                // 弹框内容
-                'expert-modal-title': '欢迎专家莅临指导',
-                'expert-modal-content': '尊敬的专家，欢迎您评估本虚拟仿真实践系统！我们恳请您提出宝贵建议，以帮助我们不断改进和完善系统功能。您的反馈可通过邮箱xgyanger@qq.com、QQ2497059899或微信wxid_o8szbkscq1xl11方式发送给我们。',
-                'teacher-modal-title': '欢迎教师使用系统',
-                'teacher-modal-content': '尊敬的教师，欢迎您使用虚拟仿真实践系统！请按照教学大纲计划，选择相应的实践环节进行虚拟仿真教学。系统将为您提供全面的教学支持。',
-                'student-modal-title': '欢迎学生开始学习',
-                'student-modal-content': '亲爱的同学，欢迎您使用虚拟仿真实践系统！请按照教学大纲计划，选择相应的实践环节进行虚拟仿真学习。祝您学习愉快，收获满满！',
-                '确认': '确认',
-                
-                // 顶部操作栏
-                '虚拟仿真实践库': '虚拟仿真实践库',
-                '返回首页': '返回首页',
-                
-                // 首页
-                '智慧教学虚拟仿真实践库': '智慧教学虚拟仿真实践库',
-                '基于先进虚拟仿真技术，为材料工程与物理化学课程提供沉浸式实践教学环境，支持多角色协同，实现智能化教学管理。': '基于先进虚拟仿真技术，为材料工程与物理化学课程提供沉浸式实践教学环境，支持多角色协同，实现智能化教学管理。',
-                '核心课程': '核心课程',
-                '选择课程进入虚拟仿真实践环境': '选择课程进入虚拟仿真实践环境',
-                '材料工程基础虚拟仿真': '材料工程基础虚拟仿真',
-                '本课程通过虚拟仿真技术，模拟流体力学、传热过程，传质过程、干燥过程、特别是新能源新材料相关应用等核心内容。': '本课程通过虚拟仿真技术，模拟流体力学、传热过程，传质过程、干燥过程、特别是新能源新材料相关应用等核心内容。',
-                '实践时长: 12学时': '实践时长: 12学时',
-                '进入实践': '进入实践',
-                '物理化学虚拟仿真(建设中...)': '物理化学虚拟仿真',
-                '本课程通过虚拟仿真技术，模拟化学热力学、相图、电化学、粒子表面科学、动力学等物理化学实验，提供新能源新材料应用的实验环境与可视化分析。': '本课程通过虚拟仿真技术，模拟化学热力学、相图、电化学、粒子表面科学、动力学等物理化学实验，提供新能源新材料应用的实验环境与可视化分析。',
-                '实践时长: 24学时': '实践时长: 24学时',
-                
-
-            },
-            'en': {
-                // 身份选择页面
-                '轻量化html智慧教学虚拟仿真实践库': 'Lightweight HTML Intelligent Teaching Virtual Simulation Practice Library',
-                '基于AIGC的项目教学库，为材料工程基础虚拟仿真实践提供沉浸式学习体验': 'An AIGC-based project teaching library providing immersive learning experience for Fundamentals of Materials Engineering virtual simulation practice',
-                '请选择您的身份以继续': 'Please select your identity to continue',
-                '专家身份': 'Expert Identity',
-                '教育评估专家，评估虚拟仿真系统': 'Educational evaluation expert, assessing virtual simulation systems',
-                '教师身份': 'Teacher Identity',
-                '高校教师，进行课程管理与教学': 'University teacher, conducting course management and teaching',
-                '学生身份': 'Student Identity',
-                '在校学生，进行虚拟仿真学习': 'University student, engaging in virtual simulation learning',
-                
-                // 弹框内容
-                'expert-modal-title': 'Welcome Expert',
-                'expert-modal-content': 'Dear expert, welcome to evaluate our virtual simulation practice system! We sincerely request your valuable suggestions to help us continuously improve and perfect the system functions. Your feedback can be sent to us via email, phone, QQ or WeChat.',
-                'teacher-modal-title': 'Welcome Teacher',
-                'teacher-modal-content': 'Dear teacher, welcome to use the virtual simulation practice system! Please select corresponding practice sessions for virtual simulation teaching according to the teaching syllabus. The system will provide you with comprehensive teaching support.',
-                'student-modal-title': 'Welcome Student',
-                'student-modal-content': 'Dear student, welcome to use the virtual simulation practice system! Please select corresponding practice sessions for virtual simulation learning according to the teaching syllabus. Wish you a pleasant learning experience with fruitful results!',
-                '确认': 'Confirm',
-                
-                // 顶部操作栏
-                '虚拟仿真实践库': 'Virtual Simulation Practice Library',
-                '返回首页': 'Back to Home',
-                
-                // 首页
-                '智慧教学虚拟仿真实践库': 'Intelligent Teaching Virtual Simulation Practice Library',
-                '基于先进虚拟仿真技术，为材料工程与物理化学课程提供沉浸式实践教学环境，支持多角色协同，实现智能化教学管理。': 'Based on advanced virtual simulation technology, it provides immersive practical teaching environment for Materials Engineering and Physical Chemistry courses, supports multi-role collaboration, and achieves intelligent teaching management.',
-                '核心课程': 'Core Courses',
-                '选择课程进入虚拟仿真实践环境': 'Select courses to enter virtual simulation practice environment',
-                '材料工程基础虚拟仿真': 'Fundamentals of Materials Engineering Virtual Simulation',
-                '本课程通过虚拟仿真技术，模拟流体力学、传热过程，传质过程、干燥过程、特别是新能源新材料相关应用等核心内容。': 'This course uses virtual simulation technology to simulate core contents such as fluid mechanics, heat transfer processes, mass transfer processes, drying processes, and especially applications related to new energy and new materials.',
-                '实践时长: 12学时': 'Practice duration: 12 credit hours',
-                '进入实践': 'Enter Practice',
-                '物理化学虚拟仿真(建设中...)': 'Physical Chemistry Virtual Simulation',
-                '本课程通过虚拟仿真技术，模拟化学热力学、相图、电化学、粒子表面科学、动力学等物理化学实验，提供新能源新材料应用的实验环境与可视化分析。': 'This course uses virtual simulation technology to simulate physical and chemical experiments such as chemical thermodynamics, phase diagrams, electrochemistry, particle surface science, and kinetics, providing an experimental environment and visual analysis for new energy and new materials applications.',
-                '实践时长: 24学时': 'Practice duration: 24 credit hours',
-                
-                // 材料工程课程
-                '材料工程基础虚拟仿真实践': 'Fundamentals of Materials Engineering Virtual Simulation Practice',
-                '通过虚拟仿真技术掌握流体力学、传热过程，传质过程、干燥过程、特别是新能源新材料相关应用等核心内容的实验探索。': 'Master core contents such as fluid mechanics, heat transfer processes, mass transfer processes, drying processes, and especially applications related to new energy and new materials through virtual simulation technology for experimental exploration.',
-                '虚拟实验操作': 'Virtual Experiment Operation',
-                '数据模拟分析': 'Data Simulation Analysis',
-                '智能学习引导': 'Intelligent Learning Guidance',
-                '模拟真实实验环境，安全无风险': 'Simulate real experimental environment, safe and risk-free',
-                '实时数据分析与可视化呈现': 'Real-time data analysis and visual presentation',
-                '个性化学习路径与实时反馈': 'Personalized learning path and real-time feedback',
-                '实践探索': 'Practice Exploration',
-                '点击下方按钮进入虚拟仿真实践环境，开始您的材料工程基础学习之旅。': 'Click the button below to enter the virtual simulation practice environment and start your Fundamentals of Materials Engineering learning journey.',
-                '进入虚拟仿真实践': 'Enter Virtual Simulation Practice',
-                '*点击将在新窗口打开虚拟仿真实践页面': '*Click will open virtual simulation practice page in new window',
-                '资源下载': 'Resource Downloads',
-                '下载课程相关学习资料与实验指导文件': 'Download course-related learning materials and experiment guidance documents',
-                '课程大纲': 'Course Syllabus',
-                '实验指导书': 'Experiment Guidebook',
-                '实验操作演示': 'Experiment Operation Demonstration',
-                '实验数据模板': 'Experiment Data Template',
-                '批量下载全部资源': 'Batch Download All Resources',
-                
-                // 物理化学课程
-                '物理化学虚拟仿真实践(建设中...)': 'Physical Chemistry Virtual Simulation Practice',
-                '通过虚拟仿真技术探索化学热力学、相图、电化学、粒子表面科学、动力学等物理化学实验，提供新能源新材料应用的实验环境与可视化分析，加深对物理化学原理的理解。': 'Explore physical and chemical experiments such as chemical thermodynamics, phase diagrams, electrochemistry, particle surface science, and kinetics through virtual simulation technology, providing an experimental environment and visual analysis for new energy and new materials applications, and deepening the understanding of physical chemistry principles.',
-                '反应模拟演示': 'Reaction Simulation Demonstration',
-                '参数调节实验': 'Parameter Adjustment Experiment',
-                '结果可视化': 'Result Visualization',
-                '可视化化学反应过程与机理': 'Visualize chemical reaction processes and mechanisms',
-                '多变量参数调节与效果观察': 'Multi-variable parameter adjustment and effect observation',
-                '实验数据可视化与对比分析': 'Experimental data visualization and comparative analysis',
-                '点击下方按钮进入虚拟仿真实践环境，开始您的物理化学学习之旅。': 'Click the button below to enter the virtual simulation practice environment and start your Physical Chemistry learning journey.',
-                '理论讲解视频': 'Theoretical Explanation Video',
-                
-
+        // 更新HTML和body的lang属性
+        document.documentElement.setAttribute('lang', lang);
+        document.body.setAttribute('lang', lang);
+        
+        // 更新语言按钮激活状态
+        elements.langButtons.forEach(btn => {
+            const btnLang = btn.getAttribute('data-lang');
+            const isActive = (lang === 'zh-CN' && btnLang === 'zh') || (lang === 'en' && btnLang === 'en');
+            btn.classList.toggle('active', isActive);
+        });
+        
+        // 更新页面文本
+        updateAllTexts();
+    }
+    
+    // ===== 文本更新函数 =====
+    function updateAllTexts() {
+        // 更新身份选择页面
+        updateIdentityPage();
+        
+        // 更新主网站
+        updateMainWebsite();
+        
+        // 更新弹窗内容
+        if (currentIdentity) {
+            updateModalText();
+        }
+    }
+    
+    function getTranslation(key) {
+        return translations[currentLanguage][key] || key;
+    }
+    
+    function updateIdentityPage() {
+        // 标题
+        const title = document.querySelector('#identity-select-page h1');
+        if (title) title.textContent = getTranslation('轻量化html智慧教学虚拟仿真实践库');
+        
+        // 描述
+        const paragraphs = document.querySelectorAll('#identity-select-page p');
+        paragraphs.forEach((p, index) => {
+            if (index === 0) p.textContent = getTranslation('本项目构建了一个基于AIGC的新能源/新材料虚拟仿真教学平台。它高度还原工业级软件界面与操作逻辑，旨在让学生免于纠缠复杂的软件参数与功能操作，从而将时间和精力聚焦于工程问题的本质与科学原理的探究，真正实现"以学生为中心"的深度沉浸式学习体验。');
+            if (index === 1) p.textContent = getTranslation('请选择您的身份以继续');
+        });
+        
+        // 身份选项
+        elements.identityOptions.forEach(option => {
+            const identity = option.getAttribute('data-identity');
+            const title = option.querySelector('h3');
+            const description = option.querySelector('p');
+            
+            if (title) {
+                if (identity === 'expert') title.textContent = getTranslation('专家身份');
+                if (identity === 'teacher') title.textContent = getTranslation('教师身份');
+                if (identity === 'student') title.textContent = getTranslation('学生身份');
             }
-        };
-        
-        // ===== DOM元素缓存 =====
-        const elements = {
-            identitySelectPage: document.getElementById('identity-select-page'),
-            mainWebsite: document.getElementById('main-website'),
-            identityOptions: document.querySelectorAll('.identity-option'),
-            identityModal: document.getElementById('identity-modal'),
-            modalTitle: document.getElementById('modal-title'),
-            modalContent: document.getElementById('modal-content'),
-            modalConfirm: document.getElementById('modal-confirm'),
-            modalClose: document.getElementById('modal-close'),
-            refreshLogo: document.getElementById('refresh-logo'),
-            refreshButton: document.getElementById('refresh-button'),
-            langButtons: document.querySelectorAll('.lang-btn'),
-            pages: document.querySelectorAll('.page'),
-            mobileMenuBtn: document.getElementById('mobileMenuBtn'),
-            mobileMenu: document.getElementById('mobileMenu'),
-            courseButtons: document.querySelectorAll('[data-course]'),
-            downloadItems: document.querySelectorAll('.download-item'),
-            fadeInElements: document.querySelectorAll('.fade-in'),
-            footerLinks: document.querySelectorAll('footer a'),
-            batchDownloadBtn: document.getElementById('batch-download-btn'),
-            chemistryBatchDownload: document.getElementById('chemistry-batch-download'),
-        };
-        
-        // ===== 统一语言设置函数 =====
-        function setLanguage(lang) {
-            // 更新当前语言
-            currentLanguage = lang;
             
-            // 更新HTML和body的lang属性
-            document.documentElement.setAttribute('lang', lang);
-            document.body.setAttribute('lang', lang);
-            
-            // 更新语言按钮激活状态
-            elements.langButtons.forEach(btn => {
-                const btnLang = btn.getAttribute('data-lang');
-                const isActive = (lang === 'zh-CN' && btnLang === 'zh') || (lang === 'en' && btnLang === 'en');
-                btn.classList.toggle('active', isActive);
-            });
-            
-            // 更新页面文本
-            updateAllTexts();
-        }
-        
-        // ===== 文本更新函数 =====
-        function updateAllTexts() {
-            // 更新身份选择页面
-            updateIdentityPage();
-            
-            // 更新主网站
-            updateMainWebsite();
-            
-            // 更新弹窗内容
-            if (currentIdentity) {
-                updateModalText();
+            if (description) {
+                if (identity === 'expert') description.textContent = getTranslation('教育评估专家，评估虚拟仿真系统');
+                if (identity === 'teacher') description.textContent = getTranslation('高校教师，进行课程管理与教学');
+                if (identity === 'student') description.textContent = getTranslation('在校学生，进行虚拟仿真学习');
             }
-        }
+        });
+    }
+    
+    function updateMainWebsite() {
+        // 更新logo
+        const logoText = document.querySelector('.logo span');
+        if (logoText) logoText.textContent = getTranslation('虚拟仿真实践库');
         
-        function getTranslation(key) {
-            return translations[currentLanguage][key] || key;
-        }
+        // 更新返回首页按钮
+        const refreshBtn = document.querySelector('.refresh-btn span');
+        if (refreshBtn) refreshBtn.textContent = getTranslation('返回首页');
         
-        function updateIdentityPage() {
-            // 标题
-            const title = document.querySelector('#identity-select-page h1');
-            if (title) title.textContent = getTranslation('轻量化html智慧教学虚拟仿真实践库');
-            
-            // 描述
-            const paragraphs = document.querySelectorAll('#identity-select-page p');
-            paragraphs.forEach((p, index) => {
-                if (index === 0) p.textContent = getTranslation('本项目是基于AIGC的新能源、新材料产业的项目教学库，模拟工业软件界面，使学生无需在软件界面和仿真模拟参数功能等细节上花费过多时间，专注于工程和科学逻辑本身，为材料工程基础等课程虚拟仿真实践提供沉浸式学习体验');
-                if (index === 1) p.textContent = getTranslation('请选择您的身份以继续');
-            });
-            
-            // 身份选项
-            elements.identityOptions.forEach(option => {
-                const identity = option.getAttribute('data-identity');
-                const title = option.querySelector('h3');
-                const description = option.querySelector('p');
-                
-                if (title) {
-                    if (identity === 'expert') title.textContent = getTranslation('专家身份');
-                    if (identity === 'teacher') title.textContent = getTranslation('教师身份');
-                    if (identity === 'student') title.textContent = getTranslation('学生身份');
-                }
-                
-                if (description) {
-                    if (identity === 'expert') description.textContent = getTranslation('教育评估专家，评估虚拟仿真系统');
-                    if (identity === 'teacher') description.textContent = getTranslation('高校教师，进行课程管理与教学');
-                    if (identity === 'student') description.textContent = getTranslation('在校学生，进行虚拟仿真学习');
-                }
-            });
-        }
+        // 更新首页
+        updateHomePage();
         
-        function updateMainWebsite() {
-            // 更新logo
-            const logoText = document.querySelector('.logo span');
-            if (logoText) logoText.textContent = getTranslation('虚拟仿真实践库');
-            
-            // 更新返回首页按钮
-            const refreshBtn = document.querySelector('.refresh-btn span');
-            if (refreshBtn) refreshBtn.textContent = getTranslation('返回首页');
-            
-            // 更新首页
-            updateHomePage();
-            
-            // 更新材料工程页面
-            updateMaterialPage();
-            
-            // 更新物理化学页面
-            updateChemistryPage();
-            
-            // 更新页脚
-            updateFooter();
-            
-            // 更新课程描述显示
-            updateCourseDescriptions();
-        }
+        // 更新课程描述显示
+        updateCourseDescriptions();
+    }
+    
+    function updateHomePage() {
+        // 首页大标题
+        const mainTitle = document.querySelector('#home .course-header h1');
+        if (mainTitle) mainTitle.textContent = getTranslation('智慧教学虚拟仿真实践库');
         
-        function updateHomePage() {
-            // 首页大标题
-            const mainTitle = document.querySelector('#home .course-header h1');
-            if (mainTitle) mainTitle.textContent = getTranslation('智慧教学虚拟仿真实践库');
+        // 首页描述
+        const mainDesc = document.querySelector('#home .course-description');
+        if (mainDesc) mainDesc.textContent = getTranslation('基于先进的AIGC与虚拟仿真技术，为材料工程与物理化学课程提供沉浸式实践教学环境，支持多角色协同，实现智能化教学管理。');
+        
+        // 课程卡片
+        const courseCards = document.querySelectorAll('#home .course-card');
+        courseCards.forEach((card, index) => {
+            const title = card.querySelector('h3');
+            const desc = card.querySelector('.course-info p:not(.en)');
+            const duration = card.querySelector('.course-meta span');
+            const button = card.querySelector('.btn');
             
-            // 首页描述
-            const mainDesc = document.querySelector('#home .course-description');
-            if (mainDesc) mainDesc.textContent = getTranslation('基于先进虚拟仿真技术，为材料工程与物理化学课程提供沉浸式实践教学环境，支持多角色协同，实现智能化教学管理。');
-            
-            // 核心课程标题
-            const sectionTitle = document.querySelector('#home .section-title h2');
-            if (sectionTitle) sectionTitle.textContent = getTranslation('核心课程');
-            
-            const sectionDesc = document.querySelector('#home .section-title p');
-            if (sectionDesc) sectionDesc.textContent = getTranslation('选择课程进入虚拟仿真实践环境');
-            
-            // 课程卡片
-            const courseCards = document.querySelectorAll('#home .course-card');
-            courseCards.forEach((card, index) => {
-                const title = card.querySelector('h3');
-                const desc = card.querySelector('.course-info p:not(.en)');
-                const duration = card.querySelector('.course-meta span');
-                const button = card.querySelector('.btn');
-                
-                if (index === 0) { // 材料工程课程
-                    if (title) title.textContent = getTranslation('材料工程基础虚拟仿真');
-                    if (desc) desc.textContent = getTranslation('本课程通过虚拟仿真技术，模拟流体力学、传热过程，传质过程、干燥过程、特别是新能源新材料相关应用等核心内容。');
-                    if (duration) duration.textContent = getTranslation('实践时长: 12学时');
-                    if (button) button.textContent = getTranslation('进入实践');
-                }
-                if (index === 1) { // 物理化学课程
-                    if (title) title.textContent = getTranslation('物理化学虚拟仿真');
-                    if (desc) desc.textContent = getTranslation('本课程通过虚拟仿真技术，模拟化学热力学、相图、电化学、粒子表面科学、动力学等物理化学实验，提供新能源新材料应用的实验环境与可视化分析。');
-                    if (duration) duration.textContent = getTranslation('实践时长: 24学时');
-                    if (button) button.textContent = getTranslation('进入实践');
+            if (index === 0) { // 材料工程课程
+                if (title) title.textContent = getTranslation('材料工程基础虚拟仿真');
+                if (desc) desc.textContent = getTranslation('本课程通过虚拟仿真技术，模拟流体力学、传热过程，传质过程、干燥过程、特别是新能源新材料相关应用等核心内容。');
+                if (duration) duration.textContent = getTranslation('实践时长: 12学时');
+                if (button) button.textContent = getTranslation('进入实践');
+            }
+            if (index === 1) { // 物理化学课程
+                if (title) title.textContent = getTranslation('物理化学虚拟仿真(建设中...)');
+                if (desc) desc.textContent = getTranslation('本课程通过虚拟仿真技术，模拟化学热力学、相图、电化学、粒子表面科学、动力学等物理化学实验，提供新能源新材料应用的实验环境与可视化分析。');
+                if (duration) duration.textContent = getTranslation('实践时长: 24学时');
+                if (button) button.textContent = getTranslation('进入实践');
+            }
+        });
+    }
+    
+    function updateCourseDescriptions() {
+        const enElements = document.querySelectorAll('.en');
+        const zhDescriptions = document.querySelectorAll('.course-info p:not(.en)');
+        
+        if (currentLanguage === 'en') {
+            enElements.forEach(el => el.style.display = 'block');
+            zhDescriptions.forEach(el => {
+                if (el.textContent.includes('本课程通过虚拟仿真技术') || 
+                    el.textContent.includes('实践时长')) {
+                    el.style.display = 'none';
                 }
             });
+        } else {
+            enElements.forEach(el => el.style.display = 'none');
+            zhDescriptions.forEach(el => el.style.display = 'block');
+        }
+    }
+    
+    function updateModalText() {
+        if (!currentIdentity) return;
+        
+        let titleKey = '', contentKey = '';
+        
+        switch(currentIdentity) {
+            case 'expert':
+                titleKey = 'expert-modal-title';
+                contentKey = 'expert-modal-content';
+                break;
+            case 'teacher':
+                titleKey = 'teacher-modal-title';
+                contentKey = 'teacher-modal-content';
+                break;
+            case 'student':
+                titleKey = 'student-modal-title';
+                contentKey = 'student-modal-content';
+                break;
         }
         
-        function updateMaterialPage() {
-            // 材料工程页面
-            const mainTitle = document.querySelector('#course-material .course-header h1');
-            if (mainTitle) mainTitle.textContent = getTranslation('材料工程基础虚拟仿真实践');
-            
-            const mainDesc = document.querySelector('#course-material .course-description');
-            if (mainDesc) mainDesc.textContent = getTranslation('通过虚拟仿真技术掌握流体力学、传热过程，传质过程、干燥过程、特别是新能源新材料相关应用等核心内容的实验探索。');
-            
-            // 特性项目
-            const features = document.querySelectorAll('#course-material .feature-item');
-            features.forEach((feature, index) => {
-                const title = feature.querySelector('h4');
-                const desc = feature.querySelector('p');
-                
-                if (index === 0) {
-                    if (title) title.textContent = getTranslation('虚拟实验操作');
-                    if (desc) desc.textContent = getTranslation('模拟真实实验环境，安全无风险');
-                }
-                if (index === 1) {
-                    if (title) title.textContent = getTranslation('数据模拟分析');
-                    if (desc) desc.textContent = getTranslation('实时数据分析与可视化呈现');
-                }
-                if (index === 2) {
-                    if (title) title.textContent = getTranslation('智能学习引导');
-                    if (desc) desc.textContent = getTranslation('个性化学习路径与实时反馈');
-                }
-            });
-            
-            // 实践探索部分
-            const exploreTitle = document.querySelector('#course-material .explore-section h3');
-            if (exploreTitle) exploreTitle.textContent = getTranslation('实践探索');
-            
-            const exploreDesc = document.querySelector('#course-material .explore-section p');
-            if (exploreDesc) exploreDesc.textContent = getTranslation('点击下方按钮进入虚拟仿真实践环境，开始您的材料工程基础学习之旅。');
-            
-            const exploreButton = document.querySelector('#course-material .explore-section .btn');
-            if (exploreButton) {
-                exploreButton.innerHTML = `<i class="fas fa-play-circle" style="margin-right: 10px;"></i>${getTranslation('进入虚拟仿真实践')}`;
-            }
-            
-            const exploreNote = document.querySelector('#course-material .explore-section p:nth-child(4)');
-            if (exploreNote) exploreNote.textContent = getTranslation('*点击将在新窗口打开虚拟仿真实践页面');
-            
-            // 资源下载部分
-            const downloadTitle = document.querySelector('#course-material .downloads-section h3');
-            if (downloadTitle) downloadTitle.textContent = getTranslation('资源下载');
-            
-            const downloadDesc = document.querySelector('#course-material .downloads-section p');
-            if (downloadDesc) downloadDesc.textContent = getTranslation('下载课程相关学习资料与实验指导文件');
-            
-            // 下载项目
-            const downloadItems = document.querySelectorAll('#course-material .download-item h4');
-            downloadItems.forEach((item, index) => {
-                if (index === 0) item.textContent = getTranslation('课程大纲');
-                if (index === 1) item.textContent = getTranslation('实验指导书');
-                if (index === 2) item.textContent = getTranslation('实验操作演示');
-                if (index === 3) item.textContent = getTranslation('实验数据模板');
-            });
-            
-            const batchDownloadBtn = document.querySelector('#batch-download-btn');
-            if (batchDownloadBtn) batchDownloadBtn.textContent = getTranslation('批量下载全部资源');
-        }
-        
-        function updateChemistryPage() {
-            // 物理化学页面
-            const mainTitle = document.querySelector('#course-chemistry .course-header h1');
-            if (mainTitle) mainTitle.textContent = getTranslation('物理化学虚拟仿真实践');
-            
-            const mainDesc = document.querySelector('#course-chemistry .course-description');
-            if (mainDesc) mainDesc.textContent = getTranslation('通过虚拟仿真技术探索化学热力学、相图、电化学、粒子表面科学、动力学等物理化学实验，提供新能源新材料应用的实验环境与可视化分析，加深对物理化学原理的理解。');
-            
-            // 特性项目
-            const features = document.querySelectorAll('#course-chemistry .feature-item');
-            features.forEach((feature, index) => {
-                const title = feature.querySelector('h4');
-                const desc = feature.querySelector('p');
-                
-                if (index === 0) {
-                    if (title) title.textContent = getTranslation('反应模拟演示');
-                    if (desc) desc.textContent = getTranslation('可视化化学反应过程与机理');
-                }
-                if (index === 1) {
-                    if (title) title.textContent = getTranslation('参数调节实验');
-                    if (desc) desc.textContent = getTranslation('多变量参数调节与效果观察');
-                }
-                if (index === 2) {
-                    if (title) title.textContent = getTranslation('结果可视化');
-                    if (desc) desc.textContent = getTranslation('实验数据可视化与对比分析');
-                }
-            });
-            
-            // 实践探索部分
-            const exploreTitle = document.querySelector('#course-chemistry .explore-section h3');
-            if (exploreTitle) exploreTitle.textContent = getTranslation('实践探索');
-            
-            const exploreDesc = document.querySelector('#course-chemistry .explore-section p');
-            if (exploreDesc) exploreDesc.textContent = getTranslation('点击下方按钮进入虚拟仿真实践环境，开始您的物理化学学习之旅。');
-            
-            const exploreButton = document.querySelector('#course-chemistry .explore-section .btn');
-            if (exploreButton) {
-                exploreButton.innerHTML = `<i class="fas fa-play-circle" style="margin-right: 10px;"></i>${getTranslation('进入虚拟仿真实践')}`;
-            }
-            
-            const exploreNote = document.querySelector('#course-chemistry .explore-section p:nth-child(4)');
-            if (exploreNote) exploreNote.textContent = getTranslation('*点击将在新窗口打开虚拟仿真实践页面');
-            
-            // 资源下载部分
-            const downloadTitle = document.querySelector('#course-chemistry .downloads-section h3');
-            if (downloadTitle) downloadTitle.textContent = getTranslation('资源下载');
-            
-            const downloadDesc = document.querySelector('#course-chemistry .downloads-section p');
-            if (downloadDesc) downloadDesc.textContent = getTranslation('下载课程相关学习资料与实验指导文件');
-            
-            // 下载项目
-            const downloadItems = document.querySelectorAll('#course-chemistry .download-item h4');
-            downloadItems.forEach((item, index) => {
-                if (index === 0) item.textContent = getTranslation('课程大纲');
-                if (index === 1) item.textContent = getTranslation('实验指导书');
-                if (index === 2) item.textContent = getTranslation('理论讲解视频');
-                if (index === 3) item.textContent = getTranslation('实验数据模板');
-            });
-            
-            const batchDownloadBtn = document.querySelector('#chemistry-batch-download');
-            if (batchDownloadBtn) batchDownloadBtn.textContent = getTranslation('批量下载全部资源');
-        }
-        
-        function updateFooter() {
-            // 页脚描述
-            const footerDesc = document.querySelector('footer .footer-about p');
-            if (footerDesc) footerDesc.textContent = getTranslation('为理论课程提供沉浸式虚拟仿真实践环境');
-            
-            // 快速链接标题
-            const quickLinksTitle = document.querySelector('footer .footer-links h4:first-child');
-            if (quickLinksTitle) quickLinksTitle.textContent = getTranslation('快速链接');
-            
-            // 快速链接项目
-            const quickLinks = document.querySelectorAll('footer .footer-links a');
-            quickLinks.forEach((link, index) => {
-                if (index === 0) link.textContent = getTranslation('首页');
-                if (index === 1) link.textContent = getTranslation('材料工程基础');
-                if (index === 2) link.textContent = getTranslation('物理化学');
-                if (index === 3) link.textContent = getTranslation('材料工程基础');
-                if (index === 4) link.textContent = getTranslation('物理化学');
-            });
-            
-            // 核心课程标题
-            const coreCoursesTitle = document.querySelector('footer .footer-links h4:last-child');
-            if (coreCoursesTitle) coreCoursesTitle.textContent = getTranslation('核心课程');
-            
-            // 联系方式标题
-            const contactTitle = document.querySelector('footer .footer-contact h4');
-            if (contactTitle) contactTitle.textContent = getTranslation('联系方式');
-            
-            // 联系方式内容
-            const contactItems = document.querySelectorAll('footer .footer-contact p');
-            contactItems.forEach((item, index) => {
-                if (index === 0) item.textContent = getTranslation('邮箱: support@virtual-lab.edu.cn');
-                if (index === 1) item.textContent = getTranslation('电话: +86 010 1234 5678');
-                if (index === 2) item.textContent = getTranslation('地址: 北京市海淀区学院路');
-            });
-            
-            // 版权信息
-            const copyright = document.querySelector('footer .copyright p');
-            if (copyright) copyright.innerHTML = getTranslation('&copy; 2025 AIknow智慧教学虚拟仿真实践库. 保留所有权利.');
-        }
-        
-        function updateModalText() {
-            if (!currentIdentity) return;
-            
-            let titleKey = '', contentKey = '';
-            
-            switch(currentIdentity) {
-                case 'expert':
-                    titleKey = 'expert-modal-title';
-                    contentKey = 'expert-modal-content';
-                    break;
-                case 'teacher':
-                    titleKey = 'teacher-modal-title';
-                    contentKey = 'teacher-modal-content';
-                    break;
-                case 'student':
-                    titleKey = 'student-modal-title';
-                    contentKey = 'student-modal-content';
-                    break;
-            }
-            
-            if (elements.modalTitle) {
-                elements.modalTitle.textContent = getTranslation(titleKey);
-            }
-            
-            if (elements.modalContent) {
-                elements.modalContent.textContent = getTranslation(contentKey);
-            }
-            
-            if (elements.modalConfirm) {
-                elements.modalConfirm.textContent = getTranslation('确认');
-            }
-        }
-        
-        function updateCourseDescriptions() {
-            const enElements = document.querySelectorAll('.en');
-            const zhDescriptions = document.querySelectorAll('.course-info p:not(.en)');
-            
-            if (currentLanguage === 'en') {
-                enElements.forEach(el => el.style.display = 'block');
-                zhDescriptions.forEach(el => {
-                    if (el.textContent.includes('本课程通过虚拟仿真技术') || 
-                        el.textContent.includes('实践时长')) {
-                        el.style.display = 'none';
-                    }
-                });
-            } else {
-                enElements.forEach(el => el.style.display = 'none');
-                zhDescriptions.forEach(el => el.style.display = 'block');
-            }
-        }
-        
-        // ===== 初始化函数 =====
-        function init() {
-            // 1. 绑定身份选择事件
-            elements.identityOptions.forEach(option => {
-                option.addEventListener('click', handleIdentitySelect);
-            });
-            
-            // 2. 绑定模态框事件
-            elements.modalConfirm.addEventListener('click', handleModalConfirm);
-            elements.modalClose.addEventListener('click', () => {
-                elements.identityModal.classList.remove('active');
-            });
-            
-            // 3. 绑定语言切换事件
-            elements.langButtons.forEach(btn => {
-                btn.addEventListener('click', handleLanguageSwitch);
-            });
-            
-            // 4. 绑定刷新/返回首页事件
-            elements.refreshLogo.addEventListener('click', refreshPage);
-            elements.refreshButton.addEventListener('click', refreshPage);
-            
-            // 5. 绑定移动菜单事件
-            elements.mobileMenuBtn.addEventListener('click', toggleMobileMenu);
-            
-            // 6. 绑定课程选择事件
-            elements.courseButtons.forEach(btn => {
-                btn.addEventListener('click', handleCourseSelect);
-            });
-            
-            // 7. 绑定下载项目事件
-            elements.downloadItems.forEach(item => {
-                item.addEventListener('click', handleDownload);
-            });
-            
-            // 8. 绑定页脚链接事件
-            elements.footerLinks.forEach(link => {
-                link.addEventListener('click', handleFooterLink);
-            });
-            
-            // 9. 绑定批量下载事件
-            if (elements.batchDownloadBtn) {
-                elements.batchDownloadBtn.addEventListener('click', batchDownload);
-            }
-            
-            if (elements.chemistryBatchDownload) {
-                elements.chemistryBatchDownload.addEventListener('click', batchDownload);
-            }
-            
-            // 10. 初始化滚动渐入效果
-            window.addEventListener('scroll', checkFadeIn);
-            window.addEventListener('load', checkFadeIn);
-            
-            // 11. 为进入实践按钮添加新窗口打开功能
-            setupPracticeButtons();
-        }
-        
-        // ===== 为进入实践按钮设置新窗口打开功能 =====
-        function setupPracticeButtons() {
-            // 首页的进入实践按钮
-            const homeButtons = document.querySelectorAll('#home .btn[data-course]');
-            homeButtons.forEach(btn => {
-                const course = btn.getAttribute('data-course');
-                btn.onclick = function(e) {
-                    e.preventDefault();
-                    const page = course === 'material' ? 'project-index.html' : 'physicalchemistry-underconstruction.html';
-                    window.open(page, '_blank');
-                };
-            });
-            
-            // 材料工程页面的实践按钮
-            const materialPracticeBtn = document.querySelector('#course-material .explore-section .btn');
-            if (materialPracticeBtn) {
-                materialPracticeBtn.onclick = function() {
-                    window.open('project-index.html', '_blank');
-                };
-            }
-            
-            // 物理化学页面的实践按钮
-            const chemistryPracticeBtn = document.querySelector('#course-chemistry .explore-section .btn');
-            if (chemistryPracticeBtn) {
-                chemistryPracticeBtn.onclick = function() {
-                    window.open('physicalchemistry-underconstruction.html', '_blank');
-                };
-            }
-        }
-        
-        // ===== 语言切换处理 =====
-        function handleLanguageSwitch(e) {
-            const selectedBtn = e.currentTarget;
-            const selectedLang = selectedBtn.getAttribute('data-lang');
-            
-            // 根据按钮的data-lang属性确定要设置的语言
-            const langToSet = selectedLang === 'zh' ? 'zh-CN' : 'en';
-            
-            // 使用统一的setLanguage函数
-            setLanguage(langToSet);
-        }
-        
-        // ===== 身份选择处理 =====
-        function handleIdentitySelect(e) {
-            // 移除之前的选择状态
-            elements.identityOptions.forEach(option => {
-                option.classList.remove('selected');
-            });
-            
-            // 设置当前选择状态
-            const selectedOption = e.currentTarget;
-            selectedOption.classList.add('selected');
-            
-            // 获取身份类型
-            currentIdentity = selectedOption.getAttribute('data-identity');
-            
-            // 显示对应的弹框
-            showIdentityModal(currentIdentity);
-        }
-        
-        function showIdentityModal(identity) {
-            // 设置弹框内容
-            let titleKey = '', contentKey = '';
-            
-            switch(identity) {
-                case 'expert':
-                    titleKey = 'expert-modal-title';
-                    contentKey = 'expert-modal-content';
-                    break;
-                case 'teacher':
-                    titleKey = 'teacher-modal-title';
-                    contentKey = 'teacher-modal-content';
-                    break;
-                case 'student':
-                    titleKey = 'student-modal-title';
-                    contentKey = 'student-modal-content';
-                    break;
-            }
-            
+        if (elements.modalTitle) {
             elements.modalTitle.textContent = getTranslation(titleKey);
-            elements.modalContent.textContent = getTranslation(contentKey);
-            
-            // 显示弹框
-            elements.identityModal.classList.add('active');
         }
         
-        function handleModalConfirm() {
+        if (elements.modalContent) {
+            elements.modalContent.textContent = getTranslation(contentKey);
+        }
+        
+        if (elements.modalConfirm) {
+            elements.modalConfirm.textContent = getTranslation('确认');
+        }
+        
+        if (elements.modalCancel) {
+            elements.modalCancel.textContent = getTranslation('取消');
+        }
+        
+        if (elements.passwordLabel) {
+            elements.passwordLabel.textContent = getTranslation('请输入8位密码');
+        }
+        
+        if (elements.passwordError) {
+            elements.passwordError.textContent = getTranslation('密码错误，请重新输入');
+        }
+        
+        if (elements.passwordHint) {
+            elements.passwordHint.textContent = getTranslation('密码提示');
+        }
+        
+        if (elements.passwordInput) {
+            elements.passwordInput.placeholder = currentLanguage === 'zh-CN' ? '输入8位数字密码' : 'Enter 8-digit password';
+        }
+    }
+    
+    // ===== 密码验证函数 =====
+    function validatePassword() {
+        const inputPassword = elements.passwordInput.value;
+        const correctPassword = identityPasswords[currentIdentity];
+        
+        if (inputPassword === correctPassword) {
+            // 密码正确
+            elements.passwordInput.classList.remove('error');
+            elements.passwordError.classList.remove('show');
+            return true;
+        } else {
+            // 密码错误
+            elements.passwordInput.classList.add('error');
+            elements.passwordError.classList.add('show');
+            elements.passwordInput.focus();
+            elements.passwordInput.select();
+            return false;
+        }
+    }
+    
+    // ===== 重置密码输入框 =====
+    function resetPasswordInput() {
+        elements.passwordInput.value = '';
+        elements.passwordInput.classList.remove('error');
+        elements.passwordError.classList.remove('show');
+    }
+    
+    // ===== 初始化函数 =====
+    function init() {
+        // 1. 绑定身份选择事件
+        elements.identityOptions.forEach(option => {
+            option.addEventListener('click', handleIdentitySelect);
+        });
+        
+        // 2. 绑定模态框事件
+        elements.modalConfirm.addEventListener('click', handleModalConfirm);
+        elements.modalCancel.addEventListener('click', handleModalCancel);
+        elements.modalClose.addEventListener('click', handleModalCancel);
+        
+        // 3. 绑定密码输入框回车事件
+        elements.passwordInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handleModalConfirm();
+            }
+        });
+        
+        // 4. 绑定语言切换事件
+        elements.langButtons.forEach(btn => {
+            btn.addEventListener('click', handleLanguageSwitch);
+        });
+        
+        // 5. 绑定刷新/返回首页事件
+        elements.refreshLogo.addEventListener('click', refreshPage);
+        elements.refreshButton.addEventListener('click', refreshPage);
+        
+        // 6. 绑定移动菜单事件
+        elements.mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+        
+        // 7. 绑定课程选择事件
+        elements.courseButtons.forEach(btn => {
+            btn.addEventListener('click', handleCourseSelect);
+        });
+        
+        // 8. 绑定滚动渐入效果
+        window.addEventListener('scroll', checkFadeIn);
+        window.addEventListener('load', checkFadeIn);
+        
+        // 9. 为进入实践按钮添加新窗口打开功能
+        setupPracticeButtons();
+    }
+    
+    // ===== 为进入实践按钮设置新窗口打开功能 =====
+    function setupPracticeButtons() {
+        // 首页的进入实践按钮
+        const homeButtons = document.querySelectorAll('#home .btn[data-course]');
+        homeButtons.forEach(btn => {
+            const course = btn.getAttribute('data-course');
+            btn.onclick = function(e) {
+                e.preventDefault();
+                const page = course === 'material' ? 'project-index.html' : 'physicalchemistry-underconstruction.html';
+                window.open(page, '_blank');
+            };
+        });
+        
+        // 材料工程页面的实践按钮
+        const materialPracticeBtn = document.querySelector('#course-material .explore-section .btn');
+        if (materialPracticeBtn) {
+            materialPracticeBtn.onclick = function() {
+                window.open('project-index.html', '_blank');
+            };
+        }
+        
+        // 物理化学页面的实践按钮
+        const chemistryPracticeBtn = document.querySelector('#course-chemistry .explore-section .btn');
+        if (chemistryPracticeBtn) {
+            chemistryPracticeBtn.onclick = function() {
+                window.open('physicalchemistry-underconstruction.html', '_blank');
+            };
+        }
+    }
+    
+    // ===== 语言切换处理 =====
+    function handleLanguageSwitch(e) {
+        const selectedBtn = e.currentTarget;
+        const selectedLang = selectedBtn.getAttribute('data-lang');
+        
+        // 根据按钮的data-lang属性确定要设置的语言
+        const langToSet = selectedLang === 'zh' ? 'zh-CN' : 'en';
+        
+        // 使用统一的setLanguage函数
+        setLanguage(langToSet);
+    }
+    
+    // ===== 身份选择处理 =====
+    function handleIdentitySelect(e) {
+        // 移除之前的选择状态
+        elements.identityOptions.forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        // 设置当前选择状态
+        const selectedOption = e.currentTarget;
+        selectedOption.classList.add('selected');
+        
+        // 获取身份类型
+        currentIdentity = selectedOption.getAttribute('data-identity');
+        
+        // 重置密码输入框
+        resetPasswordInput();
+        
+        // 显示对应的弹框
+        showIdentityModal(currentIdentity);
+    }
+    
+    function showIdentityModal(identity) {
+        // 设置弹框内容
+        updateModalText();
+        
+        // 显示弹框
+        elements.identityModal.classList.add('active');
+        
+        // 聚焦到密码输入框
+        setTimeout(() => {
+            elements.passwordInput.focus();
+        }, 300);
+    }
+    
+    function handleModalConfirm() {
+        // 验证密码
+        if (validatePassword()) {
             // 关闭弹框
             elements.identityModal.classList.remove('active');
             
@@ -1972,150 +1889,99 @@
             // 设置进入实践按钮功能
             setupPracticeButtons();
         }
-        
-        // ===== 刷新页面/返回首页 =====
-        function refreshPage() {
-            // 显示确认提示
-            if (confirm(currentLanguage === 'zh-CN' ? '确定要返回首页并重新选择身份吗？' : 'Are you sure you want to return to the homepage and reselect your identity?')) {
-                location.reload();
-            }
-        }
-        
-        // ===== 页面导航处理 =====
-        function handleCourseSelect(e) {
-            e.preventDefault();
-            const course = e.currentTarget.getAttribute('data-course');
-            switchCourse(course);
-            
-            // 关闭移动菜单
-            if (elements.mobileMenu.classList.contains('active')) {
-                toggleMobileMenu();
-            }
-        }
-        
-        function handleFooterLink(e) {
-            e.preventDefault();
-            const target = e.currentTarget;
-            const page = target.getAttribute('data-page');
-            const course = target.getAttribute('data-course');
-            
-            if (page) {
-                switchPage(page);
-            } else if (course) {
-                switchCourse(course);
-            }
-        }
-        
-        function switchPage(pageId) {
-            // 更新当前页面
-            currentPage = pageId;
-            
-            // 隐藏所有页面
-            elements.pages.forEach(page => {
-                page.classList.remove('active');
-            });
-            
-            // 显示目标页面
-            const targetPage = document.getElementById(pageId);
-            if (targetPage) {
-                targetPage.classList.add('active');
-                
-                // 滚动到页面顶部
-                window.scrollTo(0, 0);
-                
-                // 重新检查渐入元素
-                setTimeout(checkFadeIn, 100);
-            }
-        }
-        
-        function switchCourse(courseId) {
-            const coursePage = courseId === 'material' ? 'course-material' : 'course-chemistry';
-            currentCourse = courseId;
-            switchPage(coursePage);
-        }
-        
-        // ===== 移动菜单处理 =====
-        function toggleMobileMenu() {
-            elements.mobileMenu.classList.toggle('active');
-            const icon = elements.mobileMenuBtn.querySelector('i');
-            
-            if (elements.mobileMenu.classList.contains('active')) {
-                icon.classList.remove('fa-bars');
-                icon.classList.add('fa-times');
-            } else {
-                icon.classList.remove('fa-times');
-                icon.classList.add('fa-bars');
-            }
-        }
-        
-        // ===== 下载处理 =====
-        function handleDownload(e) {
-            e.stopPropagation();
-            const file = e.currentTarget.getAttribute('data-file');
-            showDownloadAlert(file);
-        }
-        
-        function showDownloadAlert(fileName) {
-            alert(currentLanguage === 'zh-CN' ? 
-                `下载提示：${fileName} 开始下载\n\n在实际应用中，这里会触发真实的文件下载。` :
-                `Download prompt: ${fileName} starts downloading\n\nIn actual application, this would trigger a real file download.`);
-        }
-        
-        function batchDownload() {
-            alert(currentLanguage === 'zh-CN' ? 
-                '批量下载提示：所有选中的资源将打包下载。\n\n在实际应用中，这里会生成ZIP压缩包并触发下载。' :
-                'Batch download prompt: All selected resources will be packaged for download.\n\nIn actual application, this would generate a ZIP archive and trigger the download.');
-        }
-        
-        // ===== 滚动渐入效果 =====
-        function checkFadeIn() {
-            elements.fadeInElements.forEach(element => {
-                const elementTop = element.getBoundingClientRect().top;
-                const windowHeight = window.innerHeight;
-                
-                if (elementTop < windowHeight - 100) {
-                    element.classList.add('visible');
-                }
-            });
-        }
-        
-        // ===== 页面加载完成后初始化 =====
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
-
-
-<!-- 底部信息栏 -->
-<div style="
-    text-align: center;
-    padding: 20px 30px;
-    margin-top: 40px;
-    color: #e6f7ff;
-    font-size: 0.9rem;
-    border-top: 2px solid rgba(0, 180, 255, 0.5);
-    background: linear-gradient(135deg, rgba(10, 15, 43, 0.95), rgba(18, 26, 58, 0.9));
-    border-radius: 15px 15px 0 0;
-    box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
-    position: relative;
-    overflow: hidden;
-    box-sizing: border-box;
-    width: 100%;
-    max-width: none;
-">
-    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+    }
     
-    <p style="font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; color: #00b4ff;">
-       智慧教学虚拟仿真实践库 © 2025 | AIknow轻量化html仿真系统 | 版本 1.0 |
-      <style="margin-bottom: 12px; color: #cbd5e1;">
-        <strong>邮箱:</strong> xgyanger@qq.com
-    </p>
+    function handleModalCancel() {
+        // 关闭弹框
+        elements.identityModal.classList.remove('active');
+        
+        // 重置密码输入框
+        resetPasswordInput();
+        
+        // 取消身份选择状态
+        elements.identityOptions.forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        currentIdentity = null;
+    }
     
-    <div style="margin-top: 15px;">
-        <span style="color: #ffcc00; font-weight: bold; font-size: 1.1rem;">
-            版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
-        </span>
-    </div>
-</div>
-                
-
+    // ===== 刷新页面/返回首页 =====
+    function refreshPage() {
+        // 显示确认提示
+        if (confirm(currentLanguage === 'zh-CN' ? '确定要返回首页并重新选择身份吗？' : 'Are you sure you want to return to the homepage and reselect your identity?')) {
+            location.reload();
+        }
+    }
+    
+    // ===== 页面导航处理 =====
+    function handleCourseSelect(e) {
+        e.preventDefault();
+        const course = e.currentTarget.getAttribute('data-course');
+        switchCourse(course);
+        
+        // 关闭移动菜单
+        if (elements.mobileMenu.classList.contains('active')) {
+            toggleMobileMenu();
+        }
+    }
+    
+    function switchPage(pageId) {
+        // 更新当前页面
+        currentPage = pageId;
+        
+        // 隐藏所有页面
+        elements.pages.forEach(page => {
+            page.classList.remove('active');
+        });
+        
+        // 显示目标页面
+        const targetPage = document.getElementById(pageId);
+        if (targetPage) {
+            targetPage.classList.add('active');
+            
+            // 滚动到页面顶部
+            window.scrollTo(0, 0);
+            
+            // 重新检查渐入元素
+            setTimeout(checkFadeIn, 100);
+        }
+    }
+    
+    function switchCourse(courseId) {
+        const coursePage = courseId === 'material' ? 'course-material' : 'course-chemistry';
+        currentCourse = courseId;
+        switchPage(coursePage);
+    }
+    
+    // ===== 移动菜单处理 =====
+    function toggleMobileMenu() {
+        elements.mobileMenu.classList.toggle('active');
+        const icon = elements.mobileMenuBtn.querySelector('i');
+        
+        if (elements.mobileMenu.classList.contains('active')) {
+            icon.classList.remove('fa-bars');
+            icon.classList.add('fa-times');
+        } else {
+            icon.classList.remove('fa-times');
+            icon.classList.add('fa-bars');
+        }
+    }
+    
+    // ===== 滚动渐入效果 =====
+    function checkFadeIn() {
+        elements.fadeInElements.forEach(element => {
+            const elementTop = element.getBoundingClientRect().top;
+            const windowHeight = window.innerHeight;
+            
+            if (elementTop < windowHeight - 100) {
+                element.classList.add('visible');
+            }
+        });
+    }
+    
+    // ===== 页面加载完成后初始化 =====
+    document.addEventListener('DOMContentLoaded', init);
+</script>
 </body>
 </html>
