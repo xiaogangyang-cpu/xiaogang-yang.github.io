@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>上机实训大纲：传递现象相似性与工程放大</title>
+    <style>
+        :root { --primary: #38bdf8; --accent: #fbbf24; --bg: #0f172a; --card: #1e293b; }
+        body { font-family: 'Segoe UI', system-ui; background: var(--bg); color: #f1f5f9; padding: 20px; line-height: 1.6; }
+        .guide-container { max-width: 1000px; margin: 0 auto; background: var(--card); padding: 30px; border-radius: 12px; border: 1px solid var(--primary); box-shadow: 0 0 30px rgba(56, 189, 248, 0.1); }
+        h1 { color: var(--primary); border-bottom: 3px solid var(--accent); padding-bottom: 10px; text-align: center; }
+        .section { margin: 25px 0; padding: 20px; border: 1px solid #334155; border-radius: 8px; background: rgba(0,0,0,0.2); }
+        .section h2 { color: var(--accent); font-size: 1.3em; border-left: 5px solid var(--primary); padding-left: 15px; }
+        .task-list { list-style: none; padding-left: 0; }
+        .task-list li { margin: 10px 0; padding-left: 25px; position: relative; }
+        .task-list li::before { content: "🎯"; position: absolute; left: 0; }
+        .input-box { width: 100px; background: transparent; border: none; border-bottom: 1px solid var(--primary); color: var(--accent); text-align: center; font-size: 1rem; }
+        .input-box:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        .engineer-rank-input { display: inline-block; background: transparent; border: none; border-bottom: 2px solid var(--primary); color: var(--accent); font-weight: bold; text-align: center; font-size: 1rem; width: 120px; margin-left: 5px; }
+        .footer { text-align: center; margin-top: 30px; font-size: 0.9em; color: #94a3b8; }
+        .student-info { display: flex; justify-content: space-between; margin: 15px 0 25px 0; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid #334155; }
+        .student-info-item { display: flex; align-items: center; gap: 8px; }
+        .student-info-item label { color: var(--accent); font-weight: bold; font-size: 0.9rem; }
+        .student-input { width: 120px; background: transparent; border: none; border-bottom: 1px solid var(--primary); color: var(--accent); padding: 4px 8px; }
+        .student-input:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        .date-info { text-align: center; margin-bottom: 20px; color: #94a3b8; font-size: 0.9rem; }
+        .btn-print { display: block; width: 100%; padding: 12px; background: var(--primary); color: #0f172a; text-align: center; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 20px; border: none; cursor: pointer; font-size: 1rem; }
+        .btn-print:hover { background: #0ea5e9; }
+        @media print { .btn-print { display: none; } }
+        @media (max-width: 768px) {
+            .student-info { flex-direction: column; gap: 10px; }
+            .student-info-item { justify-content: flex-start; }
+            .guide-container { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="guide-container">
+    <h1>传递现象相似性 - 数字化实训手册</h1>
+    <div class="date-info">
+        配套软件版本：01-05 增强版 | 实训日期：<span id="current-date"></span>
+    </div>
+
+    <div class="section">
+        <h2>实训准备：学生信息录入</h2>
+        <div class="student-info">
+            <div class="student-info-item">
+                <label for="name">姓名：</label>
+                <input class="student-input" id="name" type="text" placeholder="请输入">
+            </div>
+            <div class="student-info-item">
+                <label for="studentId">学号：</label>
+                <input class="student-input" id="studentId" type="text" placeholder="请输入">
+            </div>
+            <div class="student-info-item">
+                <label for="class">班级：</label>
+                <input class="student-input" id="class" type="text" placeholder="请输入">
+            </div>
+        </div>
+        <p>启动仿真器，在登录界面录入学生信息。系统将为您开启 <b style="color:var(--accent)">[工程师追踪模式]</b>。</p>
+    </div>
+
+    <div class="section">
+        <h2>任务一：三传曲线的"重合逻辑" (Level 1)</h2>
+        <ul class="task-list">
+            <li>记录当三传曲线完全重合时，扩散系数 D、热扩散率 α 与动粘度 ν 的数值：
+                <br>D: <input class="input-box" type="text"> | α: <input class="input-box" type="text"> | ν: <input class="input-box" type="text">
+            </li>
+            <li><b>思考：</b> 此时系统的施密特数 (Sc) 和普朗特数 (Pr) 的数值是否为 1？ <input class="input-box" type="text"></li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>任务二：准数对决与灵敏度分析 (Level 2)</h2>
+        <ul class="task-list">
+            <li>在关卡 2 中，增加流速 v，观察努塞尔数 (Nu) 的变化趋势是： <input class="input-box" style="width:150px" type="text" placeholder="线性/非线性？"></li>
+            <li>保持 Re 不变，改变流体物性（提高粘度），为了维持原有的传质效率，你采取的操作策略是：
+                <textarea style="width:100%; height:60px; margin-top:10px; background:rgba(0,0,0,0.3); border:1px solid #334155; color:white; border-radius:4px; padding:8px;"></textarea>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>任务三：工程放大与相似性维持 (Level 3)</h2>
+        <p><b>场景：</b> 实验室模型尺寸 L₁ = 1.0，工业设备尺寸 L₂ = 5.0。</p>
+        <ul class="task-list">
+            <li>为了保持雷诺数 Re 恒定，工业设备的流速 v₂ 应该是实验室流速 v₁ 的几倍？ <input class="input-box" type="text"> 倍。</li>
+            <li>查看关卡 3 结束后的雷达图，记录你的三项核心分值：
+                <br>准数匹配度：<input class="input-box" type="text"> | 放大稳定性：<input class="input-box" type="text"> | 工程直觉：<input class="input-box" type="text">
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>四、 终极考核与等级评估</h2>
+        <p>完成最后的"等级测试"，根据系统评价填写：</p>
+        <p>我的工程师等级：<input class="engineer-rank-input" type="text" placeholder="填写等级"></p>
+        <p><b>反思：</b> 在工业放大中，如果你无法同时保持 Re 和 Ga（伽利略数）相似，你会优先保证哪一个？为什么？</p>
+        <textarea style="width:100%; height:80px; background:rgba(0,0,0,0.3); border:1px solid #334155; color:white; border-radius:4px; padding:8px;"></textarea>
+    </div>
+
+    <button class="btn-print" onclick="window.print()">📥 导出实训报告 (PDF/打印)</button>
+    
+    <div class="footer">
+        © 2026 传质工程数字化教学研究室 | 产教融合实训系列课件
+    </div>
+</div>
+
+<script>
+    // 日期格式化函数
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}年${month}月${day}日`;
+    }
+    
+    // 设置当前日期
+    document.getElementById('current-date').textContent = formatDate(new Date());
+</script>
+
+</body>
+</html>
