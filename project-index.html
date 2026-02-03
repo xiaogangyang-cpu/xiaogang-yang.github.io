@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>虚拟仿真实验矩阵 - 工程传递现象教学平台</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入不蒜子统计 -->
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     <style>
         :root {
             --primary-blue: #0a2463;
@@ -462,8 +464,8 @@ min-width: 180px;
         }
         
         .profile-panel.open {
-            width: 80%;
-            min-width: 600px;
+            width: 95%;
+            min-width: 300px;
         }
         
         .profile-header {
@@ -596,6 +598,53 @@ min-width: 180px;
         .stage-experiment.completed {
             background: #d1fae5;
             color: #065f46;
+        }
+        
+        /* 进度条样式 */
+        .progress-container {
+            margin-bottom: 15px;
+        }
+        
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background-color: #e1e5eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, var(--secondary-blue), var(--accent-teal));
+            transition: width 0.5s ease;
+        }
+        
+        .recommendation-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .recommendation-card {
+            background: #f8f9fa;
+            border-left: 4px solid var(--success-color);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .recommendation-card h4 {
+            margin-bottom: 8px;
+            color: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
         /* 底部信息 */
@@ -759,8 +808,8 @@ min-width: 180px;
         }
         
         .experiment-panel.open {
-            width: 75%;
-            min-width: 500px;
+            width: 99%;
+            min-width: 300px;
         }
         
         .panel-header {
@@ -816,22 +865,31 @@ min-width: 180px;
                     <!-- 右上角紧凑统计模块 -->
                     <div class="stats-compact">
                         <div class="stats-grid">
+                            <!-- 访问量 - 使用不蒜子统计 -->
                             <div class="stat-compact-item">
-                                <div class="stat-compact-value" id="page-visits">1.2k</div>
+                                <div class="stat-compact-value">
+                                    <span id="busuanzi_value_site_pv">0</span>
+                                </div>
                                 <div class="stat-compact-label">访问量</div>
                                 <div class="stat-compact-change positive">
-                                    <i class="fas fa-arrow-up"></i> 12%
+                                    <i class="fas fa-arrow-up"></i> 
+                                    <span id="busuanzi_value_site_pv_change">--</span>
                                 </div>
                             </div>
                             
+                            <!-- 活动用户 - 使用不蒜子独立访客 -->
                             <div class="stat-compact-item">
-                                <div class="stat-compact-value" id="active-users">86</div>
-                                <div class="stat-compact-label">活动用户</div>
+                                <div class="stat-compact-value">
+                                    <span id="busuanzi_value_site_uv">0</span>
+                                </div>
+                                <div class="stat-compact-label">独立访客</div>
                                 <div class="stat-compact-change positive">
-                                    <i class="fas fa-arrow-up"></i> 8%
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span id="busuanzi_value_site_uv_change">--</span>
                                 </div>
                             </div>
                             
+                            <!-- 总实验数 -->
                             <div class="stat-compact-item">
                                 <div class="stat-compact-value" id="total-experiments-top">28</div>
                                 <div class="stat-compact-label">总实验</div>
@@ -840,11 +898,13 @@ min-width: 180px;
                                 </div>
                             </div>
                             
+                            <!-- 用户平均完成率（基于当前用户数据） -->
                             <div class="stat-compact-item">
-                                <div class="stat-compact-value" id="avg-completion">42%</div>
-                                <div class="stat-compact-label">**用户平均完成率</div>
+                                <div class="stat-compact-value" id="user-completion-rate">0%</div>
+                                <div class="stat-compact-label">用户完成率</div>
                                 <div class="stat-compact-change positive">
-                                    <i class="fas fa-arrow-up"></i> 5%
+                                    <i class="fas fa-arrow-up"></i> 
+                                    <span id="user-completion-change">--</span>
                                 </div>
                             </div>
                         </div>
@@ -948,7 +1008,6 @@ min-width: 180px;
                 </div>
             </div>
             
-
         </div>
         
         <!-- 右侧实验面板 -->
@@ -1060,7 +1119,7 @@ min-width: 180px;
                 difficulty: "level3",
                 application: "通过实际工程案例，应用量纲分析进行工程估算与系统尺度放大设计。",
                 mechanism: "工程估算、系统放大、相似设计",
-                objectives: ["进行工程参数估算", "设计系统放大方案", "应用相似准则"],
+                objectives: [ "应用相似准则", "设计系统放大方案","进行工程参数估算"],
                 simulationUrl: "01-06-dimension-scaling.html",
                 level: "Lv.3"
             },
@@ -1074,7 +1133,7 @@ min-width: 180px;
                 difficulty: "level1",
                 application: "通过交互式实验，观察不同雷诺数下流体流动状态的变化，建立流态与雷诺数的直观联系。",
                 mechanism: "雷诺数、层流与湍流、流态转换",
-                objectives: ["观察流态变化", "理解雷诺数意义", "识别层流与湍流"],
+                objectives: ["观察流态变化", "识别层流与湍流", "理解雷诺数意义"],
                 simulationUrl: "02-01-fluid-reynolds.html",
                 level: "Lv.1"
             },
@@ -1087,7 +1146,7 @@ min-width: 180px;
                 difficulty: "level1",
                 application: "通过足球运动中的香蕉球现象，直观展示伯努利效应在流体流动中的应用。",
                 mechanism: "伯努利方程、压力与速度关系、马格努斯效应",
-                objectives: ["理解伯努利效应", "分析压力分布", "解释香蕉球现象"],
+                objectives: ["解释香蕉球现象", "分析压力分布", "理解伯努利效应"],
                 simulationUrl: "02-02-fluid-bernoulli.html",
                 level: "Lv.1"
             },
@@ -1168,7 +1227,7 @@ min-width: 180px;
                 difficulty: "level1",
                 application: "通过物体冷却过程模拟，直观展示牛顿冷却定律在实际传热现象中的应用。",
                 mechanism: "牛顿冷却定律、对流传热、温度衰减",
-                objectives: ["理解牛顿冷却定律", "分析冷却过程", "计算传热系数"],
+                objectives: ["分析冷却过程", "理解牛顿冷却定律", "计算传热系数"],
                 simulationUrl: "03-02-heat-newton-cooling.html",
                 level: "Lv.1"
             },
@@ -1249,7 +1308,7 @@ min-width: 180px;
                 difficulty: "level1",
                 application: "模拟纳米尺度沟槽中的传质过程，分析微尺度效应对传质的影响。",
                 mechanism: "纳米尺度传质、表面效应、扩散增强",
-                objectives: ["分析微尺度传质", "理解表面效应", "观察扩散过程"],
+                objectives: ["观察扩散过程","分析微尺度传质" , "理解表面效应"],
                 simulationUrl: "04-02-channel-mass.html",
                 level: "Lv.1"
             },
@@ -1330,7 +1389,7 @@ min-width: 180px;
                 difficulty: "level1",
                 application: "模拟土壤毛细管中的水分迁移与保持，分析农业保墒的传质原理。",
                 mechanism: "毛细管传质、水分迁移、土壤保墒",
-                objectives: ["分析毛细管传质", "理解水分迁移", "设计保墒策略"],
+                objectives: [ "设计保墒策略","分析毛细管传质", "理解水分迁移"],
                 simulationUrl: "05-02-capillary-mass.html",
                 level: "Lv.1"
             },
@@ -1371,22 +1430,13 @@ min-width: 180px;
             completionDates: {},      // 实验完成日期映射
             learningTime: 0,          // 总学习时长（分钟）
             lastActive: null,         // 最后活跃时间
-            learningPath: []          // 学习路径顺序
+            learningPath: [],         // 学习路径顺序
+            previousCompletionRate: 0 // 上一次计算时的完成率，用于计算变化
         };
 
-        // 平台统计数据（改进版：模拟在线统计数据）
+        // 平台统计数据（简化版，只记录总实验数）
         let platformStats = {
-            // 本地存储的访问量（仅当前设备）
-            localVisits: 0,
-            
-            // 模拟的在线统计数据（随机生成，模拟多用户）
-            simulatedVisits: 1248,
-            simulatedActiveUsers: 86,
-            simulatedAvgCompletion: 42,
-            
-            // 总实验数量固定
-            totalExperiments: experiments.length,
-            
+            totalExperiments: experiments.length, // 总实验数量固定
             lastUpdated: new Date().toISOString()
         };
 
@@ -1409,17 +1459,18 @@ min-width: 180px;
         const panelLoading = document.getElementById('panel-loading');
         
         // 顶部统计元素
-        const pageVisitsEl = document.getElementById('page-visits');
-        const activeUsersEl = document.getElementById('active-users');
+        const pageVisitsEl = document.getElementById('busuanzi_value_site_pv');
+        const activeUsersEl = document.getElementById('busuanzi_value_site_uv');
         const totalExperimentsTopEl = document.getElementById('total-experiments-top');
-        const avgCompletionEl = document.getElementById('avg-completion');
+        const userCompletionRateEl = document.getElementById('user-completion-rate');
+        const userCompletionChangeEl = document.getElementById('user-completion-change');
         
         // 学习路径相关元素
         const generatePathBtn = document.getElementById('generate-path-btn');
         const viewProfileBtn = document.getElementById('view-profile-btn');
         const exportReportBtn = document.getElementById('export-report-btn');
         const getCertificateBtn = document.getElementById('get-certificate-btn');
-const selfLearningProfileBtn = document.getElementById('self-learning-profile-btn');
+        const selfLearningProfileBtn = document.getElementById('self-learning-profile-btn');
         const profilePanel = document.getElementById('profile-panel');
         const closeProfilePanelBtn = document.getElementById('close-profile-panel');
         const profileContent = document.getElementById('profile-content');
@@ -1431,7 +1482,6 @@ const selfLearningProfileBtn = document.getElementById('self-learning-profile-bt
         // 初始化页面
         document.addEventListener('DOMContentLoaded', function() {
             loadUserData();
-            loadPlatformStats();
             updateLearningStats();
             updatePlatformStatsDisplay();
             renderExperiments(experiments);
@@ -1440,51 +1490,23 @@ const selfLearningProfileBtn = document.getElementById('self-learning-profile-bt
             setupLearningPathButtons();
             startStatsAnimation();
             
-            // 每60秒更新一次模拟的在线统计数据
-            setInterval(updateSimulatedStats, 60000);
+            // 每隔30秒更新一次用户完成率变化
+            setInterval(updateUserCompletionRateChange, 30000);
+            
+            // 监控不蒜子统计数据的更新
+            monitorBusuanziStats();
         });
 
         // 加载用户数据
         function loadUserData() {
             const savedData = localStorage.getItem('userLearningData');
             if (savedData) {
-                userLearningData = JSON.parse(savedData);
+                const parsedData = JSON.parse(savedData);
+                userLearningData = {
+                    ...userLearningData,
+                    ...parsedData
+                };
             }
-        }
-
-        // 加载平台统计数据
-        function loadPlatformStats() {
-            // 加载本地访问量
-            const savedLocalVisits = localStorage.getItem('localVisits');
-            if (savedLocalVisits) {
-                platformStats.localVisits = parseInt(savedLocalVisits);
-            } else {
-                platformStats.localVisits = 1; // 首次访问
-            }
-            
-            // 增加本地访问量
-            platformStats.localVisits++;
-            localStorage.setItem('localVisits', platformStats.localVisits.toString());
-            
-            // 加载模拟的在线统计数据
-            const savedSimulatedStats = localStorage.getItem('simulatedPlatformStats');
-            if (savedSimulatedStats) {
-                const parsedStats = JSON.parse(savedSimulatedStats);
-                platformStats.simulatedVisits = parsedStats.simulatedVisits || 1248;
-                platformStats.simulatedActiveUsers = parsedStats.simulatedActiveUsers || 86;
-                platformStats.simulatedAvgCompletion = parsedStats.simulatedAvgCompletion || 42;
-            }
-        }
-
-        // 保存平台统计数据
-        function savePlatformStats() {
-            const simulatedStats = {
-                simulatedVisits: platformStats.simulatedVisits,
-                simulatedActiveUsers: platformStats.simulatedActiveUsers,
-                simulatedAvgCompletion: platformStats.simulatedAvgCompletion,
-                lastUpdated: new Date().toISOString()
-            };
-            localStorage.setItem('simulatedPlatformStats', JSON.stringify(simulatedStats));
         }
 
         // 更新学习统计
@@ -1508,98 +1530,119 @@ const selfLearningProfileBtn = document.getElementById('self-learning-profile-bt
             }
             learningLevelEl.textContent = learningLevel;
             
+            // 更新用户完成率（右上角）
+            userCompletionRateEl.textContent = `${completionRate}%`;
+            
+            // 计算完成率变化
+            updateUserCompletionRateChange();
+            
             // 保存用户数据
+            saveUserData();
+        }
+
+        // 保存用户数据
+        function saveUserData() {
+            userLearningData.lastActive = new Date().toISOString();
             localStorage.setItem('userLearningData', JSON.stringify(userLearningData));
         }
 
         // 更新平台统计显示
         function updatePlatformStatsDisplay() {
-            // 计算总访问量（本地+模拟在线）
-            const totalVisits = platformStats.localVisits + platformStats.simulatedVisits;
-            
-            // 格式化显示
-            pageVisitsEl.textContent = formatCompactNumber(totalVisits);
-            activeUsersEl.textContent = platformStats.simulatedActiveUsers;
+            // 总实验数
             totalExperimentsTopEl.textContent = platformStats.totalExperiments;
-            avgCompletionEl.textContent = `${platformStats.simulatedAvgCompletion}%`;
+            
+            // 用户完成率（基于用户数据）
+            const completedCount = userLearningData.completedExperiments.length;
+            const totalExperiments = experiments.length;
+            const completionRate = totalExperiments > 0 ? 
+                Math.round((completedCount / totalExperiments) * 100) : 0;
+            userCompletionRateEl.textContent = `${completionRate}%`;
+            
+            // 不蒜子统计会自动更新，这里不需要手动更新
         }
 
-        // 更新模拟的在线统计数据
-        function updateSimulatedStats() {
-            // 模拟访问量增长（随机）
-            const visitIncrease = Math.floor(Math.random() * 10) + 1;
-            platformStats.simulatedVisits += visitIncrease;
+        // 更新用户完成率变化
+        function updateUserCompletionRateChange() {
+            const completedCount = userLearningData.completedExperiments.length;
+            const totalExperiments = experiments.length;
+            const currentCompletionRate = totalExperiments > 0 ? 
+                Math.round((completedCount / totalExperiments) * 100) : 0;
             
-            // 模拟活动用户数变化（基于时间）
-            const hour = new Date().getHours();
-            if (hour >= 9 && hour <= 21) {
-                // 白天时段，活动用户较多
-                platformStats.simulatedActiveUsers = Math.floor(Math.random() * 30) + 70;
+            const previousRate = userLearningData.previousCompletionRate || 0;
+            const change = currentCompletionRate - previousRate;
+            
+            // 更新变化显示
+            if (change > 0) {
+                userCompletionChangeEl.textContent = `${change}%`;
+                userCompletionChangeEl.parentElement.className = "stat-compact-change positive";
+            } else if (change < 0) {
+                userCompletionChangeEl.textContent = `${Math.abs(change)}%`;
+                userCompletionChangeEl.parentElement.className = "stat-compact-change negative";
             } else {
-                // 夜间时段，活动用户较少
-                platformStats.simulatedActiveUsers = Math.floor(Math.random() * 20) + 30;
+                userCompletionChangeEl.textContent = "0%";
+                userCompletionChangeEl.parentElement.className = "stat-compact-change";
             }
             
-            // 模拟平均完成率变化（基于用户进度）
-            const userCompletionRate = userLearningData.completedExperiments.length / experiments.length * 100;
-            platformStats.simulatedAvgCompletion = Math.round(
-                (platformStats.simulatedAvgCompletion * 0.9 + userCompletionRate * 0.1) * 10
-            ) / 10;
-            
-            // 保存并更新显示
-            savePlatformStats();
-            updatePlatformStatsDisplay();
+            // 保存当前完成率作为下一次比较的基准
+            userLearningData.previousCompletionRate = currentCompletionRate;
+            saveUserData();
         }
 
-        // 格式化紧凑数字显示（如1.2k）
-        function formatCompactNumber(num) {
-            if (num >= 1000) {
-                return (num / 1000).toFixed(1) + 'k';
-            }
-            return num.toString();
+        // 监控不蒜子统计数据
+        function monitorBusuanziStats() {
+            // 不蒜子会自动更新数据，我们只需要确保DOM元素存在
+            // 这里可以添加一些备用逻辑，以防不蒜子加载失败
+            
+            // 设置一个备用定时器，检查不蒜子是否已加载
+            const checkBusuanzi = setInterval(() => {
+                const pvValue = document.getElementById('busuanzi_value_site_pv').innerText;
+                const uvValue = document.getElementById('busuanzi_value_site_uv').innerText;
+                
+                // 如果不蒜子没有加载数据，显示默认值
+                if (pvValue === '0' || pvValue === '') {
+                    // 可以设置一个本地备份的访问量
+                    const localVisits = localStorage.getItem('localVisits') || '1';
+                    document.getElementById('busuanzi_value_site_pv').innerText = localVisits;
+                }
+                
+                if (uvValue === '0' || uvValue === '') {
+                    // 可以设置一个本地备份的独立访客数
+                    const localUV = localStorage.getItem('localUV') || '1';
+                    document.getElementById('busuanzi_value_site_uv').innerText = localUV;
+                }
+                
+                // 如果不蒜子已加载，清除定时器
+                if (pvValue !== '0' && uvValue !== '0') {
+                    clearInterval(checkBusuanzi);
+                }
+            }, 5000); // 每5秒检查一次
         }
 
         // 启动统计数字动画
         function startStatsAnimation() {
-            // 页面访问量动画
-            const totalVisits = platformStats.localVisits + platformStats.simulatedVisits;
-            animateNumberCompact(pageVisitsEl, totalVisits, 1000);
+            // 总实验数动画
+            animateNumber(totalExperimentsTopEl, platformStats.totalExperiments, 800);
             
-            // 活动用户数动画
-            animateNumber(activeUsersEl, platformStats.simulatedActiveUsers, 800);
-            
-            // 每30秒更新一次模拟统计数据
-            setInterval(updateSimulatedStats, 30000);
-        }
-
-        // 数字动画效果（紧凑格式）
-        function animateNumberCompact(element, targetValue, duration) {
-            const currentText = element.textContent;
-            let currentValue;
-            
-            if (currentText.includes('k')) {
-                currentValue = parseFloat(currentText) * 1000;
-            } else {
-                currentValue = parseInt(currentText.replace(/,/g, '')) || 0;
-            }
-            
-            const increment = (targetValue - currentValue) / (duration / 16);
-            
-            let current = currentValue;
-            const timer = setInterval(() => {
-                current += increment;
-                if ((increment > 0 && current >= targetValue) || 
-                    (increment < 0 && current <= targetValue)) {
-                    current = targetValue;
-                    clearInterval(timer);
-                }
-                element.textContent = formatCompactNumber(Math.round(current));
-            }, 16);
+            // 用户完成率动画
+            const completedCount = userLearningData.completedExperiments.length;
+            const totalExperiments = experiments.length;
+            const completionRate = totalExperiments > 0 ? 
+                Math.round((completedCount / totalExperiments) * 100) : 0;
+            animateNumber(userCompletionRateEl, completionRate, 800);
         }
 
         // 数字动画效果
         function animateNumber(element, targetValue, duration) {
-            const startValue = parseInt(element.textContent.replace(/,/g, '')) || 0;
+            // 如果是百分比元素，需要特殊处理
+            let currentText = element.textContent;
+            let startValue;
+            
+            if (currentText.includes('%')) {
+                startValue = parseInt(currentText) || 0;
+            } else {
+                startValue = parseInt(currentText.replace(/,/g, '')) || 0;
+            }
+            
             const increment = (targetValue - startValue) / (duration / 16);
             
             let currentValue = startValue;
@@ -1610,7 +1653,12 @@ const selfLearningProfileBtn = document.getElementById('self-learning-profile-bt
                     currentValue = targetValue;
                     clearInterval(timer);
                 }
-                element.textContent = Math.round(currentValue);
+                
+                if (element.textContent.includes('%')) {
+                    element.textContent = Math.round(currentValue) + '%';
+                } else {
+                    element.textContent = Math.round(currentValue);
+                }
             }, 16);
         }
 
@@ -1697,7 +1745,7 @@ const selfLearningProfileBtn = document.getElementById('self-learning-profile-bt
                         </div>
                         <div class="card-section">
                             <h3><i class="fas fa-atom"></i> 涉及的物理机制</h3>
-                            <div class="mechanism-tags">${mechanismTags || '<span class="tag">无量纲分析</span>'}</div>
+                            <div class="mechanism-tags">${mechanismTags || '<span class="tag">量纲分析</span>'}</div>
                         </div>
                         <div class="card-section">
                             <h3><i class="fas fa-bullseye"></i> 能力目标</h3>
@@ -1738,7 +1786,6 @@ const selfLearningProfileBtn = document.getElementById('self-learning-profile-bt
                 userLearningData.completedExperiments.push(expId);
                 userLearningData.completionDates[expId] = new Date().toISOString();
                 updateLearningStats();
-                updateSimulatedStats();
             }
         }
 
@@ -1812,7 +1859,7 @@ const selfLearningProfileBtn = document.getElementById('self-learning-profile-bt
             viewProfileBtn.addEventListener('click', showLearningProfile);
             exportReportBtn.addEventListener('click', exportLearningReport);
             getCertificateBtn.addEventListener('click', generateCertificate);
-selfLearningProfileBtn.addEventListener('click', openSelfLearningProfile); // 新增这一行
+            selfLearningProfileBtn.addEventListener('click', openSelfLearningProfile);
             closeProfilePanelBtn.addEventListener('click', closeProfilePanel);
             
             // 点击面板外部关闭面板
@@ -1836,7 +1883,7 @@ selfLearningProfileBtn.addEventListener('click', openSelfLearningProfile); // �
             
             // 更新学习路径数据
             userLearningData.learningPath = userLearningData.completedExperiments.slice();
-            localStorage.setItem('userLearningData', JSON.stringify(userLearningData));
+            saveUserData();
             
             // 可以在这里添加生成路径地图的特定逻辑
             alert('学习路径地图已生成！请查看学习画像面板。');
@@ -2040,7 +2087,7 @@ selfLearningProfileBtn.addEventListener('click', openSelfLearningProfile); // �
                             <div class="stat-label">整体完成率</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-value">${levelStats.level1 + levelStats.level2 + levelStats.level3}</div>
+                            <div class="stat-value">${Math.round((completedCount * 0.5 + levelStats.level2 * 0.8 + levelStats.level3 * 1.2) * 10) / 10}</div>
                             <div class="stat-label">总学习时长(小时)</div>
                         </div>
                         <div class="stat-item">
@@ -2097,9 +2144,12 @@ selfLearningProfileBtn.addEventListener('click', openSelfLearningProfile); // �
                         ${userLearningData.completedExperiments.length > 0 ? 
                             userLearningData.completedExperiments.slice(-5).reverse().map(id => {
                                 const exp = experiments.find(e => e.id === id);
+                                const date = userLearningData.completionDates[id] ? 
+                                    new Date(userLearningData.completionDates[id]).toLocaleDateString() : '';
                                 return exp ? `<div style="padding: 10px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px;">
                                     <i class="fas fa-check-circle" style="color: var(--success-color); margin-right: 8px;"></i>
                                     ${exp.name} - ${engineeringLabels[exp.engineering]}
+                                    <span style="float: right; color: #888; font-size: 0.9rem;">${date}</span>
                                 </div>` : '';
                             }).join('') : 
                             '<p>暂无完成的实验记录。</p>'
@@ -2327,19 +2377,11 @@ selfLearningProfileBtn.addEventListener('click', openSelfLearningProfile); // �
             });
         }
 
-
-// 自主学习画像页面新网页
-function openSelfLearningProfile() {
-    // 打开新的自主学习画像页面
-    window.open('Learning-achievement-figure.html', '_blank');
-    
-    // 或者如果您想直接传递数据到新页面，可以这样：
-    // window.open(`Learning-achievement-figure.html?user=${encodeURIComponent(JSON.stringify(userLearningData))}`, '_blank');
-    
-    // 更简单的方案：如果没有独立页面，可以临时创建一个
-    // createTemporaryProfilePage();
-}
-
+        // 自主学习画像页面新网页
+        function openSelfLearningProfile() {
+            // 打开新的自主学习画像页面
+            window.open('Learning-achievement-figure.html', '_blank');
+        }
 
         // 打开实验
         function openExperiment(expId) {
