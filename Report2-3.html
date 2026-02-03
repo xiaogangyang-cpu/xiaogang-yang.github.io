@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上机实践：流体粘性与工程剪切实验</title>
+    <style>
+        :root {
+            --primary: #38bdf8;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #fbbf24;
+            --border: #334155;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui;
+            line-height: 1.6;
+            color: #f1f5f9;
+            background: var(--bg);
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid var(--primary);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.1);
+        }
+        
+        header {
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        h1 { 
+            margin: 0; 
+            color: var(--primary); 
+            font-size: 1.8rem;
+        }
+        
+        .date-info {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        
+        .section-card {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 18px;
+            border-left: 5px solid var(--primary);
+        }
+        
+        h2 { 
+            margin-top: 0; 
+            color: var(--accent); 
+            font-size: 1.3rem;
+        }
+        
+        .task-box {
+            background: rgba(0,0,0,0.3);
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border: 1px solid var(--border);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+        
+        th, td {
+            border: 1px solid var(--border);
+            padding: 10px;
+            text-align: center;
+        }
+        
+        th { 
+            background-color: rgba(56, 189, 248, 0.1); 
+            color: var(--accent); 
+        }
+        
+        input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 6px 8px;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--primary);
+            color: var(--accent);
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 0.95rem;
+        }
+        
+        input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
+            outline: none;
+            border-bottom: 1px solid var(--accent);
+        }
+        
+        textarea {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px;
+        }
+        
+        .btn-print {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: #0f172a;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 25px;
+            font-size: 1rem;
+        }
+        
+        .btn-print:hover { 
+            background: #0ea5e9; 
+        }
+        
+        .reflection-area {
+            width: 100%;
+            height: 100px;
+            margin-top: 10px;
+        }
+        
+        /* 修改：将不可输入的占位符改为可输入的文本域 */
+        .achievement-area {
+            width: 100%;
+            height: 100px;
+            margin-top: 10px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px;
+            color: var(--accent);
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: vertical;
+        }
+        
+        .achievement-area:focus {
+            outline: none;
+            border: 1px solid var(--primary);
+        }
+        
+        /* 用户信息样式 */
+        .user-info { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin: 15px 0 25px 0; 
+            padding: 15px; 
+            background: rgba(0,0,0,0.3); 
+            border-radius: 8px; 
+            border: 1px solid var(--border); 
+        }
+        .user-info-row { 
+            display: flex; 
+            gap: 15px; 
+            align-items: center; 
+        }
+        .user-input { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+        }
+        .user-input label { 
+            color: var(--accent); 
+            font-size: 0.9rem; 
+        }
+        .user-input input { 
+            width: 120px; 
+            background: transparent; 
+            border: none; 
+            border-bottom: 1px solid var(--primary); 
+            color: var(--accent); 
+            padding: 4px 8px; 
+            font-size: 0.95rem;
+        }
+        .user-input input:focus { 
+            outline: none; 
+            border-bottom: 1px solid var(--accent); 
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            .user-info { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .user-info-row { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>流体力学上机实践报告</h1>
+        <div class="date-info">
+            实验项目：牛顿粘性定律工程仿真 (Ver 02-03) | 实训日期：<span id="current-date"></span>
+        </div>
+    </header>
+
+    <!-- 用户信息栏 -->
+    <div class="user-info">
+        <div class="user-info-row" style="width: 100%; justify-content: center;">
+            <div class="user-input">
+                <label for="name">姓名：</label>
+                <input type="text" id="name" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="studentId">学号：</label>
+                <input type="text" id="studentId" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="class">班级：</label>
+                <input type="text" id="class" placeholder="请输入">
+            </div>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <h2>🧪 任务一：粘度的物理意义验证</h2>
+        <div class="task-box">
+            <strong>操作指南：</strong> 将板间距固定为 <code>h = 0.10 m</code>，速度固定为 <code>U = 1.00 m/s</code>。依次切换流体介质，记录剪切应力。
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>流体介质</th>
+                    <th>动力粘度 η (Pa·s)</th>
+                    <th>剪切应力 τ (Pa) [仿真值]</th>
+                    <th>理论计算值 (τ = η·U/h)</th>
+                    <th>相对误差</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>纯水</td>
+                    <td>0.001</td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                </tr>
+                <tr>
+                    <td>工业润滑油</td>
+                    <td>0.060</td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                </tr>
+                <tr>
+                    <td>浓缩甘油</td>
+                    <td>1.200</td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>思考：</strong> 为什么在相同几何和运动条件下，甘油产生的阻力是水的 1200 倍？这在工程上意味着什么？</p>
+        <textarea class="reflection-area"></textarea>
+    </div>
+
+    <div class="section-card">
+        <h2>⚙️ 任务二：工程极限探索</h2>
+        <div class="task-box">
+            <strong>操作指南：</strong> 寻找触发仿真器红色警告（"💀 警告：剪切应力极高"）的临界条件。
+        </div>
+        <ol>
+            <li>选择流体：<strong>沥青熔体 (15 Pa·s)</strong>。</li>
+            <li>调整速度 U 和 间距 h，找出使 τ > 50 Pa 的三组参数组合。</li>
+        </ol>
+        <table>
+            <thead>
+                <tr>
+                    <th>组合序号</th>
+                    <th>速度 U (m/s)</th>
+                    <th>间距 h (m)</th>
+                    <th>剪切应力 τ (Pa)</th>
+                    <th>工程师评价反馈内容</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><input type="number" step="0.01"></td>
+                    <td><input type="number" step="0.01"></td>
+                    <td><input type="number" step="0.01"></td>
+                    <td><input type="text"></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td><input type="number" step="0.01"></td>
+                    <td><input type="number" step="0.01"></td>
+                    <td><input type="number" step="0.01"></td>
+                    <td><input type="text"></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td><input type="number" step="0.01"></td>
+                    <td><input type="number" step="0.01"></td>
+                    <td><input type="number" step="0.01"></td>
+                    <td><input type="text"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section-card">
+        <h2>🏆 任务三：系统综合评估</h2>
+        <div class="task-box">
+            <strong>操作指南：</strong> 在仿真器中点击 <strong>"📊 结束探索并获取评估报告"</strong>。记录系统生成的评估数据。
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <label>获得的工程师称号：</label>
+                <input type="text" placeholder="例如：资深流体专家" style="color:var(--accent);">
+            </div>
+            <div>
+                <label>探索覆盖率 (Total)：</label>
+                <input type="text" placeholder="例如：85分">
+            </div>
+        </div>
+
+        <p><strong>已解锁的成就徽章：</strong></p>
+        <!-- 修改：将不可输入的占位符改为可输入的文本域 -->
+        <textarea class="achievement-area" placeholder="在此处填写或粘贴成就记录（如：💥 极限载荷探索者）"></textarea>
+
+        <p><strong>系统给出的个性化学习建议：</strong></p>
+        <textarea class="reflection-area" placeholder="记录系统建议你进一步探索的方向..."></textarea>
+    </div>
+
+    <div class="section-card">
+        <h2>📝 实验总结</h2>
+        <p>结合本次仿真实验，谈谈如果你是一名设计滑动轴承的工程师，你会如何权衡 <strong>油膜厚度(h)</strong> 和 <strong>润滑油粘度(η)</strong> 的选择？</p>
+        <textarea class="reflection-area" style="height: 150px;"></textarea>
+    </div>
+    
+    <button class="btn-print" onclick="window.print()">📥 打印/导出实训报告</button>
+</div>
+
+<script>
+    // 日期格式化函数
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}年${month}月${day}日`;
+    }
+    
+    // 设置当前日期
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentDate = formatDate(new Date());
+        document.getElementById('current-date').textContent = currentDate;
+        
+        // 保存用户信息到localStorage
+        const nameInput = document.getElementById('name');
+        const idInput = document.getElementById('studentId');
+        const classInput = document.getElementById('class');
+        
+        // 加载保存的用户信息
+        const savedName = localStorage.getItem('fluid_viscosity_student_name');
+        const savedId = localStorage.getItem('fluid_viscosity_student_id');
+        const savedClass = localStorage.getItem('fluid_viscosity_student_class');
+        
+        if (savedName) nameInput.value = savedName;
+        if (savedId) idInput.value = savedId;
+        if (savedClass) classInput.value = savedClass;
+        
+        // 保存用户信息
+        nameInput.addEventListener('input', function() {
+            localStorage.setItem('fluid_viscosity_student_name', this.value);
+        });
+        
+        idInput.addEventListener('input', function() {
+            localStorage.setItem('fluid_viscosity_student_id', this.value);
+        });
+        
+        classInput.addEventListener('input', function() {
+            localStorage.setItem('fluid_viscosity_student_class', this.value);
+        });
+    });
+</script>
+
+</body>
+</html>
