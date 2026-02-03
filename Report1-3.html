@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>上机实训大纲：量纲一致性逻辑校核</title>
+    <style>
+        :root { --p: #38bdf8; --bg: #0a1929; --card: #112240; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: #e2e8f0; padding: 25px; line-height: 1.6; }
+        .guide-wrapper { max-width: 900px; margin: 0 auto; background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid var(--p); box-shadow: 0 0 25px rgba(56, 189, 248, 0.2); }
+        h1 { color: var(--p); text-align: center; border-bottom: 2px solid var(--p); padding-bottom: 15px; margin-top: 0; }
+        h2 { color: var(--p); border-left: 4px solid var(--p); padding-left: 12px; margin-top: 25px; }
+        .mission-step { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #1e293b; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #334155; padding: 12px; text-align: center; }
+        th { background: rgba(56, 189, 248, 0.1); color: var(--p); }
+        .input-underline { background: transparent; border: none; border-bottom: 1px solid var(--p); color: #fbbf24; text-align: center; font-size: 1.1em; width: 100px; }
+        .btn-action { display: block; width: 100%; padding: 15px; background: var(--p); color: #0a1929; text-align: center; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 30px; border: none; cursor: pointer; transition: 0.3s; }
+        .btn-action:hover { opacity: 0.9; transform: scale(1.01); }
+        
+        /* 新增：用户信息栏样式 */
+        .user-info {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #334155;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+        .user-info label {
+            font-weight: bold;
+            color: #38bdf8;
+            white-space: nowrap;
+        }
+        .user-info input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--p);
+            color: white;
+            padding: 5px 8px;
+            min-width: 150px;
+        }
+        .user-info input:focus {
+            outline: none;
+            border-bottom: 1px solid #4ade80;
+        }
+        
+        /* 新增：填写区域样式 */
+        .answer-input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px dashed var(--p);
+            color: white;
+            padding: 5px 8px;
+            margin: 0 5px;
+            min-width: 200px;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        .answer-input:focus {
+            outline: none;
+            border-bottom: 2px solid var(--p);
+        }
+        .answer-area {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 80px;
+            resize: vertical;
+        }
+        .answer-area:focus {
+            outline: none;
+            border: 1px solid var(--p);
+        }
+        
+        /* 实训日期样式 */
+        .date-info {
+            color: #94a3b8;
+            font-size: 0.9em;
+            text-align: center;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        /* 项目符号样式 */
+        .mission-step ol {
+            margin-left: 20px;
+        }
+        .mission-step li {
+            margin-bottom: 10px;
+        }
+        .mission-step li strong {
+            color: #38bdf8;
+        }
+    </style>
+</head>
+<body>
+
+<div class="guide-wrapper">
+    <h1>量纲逻辑校核上机实训大纲</h1>
+    <p style="text-align: center;">配套工具：<code>01-03-dimension-consistency.html</code> (敲地鼠系统)</p>
+    <div class="date-info">实训日期：<span id="current-date"></span></div>
+    
+    <!-- 新增：用户信息栏 -->
+    <div class="user-info">
+        <div style="flex: 1; min-width: 200px;">
+            <label for="student-name">姓名：</label>
+            <input type="text" id="student-name" placeholder="请输入您的姓名">
+        </div>
+        <div style="flex: 1; min-width: 200px;">
+            <label for="student-id">学号：</label>
+            <input type="text" id="student-id" placeholder="请输入您的学号">
+        </div>
+        <div style="flex: 1; min-width: 200px; text-align: center;">
+            <label for="class-info">班级：</label>
+            <input type="text" id="class-info" placeholder="请输入班级" style="width: 120px;">
+        </div>
+    </div>
+
+    <h2>一、 基础量纲自测 (5min)</h2>
+    <div class="mission-step">
+        <p>在开始游戏前，请填写下列关键工程量的量纲（使用 M, L, T, θ 表示）：</p>
+        <table>
+            <tr>
+                <th>物理量</th>
+                <th>基础量纲</th>
+                <th>物理量</th>
+                <th>基础量纲</th>
+            </tr>
+            <tr>
+                <td>压力 (P)</td>
+                <td>[ML⁻¹T⁻²]</td>
+                <td>动力粘度 (μ)</td>
+                <td><input class="input-underline" type="text" id="viscosity-dim" placeholder="[ML⁻¹T⁻¹]"></td>
+            </tr>
+            <tr>
+                <td>功/能 (W/E)</td>
+                <td>[ML²T⁻²]</td>
+                <td>导热系数 (k)</td>
+                <td><input class="input-underline" type="text" id="conductivity-dim"></td>
+            </tr>
+        </table>
+    </div>
+
+    <h2>二、 逻辑防御挑战 (15min)</h2>
+    <div class="mission-step">
+        <strong>实训要求：</strong> 启动敲地鼠游戏，进行三轮进阶挑战。
+        <ol>
+            <li><strong>第一轮（热身）：</strong> 累计命中 20 个正确公式，观察系统如何判定 v = at 的一致性。</li>
+            <li><strong>第二轮（连击）：</strong> 尝试达成 10 次以上 Combo。记录此时你的瞬时判定依据是什么？（如：看到 L² 就想面积）。</li>
+            <li><strong>第三轮（极限）：</strong> 冲击最高分。记录你的最终分值：<input class="input-underline" type="text" id="final-score" placeholder="输入分数">。</li>
+        </ol>
+        <p style="margin-top: 10px;">第二轮连击判定依据：</p>
+        <textarea class="answer-area" id="combo-reason" placeholder="请描述您的瞬时判定依据..."></textarea>
+    </div>
+
+    <h2>三、 工程画像反思 (10min)</h2>
+    <div class="mission-step">
+        <p>游戏结束后，分析你的误判情况：</p>
+        <p>1. 我在处理包含 <input class="answer-input" type="text" id="difficult-physics" placeholder="例如：加速度、功率等"> 物理量的公式时最容易出错。</p>
+        <p>2. <strong>产教融合思考：</strong> 如果在开发一款化工管道设计软件，你认为"量纲自动校核"模块应该在什么时候介入（A. 用户输入时 / B. 计算运行前 / C. 结果输出后）？ 理由：</p>
+        <textarea class="answer-area" id="industry-thinking" placeholder="请在此处填写您的思考..."></textarea>
+    </div>
+
+    <button class="btn-action" onclick="saveAndPrint()">📥 打印/保存为 PDF 实训报告</button>
+    
+    <footer style="margin-top:25px; text-align:center; font-size:0.85em; opacity:0.6;">
+        © 2026 工程科学创新实验室 | 数字化校核专家实训课件
+    </footer>
+</div>
+
+<script>
+    // 自动填写当前日期
+    document.addEventListener('DOMContentLoaded', function() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        document.getElementById('current-date').textContent = `${year}年${month}月${day}日`;
+        
+        // 加载保存的用户信息
+        const savedData = loadAllData();
+        
+        // 填充数据
+        if (savedData.name) document.getElementById('student-name').value = savedData.name;
+        if (savedData.id) document.getElementById('student-id').value = savedData.id;
+        if (savedData.classInfo) document.getElementById('class-info').value = savedData.classInfo;
+        if (savedData.viscosityDim) document.getElementById('viscosity-dim').value = savedData.viscosityDim;
+        if (savedData.conductivityDim) document.getElementById('conductivity-dim').value = savedData.conductivityDim;
+        if (savedData.finalScore) document.getElementById('final-score').value = savedData.finalScore;
+        if (savedData.comboReason) document.getElementById('combo-reason').value = savedData.comboReason;
+        if (savedData.difficultPhysics) document.getElementById('difficult-physics').value = savedData.difficultPhysics;
+        if (savedData.industryThinking) document.getElementById('industry-thinking').value = savedData.industryThinking;
+        
+        // 实时保存数据
+        setupAutoSave();
+    });
+    
+    // 加载所有数据
+    function loadAllData() {
+        return {
+            name: localStorage.getItem('dimension3_student_name') || '',
+            id: localStorage.getItem('dimension3_student_id') || '',
+            classInfo: localStorage.getItem('dimension3_class_info') || '',
+            viscosityDim: localStorage.getItem('dimension3_viscosity_dim') || '',
+            conductivityDim: localStorage.getItem('dimension3_conductivity_dim') || '',
+            finalScore: localStorage.getItem('dimension3_final_score') || '',
+            comboReason: localStorage.getItem('dimension3_combo_reason') || '',
+            difficultPhysics: localStorage.getItem('dimension3_difficult_physics') || '',
+            industryThinking: localStorage.getItem('dimension3_industry_thinking') || '',
+            date: document.getElementById('current-date')?.textContent || ''
+        };
+    }
+    
+    // 设置自动保存
+    function setupAutoSave() {
+        // 用户信息
+        document.getElementById('student-name').addEventListener('input', function() {
+            localStorage.setItem('dimension3_student_name', this.value);
+        });
+        
+        document.getElementById('student-id').addEventListener('input', function() {
+            localStorage.setItem('dimension3_student_id', this.value);
+        });
+        
+        document.getElementById('class-info').addEventListener('input', function() {
+            localStorage.setItem('dimension3_class_info', this.value);
+        });
+        
+        // 实训数据
+        document.getElementById('viscosity-dim').addEventListener('input', function() {
+            localStorage.setItem('dimension3_viscosity_dim', this.value);
+        });
+        
+        document.getElementById('conductivity-dim').addEventListener('input', function() {
+            localStorage.setItem('dimension3_conductivity_dim', this.value);
+        });
+        
+        document.getElementById('final-score').addEventListener('input', function() {
+            localStorage.setItem('dimension3_final_score', this.value);
+        });
+        
+        document.getElementById('combo-reason').addEventListener('input', function() {
+            localStorage.setItem('dimension3_combo_reason', this.value);
+        });
+        
+        document.getElementById('difficult-physics').addEventListener('input', function() {
+            localStorage.setItem('dimension3_difficult_physics', this.value);
+        });
+        
+        document.getElementById('industry-thinking').addEventListener('input', function() {
+            localStorage.setItem('dimension3_industry_thinking', this.value);
+        });
+    }
+    
+    // 保存并打印
+    function saveAndPrint() {
+        // 检查必填项
+        const name = document.getElementById('student-name').value;
+        const id = document.getElementById('student-id').value;
+        
+        if (!name.trim() || !id.trim()) {
+            alert('请先填写姓名和学号！');
+            return;
+        }
+        
+        // 收集所有数据
+        const data = {
+            name: name,
+            id: id,
+            classInfo: document.getElementById('class-info').value,
+            viscosityDim: document.getElementById('viscosity-dim').value,
+            conductivityDim: document.getElementById('conductivity-dim').value,
+            finalScore: document.getElementById('final-score').value,
+            comboReason: document.getElementById('combo-reason').value,
+            difficultPhysics: document.getElementById('difficult-physics').value,
+            industryThinking: document.getElementById('industry-thinking').value,
+            date: document.getElementById('current-date').textContent
+        };
+        
+        // 保存到localStorage
+        localStorage.setItem('dimension3_full_data', JSON.stringify(data));
+        
+        // 显示保存成功提示
+        alert('实训数据已保存！现在开始打印报告...');
+        
+        // 延迟一点时间再打印，确保提示框消失
+        setTimeout(() => {
+            window.print();
+        }, 100);
+    }
+    
+    // 页面加载时检查是否有完整数据需要恢复
+    window.addEventListener('load', function() {
+        const savedData = localStorage.getItem('dimension3_full_data');
+        if (savedData) {
+            console.log('已加载保存的完整数据:', JSON.parse(savedData));
+        }
+    });
+</script>
+
+</body>
+</html>
