@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>实训大纲：工程量纲逻辑校核</title>
+    <style>
+        :root { --blue: #38bdf8; --bg: #0f172a; --card: #1e293b; }
+        body { font-family: 'PingFang SC', sans-serif; background: var(--bg); color: #e5e7eb; padding: 20px; line-height: 1.6; }
+        .guide-box { max-width: 800px; margin: 0 auto; background: var(--card); padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        h1 { color: var(--blue); text-align: center; border-bottom: 2px solid var(--blue); padding-bottom: 10px; }
+        .step { margin: 20px 0; padding: 15px; border: 1px dashed var(--blue); border-radius: 8px; }
+        .badge { background: var(--blue); color: var(--bg); padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #334155; padding: 10px; text-align: left; }
+        th { background: rgba(56, 189, 248, 0.1); }
+        .btn-print { display: block; width: 100%; padding: 12px; background: var(--blue); color: #020617; text-align: center; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 20px; cursor: pointer; }
+        
+        /* 新增：用户信息栏样式 */
+        .user-info {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #334155;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+        .user-info label {
+            font-weight: bold;
+            color: #38bdf8;
+            white-space: nowrap;
+        }
+        .user-info input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--blue);
+            color: white;
+            padding: 5px 8px;
+            min-width: 150px;
+        }
+        .user-info input:focus {
+            outline: none;
+            border-bottom: 1px solid #4ade80;
+        }
+        
+        /* 新增：填写区域样式 */
+        .answer-input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px dashed var(--blue);
+            color: white;
+            padding: 5px 8px;
+            margin: 0 5px;
+            min-width: 200px;
+            font-family: 'PingFang SC', sans-serif;
+        }
+        .answer-input:focus {
+            outline: none;
+            border-bottom: 2px solid var(--blue);
+        }
+        .answer-line {
+            display: inline-block;
+            width: 150px;
+            background: transparent;
+            border: none;
+            border-bottom: 1px dashed var(--blue);
+            color: white;
+            padding: 2px 5px;
+            margin: 0 5px;
+            font-family: 'PingFang SC', sans-serif;
+        }
+        .answer-area {
+            width: 100%;
+            background: #0f172a;
+            color: white;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 8px;
+            margin-top: 10px;
+            font-family: 'PingFang SC', sans-serif;
+            min-height: 80px;
+        }
+        .answer-area:focus {
+            outline: none;
+            border: 1px solid var(--blue);
+        }
+        
+        /* 实训日期样式 */
+        .date-info {
+            color: #94a3b8;
+            font-size: 0.9em;
+            text-align: center;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="guide-box">
+    <h1>上机任务：工程直觉训练（量纲篇）</h1>
+    <p style="text-align: center;">实训工具：<code>01-02-dimension-match.html</code></p>
+    <div class="date-info">实训日期：<span id="current-date"></span></div>
+    
+    <!-- 新增：用户信息栏 -->
+    <div class="user-info">
+        <div style="flex: 1; min-width: 200px;">
+            <label for="student-name">姓名：</label>
+            <input type="text" id="student-name" placeholder="请输入您的姓名">
+        </div>
+        <div style="flex: 1; min-width: 200px;">
+            <label for="student-id">学号：</label>
+            <input type="text" id="student-id" placeholder="请输入您的学号">
+        </div>
+        <div style="flex: 1; min-width: 200px; text-align: center;">
+            <label for="class-info">班级：</label>
+            <input type="text" id="class-info" placeholder="请输入班级" style="width: 120px;">
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="badge">任务 1</span> <strong>基础映射</strong>
+        <p>启动程序，完成 1-2 关。请回答：在物理世界中，[L] 代表长度，[T] 代表时间。那么 [L]/[T] 对应模拟器中的哪个选项？</p>
+        <p>回答：<input type="text" class="answer-input" id="task1-answer" placeholder="请输入您的答案"></p>
+    </div>
+
+    <div class="step">
+        <span class="badge">任务 2</span> <strong>力与能的逻辑</strong>
+        <p>挑战第 4 关（功与能）。记录通关后系统给出的解释（Explain）：</p>
+        <table>
+            <tr>
+                <th>物理量</th>
+                <th>基础量纲组合 (M,L,T)</th>
+            </tr>
+            <tr>
+                <td>力 (Force)</td>
+                <td>[M][L][T]⁻²</td>
+            </tr>
+            <tr>
+                <td>功 (Work)</td>
+                <td><input type="text" class="answer-line" id="task2-work" placeholder="填写功的量纲组合"></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="step">
+        <span class="badge">任务 3</span> <strong>通关挑战</strong>
+        <p>尝试通关全过程，直到获得"白银工程师"称号。记录你的最终通关感悟（例如：哪些物理量的组合最容易让你产生混淆？）：</p>
+        <textarea class="answer-area" id="task3-reflection" placeholder="请在此处填写您的通关感悟..."></textarea>
+    </div>
+
+    <div class="step">
+        <span class="badge">思考题</span>
+        <p>如果一个流量计输出的单位是 m³/s，它的量纲组合是 [L]³[T]⁻¹。请在游戏中尝试推算：如果将流量乘以流体密度 [M][L]⁻³，得到的新物理量量纲是什么？对应的工程单位是什么？</p>
+        <p>新物理量量纲：<input type="text" class="answer-input" id="question-dimension" placeholder="例如：[M][L]³[T]⁻¹"></p>
+        <p>对应工程单位：<input type="text" class="answer-input" id="question-unit" placeholder="例如：kg·m³/s"></p>
+        <p>您的推理过程：</p>
+        <textarea class="answer-area" id="question-reasoning" placeholder="请在此处填写您的推理过程..."></textarea>
+    </div>
+
+    <button class="btn-print" onclick="saveAndPrint()">📥 打印实训报告 (或保存为PDF)</button>
+</div>
+
+<script>
+    // 自动填写当前日期
+    document.addEventListener('DOMContentLoaded', function() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        document.getElementById('current-date').textContent = `${year}年${month}月${day}日`;
+        
+        // 加载保存的用户信息
+        const savedName = localStorage.getItem('dimension2_student_name');
+        const savedId = localStorage.getItem('dimension2_student_id');
+        const savedClass = localStorage.getItem('dimension2_class_info');
+        const savedTask1 = localStorage.getItem('dimension2_task1');
+        const savedTask2 = localStorage.getItem('dimension2_task2');
+        const savedTask3 = localStorage.getItem('dimension2_task3');
+        const savedQuestionDim = localStorage.getItem('dimension2_question_dim');
+        const savedQuestionUnit = localStorage.getItem('dimension2_question_unit');
+        const savedQuestionReasoning = localStorage.getItem('dimension2_question_reasoning');
+        
+        if (savedName) document.getElementById('student-name').value = savedName;
+        if (savedId) document.getElementById('student-id').value = savedId;
+        if (savedClass) document.getElementById('class-info').value = savedClass;
+        if (savedTask1) document.getElementById('task1-answer').value = savedTask1;
+        if (savedTask2) document.getElementById('task2-work').value = savedTask2;
+        if (savedTask3) document.getElementById('task3-reflection').value = savedTask3;
+        if (savedQuestionDim) document.getElementById('question-dimension').value = savedQuestionDim;
+        if (savedQuestionUnit) document.getElementById('question-unit').value = savedQuestionUnit;
+        if (savedQuestionReasoning) document.getElementById('question-reasoning').value = savedQuestionReasoning;
+        
+        // 保存用户信息
+        document.getElementById('student-name').addEventListener('input', function() {
+            localStorage.setItem('dimension2_student_name', this.value);
+        });
+        
+        document.getElementById('student-id').addEventListener('input', function() {
+            localStorage.setItem('dimension2_student_id', this.value);
+        });
+        
+        document.getElementById('class-info').addEventListener('input', function() {
+            localStorage.setItem('dimension2_class_info', this.value);
+        });
+        
+        // 保存任务答案
+        document.getElementById('task1-answer').addEventListener('input', function() {
+            localStorage.setItem('dimension2_task1', this.value);
+        });
+        
+        document.getElementById('task2-work').addEventListener('input', function() {
+            localStorage.setItem('dimension2_task2', this.value);
+        });
+        
+        document.getElementById('task3-reflection').addEventListener('input', function() {
+            localStorage.setItem('dimension2_task3', this.value);
+        });
+        
+        document.getElementById('question-dimension').addEventListener('input', function() {
+            localStorage.setItem('dimension2_question_dim', this.value);
+        });
+        
+        document.getElementById('question-unit').addEventListener('input', function() {
+            localStorage.setItem('dimension2_question_unit', this.value);
+        });
+        
+        document.getElementById('question-reasoning').addEventListener('input', function() {
+            localStorage.setItem('dimension2_question_reasoning', this.value);
+        });
+    });
+    
+    // 保存并打印
+    function saveAndPrint() {
+        // 检查必填项
+        const name = document.getElementById('student-name').value;
+        const id = document.getElementById('student-id').value;
+        
+        if (!name.trim() || !id.trim()) {
+            alert('请先填写姓名和学号！');
+            return;
+        }
+        
+        // 保存所有数据到localStorage
+        const data = {
+            name: name,
+            id: id,
+            class: document.getElementById('class-info').value,
+            task1: document.getElementById('task1-answer').value,
+            task2: document.getElementById('task2-work').value,
+            task3: document.getElementById('task3-reflection').value,
+            questionDim: document.getElementById('question-dimension').value,
+            questionUnit: document.getElementById('question-unit').value,
+            questionReasoning: document.getElementById('question-reasoning').value,
+            date: document.getElementById('current-date').textContent
+        };
+        
+        localStorage.setItem('dimension2_full_data', JSON.stringify(data));
+        
+        // 显示保存成功提示
+        alert('实训数据已保存！现在开始打印报告...');
+        
+        // 延迟一点时间再打印，确保提示框消失
+        setTimeout(() => {
+            window.print();
+        }, 100);
+    }
+    
+    // 页面加载时检查是否有数据需要恢复
+    window.addEventListener('load', function() {
+        const savedData = localStorage.getItem('dimension2_full_data');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            console.log('已恢复保存的数据:', data);
+        }
+    });
+</script>
+
+</body>
+</html>
