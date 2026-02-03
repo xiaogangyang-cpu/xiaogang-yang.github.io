@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>上机实践大纲：量纲相似与工程放大实训</title>
+    <style>
+        :root { --primary: #38bdf8; --bg: #0f172a; --card: #1e293b; }
+        body { font-family: 'Segoe UI', system-ui; background: var(--bg); color: #f1f5f9; padding: 15px; line-height: 1.6; }
+        .container { max-width: 850px; margin: 0 auto; background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--primary); box-shadow: 0 0 25px rgba(56, 189, 248, 0.1); }
+        h1 { color: var(--primary); text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; font-size: 1.8rem; }
+        .user-info { display: flex; justify-content: space-between; align-items: center; margin: 15px 0 25px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid #334155; }
+        .user-info-row { display: flex; gap: 15px; align-items: center; }
+        .user-input { display: flex; align-items: center; gap: 8px; }
+        .user-input label { color: #fbbf24; font-size: 0.9rem; }
+        .lab-step { background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px; margin: 18px 0; border-left: 4px solid var(--primary); }
+        h2 { color: #f1f5f9; font-size: 1.3rem; margin-top: 0; }
+        .highlight { color: #fbbf24; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th, td { border: 1px solid #334155; padding: 10px; text-align: center; }
+        th { background: rgba(56, 189, 248, 0.1); }
+        .input-area { width: 80px; background: transparent; border: none; border-bottom: 1px solid var(--primary); color: #fbbf24; text-align: center; font-size: 0.95rem; }
+        .input-area:focus { outline: none; border-bottom: 1px solid #fbbf24; }
+        .date-display { color: #fbbf24; font-weight: bold; font-size: 0.9rem; }
+        .btn-print { display: block; width: 100%; padding: 12px; background: var(--primary); color: #0f172a; text-align: center; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 20px; border: none; cursor: pointer; font-size: 1rem; }
+        .formula { color: #fbbf24; font-family: 'Courier New', monospace; margin: 5px 0; font-size: 0.95rem; }
+        @media print { .btn-print { display: none; } }
+        @media (max-width: 768px) {
+            .container { padding: 15px; }
+            .user-info { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .user-info-row { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>实验手册：非稳态传热相似性研究</h1>
+    <p style="text-align: center; opacity: 0.8; font-size: 0.9rem;">配套工具：<code>01-04-dimension-criteria.html</code> (煮蛋模拟器)</p>
+    
+    <!-- 添加用户信息区域 -->
+    <div class="user-info">
+        <div class="user-input">
+            <label for="date">实训日期：</label>
+            <span class="date-display" id="current-date"></span>
+        </div>
+        <div class="user-info-row">
+            <div class="user-input">
+                <label for="name">姓名：</label>
+                <input class="input-area" id="name" type="text" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="studentId">学号：</label>
+                <input class="input-area" id="studentId" type="text" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="class">班级：</label>
+                <input class="input-area" id="class" type="text" placeholder="请输入">
+            </div>
+        </div>
+    </div>
+
+    <div class="lab-step">
+        <h2>一、 基础规律观察：线性与非线性</h2>
+        <p>1. 设定初始温度为 20℃，保持尺寸为 3cm。记录"刚好成熟"的时间：<input class="input-area" type="text"> 分钟。</p>
+        <p>2. 将尺寸调整为 6cm（翻倍）。预测时间应为：<input class="input-area" type="text"> 分钟。</p>
+        <p>3. 实际运行模拟器，最终结果是：<input class="input-area" type="text" placeholder="填写结果">。这验证了时间与尺寸的 <input class="input-area" style="width:50px" type="text"> 次方成正比。</p>
+    </div>
+
+    <div class="lab-step">
+        <h2>二、 变量耦合探究：初始温度的影响</h2>
+        <p>在 5cm 尺寸下，分别对比初始温度 5℃ (冷藏) 和 25℃ (常温) 对加热时间的影响：</p>
+        <table>
+            <tr>
+                <th>初始温度</th>
+                <th>达到"成熟"所需时间</th>
+                <th>时间变化率 (%)</th>
+            </tr>
+            <tr>
+                <td>5℃</td>
+                <td><input class="input-area" type="text"></td>
+                <td rowspan="2"><input class="input-area" type="text"></td>
+            </tr>
+            <tr>
+                <td>25℃</td>
+                <td><input class="input-area" type="text"></td>
+            </tr>
+        </table>
+        <p><strong>结论：</strong> 相比尺寸，初始温度对总时间的贡献权重较 <input class="input-area" style="width:50px" type="text"> (大/小)。</p>
+    </div>
+
+    <div class="lab-step">
+        <h2>三、 工程放大模拟：特种任务</h2>
+        <p><strong>任务：</strong> 现有一枚直径 15cm 的超级蛋，请利用公式计算其预测加热时间，并在模拟器中验证，确保反馈信息为"口感理想"。</p>
+        <p class="formula">计算公式：t₂ = t₁ × (d₂/d₁)²</p>
+        <ul style="margin-top: 10px; padding-left: 20px;">
+            <li style="margin-bottom: 8px;">计算过程：<input class="input-area" style="width:200px" type="text"></li>
+            <li>模拟器最终评价结果：<input class="input-area" style="width:120px" type="text"></li>
+        </ul>
+    </div>
+
+    <div class="lab-step">
+        <h2>四、 深度反思</h2>
+        <p>在真实的工业大型反应器中，为什么不能无限制地通过增加加热时间来处理巨型物料？（提示：考虑"外焦里生"现象与表面热阻）</p>
+        <textarea style="width:100%; height:80px; background:rgba(0,0,0,0.3); border:1px solid #334155; color:white; border-radius:5px; margin-top:10px; padding:10px; font-size: 0.95rem;"></textarea>
+    </div>
+
+    <button class="btn-print" onclick="window.print()">📥 打印本实训大纲</button>
+</div>
+
+<script>
+    // 日期格式化函数
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}年${month}月${day}日`;
+    }
+    
+    // 设置当前日期
+    document.getElementById('current-date').textContent = formatDate(new Date());
+</script>
+
+</body>
+</html>
