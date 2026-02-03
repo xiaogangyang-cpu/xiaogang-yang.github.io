@@ -163,13 +163,20 @@
 </div>
 
 <script>
+    // 日期格式化函数
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}年${month}月${day}日`;
+    }
+    
+    // 设置当前日期
+    document.getElementById('current-date').textContent = formatDate(new Date());
+    
     // 自动填写当前日期
     document.addEventListener('DOMContentLoaded', function() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        document.getElementById('current-date').textContent = `${year}年${month}月${day}日`;
+        // 日期已在上面设置，此处不需要重复设置
         
         // 加载保存的用户信息
         const savedName = localStorage.getItem('dimension2_student_name');
