@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>实训大纲：几何相似与量纲缩放</title>
+    <style>
+        :root { --blue: #38bdf8; --bg: #0f172a; --card: #1e293b; --accent: #fbbf24; }
+        body { font-family: 'PingFang SC', sans-serif; background: var(--bg); color: #e5e7eb; padding: 15px; line-height: 1.6; }
+        .guide-container { max-width: 850px; margin: 0 auto; background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--blue); box-shadow: 0 0 25px rgba(56, 189, 248, 0.1); }
+        h1 { color: var(--blue); text-align: center; border-bottom: 2px solid var(--blue); padding-bottom: 10px; margin-bottom: 20px; font-size: 1.8rem; }
+        .date-info { text-align: center; margin-bottom: 15px; color: #94a3b8; font-size: 0.9rem; }
+        .student-info { display: flex; justify-content: space-between; margin: 15px 0 25px 0; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid #334155; }
+        .student-info-item { display: flex; align-items: center; gap: 8px; }
+        .student-info-item label { color: var(--accent); font-weight: bold; font-size: 0.9rem; min-width: 40px; }
+        .student-input { width: 120px; background: transparent; border: none; border-bottom: 1px solid var(--blue); color: var(--accent); padding: 4px 8px; }
+        .student-input:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        .task-card { background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px; margin: 18px 0; border-left: 4px solid var(--blue); }
+        h3 { color: var(--accent); margin-top: 0; }
+        .highlight { color: var(--accent); font-weight: bold; }
+        .input-line { background: transparent; border: none; border-bottom: 1px solid var(--blue); color: var(--accent); text-align: center; font-size: 1rem; }
+        .input-line:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        .input-textarea { width: 100%; height: 60px; background: rgba(0,0,0,0.3); color: white; border: 1px solid #334155; border-radius: 4px; padding: 8px; margin-top: 10px; }
+        .btn-print { display: block; width: 100%; padding: 12px; background: var(--blue); color: #020617; text-align: center; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 25px; cursor: pointer; border: none; font-size: 1rem; }
+        .btn-print:hover { background: #0ea5e9; }
+        @media (max-width: 768px) {
+            .student-info { flex-direction: column; gap: 10px; }
+            .student-info-item { justify-content: flex-start; }
+            .guide-container { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="guide-container">
+    <h1>实训任务：工程放大逻辑校核</h1>
+    <div class="date-info">
+        配套仿真：<code>01-06-dimension-scaling.html</code> | 实训日期：<span id="current-date"></span>
+    </div>
+
+    <div class="student-info">
+        <div class="student-info-item">
+            <label for="name">姓名：</label>
+            <input class="student-input" id="name" type="text" placeholder="请输入">
+        </div>
+        <div class="student-info-item">
+            <label for="studentId">学号：</label>
+            <input class="student-input" id="studentId" type="text" placeholder="请输入">
+        </div>
+        <div class="student-info-item">
+            <label for="class">班级：</label>
+            <input class="student-input" id="class" type="text" placeholder="请输入">
+        </div>
+    </div>
+
+    <div class="task-card">
+        <h3>任务 1：几何参数缩放 (Level 1-2)</h3>
+        <p>当原型尺寸是模型的 <input class="input-line" style="width:50px" type="text" placeholder="n"> 倍时：</p>
+        <ul>
+            <li>表面积 (Area) 增加为原先的 <input class="input-line" style="width:50px" type="text" placeholder="指数"> 倍。</li>
+            <li>体积 (Volume) 增加为原先的 <input class="input-line" style="width:50px" type="text" placeholder="指数"> 倍。</li>
+        </ul>
+        <p><strong>思考：</strong> 如果我们要给模型表面喷漆，油漆用量由哪个指数决定？ 答：<input class="input-line" style="width:50px" type="text" placeholder="指数"></p>
+    </div>
+
+    <div class="task-card">
+        <h3>任务 2：力学量纲推演 (Level 3-5)</h3>
+        <p>进入"力 (Force)"关卡。请写出你的推导逻辑：</p>
+        <p>已知 F = m · a，在重力场中 a = g (常数)。<br>
+           若密度不变，m = ρ · V ∝ L³。<br>
+           因此，缩放系数应填：n 的 <input class="input-line" style="width:50px" type="text" placeholder="指数"> 次方。</p>
+    </div>
+
+    <div class="task-card">
+        <h3>任务 3：压强与能量挑战 (Level 6+)</h3>
+        <p>完成压强 (Pressure) 关卡。记录系统给出的 <span class="highlight">Hint (提示)</span>：</p>
+        <p><em>"提示内容记叙："</em></p>
+        <textarea class="input-textarea" placeholder="请在此记录系统提示内容"></textarea>
+    </div>
+
+    <div class="task-card">
+        <h3>任务 4：综合评价</h3>
+        <p>通关后，你获得的称号是：<input class="input-line" style="width:120px" type="text" placeholder="填写称号"></p>
+        <p><strong>实战思考：</strong> 在设计大型化工储罐时，如果高度和直径同时翻倍，底部的压强会翻几倍？这对材料选择有何启发？</p>
+        <textarea class="input-textarea" placeholder="请在此输入您的思考"></textarea>
+    </div>
+
+    <button class="btn-print" onclick="window.print()">📥 打印实训报告 (或存为PDF)</button>
+</div>
+
+<script>
+    // 实时更新日期为当前日期
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}年${month}月${day}日`;
+    }
+    
+    // 设置当前日期
+    document.getElementById('current-date').textContent = formatDate(new Date());
+    
+    // 可以添加一个可选的日期选择器功能（如果需要编辑日期）
+    // 如果希望日期也可编辑，可以替换为：
+    // const dateSpan = document.getElementById('current-date');
+    // const dateInput = document.createElement('input');
+    // dateInput.type = 'text';
+    // dateInput.value = formatDate(new Date());
+    // dateInput.style.cssText = 'background:transparent;border:none;border-bottom:1px solid #38bdf8;color:#94a3b8;text-align:center;width:120px;';
+    // dateSpan.replaceWith(dateInput);
+</script>
+
+</body>
+</html>
