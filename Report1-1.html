@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>上机实践大纲：量纲一致性校核实训</title>
+    <style>
+        :root { --primary: #4cc9f0; --bg: #0f172a; --text: #f8fafc; }
+        body { font-family: 'Segoe UI', system-ui; background: var(--bg); color: var(--text); padding: 20px; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; background: rgba(30, 41, 59, 0.9); padding: 30px; border-radius: 12px; border: 1px solid var(--primary); }
+        h1 { color: var(--primary); text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        h2 { color: var(--primary); margin-top: 25px; border-left: 4px solid var(--primary); padding-left: 10px; font-size: 1.2em; }
+        .task-box { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #334155; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #475569; padding: 10px; text-align: center; }
+        th { background: rgba(76, 201, 240, 0.1); }
+        .input-line { width: 80px; background: transparent; border: none; border-bottom: 1px solid var(--primary); color: white; text-align: center; }
+        .btn-print { display: block; width: 100%; padding: 12px; background: var(--primary); color: #0f172a; text-align: center; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; border: none; cursor: pointer; }
+        .score-zone { display: flex; justify-content: space-around; margin-top: 20px; font-weight: bold; color: #4ade80; }
+        
+        /* 新增：用户信息栏样式 */
+        .user-info {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #334155;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+        .user-info label {
+            font-weight: bold;
+            color: #4cc9f0;
+            white-space: nowrap;
+        }
+        .user-info input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--primary);
+            color: white;
+            padding: 5px 8px;
+            min-width: 150px;
+        }
+        .user-info input:focus {
+            outline: none;
+            border-bottom: 1px solid #4ade80;
+        }
+        
+        /* 修改分数输入样式 */
+        .score-input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #4ade80;
+            color: #4ade80;
+            width: 40px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1em;
+            padding: 2px 5px;
+        }
+        .score-input:focus {
+            outline: none;
+            border-bottom: 2px solid #4ade80;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>量纲匹配与工程校核实训手册</h1>
+    <p style="text-align: center; opacity: 0.8;">配套仿真系统：量纲匹配大师 v2.0</p>
+    
+    <!-- 新增：用户信息栏 -->
+    <div class="user-info">
+        <div style="flex: 1; min-width: 200px;">
+            <label for="student-name">姓名：</label>
+            <input type="text" id="student-name" placeholder="请输入您的姓名">
+        </div>
+        <div style="flex: 1; min-width: 200px;">
+            <label for="student-id">学号：</label>
+            <input type="text" id="student-id" placeholder="请输入您的学号">
+        </div>
+        <div style="flex: 1; min-width: 200px; text-align: center; color: #94a3b8;">
+            实训日期：<span id="current-date"></span>
+        </div>
+    </div>
+
+    <h2>一、 基础量纲拆解 (10min)</h2>
+    <div class="task-box">
+        <strong>任务目标：</strong> 完成模拟器前 10 关，记录下列衍生量的基础量纲组合。
+        <table>
+            <tr>
+                <th>物理量名称</th>
+                <th>基础量纲组合 [M, L, T, θ]</th>
+                <th>匹配正确耗时 (s)</th>
+            </tr>
+            <tr>
+                <td>力 (Force)</td>
+                <td>[M]¹ [L]¹ [T]⁻²</td>
+                <td><input class="input-line" type="text"></td>
+            </tr>
+            <tr>
+                <td>压强 (Pressure)</td>
+                <td>[M] <input class="input-line" style="width:20px" type="text"> [L] <input class="input-line" style="width:20px" type="text"> [T] <input class="input-line" style="width:20px" type="text"></td>
+                <td><input class="input-line" type="text"></td>
+            </tr>
+            <tr>
+                <td>动力粘度 (Viscosity)</td>
+                <td><input class="input-line" type="text"></td>
+                <td><input class="input-line" type="text"></td>
+            </tr>
+        </table>
+    </div>
+
+    <h2>二、 无量纲准则数挑战 (15min)</h2>
+    <div class="task-box">
+        <strong>实战场景：</strong> 在"专家关卡"中，系统会要求匹配工程准则数。
+        <p>1. <strong>雷诺数 (Re)</strong> 的最终量纲结果是：<input class="input-line" style="width:150px" type="text" placeholder="提示：无量纲为[1]"></p>
+        <p>2. <strong>挑战记录：</strong> 
+           在一次"Combo"连击中最高得分：<input class="input-line" type="text">，
+           能量条是否充盈？ <input type="checkbox"> 是</p>
+        <p>3. <strong>工程发现：</strong> 通过匹配，你发现"功"与"力矩"的量纲是否相同？<input class="input-line" type="text">。它们在物理本质上有何区别？</p>
+        <textarea style="width:100%; height:50px; background:rgba(0,0,0,0.2); color:white; border:1px solid #334155;"></textarea>
+    </div>
+
+    <h2>三、 个人工程师画像 (5min)</h2>
+    <div class="task-box">
+        <p>完成所有关卡后，请点击模拟器中的"查看画像"，填写下列数据：</p>
+        <div class="score-zone">
+            <span>反应速度：<input class="score-input" type="text" id="reaction-score" maxlength="3"> 分</span>
+            <span>逻辑准度：<input class="score-input" type="text" id="accuracy-score" maxlength="3"> 分</span>
+            <span>稳定性：<input class="score-input" type="text" id="stability-score" maxlength="3"> 分</span>
+        </div>
+        <p style="margin-top:15px;"><strong>自我反思：</strong> 我在匹配哪些量纲时最犹豫？如何通过物理定义来加速判断？</p>
+        <textarea style="width:100%; height:50px; background:rgba(0,0,0,0.2); color:white; border:1px solid #334155;"></textarea>
+    </div>
+
+    <button class="btn-print" onclick="window.print()">📥 打印/保存实训报告</button>
+</div>
+
+<script>
+    // 自动填写当前日期
+    document.addEventListener('DOMContentLoaded', function() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        document.getElementById('current-date').textContent = `${year}年${month}月${day}日`;
+        
+        // 为分数输入框添加验证（0-100分）
+        const scoreInputs = document.querySelectorAll('.score-input');
+        scoreInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                let value = this.value.replace(/[^0-9]/g, '');
+                if (value !== '') {
+                    let num = parseInt(value, 10);
+                    if (num > 100) {
+                        num = 100;
+                    }
+                    this.value = num;
+                }
+            });
+        });
+        
+        // 保存用户信息到localStorage
+        const nameInput = document.getElementById('student-name');
+        const idInput = document.getElementById('student-id');
+        
+        // 加载保存的用户信息
+        const savedName = localStorage.getItem('dimension_student_name');
+        const savedId = localStorage.getItem('dimension_student_id');
+        
+        if (savedName) nameInput.value = savedName;
+        if (savedId) idInput.value = savedId;
+        
+        // 保存用户信息
+        nameInput.addEventListener('change', function() {
+            localStorage.setItem('dimension_student_name', this.value);
+        });
+        
+        idInput.addEventListener('change', function() {
+            localStorage.setItem('dimension_student_id', this.value);
+        });
+    });
+</script>
+
+</body>
+</html>
