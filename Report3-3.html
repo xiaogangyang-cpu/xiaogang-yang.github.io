@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>上机实践大纲：电池热管理参数优化</title>
+    <style>
+        :root { 
+            --primary: #38bdf8; 
+            --secondary: #ef4444;
+            --dark: #0f172a; 
+            --card: #1e293b; 
+            --text: #f1f5f9;
+            --accent: #fbbf24;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: var(--dark); 
+            color: var(--text); 
+            line-height: 1.6; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        
+        .lab-box { 
+            max-width: 900px; 
+            margin: 0 auto; 
+            background: var(--card); 
+            padding: 30px; 
+            border-radius: 12px; 
+            border: 1px solid var(--primary); 
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.1);
+        }
+        
+        header {
+            text-align: center;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        
+        h1 { 
+            margin: 0; 
+            color: var(--primary); 
+            font-size: 1.8rem; 
+        }
+        
+        .subtitle { 
+            color: #94a3b8; 
+            font-size: 1rem; 
+            margin-top: 5px; 
+        }
+        
+        .date-info { 
+            text-align: center; 
+            margin-bottom: 15px; 
+            color: #94a3b8; 
+            font-size: 0.9rem; 
+        }
+        
+        /* 用户信息栏样式 - 与Report2-1.html一致 */
+        .user-info { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin: 15px 0 25px 0; 
+            padding: 15px; 
+            background: rgba(0,0,0,0.3); 
+            border-radius: 8px; 
+            border: 1px solid #334155; 
+        }
+        
+        .user-info-row { 
+            display: flex; 
+            gap: 15px; 
+            align-items: center; 
+            width: 100%; 
+            justify-content: center;
+        }
+        
+        .user-input { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+        }
+        
+        .user-input label { 
+            color: var(--accent); 
+            font-size: 0.9rem; 
+        }
+        
+        .user-input input { 
+            width: 120px; 
+            background: transparent; 
+            border: none; 
+            border-bottom: 1px solid var(--primary); 
+            color: var(--accent); 
+            padding: 4px 8px; 
+        }
+        
+        .user-input input:focus { 
+            outline: none; 
+            border-bottom: 1px solid var(--accent); 
+        }
+        
+        h2, h3 { 
+            color: var(--primary); 
+            margin-top: 25px; 
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        h2::before, h3::before { 
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 24px;
+            background: linear-gradient(to bottom, var(--primary), var(--secondary));
+            margin-right: 12px;
+            border-radius: 4px;
+        }
+        
+        .step { 
+            background: rgba(0,0,0,0.2); 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin: 18px 0; 
+            border-left: 4px solid var(--primary); 
+        }
+        
+        .mission-tag { 
+            background: #ea580c; 
+            color: white; 
+            padding: 4px 12px; 
+            border-radius: 4px; 
+            font-weight: bold; 
+        }
+        
+        .highlight { 
+            color: var(--accent); 
+            font-weight: bold; 
+        }
+        
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 20px 0; 
+            background: rgba(0,0,0,0.3);
+        }
+        
+        th, td { 
+            border: 1px solid #475569; 
+            padding: 12px; 
+            text-align: center; 
+            color: var(--text);
+        }
+        
+        th { 
+            background: rgba(56, 189, 248, 0.1); 
+            color: var(--primary); 
+        }
+        
+        .report-input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--primary);
+            color: var(--accent);
+            text-align: center;
+            font-size: 0.95rem;
+            width: 90%;
+        }
+        
+        .report-input:focus {
+            outline: none;
+            border-bottom: 1px solid var(--accent);
+        }
+        
+        .btn-action { 
+            display: block; 
+            width: 100%; 
+            padding: 12px; 
+            background: var(--primary); 
+            color: var(--dark); 
+            text-align: center; 
+            border-radius: 6px; 
+            text-decoration: none; 
+            font-weight: bold; 
+            margin-top: 25px; 
+            border: none; 
+            cursor: pointer; 
+            font-size: 1rem; 
+        }
+        
+        .btn-action:hover { 
+            background: #0ea5e9; 
+        }
+        
+        textarea {
+            width:100%; 
+            height:80px; 
+            margin-top:10px; 
+            background:rgba(0,0,0,0.3); 
+            color:var(--text); 
+            border:1px solid #475569; 
+            padding:10px; 
+            border-radius:5px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .lab-box { padding: 20px; }
+            .user-info { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .user-info-row { flex-wrap: wrap; }
+            table { font-size: 0.85em; }
+            th, td { padding: 8px; }
+        }
+        
+        @media print {
+            .btn-action { display: none; }
+            body { background: white; padding: 0; }
+            .lab-box { 
+                box-shadow: none; 
+                border: none; 
+                width: 100%; 
+                max-width: none; 
+                background: white;
+                color: black;
+                border: 1px solid #ddd;
+            }
+            table, th, td {
+                background: white;
+                color: black;
+                border-color: #ddd;
+            }
+            .step {
+                background: #f5f5f5;
+                color: black;
+                border-color: #ddd;
+            }
+            .mission-tag {
+                background: #d35400;
+                color: white;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="lab-box">
+    <header>
+        <h1>电池热管理博弈-工程实践报告</h1>
+        <div class="subtitle">实验项目：电池热管理参数优化</div>
+        <div class="date-info">
+            配套仿真：<code>03-03-heat-battery-pack1.html</code> | 实训日期：<span id="current-date"></span>
+        </div>
+    </header>
+    
+    <!-- 用户信息栏 - 与Report2-1.html格式一致 -->
+    <div class="user-info">
+        <div class="user-info-row">
+            <div class="user-input">
+                <label for="name">姓名：</label>
+                <input type="text" id="name" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="studentId">学号：</label>
+                <input type="text" id="studentId" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="class">班级：</label>
+                <input type="text" id="class" placeholder="请输入">
+            </div>
+        </div>
+    </div>
+
+    <p><strong>实训背景：</strong> 模拟电动汽车在高温快充环境下的热失控风险评估与冷却策略优化。</p>
+
+    <div class="step">
+        <h3>任务一：环境敏感度探测</h3>
+        <p>在不调节"液冷流速"的前提下，将"环境温度"从 20°C 提升至 45°C：</p>
+        <ul style="color: var(--text); padding-left: 20px;">
+            <li>观察"安全评分"的变化，记录评分跌破 60 分时的环境温度：<input class="report-input" style="width: 80px;" type="text" placeholder="°C"> °C</li>
+            <li>记录此时电池包的最高温度：<input class="report-input" style="width: 80px;" type="text" placeholder="°C"> °C</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h3>任务二：工程寻优设计</h3>
+        <p><span class="mission-tag">核心挑战</span> <strong>工况设定：</strong>产热率 400W，环境温度 42°C。</p>
+        <p><strong>目标：</strong> 手动调整"液冷流速"与相关参数，使综合评分达到 <span class="highlight">85 分以上</span>。</p>
+        <table>
+            <tr>
+                <th>尝试序号</th>
+                <th>流速 (m/s)</th>
+                <th>电池最高温 (°C)</th>
+                <th>系统功耗 (W)</th>
+                <th>安全评分</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="step">
+        <h3>任务三：算法逻辑反思</h3>
+        <p>点击仿真器上的 <span class="highlight">"智能优化"</span> 按钮：</p>
+        <ul style="color: var(--text); padding-left: 20px;">
+            <li>算法推荐的温度值比你预想的（高/低）？ 答：<input class="report-input" style="width: 80px;" type="text" placeholder="高/低"></li>
+            <li><strong>深度思考：</strong> 为什么系统没有选择将电池冷却到最低温度（25°C）？（提示：考虑冷却泵的边际成本）</li>
+            <li><textarea placeholder="请在此处输入您的思考..."></textarea></li>
+        </ul>
+    </div>
+
+    <button class="btn-action" onclick="window.print()">📥 点击打印/导出实验报告</button>
+    
+    <footer style="text-align: center; margin-top:30px; font-size:0.8em; color:#64748b; border-top:1px solid #334155; padding-top:20px;">
+        © 2026 产教融合实训基地 - 数字化热工实验室
+    </footer>
+</div>
+
+<script>
+    // 日期格式化函数
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}年${month}月${day}日`;
+    }
+    
+    // 设置当前日期
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentDate = formatDate(new Date());
+        document.getElementById('current-date').textContent = currentDate;
+        
+        // 保存用户信息到localStorage
+        const nameInput = document.getElementById('name');
+        const idInput = document.getElementById('studentId');
+        const classInput = document.getElementById('class');
+        
+        // 加载保存的用户信息
+        const savedName = localStorage.getItem('battery_thermal_student_name');
+        const savedId = localStorage.getItem('battery_thermal_student_id');
+        const savedClass = localStorage.getItem('battery_thermal_student_class');
+        
+        if (savedName) nameInput.value = savedName;
+        if (savedId) idInput.value = savedId;
+        if (savedClass) classInput.value = savedClass;
+        
+        // 保存用户信息
+        nameInput.addEventListener('input', function() {
+            localStorage.setItem('battery_thermal_student_name', this.value);
+        });
+        
+        idInput.addEventListener('input', function() {
+            localStorage.setItem('battery_thermal_student_id', this.value);
+        });
+        
+        classInput.addEventListener('input', function() {
+            localStorage.setItem('battery_thermal_student_class', this.value);
+        });
+    });
+</script>
+
+</body>
+</html>
