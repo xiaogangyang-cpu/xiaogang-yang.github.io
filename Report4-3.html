@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>上机实训大纲：基于菲克定律的扩散传质工程模拟</title>
+    <style>
+        :root { --primary: #7ce0ff; --bg: #071824; --card: rgba(10,40,70,0.9); --accent: #7ce0ff; }
+        body { font-family: 'Segoe UI', system-ui; background: var(--bg); color: #e6f3ff; padding: 20px; line-height: 1.6; }
+        .lab-box { max-width: 900px; margin: 0 auto; background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--primary); box-shadow: 0 0 25px rgba(124, 224, 255, 0.1); }
+        h1 { color: var(--primary); text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; font-size: 1.8rem; }
+        .step { background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px; margin: 18px 0; border-left: 4px solid var(--primary); }
+        h2 { color: var(--accent); font-size: 1.3rem; margin-top: 0; }
+        .highlight { color: var(--primary); font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th, td { border: 1px solid rgba(124,224,255,0.3); padding: 10px; text-align: center; }
+        th { background: rgba(124, 224, 255, 0.1); }
+        .report-input { background: transparent; border: none; border-bottom: 1px solid var(--primary); color: var(--accent); text-align: center; font-size: 0.95rem; }
+        .report-input:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        .btn-action { display: block; width: 100%; padding: 12px; background: var(--primary); color: #071824; text-align: center; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 25px; border: none; cursor: pointer; font-size: 1rem; }
+        .btn-action:hover { background: #5cd0ff; }
+        
+        /* 用户信息栏样式 */
+        .user-info { display: flex; justify-content: center; align-items: center; margin: 15px 0 25px 0; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(124,224,255,0.3); }
+        .user-info-row { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; justify-content: center; }
+        .user-input { display: flex; align-items: center; gap: 8px; }
+        .user-input label { color: var(--accent); font-size: 0.9rem; }
+        .user-input input { width: 140px; background: transparent; border: none; border-bottom: 1px solid var(--primary); color: var(--accent); padding: 4px 8px; }
+        .user-input input:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        
+        /* 日期样式 */
+        .date-info { text-align: center; margin-bottom: 15px; color: #94a3b8; font-size: 0.9rem; }
+        
+        /* 输入框样式 */
+        .small-input { width: 80px; background: transparent; border: none; border-bottom: 1px solid var(--primary); color: var(--accent); text-align: center; padding: 4px 8px; }
+        
+        /* 文本区域样式 */
+        .textarea-box { width:100%; height:60px; background:transparent; border:1px solid rgba(124,224,255,0.3); color:white; padding: 10px; border-radius: 5px; }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .lab-box { padding: 20px; }
+            .user-info-row { flex-direction: column; gap: 10px; }
+            .user-input input { width: 180px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="lab-box">
+    <h1>环境工程师的扩散预警练习-上机实践报告</h1>
+    <div class="date-info">
+        配套仿真：<code>04-03-mass-pollution.html</code> | 实训日期：<span id="current-date"></span>
+    </div>
+    
+    <!-- 用户信息栏 -->
+    <div class="user-info">
+        <div class="user-info-row">
+            <div class="user-input">
+                <label for="name">姓名：</label>
+                <input type="text" id="name" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="studentId">学号：</label>
+                <input type="text" id="studentId" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="class">班级：</label>
+                <input type="text" id="class" placeholder="请输入">
+            </div>
+        </div>
+    </div>
+
+    <div class="step">
+        <h2>一、 稳态传质规律观察 </h2>
+        <p><strong>操作：</strong> 选择"稳态模式"，将源浓度 C0 固定为 1.0。</p>
+        <table>
+            <tr>
+                <th>扩散系数 D</th>
+                <th>x=500 处的浓度读数</th>
+                <th>曲线斜率描述 (陡峭/平缓)</th>
+            </tr>
+            <tr>
+                <td>0.2</td>
+                <td><input class="small-input" type="text"></td>
+                <td><input class="small-input" type="text"></td>
+            </tr>
+            <tr>
+                <td>0.8</td>
+                <td><input class="small-input" type="text"></td>
+                <td><input class="small-input" type="text"></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="step">
+        <h2>二、 动态时空预警模拟 </h2>
+        <p><strong>场景：</strong> 工厂发生瞬时泄漏。切换到"动态模式"，设置 D=0.5，C0=1.0。</p>
+        <ul style="list-style:none; padding-left:0;">
+            <li>1. 点击【重置并开始】，观察浓度波。当 x=300 处浓度达到 0.1 时，立即记录耗时：<input class="small-input" type="text"> 秒。</li>
+            <li>2. 保持 D=0.5，调整 C0 为 0.5。重复实验，达标耗时是否发生了显著变化？</li>
+        </ul>
+        <p>答：<input class="report-input" style="width:120px" type="text" placeholder="变化/基本不变"></p>
+    </div>
+
+    <div class="step">
+        <h2>三、 工程师资质鉴定</h2>
+        <p><strong>目标：</strong> 独立完成仿真器右侧的"评价系统"。</p>
+        <ul style="list-style:none; padding-left:0;">
+            <li>最终获得称号：<span class="highlight">[ <input class="report-input" style="width:120px" type="text" placeholder="见习/高级/首席环评专家"> ]</span></li>
+            <li>记录你的总评分：<input class="small-input" type="text"></li>
+            <li>总结：在动态扩散中，为什么增加 D 会导致峰值强度下降？这在污水治理中有什么启示？</li>
+        </ul>
+        <textarea class="textarea-box" placeholder="请在此输入你的总结和启示..."></textarea>
+    </div>
+
+    <button class="btn-action" onclick="window.print()">📥 导出实训报告 (PDF)</button>
+    
+    <footer style="margin-top:20px; text-align:center; font-size:0.8em; color:#94a3b8;">
+        © 2026 产教融合实训基地 - 数字化传质实验室
+    </footer>
+</div>
+
+<script>
+    // 日期格式化函数
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}年${month}月${day}日`;
+    }
+    
+    // 设置当前日期
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentDate = formatDate(new Date());
+        document.getElementById('current-date').textContent = currentDate;
+        
+        // 保存用户信息到localStorage
+        const nameInput = document.getElementById('name');
+        const idInput = document.getElementById('studentId');
+        const classInput = document.getElementById('class');
+        
+        // 加载保存的用户信息
+        const savedName = localStorage.getItem('fick_law_student_name');
+        const savedId = localStorage.getItem('fick_law_student_id');
+        const savedClass = localStorage.getItem('fick_law_student_class');
+        
+        if (savedName) nameInput.value = savedName;
+        if (savedId) idInput.value = savedId;
+        if (savedClass) classInput.value = savedClass;
+        
+        // 保存用户信息
+        nameInput.addEventListener('input', function() {
+            localStorage.setItem('fick_law_student_name', this.value);
+        });
+        
+        idInput.addEventListener('input', function() {
+            localStorage.setItem('fick_law_student_id', this.value);
+        });
+        
+        classInput.addEventListener('input', function() {
+            localStorage.setItem('fick_law_student_class', this.value);
+        });
+    });
+</script>
+
+</body>
+</html>
