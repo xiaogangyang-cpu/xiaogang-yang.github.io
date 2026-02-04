@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>上机实践大纲：对流-扩散传质工程优化</title>
+    <style>
+        :root { --primary: #00f2ff; --bg: #0d1117; --card: #161b22; --accent: #00f2ff; }
+        body { font-family: 'Segoe UI', system-ui; background: var(--bg); color: #c9d1d9; padding: 20px; line-height: 1.6; }
+        .lab-box { max-width: 900px; margin: 0 auto; background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--primary); box-shadow: 0 0 25px rgba(0, 242, 255, 0.1); }
+        h1 { color: var(--primary); text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; font-size: 1.8rem; }
+        .step { background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px; margin: 18px 0; border-left: 4px solid var(--primary); }
+        h3 { color: var(--accent); font-size: 1.3rem; margin-top: 0; }
+        .highlight { color: var(--primary); font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th, td { border: 1px solid #30363d; padding: 10px; text-align: center; }
+        th { background: rgba(0, 242, 255, 0.1); color: var(--primary); }
+        .report-input { background: transparent; border: none; border-bottom: 1px solid var(--primary); color: var(--accent); text-align: center; font-size: 0.95rem; }
+        .report-input:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        .btn-action { display: block; width: 100%; padding: 12px; background: var(--primary); color: #0d1117; text-align: center; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 25px; border: none; cursor: pointer; font-size: 1rem; }
+        .btn-action:hover { background: #00d9e6; }
+        
+        /* 用户信息栏样式 */
+        .user-info { display: flex; justify-content: center; align-items: center; margin: 15px 0 25px 0; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid #30363d; }
+        .user-info-row { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; justify-content: center; }
+        .user-input { display: flex; align-items: center; gap: 8px; }
+        .user-input label { color: var(--accent); font-size: 0.9rem; }
+        .user-input input { width: 140px; background: transparent; border: none; border-bottom: 1px solid var(--primary); color: var(--accent); padding: 4px 8px; }
+        .user-input input:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        
+        /* 日期样式 */
+        .date-info { text-align: center; margin-bottom: 15px; color: #94a3b8; font-size: 0.9rem; }
+        
+        /* 输入框样式 */
+        .small-input { width: 80px; background: transparent; border: none; border-bottom: 1px solid var(--primary); color: var(--accent); text-align: center; padding: 4px 8px; }
+        
+        /* 文本区域样式 */
+        .textarea-box { width:100%; height:60px; background:transparent; border:1px solid #30363d; color:white; padding: 10px; border-radius: 5px; }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .lab-box { padding: 20px; }
+            .user-info-row { flex-direction: column; gap: 10px; }
+            .user-input input { width: 180px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="lab-box">
+    <h1>实训大纲：洗手过程的传质博弈</h1>
+    <div class="date-info">
+        配套仿真：<code>04-02-convection-diffusion.html</code> | 实训日期：<span id="current-date"></span>
+    </div>
+    
+    <!-- 用户信息栏 -->
+    <div class="user-info">
+        <div class="user-info-row">
+            <div class="user-input">
+                <label for="name">姓名：</label>
+                <input type="text" id="name" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="studentId">学号：</label>
+                <input type="text" id="studentId" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="class">班级：</label>
+                <input type="text" id="class" placeholder="请输入">
+            </div>
+        </div>
+    </div>
+
+    <div class="step">
+        <h3>任务一：机制辨析 (10min)</h3>
+        <p><strong>实训软件：</strong> 工程谜题：扩散控制下的洗手实验 v1.2</p>
+        <p>设定"流速"为 0.1，尝试改变"扩散系数"（模拟搓手）。记录去污率达到 50% 的时间：</p>
+        <table>
+            <tr>
+                <th>扩散系数 D</th>
+                <th>达标时间 (s)</th>
+                <th>耗水量 (L)</th>
+                <th>观察到的粒子形态</th>
+            </tr>
+            <tr>
+                <td>0.01 (不搓手)</td>
+                <td><input class="small-input" type="text"></td>
+                <td><input class="small-input" type="text"></td>
+                <td>堆积在表面</td>
+            </tr>
+            <tr>
+                <td>0.10 (中度搓手)</td>
+                <td><input class="small-input" type="text"></td>
+                <td><input class="small-input" type="text"></td>
+                <td>快速向主流扩散</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="step">
+        <h3>任务二：极限节水挑战 (15min)</h3>
+        <p><strong>目标：</strong> 在 60 秒内，实现 <span style="color:var(--primary)">去污率 > 95%</span> 且 <span style="color:var(--primary)">耗水量 < 25L</span>。</p>
+        <p><strong>你的最优策略：</strong></p>
+        <ul style="list-style:none; padding-left:0;">
+            <li>流速设定：<input class="small-input" type="text"> m/s</li>
+            <li>扩散系数设定：<input class="small-input" type="text"></li>
+            <li>最终评分：<input class="small-input" type="text"> 分</li>
+        </ul>
+        <p><strong>工程反思：</strong> 为什么高流速不一定能带来高评分？</p>
+        <textarea class="textarea-box" placeholder="请在此输入你的反思..."></textarea>
+    </div>
+
+    <div class="step">
+        <h3>任务三：专家评测与总结 (5min)</h3>
+        <p>点击程序右侧的"生成实验报告"，将报告中的"评价画像"截图贴在下方，并阐述你对"对流传质系数"的新理解。</p>
+        <textarea class="textarea-box" style="height:100px;" placeholder="请在此输入你的理解和评价..."></textarea>
+    </div>
+
+    <button class="btn-action" onclick="window.print()">📥 导出实训报告 (PDF)</button>
+</div>
+
+<script>
+    // 日期格式化函数
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}年${month}月${day}日`;
+    }
+    
+    // 设置当前日期
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentDate = formatDate(new Date());
+        document.getElementById('current-date').textContent = currentDate;
+        
+        // 保存用户信息到localStorage
+        const nameInput = document.getElementById('name');
+        const idInput = document.getElementById('studentId');
+        const classInput = document.getElementById('class');
+        
+        // 加载保存的用户信息
+        const savedName = localStorage.getItem('convection_diffusion_student_name');
+        const savedId = localStorage.getItem('convection_diffusion_student_id');
+        const savedClass = localStorage.getItem('convection_diffusion_student_class');
+        
+        if (savedName) nameInput.value = savedName;
+        if (savedId) idInput.value = savedId;
+        if (savedClass) classInput.value = savedClass;
+        
+        // 保存用户信息
+        nameInput.addEventListener('input', function() {
+            localStorage.setItem('convection_diffusion_student_name', this.value);
+        });
+        
+        idInput.addEventListener('input', function() {
+            localStorage.setItem('convection_diffusion_student_id', this.value);
+        });
+        
+        classInput.addEventListener('input', function() {
+            localStorage.setItem('convection_diffusion_student_class', this.value);
+        });
+    });
+</script>
+    <footer style="margin-top:20px; text-align:center; font-size:0.8em; color:#94a3b8;">
+        © 2026 产教融合实训基地 - 数字化传质实验室
+    </footer>
+</body>
+</html>
