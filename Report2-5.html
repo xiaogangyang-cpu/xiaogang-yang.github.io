@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>上机实践大纲：微流控层流特性研究</title>
+    <style>
+        :root { 
+            --primary: #00d4ff; 
+            --secondary: #ef4444;
+            --dark: #0c1220; 
+            --card: #121c34; 
+            --text: #e0e0ff;
+            --blue-dark: #0c1220;
+            --blue-light: #121c34;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: var(--blue-dark); 
+            color: var(--text); 
+            padding: 20px; 
+            line-height: 1.6; 
+        }
+        
+        .container { 
+            max-width: 850px; 
+            margin: 0 auto; 
+            background: var(--blue-light); 
+            padding: 30px; 
+            border-radius: 15px; 
+            border: 1px solid #1e293b; 
+        }
+        
+        header {
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        h1 { 
+            color: var(--primary); 
+            margin: 0; 
+            font-size: 1.8rem;
+        }
+        
+        .subtitle { 
+            color: #94a3b8; 
+            font-size: 1rem; 
+            margin-top: 5px; 
+        }
+        
+        .current-time {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        h2 { 
+            color: var(--primary); 
+            margin-top: 30px; 
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        h2::before { 
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 24px;
+            background: linear-gradient(to bottom, var(--primary), var(--secondary));
+            margin-right: 12px;
+            border-radius: 4px;
+        }
+        
+        .task-box { 
+            background: rgba(0, 212, 255, 0.1); 
+            border: 1px solid #334155;
+            padding: 20px; 
+            margin: 15px 0; 
+            border-radius: 10px; 
+        }
+        
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 20px 0; 
+            font-size: 0.9em; 
+            background: #1e293b;
+        }
+        
+        th, td { 
+            border: 1px solid #334155; 
+            padding: 12px; 
+            text-align: center; 
+        }
+        
+        th { 
+            background: rgba(0, 212, 255, 0.2); 
+            color: #e0e0ff;
+        }
+        
+        input[type="text"] {
+            width: 90%;
+            padding: 6px;
+            border: 1px solid #475569;
+            border-radius: 4px;
+            text-align: center;
+            background: #0c1220;
+            color: #e0e0ff;
+        }
+        
+        .btn-print { 
+            background: var(--primary); 
+            color: #000; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            margin: 30px auto;
+            display: block;
+        }
+        
+        .warning { 
+            color: #ff4081; 
+            font-weight: bold; 
+        }
+        
+        .student-info {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid #334155;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        textarea {
+            width:100%; 
+            height:80px; 
+            margin-top:10px; 
+            background:#0c1220; 
+            color:white; 
+            border:1px solid #334155; 
+            padding:10px;
+            border-radius: 4px;
+        }
+        
+        .upload-section {
+            background: rgba(0, 212, 255, 0.05);
+            border: 2px dashed #334155;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .upload-btn {
+            background: var(--primary);
+            color: #000;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px;
+        }
+        
+        #imagePreview {
+            max-width: 100%;
+            margin-top: 15px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            display: none;
+        }
+        
+        @media print {
+            .btn-print, .current-time, .upload-section { 
+                display: none; 
+            }
+            body { 
+                background: white; 
+                padding: 0; 
+            }
+            .container { 
+                box-shadow: none; 
+                border: none; 
+                width: 100%; 
+                max-width: none; 
+                background: white;
+                color: black;
+            }
+            table, th, td {
+                background: white;
+                color: black;
+                border-color: #ddd;
+            }
+            .task-box, .student-info {
+                background: #f5f5f5;
+                color: black;
+                border-color: #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>微流控芯片：层流之径实践报告</h1>
+        <div class="subtitle">实验项目：微尺度下的雷诺数特性研究</div>
+        <div class="current-time" id="currentTime"></div>
+    </header>
+    
+    <div class="student-info">
+        <strong>🧑‍🎓 学生信息：</strong>
+        <div class="info-grid">
+            <input type="text" placeholder="姓名" class="data-input">
+            <input type="text" placeholder="学号" class="data-input">
+            <input type="text" placeholder="班级" class="data-input">
+        </div>
+    </div>
+
+    <p><strong>实验目标：</strong>通过交互仿真理解微尺度下的雷诺数（Re）特性，建立"尺度效应"的工程直觉。</p>
+
+    <h2>一、基础探究：雷诺数的"三驾马车"</h2>
+    <div class="task-box">
+        <strong>操作：</strong>打开仿真程序 <code>02-05-fluid-microfluidic.html</code>。
+        依次调节滑块，观察仪表盘中 Re 的实时反应。
+    </div>
+    <table>
+        <tr>
+            <th>变量类型</th>
+            <th>操作</th>
+            <th>Re 变化趋势</th>
+            <th>流态视觉变化</th>
+        </tr>
+        <tr>
+            <td>流速 (Velocity)</td>
+            <td>增加 ↑</td>
+            <td><input type="text" placeholder="增大/减小"></td>
+            <td>线条变快/变乱</td>
+        </tr>
+        <tr>
+            <td>道宽 (Width)</td>
+            <td>减小 ↓</td>
+            <td><input type="text" placeholder="..."></td>
+            <td><input type="text" placeholder="描述观察到的现象"></td>
+        </tr>
+        <tr>
+            <td>粘度 (Viscosity)</td>
+            <td>增加 ↑</td>
+            <td><input type="text" placeholder="..."></td>
+            <td>粒子运动变缓/稳定</td>
+        </tr>
+    </table>
+
+    <h2>二、寻找"层流之冠"：临界点捕获</h2>
+    <div class="task-box">
+        <strong>挑战：</strong>手动调节参数，使雷诺数刚好锁定在以下区间，并截图保存。
+    </div>
+    <ul>
+        <li><strong>稳健层流区：</strong> Re &lt; 100（要求流速不能低于 0.1 m/s）</li>
+        <li><strong>过渡临界区：</strong> 2000 &lt; Re &lt; 2500</li>
+        <li><strong>湍流风险区：</strong> Re &gt; 3000（<span class="warning">注意观察背景波动的颜色变化</span>）</li>
+    </ul>
+
+    <h2>三、工程模拟：医疗芯片参数设计</h2>
+    <div class="task-box">
+        <strong>情景：</strong>你需要设计一个处理<strong>高粘度生物样本</strong>（粘度设为 0.05 Pa·s）的芯片。
+        要求：通道宽度为 180μm，必须保持层流（Re &lt; 200）。
+    </div>
+    <p>请记录你的最佳方案：</p>
+    <ul>
+        <li>设定速度：<input type="text" style="width: 120px;" placeholder="m/s"> m/s</li>
+        <li>最终 Re 值：<input type="text" style="width: 120px;" placeholder="数值"></li>
+        <li>此时的工程师评价：<input type="text" style="width: 300px;" placeholder="评价内容"></li>
+    </ul>
+
+    <h2>四、实验总结与报告导出</h2>
+    <p>1. 为什么在微流控芯片中很难产生真正的湍流？（结合公式 Re = ρvD/μ 简述）</p>
+    <textarea placeholder="请在此处输入您的回答..."></textarea>
+    
+    <p>2. 截图上传：雷达图与工程师评级</p>
+    <div class="upload-section">
+        <p>请上传仿真界面右下角的"📊 查看分析报告"生成的雷达图：</p>
+        <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+        <button class="upload-btn" onclick="document.getElementById('imageUpload').click()">选择图片上传</button>
+        <p style="font-size: 0.9rem; color: #94a3b8;">支持格式：JPG、PNG、GIF，最大5MB</p>
+        
+        <img id="imagePreview" alt="雷达图预览">
+    </div>
+
+    <button class="btn-print" onclick="window.print()">🖨️ 保存/打印指南</button>
+
+    <footer style="margin-top:40px; text-align:center; font-size:0.8em; color:#64748b; border-top:1px solid #334155; padding-top:20px;">
+        © 2026 数字化流体力学实验室 - 产教融合实训课程
+    </footer>
+</div>
+
+<script>
+    // 更新当前时间
+    function updateTime() {
+        const now = new Date();
+        const options = { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+
+        };
+        document.getElementById('currentTime').textContent = 
+            '实验时间：' + now.toLocaleDateString('zh-CN', options);
+    }
+    
+    // 初始更新时间
+    updateTime();
+    
+    // 每秒更新时间
+    setInterval(updateTime, 1000);
+    
+    // 图片上传预览功能
+    document.getElementById('imageUpload').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const preview = document.getElementById('imagePreview');
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+
+</body>
+</html>
