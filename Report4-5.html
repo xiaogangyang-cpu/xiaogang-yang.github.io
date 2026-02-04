@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>上机实训：基于 Sherwood 数的对流传质分析</title>
+    <style>
+        :root { --primary: #38bdf8; --bg: #0a1929; --card: #162a3e; --accent: #38bdf8; }
+        body { font-family: 'Segoe UI', system-ui; background: var(--bg); color: #e0f2ff; padding: 20px; line-height: 1.6; }
+        .lab-box { max-width: 900px; margin: 0 auto; background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--primary); box-shadow: 0 0 25px rgba(56, 189, 248, 0.1); }
+        h1 { color: var(--primary); text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; font-size: 1.8rem; }
+        .step { background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px; margin: 18px 0; border-left: 4px solid var(--primary); }
+        h2 { color: var(--accent); font-size: 1.3rem; margin-top: 0; }
+        .highlight { color: var(--primary); font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th, td { border: 1px solid #415a77; padding: 10px; text-align: center; }
+        th { background: rgba(56, 189, 248, 0.1); }
+        .report-input { background: transparent; border: none; border-bottom: 1px solid var(--primary); color: var(--accent); text-align: center; font-size: 0.95rem; }
+        .report-input:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        .btn-action { display: block; width: 100%; padding: 12px; background: var(--primary); color: #0a1929; text-align: center; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 25px; border: none; cursor: pointer; font-size: 1rem; }
+        .btn-action:hover { background: #0ea5e9; }
+        
+        /* 用户信息栏样式 */
+        .user-info { display: flex; justify-content: center; align-items: center; margin: 15px 0 25px 0; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid #415a77; }
+        .user-info-row { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; justify-content: center; }
+        .user-input { display: flex; align-items: center; gap: 8px; }
+        .user-input label { color: var(--accent); font-size: 0.9rem; }
+        .user-input input { width: 140px; background: transparent; border: none; border-bottom: 1px solid var(--primary); color: var(--accent); padding: 4px 8px; }
+        .user-input input:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        
+        /* 日期样式 */
+        .date-info { text-align: center; margin-bottom: 15px; color: #94a3b8; font-size: 0.9rem; }
+        
+        /* 输入框样式 */
+        .small-input { width: 80px; background: transparent; border: none; border-bottom: 1px solid var(--primary); color: var(--accent); text-align: center; padding: 4px 8px; }
+        
+        /* 文本区域样式 */
+        .textarea-box { width:100%; height:60px; background:transparent; border:1px solid #415a77; color:white; padding: 10px; border-radius: 5px; }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .lab-box { padding: 20px; }
+            .user-info-row { flex-direction: column; gap: 10px; }
+            .user-input input { width: 180px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="lab-box">
+    <h1>Sherwood 数对流传质挑战-实训报告</h1>
+    <div class="date-info">
+        配套仿真：<code>04-05-sherwood-mass-transfer.html</code> | 实训日期：<span id="current-date"></span>
+    </div>
+    
+    <!-- 用户信息栏 -->
+    <div class="user-info">
+        <div class="user-info-row">
+            <div class="user-input">
+                <label for="name">姓名：</label>
+                <input type="text" id="name" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="studentId">学号：</label>
+                <input type="text" id="studentId" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="class">班级：</label>
+                <input type="text" id="class" placeholder="请输入">
+            </div>
+        </div>
+    </div>
+
+    <div class="step">
+        <h2>任务一：准则数敏感度探究 (10min)</h2>
+        <p><strong>实验软件：</strong> Sherwood 数下的对流传质挑战 v1.0 (04-05)</p>
+        <p>固定流体扩散系数 D=0.5，记录不同流速下的无量纲数变化：</p>
+        <table>
+            <tr>
+                <th>流速 (m/s)</th>
+                <th>Reynolds 数 (Re)</th>
+                <th>Sherwood 数 (Sh)</th>
+                <th>清洗达标时间 (s)</th>
+            </tr>
+            <tr>
+                <td>0.2 (低速)</td>
+                <td><input class="small-input" type="text"></td>
+                <td><input class="small-input" type="text"></td>
+                <td><input class="small-input" type="text"></td>
+            </tr>
+            <tr>
+                <td>0.8 (高速)</td>
+                <td><input class="small-input" type="text"></td>
+                <td><input class="small-input" type="text"></td>
+                <td><input class="small-input" type="text"></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="step">
+        <h2>任务二：工程寻优挑战 (15min)</h2>
+        <p><strong>挑战目标：</strong> 调整参数组合，在保证"清洗速度"大于 80 分的同时，将"能耗指标"控制在 30 分以下。</p>
+        <ul style="list-style:none; padding-left:0;">
+            <li>最终达成组合：流速=<input class="small-input" type="text">, 扩散系数=<input class="small-input" type="text"></li>
+            <li>你的工程师等级：<span class="highlight">[ <input class="report-input" style="width:120px" type="text" placeholder="见习/资深/专家"> ]</span></li>
+            <li><strong>物理分析：</strong> 观察浓度分布曲线，解释为什么在高 Re 数下，浓度梯度在壁面附近变得更加"陡峭"？</li>
+        </ul>
+        <textarea class="textarea-box" placeholder="请在此输入你的分析..."></textarea>
+    </div>
+
+    <div class="step">
+        <h2>任务三：综合心得</h2>
+        <p>基于实操数据，简述你对"传质系数 h_m"与流速关系的理解，并说明在工业设计中如何平衡效率与能耗。</p>
+        <textarea class="textarea-box" style="height:80px;" placeholder="请在此输入你的心得..."></textarea>
+    </div>
+
+    <button class="btn-action" onclick="window.print()">📥 导出实训报告 (PDF)</button>
+    
+    <footer style="margin-top:20px; text-align:center; font-size:0.8em; color:#94a3b8;">
+        © 2026 产教融合实训基地 - 数字化传质实验室
+    </footer>
+</div>
+
+<script>
+    // 日期格式化函数
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}年${month}月${day}日`;
+    }
+    
+    // 设置当前日期
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentDate = formatDate(new Date());
+        document.getElementById('current-date').textContent = currentDate;
+        
+        // 保存用户信息到localStorage
+        const nameInput = document.getElementById('name');
+        const idInput = document.getElementById('studentId');
+        const classInput = document.getElementById('class');
+        
+        // 加载保存的用户信息
+        const savedName = localStorage.getItem('sherwood_student_name');
+        const savedId = localStorage.getItem('sherwood_student_id');
+        const savedClass = localStorage.getItem('sherwood_student_class');
+        
+        if (savedName) nameInput.value = savedName;
+        if (savedId) idInput.value = savedId;
+        if (savedClass) classInput.value = savedClass;
+        
+        // 保存用户信息
+        nameInput.addEventListener('input', function() {
+            localStorage.setItem('sherwood_student_name', this.value);
+        });
+        
+        idInput.addEventListener('input', function() {
+            localStorage.setItem('sherwood_student_id', this.value);
+        });
+        
+        classInput.addEventListener('input', function() {
+            localStorage.setItem('sherwood_student_class', this.value);
+        });
+    });
+</script>
+
+</body>
+</html>
