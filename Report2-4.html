@@ -6,47 +6,108 @@
     <title>上机实践：欧拉加速度与喷管流动分析</title>
     <style>
         :root {
-            --primary: #8b5cf6; /* 对应仿真中的 Local 紫色 */
-            --secondary: #ef4444; /* 对应仿真中的 Convective 红色 */
+            --primary: #38bdf8;
+            --secondary: #ef4444;
             --dark: #0f172a;
             --light: #f8fafc;
             --border: #334155;
-            --blue-dark: #1e293b; /* 新增蓝黑色 */
-            --blue-light: #2d3748; /* 新增蓝灰色 */
+            --accent: #fbbf24;
         }
         
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
-            background: var(--blue-dark); /* 改为蓝黑色背景 */
-            color: #e2e8f0; /* 改为浅色文字 */
+            background: var(--dark);
+            color: #f1f5f9;
             line-height: 1.6;
             margin: 0;
             padding: 20px;
         }
         
-        .container {
+        .lab-box {
             max-width: 900px;
             margin: 0 auto;
-            background: var(--blue-light); /* 改为蓝灰色容器背景 */
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid var(--primary);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.1);
         }
         
         header {
-            border-bottom: 3px solid var(--primary);
-            padding-bottom: 20px;
-            margin-bottom: 30px;
             text-align: center;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 20px;
         }
         
-        h1 { margin: 0; color: var(--light); font-size: 1.8rem; }
-        .subtitle { color: #94a3b8; font-size: 1rem; margin-top: 5px; }
+        h1 { 
+            margin: 0; 
+            color: var(--primary); 
+            font-size: 1.8rem; 
+        }
+        
+        .subtitle { 
+            color: #94a3b8; 
+            font-size: 1rem; 
+            margin-top: 5px; 
+        }
+        
+        .date-info { 
+            text-align: center; 
+            margin-bottom: 15px; 
+            color: #94a3b8; 
+            font-size: 0.9rem; 
+        }
+        
+        /* 用户信息栏样式 - 与Report2-1.html一致 */
+        .user-info { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin: 15px 0 25px 0; 
+            padding: 15px; 
+            background: rgba(0,0,0,0.3); 
+            border-radius: 8px; 
+            border: 1px solid #334155; 
+        }
+        
+        .user-info-row { 
+            display: flex; 
+            gap: 15px; 
+            align-items: center; 
+            width: 100%; 
+            justify-content: center;
+        }
+        
+        .user-input { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+        }
+        
+        .user-input label { 
+            color: var(--accent); 
+            font-size: 0.9rem; 
+        }
+        
+        .user-input input { 
+            width: 120px; 
+            background: transparent; 
+            border: none; 
+            border-bottom: 1px solid var(--primary); 
+            color: var(--accent); 
+            padding: 4px 8px; 
+        }
+        
+        .user-input input:focus { 
+            outline: none; 
+            border-bottom: 1px solid var(--accent); 
+        }
         
         .section-title {
             display: flex;
             align-items: center;
-            color: var(--light);
+            color: var(--primary);
             margin-top: 30px;
             font-size: 1.3rem;
         }
@@ -61,13 +122,12 @@
             border-radius: 4px;
         }
         
-        .task-card {
-            background: #334155;
-            border: 1px solid #475569;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 15px 0;
-            color: #e2e8f0;
+        .step { 
+            background: rgba(0,0,0,0.2); 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin: 18px 0; 
+            border-left: 4px solid var(--primary); 
         }
         
         .highlight-local { color: var(--primary); font-weight: bold; }
@@ -77,45 +137,58 @@
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
-            background: #334155;
-            color: #e2e8f0;
+            background: rgba(0,0,0,0.3);
         }
         
         th, td {
-            border: 1px solid #475569;
+            border: 1px solid #334155;
             padding: 12px;
             text-align: center;
+            color: #f1f5f9;
         }
         
         th { 
-            background: #475569; 
-            color: var(--light); 
+            background: rgba(56, 189, 248, 0.1); 
+            color: var(--primary); 
         }
         
-        input.data-input {
-            width: 80%;
-            padding: 6px;
-            border: 1px solid #475569;
-            border-radius: 4px;
-            text-align: center;
-            background: #1e293b;
-            color: #e2e8f0;
-        }
-        
-        .btn-print {
-            background: var(--primary);
-            color: white;
+        .report-input {
+            background: transparent;
             border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            margin: 30px auto 0;
-            display: block;
+            border-bottom: 1px solid var(--primary);
+            color: var(--accent);
+            text-align: center;
+            font-size: 0.95rem;
+            width: 90%;
+        }
+        
+        .report-input:focus {
+            outline: none;
+            border-bottom: 1px solid var(--accent);
+        }
+        
+        .btn-action { 
+            display: block; 
+            width: 100%; 
+            padding: 12px; 
+            background: var(--primary); 
+            color: var(--dark); 
+            text-align: center; 
+            border-radius: 6px; 
+            text-decoration: none; 
+            font-weight: bold; 
+            margin-top: 25px; 
+            border: none; 
+            cursor: pointer; 
+            font-size: 1rem; 
+        }
+        
+        .btn-action:hover { 
+            background: #0ea5e9; 
         }
         
         .formula-box {
-            background: #1e1e1e;
+            background: rgba(0,0,0,0.3);
             color: #fff;
             padding: 15px;
             border-radius: 8px;
@@ -123,45 +196,67 @@
             font-family: 'Times New Roman', serif;
             font-size: 1.2rem;
             margin: 20px 0;
+            border: 1px solid #334155;
         }
-
-        .current-time {
+        
+        .formula-note {
+            font-size: 0.8em;
             color: #94a3b8;
-            font-size: 0.9rem;
-            margin-top: 5px;
+            margin-top: 10px;
             font-style: italic;
+            border-top: 1px dashed #475569;
+            padding-top: 8px;
         }
 
         textarea {
             width:100%; 
             height:80px; 
             margin-top:10px; 
-            border:1px solid #475569; 
-            border-radius:4px;
-            background: #1e293b;
-            color: #e2e8f0;
-            padding: 8px;
+            background:rgba(0,0,0,0.3); 
+            color:white; 
+            border:1px solid #334155; 
+            padding:10px; 
+            border-radius:5px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .lab-box { padding: 20px; }
+            .user-info { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .user-info-row { flex-wrap: wrap; }
+            table { font-size: 0.85em; }
+            th, td { padding: 8px; }
         }
 
         @media print {
-            .btn-print, .current-time { display: none; }
+            .btn-action { display: none; }
             body { background: white; padding: 0; }
-            .container { 
+            .lab-box { 
                 box-shadow: none; 
                 border: none; 
                 width: 100%; 
                 max-width: none; 
                 background: white;
                 color: black;
+                border: 1px solid #ddd;
             }
             table, th, td {
                 background: white;
                 color: black;
                 border-color: #ddd;
             }
-            .task-card {
+            .step {
                 background: #f5f5f5;
                 color: black;
+                border-color: #ddd;
+            }
+            .formula-box {
+                background: #f5f5f5;
+                color: black;
+                border-color: #ddd;
+            }
+            .formula-note {
+                color: #666;
                 border-color: #ddd;
             }
         }
@@ -169,166 +264,194 @@
 </head>
 <body>
 
-<div class="container">
+<div class="lab-box">
     <header>
-        <div>
-            <h1>流体力学上机实践报告</h1>
-            <div class="subtitle">实验项目：欧拉加速度分解与喷管流动特性</div>
-            <div class="current-time" id="currentTime"></div>
+        <h1>流体力学上机实践报告</h1>
+        <div class="subtitle">实验项目：欧拉加速度分解与喷管流动特性</div>
+        <div class="date-info">
+            配套仿真：<code>02-04-fluid-euler-acceleration.html</code> | 实训日期：<span id="current-date"></span>
         </div>
     </header>
 
-    <div class="task-card">
-        <strong>🧑‍🎓 学生信息：</strong>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px;">
-            <input class="data-input" type="text" placeholder="姓名" style="width: 100%;">
-            <input class="data-input" type="text" placeholder="学号" style="width: 100%;">
-            <input class="data-input" type="text" placeholder="班级" style="width: 100%;">
+    <!-- 用户信息栏 - 与Report2-1.html格式一致 -->
+    <div class="user-info">
+        <div class="user-info-row">
+            <div class="user-input">
+                <label for="name">姓名：</label>
+                <input type="text" id="name" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="studentId">学号：</label>
+                <input type="text" id="studentId" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="class">班级：</label>
+                <input type="text" id="class" placeholder="请输入">
+            </div>
         </div>
     </div>
 
     <div class="formula-box">
-        a<sub>total</sub> = 
-        <span style="color: #a855f7; border-bottom: 1px solid #a855f7;">∂u/∂t</span>
-        <span style="color: #a855f7; font-size: 0.9em;">(Local)</span>
-        + 
-        <span style="color: #ef4444; border-bottom: 1px solid #ef4444;">u·∂u/∂x</span>
-        <span style="color: #ef4444; font-size: 0.9em;">(Convective)</span>
+        <div style="margin-bottom: 10px;">
+            a<sub>total</sub> = 
+            <span style="color: #a855f7; border-bottom: 1px solid #a855f7;">∂u/∂t</span>
+            <span style="color: #a855f7; font-size: 0.9em;">(Local)</span>
+            + 
+            <span style="color: #ef4444; border-bottom: 1px solid #ef4444;">u·∂u/∂x</span>
+            <span style="color: #ef4444; font-size: 0.9em;">(Convective)</span>
+        </div>
+        <div class="formula-note">
+            *完整欧拉公式（控制体积法）：Dv/Dt = ∂v/∂t + (v·∇)v + S （本实验源项 S=0）
+        </div>
     </div>
 
-    <h2 class="section-title">实验一：迁移加速度（几何控制）</h2>
-    <p><strong>目的：</strong> 研究定常流动下，喷管几何形状对流体加速度的影响。</p>
-    <div class="task-card">
-        <strong>操作步骤：</strong>
+    <div class="step">
+        <h2 class="section-title">实验一：迁移加速度（几何控制）</h2>
+        <p><strong>目的：</strong> 研究定常流动下，喷管几何形状对流体加速度的影响。</p>
+        <p><strong>操作步骤：</strong></p>
         <ol>
             <li>将【红色源速度】和【蓝色源速度】都设置为 <strong>20</strong> (保持一致，消除非稳态)。</li>
             <li>逐步增加【喷嘴收缩比】，观察<span class="highlight-conv">红色柱状图（迁移项）</span>的变化。</li>
         </ol>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>喷嘴收缩比</th>
+                    <th>入口流速 u<sub>in</sub></th>
+                    <th>迁移加速度 a<sub>conv</sub> (红色读数)</th>
+                    <th>当地加速度 a<sub>local</sub> (紫色读数)</th>
+                    <th>现象描述</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1.0 (直管)</td>
+                    <td>20</td>
+                    <td><input class="report-input" type="text"></td>
+                    <td><input class="report-input" value="≈ 0" readonly></td>
+                    <td>无几何变化，无加速</td>
+                </tr>
+                <tr>
+                    <td>2.0</td>
+                    <td>20</td>
+                    <td><input class="report-input" type="text"></td>
+                    <td><input class="report-input" value="≈ 0" readonly></td>
+                    <td><input class="report-input" type="text" placeholder="描述观察到的现象"></td>
+                </tr>
+                <tr>
+                    <td>3.0 (最大)</td>
+                    <td>20</td>
+                    <td><input class="report-input" type="text"></td>
+                    <td><input class="report-input" value="≈ 0" readonly></td>
+                    <td><input class="report-input" type="text" placeholder="描述观察到的现象"></td>
+                </tr>
+            </tbody>
+        </table>
     </div>
-    <table>
-        <thead>
-            <tr>
-                <th>喷嘴收缩比</th>
-                <th>入口流速 u<sub>in</sub></th>
-                <th>迁移加速度 a<sub>conv</sub> (红色读数)</th>
-                <th>当地加速度 a<sub>local</sub> (紫色读数)</th>
-                <th>现象描述</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>1.0 (直管)</td>
-                <td>20</td>
-                <td><input class="data-input" type="text"></td>
-                <td><input class="data-input" value="≈ 0" readonly></td>
-                <td>无几何变化，无加速</td>
-            </tr>
-            <tr>
-                <td>2.0</td>
-                <td>20</td>
-                <td><input class="data-input" type="text"></td>
-                <td><input class="data-input" value="≈ 0" readonly></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>3.0 (最大)</td>
-                <td>20</td>
-                <td><input class="data-input" type="text"></td>
-                <td><input class="data-input" value="≈ 0" readonly></td>
-                <td></td>
-            </tr>
-        </tbody>
-    </table>
 
-    <h2 class="section-title">实验二：当地加速度（时变控制）</h2>
-    <p><strong>目的：</strong> 研究直管内流场随时间剧烈波动时的加速度特性。</p>
-    <div class="task-card">
-        <strong>操作步骤：</strong>
+    <div class="step">
+        <h2 class="section-title">实验二：当地加速度（时变控制）</h2>
+        <p><strong>目的：</strong> 研究直管内流场随时间剧烈波动时的加速度特性。</p>
+        <p><strong>操作步骤：</strong></p>
         <ol>
             <li>将【喷嘴收缩比】重置为 <strong>1.0</strong> (消除几何影响)。</li>
             <li>手动快速拖动【源流速度】滑块，或设置红蓝源差异极大。</li>
             <li>观察<span class="highlight-local">紫色柱状图（当地项）</span>的瞬时峰值。</li>
         </ol>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>工况描述</th>
+                    <th>源项变化操作</th>
+                    <th>当地加速度峰值 (紫色)</th>
+                    <th>迁移加速度读数 (红色)</th>
+                    <th>物理类比</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>缓变流动</td>
+                    <td>缓慢拖动滑块</td>
+                    <td><input class="report-input" type="text"></td>
+                    <td>≈ 0</td>
+                    <td>河水涨落</td>
+                </tr>
+                <tr>
+                    <td>剧烈脉动</td>
+                    <td>快速左右拖动</td>
+                    <td><input class="report-input" type="text"></td>
+                    <td>≈ 0</td>
+                    <td>水锤/起步</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
-    <table>
-        <thead>
-            <tr>
-                <th>工况描述</th>
-                <th>源项变化操作</th>
-                <th>当地加速度峰值 (紫色)</th>
-                <th>迁移加速度读数 (红色)</th>
-                <th>物理类比</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>缓变流动</td>
-                <td>缓慢拖动滑块</td>
-                <td><input class="data-input" type="text"></td>
-                <td>≈ 0</td>
-                <td>河水涨落</td>
-            </tr>
-            <tr>
-                <td>剧烈脉动</td>
-                <td>快速左右拖动</td>
-                <td><input class="data-input" type="text"></td>
-                <td>≈ 0</td>
-                <td>水锤/起步</td>
-            </tr>
-        </tbody>
-    </table>
 
-    <h2 class="section-title">实验三：工程综合工况（全导数）</h2>
-    <p><strong>场景：</strong> 模拟喷气发动机在启动加速过程中的喷管流动（既有几何收缩，又有入口流量增加）。</p>
-    <div class="task-card">
-        <strong>挑战任务：</strong>
-        设置【喷嘴收缩比 = 2.5】。尝试调节源项，使得某一时刻 **当地加速度** 与 **迁移加速度** 大小基本相等且均为正值。
+    <div class="step">
+        <h2 class="section-title">实验三：工程综合工况（全导数）</h2>
+        <p><strong>场景：</strong> 模拟喷气发动机在启动加速过程中的喷管流动（既有几何收缩，又有入口流量增加）。</p>
+        <p><strong>挑战任务：</strong> 设置【喷嘴收缩比 = 2.5】。尝试调节源项，使得某一时刻 <strong>当地加速度</strong> 与 <strong>迁移加速度</strong> 大小基本相等且均为正值。</p>
+        <ul style="color: #f1f5f9;">
+            <li>记录此时的总加速度 a<sub>total</sub>：<input class="report-input" style="width: 100px;"></li>
+            <li>观察并记录仿真器右侧的"实时计算面板"数据。</li>
+        </ul>
     </div>
-    <ul style="color: #e2e8f0;">
-        <li>记录此时的总加速度 a<sub>total</sub>：<input class="data-input" style="width: 100px;"></li>
-        <li>观察并记录仿真器右侧的"实时计算面板"数据。</li>
-    </ul>
 
-    <h2 class="section-title">思考与评价</h2>
-    <div class="task-card">
-        <strong>Q1：</strong> 在仿真中，为什么当你把喷嘴收缩比调大时，红色粒子（代表源A）追上蓝色粒子（代表源B）的间距变大了？这反映了流体力学中的什么原理（连续性方程）？
+    <div class="step">
+        <h2 class="section-title">思考与评价</h2>
+        <p><strong>Q1：</strong> 在仿真中，为什么当你把喷嘴收缩比调大时，红色粒子（代表源A）追上蓝色粒子（代表源B）的间距变大了？这反映了流体力学中的什么原理（连续性方程）？</p>
+        <textarea placeholder="请在此处输入您的回答..."></textarea>
+        
+        <p style="margin-top: 15px;"><strong>Q2 (产教融合)：</strong> 对于连接在往复式柱塞泵（输出流速呈正弦波动）后的管道，如果管道不仅有缩颈，还发生了剧烈振动。作为工程师，你认为导致管道疲劳开裂的主要应力源是 a<sub>local</sub> 还是 a<sub>conv</sub>？请结合实验结论简述。</p>
         <textarea placeholder="请在此处输入您的回答..."></textarea>
     </div>
-    
-    <div class="task-card">
-        <strong>Q2 (产教融合)：</strong> 对于连接在往复式柱塞泵（输出流速呈正弦波动）后的管道，如果管道不仅有缩颈，还发生了剧烈振动。作为工程师，你认为导致管道疲劳开裂的主要应力源是 a<sub>local</sub> 还是 a<sub>conv</sub>？请结合实验结论简述。
-        <textarea placeholder="请在此处输入您的回答..."></textarea>
-    </div>
 
-    <button class="btn-print" onclick="window.print()">🖨️ 导出实验报告</button>
-
-    <footer style="text-align: center; margin-top: 30px; color: #94a3b8; font-size: 0.9rem;">
-        © 2026 流体力学虚拟仿真实验室 | 欧拉法专题
-    </footer>
+    <button class="btn-action" onclick="window.print()">📥 导出实训报告 (PDF)</button>
 </div>
 
 <script>
-    // 更新当前时间
-    function updateTime() {
-        const now = new Date();
-        const options = { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        };
-        document.getElementById('currentTime').textContent = 
-            '实验时间：' + now.toLocaleDateString('zh-CN', options);
+    // 日期格式化函数
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}年${month}月${day}日`;
     }
     
-    // 初始更新时间
-    updateTime();
-    
-    // 每秒更新时间（可选）
-    setInterval(updateTime, 1000);
+    // 设置当前日期
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentDate = formatDate(new Date());
+        document.getElementById('current-date').textContent = currentDate;
+        
+        // 保存用户信息到localStorage
+        const nameInput = document.getElementById('name');
+        const idInput = document.getElementById('studentId');
+        const classInput = document.getElementById('class');
+        
+        // 加载保存的用户信息
+        const savedName = localStorage.getItem('euler_acceleration_student_name');
+        const savedId = localStorage.getItem('euler_acceleration_student_id');
+        const savedClass = localStorage.getItem('euler_acceleration_student_class');
+        
+        if (savedName) nameInput.value = savedName;
+        if (savedId) idInput.value = savedId;
+        if (savedClass) classInput.value = savedClass;
+        
+        // 保存用户信息
+        nameInput.addEventListener('input', function() {
+            localStorage.setItem('euler_acceleration_student_name', this.value);
+        });
+        
+        idInput.addEventListener('input', function() {
+            localStorage.setItem('euler_acceleration_student_id', this.value);
+        });
+        
+        classInput.addEventListener('input', function() {
+            localStorage.setItem('euler_acceleration_student_class', this.value);
+        });
+    });
 </script>
 
 </body>
