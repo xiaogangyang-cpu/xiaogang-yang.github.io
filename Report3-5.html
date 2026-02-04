@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>上机实训：动力电池包多层热阻优化设计</title>
+    <style>
+        :root { --primary: #4fc3f7; --bg: #1a2a3a; --card: #2c3e50; --accent: #f59e0b; }
+        body { font-family: 'Segoe UI', system-ui; background: var(--bg); color: #f0f0f0; padding: 20px; line-height: 1.6; }
+        .lab-box { max-width: 900px; margin: 0 auto; background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--primary); box-shadow: 0 0 25px rgba(79, 195, 247, 0.1); }
+        h1 { color: var(--primary); text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; font-size: 1.8rem; }
+        .step { background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px; margin: 18px 0; border-left: 4px solid var(--primary); }
+        h2 { color: var(--accent); font-size: 1.3rem; margin-top: 0; }
+        .highlight { color: #4fc3f7; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th, td { border: 1px solid #455a64; padding: 10px; text-align: center; }
+        th { background: rgba(79, 195, 247, 0.1); }
+        .report-input { background: transparent; border: none; border-bottom: 1px solid var(--primary); color: var(--accent); text-align: center; font-size: 0.95rem; width: 60px; }
+        .report-input:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        .btn-action { display: block; width: 100%; padding: 12px; background: var(--primary); color: #1a2a3a; text-align: center; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 25px; border: none; cursor: pointer; font-size: 1rem; }
+        .btn-action:hover { background: #29b6f6; }
+        
+        /* 用户信息栏样式 */
+        .user-info { display: flex; justify-content: center; align-items: center; margin: 15px 0 25px 0; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid #455a64; }
+        .user-info-row { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; justify-content: center; }
+        .user-input { display: flex; align-items: center; gap: 8px; }
+        .user-input label { color: var(--accent); font-size: 0.9rem; }
+        .user-input input { width: 140px; background: transparent; border: none; border-bottom: 1px solid var(--primary); color: var(--accent); padding: 4px 8px; }
+        .user-input input:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        
+        /* 日期样式 */
+        .date-info { text-align: center; margin-bottom: 15px; color: #94a3b8; font-size: 0.9rem; }
+        
+        /* 性能评分输入框样式 */
+        .score-input { background: transparent; border: none; border-bottom: 1px solid var(--primary); color: var(--accent); text-align: center; padding: 4px 8px; width: 60px; }
+        
+        /* 文本区域样式 */
+        .textarea-box { width:100%; height:50px; background:transparent; border:1px solid #455a64; color:white; padding: 10px; border-radius: 5px; }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .lab-box { padding: 20px; }
+            .user-info-row { flex-direction: column; gap: 10px; }
+            .user-input input { width: 180px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="lab-box">
+    <h1>电池包热阻分布与优化-实践报告</h1>
+    <div class="date-info">
+        配套仿真：<code>03-05-battery-thermal-resistance.html</code> | 实训日期：<span id="current-date"></span>
+    </div>
+    
+    <!-- 用户信息栏 -->
+    <div class="user-info">
+        <div class="user-info-row">
+            <div class="user-input">
+                <label for="name">姓名：</label>
+                <input type="text" id="name" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="studentId">学号：</label>
+                <input type="text" id="studentId" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="class">班级：</label>
+                <input type="text" id="class" placeholder="请输入">
+            </div>
+        </div>
+    </div>
+
+    <div class="step">
+        <h2>一、 寻找"热阻黑洞" (10分钟)</h2>
+        <p><strong>任务：</strong> 初始状态下，记录各项参数。通过调整滑块，观察哪一项的变化对"电芯最高温"影响最剧烈。</p>
+        <table>
+            <tr>
+                <th>变量</th>
+                <th>初始值</th>
+                <th>调节至最小值后的温降 (°C)</th>
+                <th>热阻占比 (饼图读值%)</th>
+            </tr>
+            <tr>
+                <td>绝缘层厚度</td>
+                <td>0.5mm</td>
+                <td><input class="report-input" type="text"></td>
+                <td><input class="report-input" type="text"></td>
+            </tr>
+            <tr>
+                <td>导热胶厚度</td>
+                <td>1.0mm</td>
+                <td><input class="report-input" type="text"></td>
+                <td><input class="report-input" type="text"></td>
+            </tr>
+        </table>
+        <p><strong>结论：</strong> 本工况下，最大的换热瓶颈在于 <input class="report-input" style="width:120px" type="text" placeholder="如：绝缘层"> 层。</p>
+    </div>
+
+    <div class="step">
+        <h2>二、 工艺对冲实验 (10分钟)</h2>
+        <p><strong>工程难题：</strong> 将"绝缘层"材料更换为 <strong>陶瓷绝缘</strong> (导热系数高)，但厚度受限。</p>
+        <p>1. 请记录更换材料后，系统给出的"性能评分"：<input class="score-input" type="text"> 分</p>
+        <p>2. 观察此时的"能效指数"。思考：如果为了追求极致散热而无限减薄，会触碰什么安全红线？</p>
+        <textarea class="textarea-box"></textarea>
+    </div>
+
+    <div class="step">
+        <h2>三、 工程师资质获取 (10分钟)</h2>
+        <p><strong>考核要求：</strong> 点击右侧"测试与评价"模块，独立完成 5 道综合题。</p>
+        <ul style="list-style:none; padding-left:0;">
+            <li>最终获得称号：<span style="color:var(--accent); font-weight:bold;">[ <input class="report-input" style="width:120px" type="text" placeholder="见习/工程师/专家"> ]</span></li>
+            <li>系统生成的建议（摘录一条）：<br>
+                <input class="report-input" style="width:100%; text-align:left; color:#94a3b8; margin-top:5px;" type="text" placeholder="例如：建议尝试降低界面接触热阻...">
+            </li>
+        </ul>
+    </div>
+
+    <button class="btn-action" onclick="window.print()">📥 保存并导出实验电子报告 (PDF)</button>
+    
+    <footer style="margin-top:20px; text-align:center; font-size:0.8em; color:#94a3b8;">
+        © 2026 动力电池实验室 - 数字化实训中心
+    </footer>
+</div>
+
+<script>
+    // 日期格式化函数
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}年${month}月${day}日`;
+    }
+    
+    // 设置当前日期
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentDate = formatDate(new Date());
+        document.getElementById('current-date').textContent = currentDate;
+        
+        // 保存用户信息到localStorage
+        const nameInput = document.getElementById('name');
+        const idInput = document.getElementById('studentId');
+        const classInput = document.getElementById('class');
+        
+        // 加载保存的用户信息
+        const savedName = localStorage.getItem('battery_thermal_student_name');
+        const savedId = localStorage.getItem('battery_thermal_student_id');
+        const savedClass = localStorage.getItem('battery_thermal_student_class');
+        
+        if (savedName) nameInput.value = savedName;
+        if (savedId) idInput.value = savedId;
+        if (savedClass) classInput.value = savedClass;
+        
+        // 保存用户信息
+        nameInput.addEventListener('input', function() {
+            localStorage.setItem('battery_thermal_student_name', this.value);
+        });
+        
+        idInput.addEventListener('input', function() {
+            localStorage.setItem('battery_thermal_student_id', this.value);
+        });
+        
+        classInput.addEventListener('input', function() {
+            localStorage.setItem('battery_thermal_student_class', this.value);
+        });
+    });
+</script>
+
+</body>
+</html>
