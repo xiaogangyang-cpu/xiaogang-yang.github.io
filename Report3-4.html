@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>上机实践大纲：导热与对流耦合综合实训</title>
+    <style>
+        :root { 
+            --primary: #38bdf8; 
+            --secondary: #ef4444;
+            --dark: #0f172a; 
+            --card: #1e293b; 
+            --text: #f1f5f9;
+            --accent: #fbbf24;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: var(--dark); 
+            color: var(--text); 
+            line-height: 1.6; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        
+        .lab-box { 
+            max-width: 900px; 
+            margin: 0 auto; 
+            background: var(--card); 
+            padding: 30px; 
+            border-radius: 12px; 
+            border: 1px solid var(--primary); 
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.1);
+        }
+        
+        header {
+            text-align: center;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        
+        h1 { 
+            margin: 0; 
+            color: var(--primary); 
+            font-size: 1.8rem; 
+        }
+        
+        .subtitle { 
+            color: #94a3b8; 
+            font-size: 1rem; 
+            margin-top: 5px; 
+        }
+        
+        .date-info { 
+            text-align: center; 
+            margin-bottom: 15px; 
+            color: #94a3b8; 
+            font-size: 0.9rem; 
+        }
+        
+        /* 用户信息栏样式 - 与Report2-1.html一致 */
+        .user-info { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin: 15px 0 25px 0; 
+            padding: 15px; 
+            background: rgba(0,0,0,0.3); 
+            border-radius: 8px; 
+            border: 1px solid #334155; 
+        }
+        
+        .user-info-row { 
+            display: flex; 
+            gap: 15px; 
+            align-items: center; 
+            width: 100%; 
+            justify-content: center;
+        }
+        
+        .user-input { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+        }
+        
+        .user-input label { 
+            color: var(--accent); 
+            font-size: 0.9rem; 
+        }
+        
+        .user-input input { 
+            width: 120px; 
+            background: transparent; 
+            border: none; 
+            border-bottom: 1px solid var(--primary); 
+            color: var(--accent); 
+            padding: 4px 8px; 
+        }
+        
+        .user-input input:focus { 
+            outline: none; 
+            border-bottom: 1px solid var(--accent); 
+        }
+        
+        h2 { 
+            color: var(--primary); 
+            margin-top: 25px; 
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        h2::before { 
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 24px;
+            background: linear-gradient(to bottom, var(--primary), var(--secondary));
+            margin-right: 12px;
+            border-radius: 4px;
+        }
+        
+        .step { 
+            background: rgba(0,0,0,0.2); 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin: 18px 0; 
+            border-left: 4px solid var(--primary); 
+        }
+        
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 20px 0; 
+            background: rgba(0,0,0,0.3);
+        }
+        
+        th, td { 
+            border: 1px solid #475569; 
+            padding: 12px; 
+            text-align: center; 
+            color: var(--text);
+        }
+        
+        th { 
+            background: rgba(56, 189, 248, 0.1); 
+            color: var(--primary); 
+        }
+        
+        .report-input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--primary);
+            color: var(--accent);
+            text-align: center;
+            font-size: 0.95rem;
+            width: 90%;
+        }
+        
+        .report-input:focus {
+            outline: none;
+            border-bottom: 1px solid var(--accent);
+        }
+        
+        .btn-action { 
+            display: block; 
+            width: 100%; 
+            padding: 12px; 
+            background: var(--primary); 
+            color: var(--dark); 
+            text-align: center; 
+            border-radius: 6px; 
+            text-decoration: none; 
+            font-weight: bold; 
+            margin-top: 25px; 
+            border: none; 
+            cursor: pointer; 
+            font-size: 1rem; 
+        }
+        
+        .btn-action:hover { 
+            background: #0ea5e9; 
+        }
+        
+        textarea {
+            width:100%; 
+            height:80px; 
+            margin-top:10px; 
+            background:rgba(0,0,0,0.3); 
+            color:var(--text); 
+            border:1px solid #475569; 
+            padding:10px; 
+            border-radius:5px;
+        }
+
+        .formula-box {
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-family: 'Times New Roman', serif;
+            font-size: 1.1rem;
+            margin: 20px 0;
+            border: 1px solid #334155;
+        }
+
+        .highlight {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .lab-box { padding: 20px; }
+            .user-info { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .user-info-row { flex-wrap: wrap; }
+            table { font-size: 0.85em; }
+            th, td { padding: 8px; }
+        }
+        
+        @media print {
+            .btn-action { display: none; }
+            body { background: white; padding: 0; }
+            .lab-box { 
+                box-shadow: none; 
+                border: none; 
+                width: 100%; 
+                max-width: none; 
+                background: white;
+                color: black;
+                border: 1px solid #ddd;
+            }
+            table, th, td {
+                background: white;
+                color: black;
+                border-color: #ddd;
+            }
+            .step, .formula-box {
+                background: #f5f5f5;
+                color: black;
+                border-color: #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="lab-box">
+    <header>
+        <h1>努塞尔数与平壁换热工程优化-上机实践报告</h1>
+        <div class="subtitle">实验项目：导热与对流耦合综合实训</div>
+        <div class="date-info">
+            配套仿真：<code>03-04-heat-conduction-convection.html</code> | 实训日期：<span id="current-date"></span>
+        </div>
+    </header>
+    
+    <!-- 用户信息栏 - 与Report2-1.html格式一致 -->
+    <div class="user-info">
+        <div class="user-info-row">
+            <div class="user-input">
+                <label for="name">姓名：</label>
+                <input type="text" id="name" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="studentId">学号：</label>
+                <input type="text" id="studentId" placeholder="请输入">
+            </div>
+            <div class="user-input">
+                <label for="class">班级：</label>
+                <input type="text" id="class" placeholder="请输入">
+            </div>
+        </div>
+    </div>
+
+    <div class="step">
+        <h2>一、实验准备</h2>
+        <p>1. 运行仿真文件：<code>03-04-heat-conduction-convection.html</code></p>
+        <p>2. 核心公式复习：</p>
+        <div class="formula-box">
+            Φ = (T<sub>f1</sub> - T<sub>f2</sub>) / [1/(h<sub>1</sub>A) + L/(kA) + 1/(h<sub>2</sub>A)]
+        </div>
+    </div>
+
+    <div class="step">
+        <h2>二、任务一：努塞尔数 (Nu) 敏感度分析</h2>
+        <p>设定：固定 k=50 W/(m·K)（钢制壁面），面积 1.0 m²，厚度 0.1 m。</p>
+        <table>
+            <tr>
+                <th>对流系数 h (W/m²·K)</th>
+                <th>努塞尔数 Nu [仿真读值]</th>
+                <th>热流密度 Φ [记录] (W)</th>
+                <th>壁面温降梯度</th>
+            </tr>
+            <tr>
+                <td>10 (空气)</td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+                <td>平缓</td>
+            </tr>
+            <tr>
+                <td>500 (强水冷)</td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+                <td><input class="report-input" type="text" placeholder="数值"></td>
+                <td>陡峭</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="step">
+        <h2>三、任务二：寻找换热瓶颈</h2>
+        <p><strong>情境：</strong> 提高热流密度 Φ 时，有两种策略：A.减薄壁面；B.增大流速（提高 h）。</p>
+        <p><strong>操作：</strong> 当 k 非常小时，策略 <input class="report-input" style="width: 60px;" type="text" placeholder="A/B"> 更有效；当 h 非常小时，策略 <input class="report-input" style="width: 60px;" type="text" placeholder="A/B"> 更有效。</p>
+    </div>
+
+    <div class="step">
+        <h2>四、任务三：工程师资质考核</h2>
+        <p>利用模拟器右侧 <span class="highlight">"测试与评价"</span> 模块进行闯关：</p>
+        <ul style="color: var(--text); padding-left: 20px;">
+            <li>最终得分：<input class="report-input" style="width: 80px;" type="text" placeholder="0-5"> / 5</li>
+            <li>获得等级：<input class="report-input" style="width: 120px;" type="text" placeholder="见习/工程师/专家"></li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h2>五、思考题</h2>
+        <p>1. 在本模拟器中，Nu 数增加代表了对流层厚度的减小还是流体导热性的增加？</p>
+        <textarea placeholder="请在此处输入您的回答..."></textarea>
+    </div>
+
+    <button class="btn-action" onclick="window.print()">📥 生成并导出实验报告 PDF</button>
+</div>
+
+<script>
+    // 日期格式化函数
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}年${month}月${day}日`;
+    }
+    
+    // 设置当前日期
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentDate = formatDate(new Date());
+        document.getElementById('current-date').textContent = currentDate;
+        
+        // 保存用户信息到localStorage
+        const nameInput = document.getElementById('name');
+        const idInput = document.getElementById('studentId');
+        const classInput = document.getElementById('class');
+        
+        // 加载保存的用户信息
+        const savedName = localStorage.getItem('heat_coupling_student_name');
+        const savedId = localStorage.getItem('heat_coupling_student_id');
+        const savedClass = localStorage.getItem('heat_coupling_student_class');
+        
+        if (savedName) nameInput.value = savedName;
+        if (savedId) idInput.value = savedId;
+        if (savedClass) classInput.value = savedClass;
+        
+        // 保存用户信息
+        nameInput.addEventListener('input', function() {
+            localStorage.setItem('heat_coupling_student_name', this.value);
+        });
+        
+        idInput.addEventListener('input', function() {
+            localStorage.setItem('heat_coupling_student_id', this.value);
+        });
+        
+        classInput.addEventListener('input', function() {
+            localStorage.setItem('heat_coupling_student_class', this.value);
+        });
+    });
+</script>
+
+</body>
+</html>
