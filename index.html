@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 添加Material Icons Round链接 -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <style>
         /* ===== CSS变量定义 - 基于project-index.html配色方案 ===== */
         :root {
@@ -689,7 +691,7 @@
         .courses-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 30px;
+            gap: 10px;
         }
         
         .course-card {
@@ -745,6 +747,7 @@
         }
         
         .course-header h1 {
+            font-size: 2.1rem;
             margin-bottom: 10px;
         }
         
@@ -789,7 +792,7 @@
         
         .explore-section {
             text-align: center;
-            margin-top: 60px;
+            margin-top: 10px;
             padding: 10px;
             background-color: rgba(10, 36, 99, 0.00);
             border-radius: var(--border-radius);
@@ -972,7 +975,7 @@
             
             .courses-grid {
                 grid-template-columns: 1fr;
-                gap: 30px;
+                gap: 10px;
             }
             
             .course-features {
@@ -1121,6 +1124,341 @@
         .fade-in.visible {
             opacity: 1;
             transform: translateY(0);
+        }
+        
+        /* ===== 项目矩阵样式 - 从虚拟仿真实验平台入口_教师版.html移植 ===== */
+        .teacher-matrix {
+            margin-top: 10px;
+            padding: 20px 10px;
+            border-radius: var(--border-radius);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(10, 36, 99, 0.1);
+        }
+        
+        .teacher-matrix h2 {
+            text-align: center;
+            margin-bottom: 40px;
+            color: var(--primary-blue);
+            font-size: 2rem;
+        }
+        
+        /* 矩阵网格样式 */
+        .teacher-matrix .map-grid {
+            display: grid;
+            grid-template-columns: 250px repeat(3, 1fr);
+            gap: 10px;
+            padding: 10px;
+            max-width: 1600px;
+            margin: 10px auto 0;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 18px;
+            box-shadow: var(--shadow-medium);
+        }
+        
+        /* 轴标题样式修改：使Lv.1和"直觉与识别"在同一行显示 */
+        .teacher-matrix .axis {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: 600;
+            color: #cbd5e1;
+            padding: 20px 15px;
+            line-height: 1.5;
+            backdrop-filter: blur(10px);
+            font-size: 1.05em;
+        }
+        
+        /* 修改轴标题容器为行内元素，使内容水平排列 */
+        .teacher-matrix .axis-title {
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: #fff;
+            white-space: nowrap;
+        }
+        
+        /* 为难度等级添加样式 */
+        .teacher-matrix .axis-title .level-text {
+            font-weight: bold;
+            margin: 0 5px;
+        }
+        
+        /* 保持原有的难度等级列颜色 */
+        .teacher-matrix .axis.level1 { color: var(--level1-color); border-color: rgba(94, 234, 212, 0.3); }
+        .teacher-matrix .axis.level2 { color: var(--level2-color); border-color: rgba(56, 189, 248, 0.3); }
+        .teacher-matrix .axis.level3 { color: var(--level3-color); border-color: rgba(167, 139, 250, 0.3); }
+        
+        .teacher-matrix .node {
+            position: relative;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(100, 255, 218, 0.4);
+            border-radius: 18px;
+            padding: 10px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(5px);
+            min-height: auto;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow);
+        }
+        
+        .teacher-matrix .map-grid > .node:nth-child(4n+2) {
+            border-color: rgba(94, 234, 212, 0.5);
+            box-shadow: 0 8px 25px rgba(94, 234, 212, 0.1);
+        }
+        
+        .teacher-matrix .map-grid > .node:nth-child(4n+3) {
+            border-color: rgba(56, 189, 248, 0.5);
+            box-shadow: 0 8px 25px rgba(56, 189, 248, 0.1);
+        }
+        
+        .teacher-matrix .map-grid > .node:nth-child(4n+4) {
+            border-color: rgba(167, 139, 250, 0.5);
+            box-shadow: 0 8px 25px rgba(167, 139, 250, 0.1);
+        }
+        
+        .teacher-matrix .node:hover {
+            border-color: #ffd166;
+            background: rgba(255, 209, 102, 0.05);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .teacher-matrix .node-header {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .teacher-matrix .node-icon {
+            font-size: 2em;
+            margin-right: 12px;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+        
+        .teacher-matrix .map-grid > .node:nth-child(4n+2) .node-icon { color: var(--level1-color); }
+        .teacher-matrix .map-grid > .node:nth-child(4n+3) .node-icon { color: var(--level2-color); }
+        .teacher-matrix .map-grid > .node:nth-child(4n+4) .node-icon { color: var(--level3-color); }
+        
+        .teacher-matrix .node-title {
+            margin: 0;
+            font-size: 1.15em;
+            color: #333;
+            line-height: 1.3;
+        }
+        
+        .teacher-matrix .node-title .level-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.65em;
+            font-weight: bold;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        
+        .teacher-matrix .level1-tag { background-color: rgba(94, 234, 212, 0.15); color: var(--level1-color); }
+        .teacher-matrix .level2-tag { background-color: rgba(56, 189, 248, 0.15); color: var(--level2-color); }
+        .teacher-matrix .level3-tag { background-color: rgba(167, 139, 250, 0.15); color: var(--level3-color); }
+        
+        .teacher-matrix .node-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .teacher-matrix .node a {
+            display: flex;
+            align-items: center;
+            color: #666;
+            text-decoration: none;
+            font-size: 0.9em;
+            padding: 10px 12px;
+            border-radius: 10px;
+            transition: all 0.25s ease;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid transparent;
+            flex: 1 0 calc(50% - 5px);
+            min-width: 0;
+            box-sizing: border-box;
+        }
+        
+        .teacher-matrix .node a:hover {
+            background: rgba(10, 36, 99, 0.08);
+            color: #0a2463;
+            border-color: rgba(10, 36, 99, 0.1);
+            transform: translateX(3px);
+        }
+        
+        .teacher-matrix .node a i,
+        .teacher-matrix .node a .material-icons-round {
+            margin-right: 8px;
+            font-size: 1em;
+            width: 18px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .teacher-matrix .map-grid > .node:nth-child(4n+2) a i,
+        .teacher-matrix .map-grid > .node:nth-child(4n+2) a .material-icons-round { color: var(--level1-color); }
+        
+        .teacher-matrix .map-grid > .node:nth-child(4n+3) a i,
+        .teacher-matrix .map-grid > .node:nth-child(4n+3) a .material-icons-round { color: var(--level2-color); }
+        
+        .teacher-matrix .map-grid > .node:nth-child(4n+4) a i,
+        .teacher-matrix .map-grid > .node:nth-child(4n+4) a .material-icons-round { color: var(--level3-color); }
+        
+        .teacher-matrix .suggestion-box {
+            position: absolute;
+            bottom: calc(100% + 15px);
+            left: 50%;
+            transform: translateX(-50%) scale(0.95);
+            width: 320px;
+            background: #1e293b;
+            border: 1px solid #ffd166;
+            border-radius: 12px;
+            padding: 20px;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+        }
+        
+        .teacher-matrix .node:hover .suggestion-box {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+        }
+        
+        .teacher-matrix .suggestion-box::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 8px;
+            border-style: solid;
+            border-color: #ffd166 transparent transparent transparent;
+        }
+        
+        .teacher-matrix .sug-header {
+            font-size: 0.9em;
+            color: #ffd166;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 209, 102, 0.3);
+        }
+        
+        .teacher-matrix .sug-header i {
+            margin-right: 8px;
+        }
+        
+        .teacher-matrix .sug-item {
+            font-size: 0.88em;
+            margin-bottom: 10px;
+            line-height: 1.5;
+            display: flex;
+            gap: 10px;
+            color: #e2e8f0;
+        }
+        
+        .teacher-matrix .sug-dot {
+            color: #ffd166;
+            flex-shrink: 0;
+            font-size: 0.8em;
+            margin-top: 4px;
+        }
+        
+        .teacher-matrix .full-row {
+            grid-column: 2 / span 3;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.1));
+            border: 2px dashed var(--success-color);
+            border-radius: 18px;
+            min-height: auto;
+        }
+        
+        .teacher-matrix .full-row:hover {
+            border-style: solid;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15));
+        }
+        
+        .teacher-matrix .full-row .node-title {
+            color: var(--success-color);
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        
+        .teacher-matrix .full-row .node-links {
+            flex-direction: row;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .teacher-matrix .full-row a {
+            background: rgba(10, 36, 99, 0.1);
+            color: #0a2463;
+            font-weight: 500;
+            min-width: 180px;
+            justify-content: center;
+            flex: none;
+            width: auto;
+        }
+        
+        .teacher-matrix .full-row a:hover {
+            background: var(--success-color);
+            color: #fff;
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 1400px) {
+            .teacher-matrix .map-grid { grid-template-columns: 150px repeat(3, 1fr); gap: 18px; padding: 30px; }
+        }
+        
+        @media (max-width: 1200px) {
+            .teacher-matrix .map-grid { grid-template-columns: 120px repeat(3, 1fr); gap: 16px; }
+        }
+        
+        @media (max-width: 992px) {
+            .teacher-matrix .map-grid { grid-template-columns: 100px repeat(3, 1fr); gap: 14px; padding: 25px; }
+            .teacher-matrix .node a { flex: 1 0 100%; }
+            .teacher-matrix .axis-title { font-size: 1.1em; }
+        }
+        
+        @media (max-width: 768px) {
+            .teacher-matrix .map-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                padding: 15px;
+            }
+            
+            .teacher-matrix .axis {
+                grid-column: 1;
+                margin-bottom: 10px;
+            }
+            
+            .teacher-matrix .full-row {
+                grid-column: 1;
+            }
+            
+            .teacher-matrix h2 {
+                font-size: 1.6rem;
+            }
         }
     </style>
 </head>
@@ -1287,41 +1625,215 @@
             
             <div class="container">
                 <div class="course-header">
-                    <h1>材料工程基础虚拟仿真实践</h1>
-                    <p class="course-description">通过虚拟仿真技术掌握流体力学、传热过程，传质过程、干燥过程、特别是新能源新材料相关应用等核心内容的实验探索。</p>
-                </div>
-                
-                <div class="course-content">
-                    <div class="course-features">
-                        <div class="feature-item fade-in">
-                            <div class="feature-icon">
-                                <i class="fas fa-flask"></i>
-                            </div>
-                            <h4>虚拟实验操作</h4>
-                            <p>模拟真实实验环境，安全无风险</p>
-                        </div>
-                        
-                        <div class="feature-item fade-in">
-                            <div class="feature-icon">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <h4>数据模拟分析</h4>
-                            <p>实时数据分析与可视化呈现</p>
-                        </div>
-                        
-                        <div class="feature-item fade-in">
-                            <div class="feature-icon">
-                                <i class="fas fa-graduation-cap"></i>
-                            </div>
-                            <h4>智能学习引导</h4>
-                            <p>个性化学习路径与实时反馈</p>
-                        </div>
-                    </div>
+                    <h1>虚拟仿真实践报告模板下载</h1>
                     
                     <div class="explore-section">
-                        <button class="btn pulse" style="margin-top: 20px; padding: 16px 40px; font-size: 1.2rem;">
-                            <i class="fas fa-play-circle" style="margin-right: 10px;"></i>进入虚拟仿真实践
+
                         </button>
+                        
+                        <!-- 教师版项目矩阵 -->
+                        <div class="teacher-matrix">
+
+                            <div class="map-grid">
+                                <!-- 表头行 -->
+                                <div class="axis" style="background:transparent; border:none;"></div>
+                                <!-- 修改：将Lv.1和"直觉与识别"放在同一行 -->
+                                <div class="axis level1">
+                                    <div class="axis-title">
+                                        <i class="fas fa-eye"></i><span class="level-text">Lv.1</span>直觉与识别
+                                    </div>
+                                </div>
+                                <div class="axis level2">
+                                    <div class="axis-title">
+                                        <i class="fas fa-sliders-h"></i><span class="level-text">Lv.2</span>判断与调控
+                                    </div>
+                                </div>
+                                <div class="axis level3">
+                                    <div class="axis-title">
+                                        <i class="fas fa-cogs"></i><span class="level-text">Lv.3</span>系统与设计
+                                    </div>
+                                </div>
+
+                                <!-- 量纲分析 -->
+                                <div class="axis"><span class="axis-title"><i class="fas fa-ruler-combined"></i> 量纲分析</span>(工程思维起点)</div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon material-icons-round">calculate</span>
+                                        <h3 class="node-title">量纲认知与直觉 <span class="level-tag level1-tag">Lv.1</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report1-1.html"><i class="fas fa-puzzle-piece"></i> 量纲分析连连看</a>
+                                        <a href="Report1-2.html"><i class="fas fa-flag-checkered"></i> 量纲一致性闯关</a>
+                                    </div>
+
+                                </div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon material-icons-round">check_circle</span>
+                                        <h3 class="node-title">一致性与判据 <span class="level-tag level2-tag">Lv.2</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report1-3.html"><i class="fas fa-hammer"></i> 量纲一致性敲地鼠</a>
+                                        <a href="Report1-4.html"><i class="fas fa-filter"></i> 无量纲数判别训练</a>
+                                    </div>
+
+                                </div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon material-icons-round">transform</span>
+                                        <h3 class="node-title">相似与迁移 <span class="level-tag level3-tag">Lv.3</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report1-5.html"><i class="fas fa-expand-alt"></i> 量纲相似动画模拟</a>
+                                        <a href="Report1-6.html"><i class="fas fa-ruler-vertical"></i> 工程估算与相似放大</a>
+                                    </div>
+ 
+                                </div>
+
+                                <!-- 流体力学 -->
+                                <div class="axis"><span class="axis-title"><i class="fas fa-water"></i> 流体力学</span></div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon fas fa-wind"></span>
+                                        <h3 class="node-title">流态与能量直觉 <span class="level-tag level1-tag">Lv.1</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report2-1.html"><i class="fas fa-tint"></i> 雷诺数流态交互实验</a>
+                                        <a href="Report2-2.html"><i class="fas fa-futbol"></i> 香蕉球与伯努利效应</a>
+                                    </div>
+  
+                                </div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon fas fa-sliders-h"></span>
+                                        <h3 class="node-title">参数影响与判断 <span class="level-tag level2-tag">Lv.2</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report2-3.html"><i class="fas fa-weight-hanging"></i> 牛顿粘性定律挑战</a>
+                                        <a href="Report2-4.html"><i class="fas fa-hourglass-half"></i> 变截面喷嘴与欧拉方程</a>
+                                    </div>
+     
+                                </div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon fas fa-microchip"></span>
+                                        <h3 class="node-title">系统设计与控制 <span class="level-tag level3-tag">Lv.3</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report2-5.html"><i class="fas fa-shoe-prints"></i> 微流控层流控制</a>
+                                        <a href="Report2-6.html"><i class="fas fa-shoe-prints"></i> 微流控边界层控制</a>
+                                    </div>
+ 
+                                </div>
+
+                                <!-- 传热基础 -->
+                                <div class="axis"><span class="axis-title"><i class="fas fa-thermometer-half"></i> 传热基础</span></div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon fas fa-fire"></span>
+                                        <h3 class="node-title">传热方式与直觉 <span class="level-tag level1-tag">Lv.1</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report3-1.html"><i class="fas fa-chart-line"></i> 一维热传导模拟器</a>
+                                        <a href="Report3-2.html"><i class="fas fa-temperature-low"></i> 牛顿冷却定律模拟</a>
+                                    </div>
+ 
+                                </div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon fas fa-bolt"></span>
+                                        <h3 class="node-title">模型理解与耦合 <span class="level-tag level2-tag">Lv.2</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report3-3.html"><i class="fas fa-car-battery"></i> 电池模块冷却布局</a>
+                                        <a href="Report3-4.html"><i class="fas fa-random"></i> 导热对流综合模拟</a>
+                                    </div>
+   
+                                </div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon fas fa-solar-panel"></span>
+                                        <h3 class="node-title">工程热管理 <span class="level-tag level3-tag">Lv.3</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report3-5.html"><i class="fas fa-microchip"></i> 电池芯多层热阻模拟</a>
+                                        <a href="Report3-6.html"><i class="fas fa-sun"></i> 光热熔盐加热调控</a>
+                                    </div>
+ 
+                                </div>
+
+                                <!-- 传质基础 -->
+                                <div class="axis"><span class="axis-title"><i class="fas fa-atom"></i> 传质基础</span></div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon fas fa-cloud"></span>
+                                        <h3 class="node-title">扩散传质直觉 <span class="level-tag level1-tag">Lv.1</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report4-1.html"><i class="fas fa-arrows-alt-h"></i> 一维扩散传质演示</a>
+                                        <a href="Report4-2.html"><i class="fas fa-vial"></i> 纳米沟槽传质模拟</a>
+                                    </div>
+  
+                                </div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon fas fa-fan"></span>
+                                        <h3 class="node-title">对流传质与强化 <span class="level-tag level2-tag">Lv.2</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report4-3.html"><i class="fas fa-smog"></i> 污染物扩散可视化</a>
+                                        <a href="Report4-4.html"><i class="fas fa-chart-bar"></i> 一维扩散传质进阶</a>
+                                    </div>
+ 
+                                </div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon fas fa-cogs"></span>
+                                        <h3 class="node-title">系统优化 <span class="level-tag level3-tag">Lv.3</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report4-5.html"><i class="fas fa-calculator"></i> 谢伍德数对流传质</a>
+                                        <a href="Report4-6.html"><i class="fas fa-spray-can"></i> 孔槽清洗传质控制</a>
+                                    </div>
+                                </div>
+
+                                <!-- 干燥应用 -->
+                                <div class="axis"><span class="axis-title"><i class="fas fa-leaf"></i> 干燥应用</span></div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon fas fa-tint"></span>
+                                        <h3 class="node-title">生活到工程直觉 <span class="level-tag level1-tag">Lv.1</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report5-1.html"><i class="fas fa-cloud-rain"></i> 露珠挥发模拟器</a>
+                                        <a href="Report5-2.html"><i class="fas fa-seedling"></i> 毛细管传质保墒</a>
+                                    </div>
+                                </div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon fas fa-network-wired"></span>
+                                        <h3 class="node-title">热质耦合 <span class="level-tag level2-tag">Lv.2</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report5-3.html"><i class="fas fa-wind"></i> 热空气干燥仿真</a>
+                                    </div>
+ 
+                                </div>
+                                <div class="node">
+                                    <div class="node-header">
+                                        <span class="node-icon fas fa-industry"></span>
+                                        <h3 class="node-title">工业干燥系统 <span class="level-tag level3-tag">Lv.3</span></h3>
+                                    </div>
+                                    <div class="node-links">
+                                        <a href="Report5-4.html"><i class="fas fa-charging-station"></i> 新能源干燥进阶</a>
+                                    </div>
+   
+                                </div>
+
+
+        
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
