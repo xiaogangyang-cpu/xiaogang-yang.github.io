@@ -1,567 +1,701 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>物理化学虚拟仿真实践 - 建设中</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <title>虚拟工坊·物理化学PBL项目式学习导航</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* ===== CSS变量定义 - 与project-index.html保持一致 ===== */
         :root {
-            --primary-blue: #0a2463;
-            --secondary-blue: #3e92cc;
-            --accent-teal: #1eb9c5;
-            --light-bg: #f8f9fa;
-            --dark-bg: #121f3d;
-            --card-bg: #ffffff;
-            --text-dark: #333333;
-            --text-light: #f8f9fa;
-            --text-gray: #666666;
-            --border-color: #e1e5eb;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            --shadow-medium: 0 8px 20px rgba(0, 0, 0, 0.15);
-            --shadow-strong: 0 10px 30px rgba(10, 36, 99, 0.2);
-            --transition-fast: 0.2s ease;
-            --transition-normal: 0.3s ease;
-            --transition-slow: 0.5s ease;
-            
-            /* 难度等级配色 */
+            --bg-dark: #0a192f;
+            --card-bg: rgba(255, 255, 255, 0.07);
+            --border-blue: rgba(100, 255, 218, 0.4);
+            --accent-gold: #ffd166;
+            --text-main: #e6f1ff;
+            --text-dim: #94a3b8;
             --level1-color: #5eead4;
             --level2-color: #38bdf8;
             --level3-color: #a78bfa;
             --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --info-color: #3b82f6;
-            
-            /* 其他配色变量 */
-            --border-radius: 12px;
-            --warm-color: #f59e0b;
         }
-        
-        /* ===== 全局样式重置 ===== */
-        * {
+
+        body {
             margin: 0;
-            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: radial-gradient(ellipse at top, #0f2748, var(--bg-dark) 70%);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 10px 20px 10px;
+            text-align: center;
+            background: linear-gradient(to bottom, rgba(10, 25, 47, 0.9), transparent);
+            position: relative;
+        }
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 10%;
+            right: 10%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-blue), transparent);
+        }
+        header h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            background: linear-gradient(90deg, var(--level1-color), var(--level2-color), var(--level3-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+        header p {
+            color: var(--text-dim);
+            max-width: 900px;
+            margin: 0 auto;
+            line-height: 1.7;
+            font-size: 1.1em;
+        }
+
+        .level-legend {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 25px;
+            font-size: 0.9em;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .map-grid {
+            display: grid;
+            grid-template-columns: 250px repeat(3, 1fr);
+            gap: 20px;
+            padding: 40px;
+            max-width: 1600px;
+            margin: 10px auto 0;
+        }
+
+        /* 轴标题样式调整：允许换行，去掉nowrap */
+        .axis {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: 600;
+            color: #cbd5e1;
+            padding: 20px 15px;
+            line-height: 1.5;
+            backdrop-filter: blur(10px);
+            font-size: 1.05em;
+        }
+        .axis-title {
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: #fff;
+            white-space: normal;        /* 允许换行 */
+            word-break: break-word;
+        }
+        .axis-title .level-text {
+            font-weight: bold;
+            margin: 0 5px;
+        }
+        .axis.level1 { color: var(--level1-color); border-color: rgba(94, 234, 212, 0.3); }
+        .axis.level2 { color: var(--level2-color); border-color: rgba(56, 189, 248, 0.3); }
+        .axis.level3 { color: var(--level3-color); border-color: rgba(167, 139, 250, 0.3); }
+
+        .node {
+            position: relative;
+            background: var(--card-bg);
+            border: 1px solid var(--border-blue);
+            border-radius: 18px;
+            padding: 20px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(5px);
+            min-height: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .map-grid > .node:nth-child(4n+2) {
+            border-color: rgba(94, 234, 212, 0.5);
+            box-shadow: 0 8px 25px rgba(94, 234, 212, 0.1);
+        }
+        .map-grid > .node:nth-child(4n+3) {
+            border-color: rgba(56, 189, 248, 0.5);
+            box-shadow: 0 8px 25px rgba(56, 189, 248, 0.1);
+        }
+        .map-grid > .node:nth-child(4n+4) {
+            border-color: rgba(167, 139, 250, 0.5);
+            box-shadow: 0 8px 25px rgba(167, 139, 250, 0.1);
+        }
+        .node:hover {
+            border-color: var(--accent-gold);
+            background: rgba(255, 209, 102, 0.05);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .node-header {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        .node-icon {
+            font-size: 2em;
+            margin-right: 12px;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+        .map-grid > .node:nth-child(4n+2) .node-icon { color: var(--level1-color); }
+        .map-grid > .node:nth-child(4n+3) .node-icon { color: var(--level2-color); }
+        .map-grid > .node:nth-child(4n+4) .node-icon { color: var(--level3-color); }
+        .node-title {
+            margin: 0;
+            font-size: 1.15em;
+            color: #fff;
+            line-height: 1.3;
+        }
+        .node-title .level-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.65em;
+            font-weight: bold;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        .level1-tag { background-color: rgba(94, 234, 212, 0.15); color: var(--level1-color); }
+        .level2-tag { background-color: rgba(56, 189, 248, 0.15); color: var(--level2-color); }
+        .level3-tag { background-color: rgba(167, 139, 250, 0.15); color: var(--level3-color); }
+
+        .node-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .node a {
+            display: flex;
+            align-items: center;
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.9em;
+            padding: 10px 12px;
+            border-radius: 10px;
+            transition: all 0.25s ease;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid transparent;
+            flex: 1 0 calc(50% - 5px);
+            min-width: 0;
             box-sizing: border-box;
         }
-        
-        html {
-            scroll-behavior: smooth;
-            font-size: 16px;
+        .node a:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(3px);
         }
-        
-        body {
-            font-family: 'Inter', '思源黑体', sans-serif;
-            font-weight: 1200;
-            line-height: 1.6;
-            color: var(--text-dark);
-            background-color: var(--light-bg);
-            overflow-x: hidden;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+        .node a i, .node a .material-icons-round {
+            margin-right: 8px;
+            font-size: 1em;
+            width: 18px;
+            text-align: center;
+            flex-shrink: 0;
         }
-        
-        h1, h2, h3, h4, h5 {
-            font-weight: 1200;
-            line-height: 1.2;
-            margin-bottom: 1rem;
-            color: var(--primary-blue);
-        }
-        
-        h1 {
-            font-size: 1.8rem;
-            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        h2 {
-            font-size: 2.2rem;
-        }
-        
-        h3 {
-            font-size: 1.8rem;
-        }
-        
-        p {
-            margin-bottom: 1.3rem;
-            color: var(--text-gray);
-        }
-        
-        a {
-            text-decoration: none;
-            color: inherit;
-            transition: color var(--transition-fast);
-        }
-        
-        .container {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        section {
-            padding: 80px 0;
-        }
-        
-        .btn {
-            display: inline-block;
-            padding: 16px 36px;
-            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
-            color: var(--text-light);
-            border: none;
-            border-radius: var(--border-radius);
-            font-weight: 600;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: all var(--transition-normal);
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
-            letter-spacing: 0.5px;
-        }
-        
-        .btn:before {
-            content: '';
+        .map-grid > .node:nth-child(4n+2) a i,
+        .map-grid > .node:nth-child(4n+2) a .material-icons-round { color: var(--level1-color); }
+        .map-grid > .node:nth-child(4n+3) a i,
+        .map-grid > .node:nth-child(4n+3) a .material-icons-round { color: var(--level2-color); }
+        .map-grid > .node:nth-child(4n+4) a i,
+        .map-grid > .node:nth-child(4n+4) a .material-icons-round { color: var(--level3-color); }
+
+        .suggestion-box {
             position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.7s;
-        }
-        
-        .btn:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-medium);
-            background: linear-gradient(135deg, var(--secondary-blue) 0%, var(--primary-blue) 100%);
-        }
-        
-        .btn:hover:before {
-            left: 100%;
-        }
-        
-        .btn:active {
-            transform: translateY(0) scale(0.98);
-        }
-        
-        .btn-outline {
-            background: transparent;
-            border: 2px solid var(--primary-blue);
-            color: var(--primary-blue);
-        }
-        
-        .btn-outline:hover {
-            background: var(--primary-blue);
-            color: var(--text-light);
-        }
-        
-        /* ===== 科技感背景纹理 ===== */
-        .tech-bg {
-            position: relative;
-            overflow: hidden;
-            background-color: var(--light-bg);
-        }
-        
-        .tech-bg:before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                radial-gradient(circle at 20% 30%, rgba(10, 36, 99, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 80% 70%, rgba(62, 146, 204, 0.03) 0%, transparent 50%),
-                url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M60 0c33.137 0 60 26.863 60 60 0 33.137-26.863 60-60 60-33.137 0-60-26.863-60-60C0 26.863 26.863 0 60 0zm0 10c-27.615 0-50 22.385-50 50s22.385 50 50 50 50-22.385 50-50-22.385-50-50-50zm0 15c19.33 0 35 15.67 35 35s-15.67 35-35 35-35-15.67-35-35 15.67-35 35-35zm0 10c13.807 0 25 11.193 25 25s-11.193 25-25 25-25-11.193-25-25 11.193-25 25-25z' fill='%230a2463' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
-            background-size: 400px;
-            opacity: 0.8;
-            z-index: -1;
-        }
-        
-        /* ===== 顶部操作栏 ===== */
-        .top-bar {
-            position: sticky;
-            top: 0;
-            left: 0;
-            width: 100%;
+            bottom: calc(100% + 15px);
+            left: 50%;
+            transform: translateX(-50%) scale(0.95);
+            width: 320px;
+            background: #1e293b;
+            border: 1px solid var(--accent-gold);
+            border-radius: 12px;
+            padding: 20px;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 1000;
-            padding: 20px 0;
-            background-color: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
         }
-        
-        .top-bar-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .node:hover .suggestion-box {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
         }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary-blue);
-            cursor: pointer;
-        }
-        
-        .logo-icon {
-            margin-right: 10px;
-            font-size: 1.5rem;
-        }
-        
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        /* ===== 建设中页面主内容 ===== */
-        .construction-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 80px 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-            min-height: 70vh;
-        }
-        
-        .construction-icon {
-            width: 120px;
-            height: 120px;
-            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 50px;
-            position: relative;
-            animation: float 3s ease-in-out infinite;
-            box-shadow: 0 20px 60px rgba(10, 36, 99, 0.3);
-        }
-        
-        .construction-icon i {
-            font-size: 5rem;
-            color: white;
-        }
-        
-        .construction-icon:after {
+        .suggestion-box::after {
             content: '';
             position: absolute;
-            width: 200px;
-            height: 200px;
-            border-radius: 50%;
-            border: 2px solid rgba(10, 36, 99, 0.2);
-            animation: pulse 2s ease-out infinite;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 8px;
+            border-style: solid;
+            border-color: var(--accent-gold) transparent transparent transparent;
         }
-        
-        .construction-title {
-            margin-bottom: 20px;
+        .sug-header {
+            font-size: 0.9em;
+            color: var(--accent-gold);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 209, 102, 0.3);
         }
-        
-        .construction-description {
-            font-size: 1.3rem;
-            max-width: 1200px;
-            margin: 0 auto 40px;
-            line-height: 1.8;
-            color: var(--text-gray);
+        .sug-header i {
+            margin-right: 8px;
         }
-        
-        .progress-container {
-            width: 100%;
-            max-width: 600px;
-            margin: 40px auto;
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: var(--border-radius);
+        .sug-item {
+            font-size: 0.88em;
+            margin-bottom: 10px;
+            line-height: 1.5;
+            display: flex;
+            gap: 10px;
+            color: #e2e8f0;
+        }
+        .sug-dot {
+            color: var(--accent-gold);
+            flex-shrink: 0;
+            font-size: 0.8em;
+            margin-top: 4px;
+        }
+
+        .full-row {
+            grid-column: 2 / span 3;
+            text-align: center;
             padding: 30px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border-color);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.1));
+            border: 2px dashed var(--success-color);
+            border-radius: 18px;
+            min-height: auto;
         }
-        
-        .progress-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
+        .full-row:hover {
+            border-style: solid;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15));
         }
-        
-        .progress-bar {
-            width: 100%;
-            height: 12px;
-            background-color: rgba(10, 36, 99, 0.1);
-            border-radius: 6px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            width: 65%;
-            background: linear-gradient(90deg, var(--primary-blue), var(--secondary-blue));
-            border-radius: 6px;
-            position: relative;
-            animation: progressFill 2s ease-out;
-        }
-        
-        .progress-fill:after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            animation: shimmer 2s infinite;
-        }
-        
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 25px;
-            margin: 50px 0;
-            width: 100%;
-            max-width: 1000px;
-        }
-        
-        .feature-card {
-            background-color: var(--card-bg);
-            border-radius: var(--border-radius);
-            padding: 30px 25px;
-            border: 1px solid var(--border-color);
-            transition: all var(--transition-normal);
-            box-shadow: var(--shadow);
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-10px);
-            background-color: #f8f9fa;
-            border-color: var(--secondary-blue);
-            box-shadow: var(--shadow-strong);
-        }
-        
-        .feature-icon {
-            font-size: 2.5rem;
-            color: var(--primary-blue);
+        .full-row .node-title {
+            color: var(--success-color);
+            font-size: 1.5em;
             margin-bottom: 20px;
         }
-        
-        .feature-card h4 {
-            margin-bottom: 15px;
-            color: var(--primary-blue);
-        }
-        
-        .feature-card p {
-            font-size: 1rem;
-            color: var(--text-gray);
-        }
-        
-        /* ===== 页脚 ===== */
-        footer {
-            background-color: #f0f4f8;
-            padding: 60px 0 30px;
-            border-top: 1px solid var(--border-color);
-            margin-top: auto;
-        }
-        
-        .footer-content {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 40px;
-            margin-bottom: 40px;
-        }
-        
-        .footer-logo {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary-blue);
-            margin-bottom: 20px;
-        }
-        
-        .footer-links {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
+        .full-row .node-links {
+            flex-direction: row;
+            justify-content: center;
+            flex-wrap: wrap;
             gap: 20px;
         }
-        
-        .footer-links a {
-            color: var(--text-gray);
-            transition: color var(--transition-fast);
-            display: block;
-            margin-bottom: 10px;
+        .full-row a {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-weight: 500;
+            min-width: 180px;
+            justify-content: center;
+            flex: none;
+            width: auto;
         }
-        
-        .footer-links a:hover {
-            color: var(--primary-blue);
+        .full-row a:hover {
+            background: var(--success-color);
+            color: #0a192f;
         }
-        
-        .footer-contact p {
-            color: var(--text-gray);
-            margin-bottom: 10px;
-        }
-        
-        .copyright {
+
+        footer {
             text-align: center;
-            padding-top: 30px;
-            border-top: 1px solid var(--border-color);
-            color: var(--text-gray);
-            font-size: 0.9rem;
+            padding: 50px 20px;
+            color: #64748b;
+            font-size: 0.9em;
+            margin-top: 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
-        
-        /* ===== 动画 ===== */
-        @keyframes float {
-            0%, 100% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(-20px);
-            }
+
+        @media (max-width: 1400px) {
+            .map-grid { grid-template-columns: 220px repeat(3, 1fr); gap: 18px; padding: 30px; }
         }
-        
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-                opacity: 1;
-            }
-            100% {
-                transform: scale(1.2);
-                opacity: 0;
-            }
+        @media (max-width: 1200px) {
+            .map-grid { grid-template-columns: 200px repeat(3, 1fr); gap: 16px; }
+            header h1 { font-size: 2.4em; }
         }
-        
-        @keyframes progressFill {
-            0% {
-                width: 0%;
-            }
-            100% {
-                width: 65%;
-            }
-        }
-        
-        @keyframes shimmer {
-            0% {
-                transform: translateX(-100%);
-            }
-            100% {
-                transform: translateX(100%);
-            }
-        }
-        
-        /* ===== 响应式设计 ===== */
-        @media (max-width: 991px) {
-            h1 {
-                font-size: 1.6rem;
-            }
-            
-            h2 {
-                font-size: 1.4rem;
-            }
-            
-            .features-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .footer-content {
-                grid-template-columns: 1fr;
-                gap: 40px;
-            }
-        }
-        
-        @media (max-width: 767px) {
-            section {
-                padding: 60px 0;
-            }
-            
-            h1 {
-                font-size: 2rem;
-            }
-            
-            h2 {
-                font-size: 1.6rem;
-            }
-            
-            .construction-icon {
-                width: 140px;
-                height: 140px;
-            }
-            
-            .construction-icon i {
-                font-size: 4rem;
-            }
-            
-            .construction-icon:after {
-                width: 160px;
-                height: 160px;
-            }
-            
-            .construction-description {
-                font-size: 1.1rem;
-            }
-            
-            .features-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        @media (max-width: 575px) {
-            .container {
-                padding: 0 15px;
-            }
-            
-            .btn {
-                padding: 14px 28px;
-            }
+        @media (max-width: 992px) {
+            .map-grid { grid-template-columns: 180px repeat(3, 1fr); gap: 14px; padding: 25px; }
+            .node a { flex: 1 0 100%; }
+            .axis-title { font-size: 1.1em; }
         }
     </style>
 </head>
 <body>
-    <!-- 顶部操作栏 -->
-    <div class="top-bar">
-        <div class="container">
-            <div class="top-bar-content">
-                <!-- 网站logo -->
-                <div class="logo" id="refresh-logo" onclick="window.location.href='index.html'">
-                    <i class="fas fa-atom logo-icon"></i>
-                    <span>虚拟仿真实践库</span>
-                </div>
-                
+    <header>
+        <h1><i class="fas fa-project-diagram"></i> 虚拟工坊：物理化学PBL上机实践</h1>
+        <p>鼠标悬停任意模拟器卡片，查看核心理论背景。点击“启动模拟器”在新标签页打开对应仿真页面。</p>
+    </header>
 
+    <!-- 网格容器：表头静态，PBL行通过JS动态生成，最后保留全宽模块 -->
+    <section class="map-grid" id="pblGrid">
+        <!-- 表头行：第一列空白，后三列为模拟器类别（已调整标题） -->
+        <div class="axis" style="background:transparent; border:none;"></div>
+        <div class="axis level1">
+            <div class="axis-title">
+                <i class="fas fa-flask"></i><span class="level-text">基础·探究</span>
             </div>
         </div>
-    </div>
-    
-    <!-- 主内容 -->
-    <main class="tech-bg">
-        <div class="container">
-            <section class="construction-container">
-                <!-- 建设中图标 -->
-                <div class="construction-icon">
-                    <i class="fas fa-tools"></i>
-                </div>
-                
-                <!-- 标题 -->
-                <h1 class="construction-title">物理化学虚拟仿真实践（全力建设中...）</h1>
-                
-                <!-- 描述 -->
-                <p class="construction-description">
-                    很抱歉让您等候了，我们正在利用AIGC全力构建物理化学虚拟仿真实践环境，敬请耐心等待，如有好的建议，请与邮箱xgyanger@qq.com联系。
-                </p>
-             
- 
-            </section>
+        <div class="axis level2">
+            <div class="axis-title">
+                <i class="fas fa-chart-line"></i><span class="level-text">分析·建模</span>
+            </div>
         </div>
-    </main>
-     </script>
+        <div class="axis level3">
+            <div class="axis-title">
+                <i class="fas fa-cogs"></i><span class="level-text">决策·优化</span>
+            </div>
+        </div>
 
+        <!-- 此处将由JS插入8个PBL行 (每个PBL一行：axis + 3个node) -->
+    </section>
+
+    <!-- 底部版权信息 (保留原模板风格) -->
+    <div style="
+        text-align: center;
+        padding: 20px 30px;
+        margin-top: 40px;
+        color: #e6f7ff;
+        font-size: 0.9rem;
+        border-top: 2px solid rgba(0, 180, 255, 0.5);
+        background: linear-gradient(135deg, rgba(10, 15, 43, 0.95), rgba(18, 26, 58, 0.9));
+        border-radius: 15px 15px 0 0;
+        box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
+        position: relative;
+        overflow: hidden;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: none;
+    ">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+        <p style="font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; color: #00b4ff;">
+            虚拟工坊 © 2025 | 物理化学PBL项目上机实践 | 版本 2.0
+        </p>
+        <p style="margin-bottom: 12px; color: #cbd5e1;">
+            <strong>邮箱:</strong> xgyanger@qq.com
+        </p>
+        <div style="margin-top: 15px;">
+            <span style="color: #ffcc00; font-weight: bold; font-size: 1.1rem;">
+                版权©2025 AIknow. 保留所有权利 | Copyright ©2025 AIknow. All rights reserved.
+            </span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ----- 定义PBL数据集 (含模拟器名称、图标、以及每个模拟器对应的三条理论背景) -----
+            const pblData = [
+                {
+                    name: "PBL 1：锂电池自燃与能量守恒",
+                    icon: "fa-bolt",
+                    sims: [
+                        "热力学第一定律产热探究模拟器",
+                        "动力电池热容探究模拟器",
+                        "无主动散热下电池热管理模拟器"
+                    ],
+                    theories: [
+                        [
+                            "能量守恒：ΔU=Q+W；电池产热来自焦耳热和可逆熵热。",
+                            "绝热条件下温升与产热成正比，可估算产热量。",
+                            "短路热累积导致热失控，第一定律揭示临界条件。"
+                        ],
+                        [
+                            "热容C=Q/ΔT，反映蓄热能力；材料比热容影响温升。",
+                            "电池热容由各组分决定，可用量热法测量。",
+                            "热容数据用于热管理设计，优化散热策略。"
+                        ],
+                        [
+                            "牛顿冷却定律：q=hAΔT；无主动散热时产热与散热平衡。",
+                            "热失控风险由产热速率与散热能力决定。",
+                            "相变材料增强被动散热，提升安全性。"
+                        ]
+                    ]
+                },
+                {
+                    name: "PBL 2：工业合成氨与热力学定律",
+                    icon: "fa-industry",
+                    sims: [
+                        "热力学第二定律平衡模拟器",
+                        "反应器物料改变平衡模拟器",
+                        "合成氨厂绿氢能效优化决策"
+                    ],
+                    theories: [
+                        [
+                            "第二定律：ΔG=ΔH-TΔS；平衡常数K与温度关系（范特霍夫方程）。",
+                            "合成氨放热熵减，低温高压利于平衡，但受动力学限制。",
+                            "孤立系统熵增，判断反应方向及限度。"
+                        ],
+                        [
+                            "勒夏特列原理：改变浓度平衡移动；增加N₂/H₂提高NH₃产率。",
+                            "惰气影响：恒压下惰气使平衡向体积增大方向移动。",
+                            "物料配比优化偏离化学计量比，提高单程转化率。"
+                        ],
+                        [
+                            "能效=理论最小能耗/实际能耗；理论能耗基于ΔH。",
+                            "绿氢替代灰氢降低碳足迹，需考虑电解能耗与耦合。",
+                            "过程集成：余热回收、压力降优化提升能效。"
+                        ]
+                    ]
+                },
+                {
+                    name: "PBL 3：绿电驱动海水淡化与依数性",
+                    icon: "fa-water",
+                    sims: [
+                        "渗透压理论基础模拟器",
+                        "反渗透（RO）现象参数模拟器",
+                        "绿电淡化一体化实践模拟器"
+                    ],
+                    theories: [
+                        [
+                            "范特霍夫渗透压公式：π=iCRT，适用于稀溶液。",
+                            "渗透压是溶剂通过半透膜的趋势，海水渗透压约27 atm。",
+                            "反渗透需施加超过渗透压的压力。"
+                        ],
+                        [
+                            "反渗透通量Jw=A(ΔP-Δπ)；溶质脱除率与膜选择性有关。",
+                            "操作压力、温度、回收率影响产水水质与能耗。",
+                            "浓差极化降低有效驱动力，需控制流速和污染。"
+                        ],
+                        [
+                            "绿电波动性匹配：可变负载下RO系统压力流量调节。",
+                            "储能或产水蓄存平抑波动，提高系统稳定性。",
+                            "全生命周期碳评估：绿电使淡水生产接近零碳排放。"
+                        ]
+                    ]
+                },
+                {
+                    name: "PBL 4：磷酸铁锂二元相图与相律",
+                    icon: "fa-chart-pie",
+                    sims: [
+                        "相图热力学模拟物相转变解析",
+                        "LiFePO4冷却曲线与杂质演变模拟器",
+                        "硅锂负极组成-容量调控模拟器"
+                    ],
+                    theories: [
+                        [
+                            "吉布斯相律：F=C-P+2；LiFePO₄两相区温度成分关系。",
+                            "共晶、包晶反应；相图读取相组成与相对量。",
+                            "LiFePO₄/FePO₄两相共存影响电压平台。"
+                        ],
+                        [
+                            "冷却曲线反映相变温度与潜热；步冷曲线平台表示相变。",
+                            "杂质如Li₃PO₄、Fe₂P改变电化学性能。",
+                            "控制冷却速率抑制有害相析出，优化材料性能。"
+                        ],
+                        [
+                            "硅负极理论容量4200mAh/g，但体积膨胀大；与锂组成LixSi。",
+                            "相图指导硅锂合金组成范围，避免不可逆容量。",
+                            "纳米结构、预锂化调控容量与循环稳定性。"
+                        ]
+                    ]
+                },
+                {
+                    name: "PBL 5：LiCoO2-C 电池储能密度",
+                    icon: "fa-chart-bar",
+                    sims: [
+                        "电池自由能与理论电动势模拟器",
+                        "电池反应物质与比容量模拟器",
+                        "工况下电池储能密度调控模拟器"
+                    ],
+                    theories: [
+                        [
+                            "ΔG=-nFE；电动势与正负极锂化学势差相关。",
+                            "自由能变化决定最大功，理论能量密度基于ΔG。",
+                            "LiCoO₂放电平台约3.9V，随锂含量变化。"
+                        ],
+                        [
+                            "比容量= nF/(3.6M)；LiCoO₂理论值274mAh/g。",
+                            "实际容量受限于可逆脱锂量(约0.5)，约140mAh/g。",
+                            "正负极匹配(N/P比)避免析锂。"
+                        ],
+                        [
+                            "储能密度受倍率、温度影响；Peukert方程描述容量与电流。",
+                            "内阻导致焦耳热和电压降，降低实际输出能量。",
+                            "电极结构、电解液优化提升高倍率储能密度。"
+                        ]
+                    ]
+                },
+                {
+                    name: "PBL 6：离网风光耦合制氢电化学",
+                    icon: "fa-wind",
+                    sims: [
+                        "热力学控制电解水电化学模拟器",
+                        "动力学控制电解水槽压模拟器",
+                        "动态载荷下的风电制氢决策模拟器"
+                    ],
+                    theories: [
+                        [
+                            "水分解理论电压1.23V，对应ΔG=237kJ/mol；熵变需热量。",
+                            "电压效率=1.23/实际电压；温度升高降低理论电压。",
+                            "高压电解减少气泡，但增加能耗，需权衡。"
+                        ],
+                        [
+                            "Butler-Volmer动力学：活化过电位与交换电流相关。",
+                            "欧姆过电位来自电阻；气泡覆盖影响传质。",
+                            "Tafel斜率分析机理，扩散过电位在高电流密度出现。"
+                        ],
+                        [
+                            "风电波动性导致电解槽频繁启停，影响寿命和效率。",
+                            "系统响应速度：冷启动时间、功率爬坡率。",
+                            "储能或电网交互平滑输入，优化电解槽运行区间。"
+                        ]
+                    ]
+                },
+                {
+                    name: "PBL 7：浆料稳定性与涂敷",
+                    icon: "fa-flask",
+                    sims: [
+                        "胶体结构与界面电荷理论模拟器",
+                        "表面电荷调控与粒子稳定性模拟器",
+                        "浆料聚集体不均与涂敷问题模拟器"
+                    ],
+                    theories: [
+                        [
+                            "DLVO理论：胶体稳定性由范德华吸引与双电层排斥平衡。",
+                            "Zeta电位表征颗粒表面电荷，影响分散性。",
+                            "pH、盐浓度改变双电层厚度，导致絮凝或分散。"
+                        ],
+                        [
+                            "调节pH或添加分散剂改变表面电荷，提高稳定性。",
+                            "静电稳定与空间位阻稳定；聚合物吸附层防团聚。",
+                            "流变性：剪切稀化利于涂敷，触变性影响静置沉降。"
+                        ],
+                        [
+                            "聚集导致涂敷条纹、颗粒凸起，影响电极均匀性。",
+                            "沉降速度由Stokes公式决定；粒径、密度差、粘度影响。",
+                            "涂敷工艺参数：刮刀间隙、基材速度、干燥速率调控膜厚。"
+                        ]
+                    ]
+                },
+                {
+                    name: "PBL 8：电解液水含量与失效机理",
+                    icon: "fa-vial",
+                    sims: [
+                        "0-3级反应动力学调控模拟器",
+                        "电解液降解活化能动力学模拟器",
+                        "电池寿命预测工程化学动力学模拟器"
+                    ],
+                    theories: [
+                        [
+                            "反应级数n：速率r=k[A]ⁿ；水含量影响反应路径。",
+                            "微量水引发LiPF₆水解产生HF，为准一级反应。",
+                            "温度影响速率常数（Arrhenius公式），调控水含量抑制副反应。"
+                        ],
+                        [
+                            "活化能Ea决定温度敏感性；Ea越高，温度影响越大。",
+                            "阿伦尼乌斯外推寿命；水分加速降解降低活化能。",
+                            "SEI膜形成与分解动力学，水分促进气体产生。"
+                        ],
+                        [
+                            "容量衰减模型：基于副反应消耗锂，如溶剂氧化。",
+                            "经验模型：指数或幂律关系，结合Arrhenius温度修正。",
+                            "机械应力、析锂等物理过程耦合化学动力学预测寿命。"
+                        ]
+                    ]
+                }
+            ];
+
+            const grid = document.getElementById('pblGrid');
+
+            // 循环创建8行 (每个PBL)
+            pblData.forEach((pbl, idx) => {
+                // 1. 创建左侧轴 (PBL名称)
+                const axisDiv = document.createElement('div');
+                axisDiv.className = 'axis';
+                axisDiv.innerHTML = `
+                    <span class="axis-title">
+                        <i class="fas ${pbl.icon}"></i> ${pbl.name}
+                    </span>
+                `;
+                grid.appendChild(axisDiv);
+
+                // 2. 创建三个节点 (对应三个模拟器)
+                for (let j = 0; j < 3; j++) {
+                    const node = document.createElement('div');
+                    node.className = 'node';
+
+                    // 根据列确定level标签颜色 (j=0→Lv.1, j=1→Lv.2, j=2→Lv.3)
+                    const levelTagClass = j === 0 ? 'level1-tag' : (j === 1 ? 'level2-tag' : 'level3-tag');
+                    const levelText = j === 0 ? '基础' : (j === 1 ? '分析' : '决策');
+                    
+                    // 节点图标: 第一列用fa-microscope等略作区分
+                    let iconHtml = '';
+                    if (j === 0) iconHtml = '<span class="node-icon fas fa-microscope"></span>';
+                    else if (j === 1) iconHtml = '<span class="node-icon fas fa-chart-pie"></span>';
+                    else iconHtml = '<span class="node-icon fas fa-sliders-h"></span>';
+
+                    // 模拟器标题
+                    const simTitle = pbl.sims[j];
+
+                    // 理论背景数组 (三条)
+                    const theoryItems = pbl.theories[j] || [
+                        "热力学基本定律应用",
+                        "参数影响分析",
+                        "优化策略探讨"
+                    ];  // 后备理论(几乎不会触发)
+
+                    // 构建node内部HTML (包含标题、链接、悬浮框理论)
+                    node.innerHTML = `
+                        <div class="node-header">
+                            ${iconHtml}
+                            <h3 class="node-title">${simTitle} <span class="level-tag ${levelTagClass}">${levelText}</span></h3>
+                        </div>
+                        <div class="node-links">
+                            <a href="pbl${idx+1}_sim${j+1}.html" target="_blank"><i class="fas fa-play"></i> 启动模拟器</a>
+                            <a href="#"><i class="fas fa-book-open"></i> 理论背景</a>
+                        </div>
+                        <div class="suggestion-box">
+                            <span class="sug-header"><i class="fas fa-lightbulb"></i> 核心理论</span>
+                            <div class="sug-item"><span class="sug-dot">▶</span><span>${theoryItems[0]}</span></div>
+                            <div class="sug-item"><span class="sug-dot">▶</span><span>${theoryItems[1]}</span></div>
+                            <div class="sug-item"><span class="sug-dot">▶</span><span>${theoryItems[2]}</span></div>
+                        </div>
+                    `;
+                    grid.appendChild(node);
+                }
+            });
+
+            // ----- 最后添加全宽“学习成果”模块 (与模板一致) -----
+            const fullRow = document.createElement('div');
+            fullRow.className = 'node full-row';
+            fullRow.innerHTML = `
+          
+                </div>
+                <div class="suggestion-box">
+                    <span class="sug-header"><i class="fas fa-lightbulb"></i> 思维进阶建议</span>
+                    <div class="sug-item"><span class="sug-dot">▶</span><span>回顾所有PBL，整合知识体系。</span></div>
+                    <div class="sug-item"><span class="sug-dot">▶</span><span>分析自己的学习路径，优化后续计划。</span></div>
+                    <div class="sug-item"><span class="sug-dot">▶</span><span>尝试将模拟分析应用于实际工程案例。</span></div>
+                </div>
+            `;
+            grid.appendChild(fullRow);
+        })();
+    </script>
 </body>
 </html>
