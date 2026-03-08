@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Battery Specific Capacity Simulator — 电池反应物质与比容量模拟器</title>
+
+<!-- MathJax -->
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},svg:{fontCache:'global'}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Google Fonts: distinctive pairing -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet"/>
+
+<style>
+/* ═══════════════════════════════════════
+   DESIGN TOKENS  —  深夜实验室配色
+   主色调: 深青 + 琥珀 + 冰蓝，工业感强
+═══════════════════════════════════════ */
+:root{
+  --bg:      #020617;
+  --bg1:     #050e20;
+  --bg2:     #081526;
+  --bg3:     #0c1d34;
+  --bg4:     #102240;
+
+  --teal:    #0d9488;
+  --teal2:   #14b8a6;
+  --teal3:   #5eead4;
+  --amber:   #f59e0b;
+  --amber2:  #fbbf24;
+  --ice:     #bae6fd;
+  --rose:    #fb7185;
+  --green:   #4ade80;
+  --violet:  #a78bfa;
+
+  --text:    #f8fafc;
+  --muted:   #475569;
+  --muted2:  #94a3b8;
+  --border:  rgba(13,148,136,.2);
+  --borderD: rgba(13,148,136,.07);
+  --glow:    0 0 16px rgba(13,148,136,.32);
+  --glow2:   0 0 36px rgba(13,148,136,.16),0 0 80px rgba(13,148,136,.07);
+  --glow-am: 0 0 16px rgba(245,158,11,.32);
+  --glow-ro: 0 0 16px rgba(251,113,133,.4);
+
+  --font-h:  'Syne', sans-serif;
+  --font-m:  'IBM Plex Mono', monospace;
+  --font-cn: 'Noto Sans SC', sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-h);
+  min-height:100vh;
+  overflow-x:hidden;
+  background-image:
+    radial-gradient(ellipse 60% 40% at 15% 10%, rgba(13,148,136,.07) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 35% at 85% 85%, rgba(186,230,253,.03) 0%,transparent 55%),
+    repeating-linear-gradient(0deg, transparent, transparent 47px, rgba(13,148,136,.02) 47px, rgba(13,148,136,.02) 48px),
+    repeating-linear-gradient(90deg,transparent, transparent 47px, rgba(13,148,136,.02) 47px, rgba(13,148,136,.02) 48px);
+}
+
+/* ═══════════════════════════════════════
+   KEYFRAMES
+═══════════════════════════════════════ */
+@keyframes fadeUp  { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:none} }
+@keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+@keyframes scan    { 0%{top:-2px}100%{top:100vh} }
+@keyframes pulse   { 0%,100%{opacity:.5}50%{opacity:1} }
+@keyframes blink   { 0%,100%{opacity:1}50%{opacity:.1} }
+@keyframes spin    { to{transform:rotate(360deg)} }
+@keyframes deposit { from{transform:scaleY(0);transform-origin:bottom} to{transform:scaleY(1);transform-origin:bottom} }
+@keyframes shimmer { 0%{background-position:200% 0}100%{background-position:-200% 0} }
+@keyframes ripple  { 0%{transform:scale(.5);opacity:.9}100%{transform:scale(2.8);opacity:0} }
+@keyframes bounce  { 0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)} }
+@keyframes numberRoll {
+  from{transform:translateY(-30px);opacity:0}
+  to{transform:translateY(0);opacity:1}
+}
+
+.fu{animation:fadeUp .65s ease both;}
+.fu:nth-child(1){animation-delay:.04s}
+.fu:nth-child(2){animation-delay:.14s}
+.fu:nth-child(3){animation-delay:.24s}
+.fu:nth-child(4){animation-delay:.34s}
+
+/* Scan line */
+.scanline{
+  pointer-events:none;position:fixed;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent 0%,var(--teal) 40%,var(--amber) 60%,transparent 100%);
+  animation:scan 8s linear infinite;z-index:9999;opacity:.3;
+}
+
+/* ═══════════════════════════════════════
+   HEADER
+═══════════════════════════════════════ */
+header{
+  padding:2.4rem 2rem 1.9rem;text-align:center;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,rgba(13,148,136,.07)0%,transparent 100%);
+  position:relative;overflow:hidden;animation:fadeIn .8s ease;
+}
+header::after{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,transparent,transparent 79px,rgba(13,148,136,.03) 79px,rgba(13,148,136,.03) 80px);
+  pointer-events:none;
+}
+.h-tag{
+  display:inline-block;font-family:var(--font-m);font-size:.6rem;
+  color:var(--teal2);border:1px solid var(--teal);
+  padding:.18rem 1rem;border-radius:2px;
+  letter-spacing:.25em;margin-bottom:.85rem;
+  animation:blink 3s ease infinite;
+}
+.h-title{
+  font-family:var(--font-h);font-weight:800;
+  font-size:clamp(1.45rem,3.5vw,2.6rem);letter-spacing:.03em;line-height:1.2;
+}
+.h-title .t1{color:var(--teal3);}
+.h-title .t2{color:var(--amber2);}
+.h-sub{
+  font-family:var(--font-m);font-size:.72rem;
+  color:var(--muted2);letter-spacing:.16em;margin-top:.5rem;
+}
+/* Stat strip */
+.h-stats{
+  display:flex;justify-content:center;gap:2.4rem;
+  margin-top:1.4rem;flex-wrap:wrap;
+}
+.h-stat{
+  font-family:var(--font-m);font-size:.65rem;color:var(--muted2);
+  border-left:2px solid var(--teal);padding-left:.65rem;
+}
+.h-stat strong{display:block;font-size:.9rem;color:var(--teal2);}
+
+/* ═══════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════ */
+.wrap{max-width:1440px;margin:0 auto;padding:2rem 1.5rem 5rem;
+  display:flex;flex-direction:column;gap:2rem;}
+
+/* ═══════════════════════════════════════
+   CARD
+═══════════════════════════════════════ */
+.card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;position:relative;
+  transition:box-shadow .3s;
+}
+.card:hover{box-shadow:var(--glow2);}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--teal),var(--teal2),var(--amber),transparent);
+}
+.card-head{
+  display:flex;align-items:center;gap:.75rem;
+  padding:1.05rem 1.6rem;border-bottom:1px solid var(--borderD);
+  background:rgba(13,148,136,.03);
+}
+.card-icon{
+  width:30px;height:30px;border:1px solid var(--teal);border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--teal);font-size:.85rem;flex-shrink:0;
+}
+.c-num{font-family:var(--font-m);font-size:.58rem;color:var(--teal);letter-spacing:.28em;}
+.c-title{font-family:var(--font-h);font-weight:700;font-size:.88rem;letter-spacing:.1em;}
+.c-cn{font-family:var(--font-cn);font-size:.7rem;color:var(--muted2);margin-left:.3rem;}
+.card-body{padding:1.6rem;}
+
+/* ═══════════════════════════════════════
+   THEORY TILES
+═══════════════════════════════════════ */
+.theory-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:1rem;}
+.t-tile{
+  background:var(--bg3);border:1px solid var(--border);border-radius:7px;
+  padding:1.2rem 1.3rem;position:relative;overflow:hidden;
+  transition:transform .24s,box-shadow .24s;cursor:default;
+}
+.t-tile:hover{transform:translateY(-3px);box-shadow:var(--glow);}
+.t-tile::after{
+  content:attr(data-n);
+  position:absolute;right:.7rem;top:.2rem;
+  font-family:var(--font-h);font-weight:800;font-size:3.2rem;
+  color:rgba(13,148,136,.06);line-height:1;pointer-events:none;
+}
+.tt-tag{font-family:var(--font-m);font-size:.59rem;color:var(--teal);letter-spacing:.22em;text-transform:uppercase;margin-bottom:.45rem;}
+.tt-name{font-family:var(--font-h);font-weight:700;font-size:.97rem;margin-bottom:.75rem;}
+.tt-formula{
+  background:rgba(13,148,136,.07);border:1px solid rgba(13,148,136,.2);
+  border-radius:4px;padding:.75rem;text-align:center;margin-bottom:.7rem;font-size:1rem;
+}
+.tt-note{
+  background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);
+  border-radius:4px;padding:.55rem .7rem;
+  font-family:var(--font-m);font-size:.68rem;color:var(--amber2);margin-bottom:.65rem;
+}
+.tt-list{list-style:none;display:flex;flex-direction:column;gap:.27rem;}
+.tt-list li{font-family:var(--font-m);font-size:.7rem;color:var(--muted2);padding-left:1rem;position:relative;}
+.tt-list li::before{content:'▸';position:absolute;left:0;color:var(--teal);}
+.tt-list li strong{color:var(--teal3);}
+
+/* ═══════════════════════════════════════
+   PRESET MATERIAL QUICK SELECT
+═══════════════════════════════════════ */
+.preset-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.2rem;}
+.preset-btn{
+  font-family:var(--font-m);font-size:.65rem;
+  padding:.32rem .8rem;border-radius:4px;border:1px solid var(--border);
+  background:transparent;color:var(--muted2);cursor:pointer;transition:all .2s;
+  letter-spacing:.06em;
+}
+.preset-btn:hover{border-color:var(--teal);color:var(--teal);}
+.preset-btn.active{background:rgba(13,148,136,.15);border-color:var(--teal2);color:var(--teal2);box-shadow:var(--glow);}
+
+/* ═══════════════════════════════════════
+   SIMULATOR GRID LAYOUT
+═══════════════════════════════════════ */
+.sim-layout{display:grid;grid-template-columns:360px 1fr;gap:1.5rem;}
+@media(max-width:1000px){.sim-layout{grid-template-columns:1fr;}}
+
+.ctrl-stack{display:flex;flex-direction:column;gap:1rem;}
+.ctrl-block{
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:1.1rem;
+}
+.cb-title{
+  font-family:var(--font-m);font-size:.6rem;color:var(--teal);
+  letter-spacing:.2em;text-transform:uppercase;margin-bottom:.8rem;
+}
+
+/* Slider with label */
+.sl-row{margin-bottom:.8rem;}
+.sl-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.3rem;}
+.sl-label{font-family:var(--font-h);font-size:.78rem;font-weight:600;color:var(--muted2);}
+.sl-val{
+  font-family:var(--font-m);font-size:.85rem;font-weight:600;
+  color:var(--teal2);min-width:50px;text-align:right;
+}
+.sl-val.big{font-size:1.2rem;color:var(--amber2);}
+
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:4px;
+  background:var(--bg);border-radius:2px;outline:none;
+  background-image:linear-gradient(var(--teal),var(--teal));
+  background-size:50% 100%;background-repeat:no-repeat;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--teal2);border:2px solid var(--bg);cursor:pointer;
+  box-shadow:0 0 8px rgba(13,148,136,.7);transition:transform .15s;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
+
+/* Numeric input */
+.num-inp{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:4px;color:var(--text);font-family:var(--font-m);
+  font-size:.88rem;padding:.48rem .7rem;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.num-inp:focus{border-color:var(--teal2);box-shadow:var(--glow);}
+.num-inp.err{border-color:var(--rose);}
+.err-text{font-family:var(--font-m);font-size:.62rem;color:var(--rose);margin-top:.25rem;display:none;}
+.err-text.show{display:block;}
+
+/* ═══════════════════════════════════════
+   BUTTON
+═══════════════════════════════════════ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.45rem;
+  padding:.58rem 1.15rem;border-radius:5px;border:1px solid;
+  font-family:var(--font-m);font-size:.7rem;letter-spacing:.1em;
+  cursor:pointer;transition:all .2s;text-transform:uppercase;
+  position:relative;overflow:hidden;
+}
+.btn::after{content:'';position:absolute;inset:0;background:currentColor;opacity:0;transition:.18s;}
+.btn:hover::after{opacity:.07;}
+.btn-teal{background:rgba(13,148,136,.14);border-color:var(--teal);color:var(--teal);}
+.btn-teal:hover{box-shadow:var(--glow);}
+.btn-amber{background:rgba(245,158,11,.11);border-color:var(--amber);color:var(--amber);}
+.btn-amber:hover{box-shadow:var(--glow-am);}
+.btn-rose{background:rgba(251,113,133,.1);border-color:var(--rose);color:var(--rose);}
+.btn-rose:hover{box-shadow:var(--glow-ro);}
+.btn-full{width:100%;}
+
+/* ═══════════════════════════════════════
+   RESULT DISPLAY
+═══════════════════════════════════════ */
+.result-panel{
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:1.1rem;
+}
+.res-row{
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:var(--font-m);font-size:.75rem;
+  padding:.3rem 0;border-bottom:1px solid var(--borderD);
+}
+.res-row:last-child{border-bottom:none;}
+.res-k{color:var(--muted2);}
+.res-v{font-weight:600;}
+.res-v.hi {color:var(--teal2);}
+.res-v.warn{color:var(--amber2);}
+.res-v.ok  {color:var(--green);}
+.res-v.bad {color:var(--rose);animation:pulse 1.2s ease infinite;}
+
+.big-num{
+  font-family:var(--font-h);font-weight:800;
+  font-size:2.6rem;color:var(--teal2);
+  text-shadow:var(--glow);
+  animation:numberRoll .4s ease;
+}
+.big-unit{font-family:var(--font-m);font-size:.75rem;color:var(--muted2);margin-left:.3rem;}
+
+/* Status badge */
+.status-badge{
+  display:inline-flex;align-items:center;gap:.4rem;
+  font-family:var(--font-m);font-size:.65rem;
+  padding:.25rem .75rem;border-radius:100px;border:1px solid;margin-top:.5rem;
+}
+.sb-ok    {border-color:var(--green); color:var(--green); background:rgba(74,222,128,.07);}
+.sb-warn  {border-color:var(--amber); color:var(--amber); background:rgba(245,158,11,.07);}
+.sb-bad   {border-color:var(--rose);  color:var(--rose);  background:rgba(251,113,133,.07);animation:pulse 1.4s ease infinite;}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.sb-dot.pulse{animation:pulse .9s ease infinite;}
+
+/* ═══════════════════════════════════════
+   CHARTS
+═══════════════════════════════════════ */
+.charts-col{display:flex;flex-direction:column;gap:1rem;}
+.chart-box{
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:1rem;
+}
+.ch-title{font-family:var(--font-m);font-size:.6rem;color:var(--teal);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.7rem;}
+canvas.ch{max-height:200px;}
+
+/* ═══════════════════════════════════════
+   N/P SECTION LAYOUT
+═══════════════════════════════════════ */
+.np-layout{display:grid;grid-template-columns:400px 1fr;gap:1.5rem;}
+@media(max-width:1050px){.np-layout{grid-template-columns:1fr;}}
+
+/* Electrode quick-select */
+.elec-select-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.7rem;}
+.elec-btn{
+  font-family:var(--font-m);font-size:.62rem;
+  padding:.28rem .65rem;border-radius:3px;border:1px solid var(--border);
+  background:transparent;color:var(--muted2);cursor:pointer;transition:all .2s;
+}
+.elec-btn:hover{border-color:var(--teal);color:var(--teal);}
+.elec-btn.sel-c{background:rgba(13,148,136,.15);border-color:var(--teal2);color:var(--teal2);}
+.elec-btn.sel-a{background:rgba(74,222,128,.12);border-color:var(--green);color:var(--green);}
+
+/* NP gauge */
+.np-gauge-wrap{
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  padding:1.2rem;text-align:center;
+}
+.np-big{
+  font-family:var(--font-h);font-weight:800;font-size:3.2rem;
+  line-height:1;text-shadow:var(--glow);
+  animation:numberRoll .35s ease;
+}
+.np-lbl{font-family:var(--font-m);font-size:.62rem;color:var(--muted2);letter-spacing:.15em;margin-top:.3rem;}
+
+/* NP risk bar */
+.risk-bar-wrap{margin-top:.9rem;position:relative;height:12px;background:var(--bg);border-radius:6px;overflow:hidden;}
+.risk-bar{height:100%;border-radius:6px;transition:width .6s ease;}
+.risk-zones{
+  position:absolute;inset:0;display:flex;
+  font-family:var(--font-m);font-size:.5rem;color:rgba(255,255,255,.4);
+}
+.rz{flex:1;display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,.1);}
+
+/* Canvas animation area */
+.anim-box{
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  padding:.8rem;position:relative;overflow:hidden;
+}
+.anim-title{font-family:var(--font-m);font-size:.6rem;color:var(--teal);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.6rem;}
+#npCanvas{display:block;width:100%;border-radius:4px;}
+
+/* ═══════════════════════════════════════
+   CHALLENGE SECTION
+═══════════════════════════════════════ */
+.ch-layout{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;}
+@media(max-width:900px){.ch-layout{grid-template-columns:1fr;}}
+
+.ch-target{
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:1.1rem;
+}
+.ch-target-title{font-family:var(--font-m);font-size:.6rem;color:var(--teal);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.8rem;}
+
+.target-item{
+  display:flex;align-items:center;gap:.7rem;
+  padding:.5rem .8rem;border-radius:4px;border:1px solid var(--borderD);
+  margin-bottom:.45rem;background:var(--bg);
+  font-family:var(--font-m);font-size:.72rem;transition:all .3s;
+}
+.target-item.pass{border-color:var(--green);background:rgba(74,222,128,.06);}
+.target-item.fail{border-color:var(--rose);background:rgba(251,113,133,.06);}
+.ti-icon{font-size:.95rem;width:22px;text-align:center;}
+.ti-lbl{flex:1;color:var(--muted2);}
+.ti-val{color:var(--text);font-weight:600;}
+.ti-st{font-size:.8rem;margin-left:.2rem;}
+
+.score-circle{
+  width:80px;height:80px;border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border:2px solid var(--teal);
+  box-shadow:var(--glow);margin:auto;margin-top:1rem;
+  font-family:var(--font-h);font-weight:800;font-size:1.6rem;color:var(--teal2);
+  transition:all .4s;
+}
+.score-circle.perfect{border-color:var(--amber2);color:var(--amber2);box-shadow:var(--glow-am);}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--teal);}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+
+<!-- ═══════════════════════════════════════
+     HEADER
+═══════════════════════════════════════ -->
+<header>
+  <div class="h-tag">ELECTROCHEMISTRY TEACHING LAB · SPECIFIC CAPACITY MODULE v2.0</div>
+  <h1 class="h-title"><span class="t1">电池</span> 反应物质与比容量 <span class="t2">模拟器</span></h1>
+  <p class="h-sub">Battery Specific Capacity Simulator— N/P RATIO · LITHIUM PLATING ANALYSIS</p>
+  <div class="h-stats">
+    <div class="h-stat"><strong>nF / 3.6M</strong>Capacity Formula</div>
+    <div class="h-stat"><strong>96485 C/mol</strong>Faraday Const.</div>
+    <div class="h-stat"><strong>N/P &gt; 1.05</strong>Safe Design Zone</div>
+    <div class="h-stat"><strong>LFP · NMC · Si</strong>Material Library</div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════
+     MAIN
+═══════════════════════════════════════ -->
+<div class="wrap">
+
+<!-- ─────────────────────────────────────
+     SEC 1 · THEORY
+──────────────────────────────────────── -->
+<section class="card fu" id="sec-theory">
+  <div class="card-head">
+    <div class="card-icon">📐</div>
+    <span class="c-num">01 /</span>
+    <span class="c-title">CORE THEORY</span>
+    <span class="c-cn">核心理论</span>
+  </div>
+  <div class="card-body">
+    <div class="theory-row" id="theoryGrid"></div>
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────
+     SEC 2 · CAPACITY CALCULATOR
+──────────────────────────────────────── -->
+<section class="card fu" id="sec-capacity">
+  <div class="card-head">
+    <div class="card-icon">🔬</div>
+    <span class="c-num">02 /</span>
+    <span class="c-title">SPECIFIC CAPACITY CALCULATOR</span>
+    <span class="c-cn">材料理论比容量计算</span>
+  </div>
+  <div class="card-body">
+
+    <!-- Preset materials -->
+    <div style="margin-bottom:1rem;">
+      <div style="font-family:var(--font-m);font-size:.6rem;color:var(--muted2);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.5rem;">
+        Quick Select — 快速选择材料
+      </div>
+      <div class="preset-row" id="presetRow"></div>
+    </div>
+
+    <div class="sim-layout">
+
+      <!-- Controls -->
+      <div class="ctrl-stack">
+
+        <div class="ctrl-block">
+          <div class="cb-title">⚡ Input Parameters — 计算参数</div>
+
+          <!-- n slider -->
+          <div class="sl-row">
+            <div class="sl-top">
+              <span class="sl-label">Electron Transfer n</span>
+              <span class="sl-val big" id="nDisplay">1</span>
+            </div>
+            <input type="range" id="nSlider" min="1" max="3" step="1" value="1"
+                   oninput="onNSlider(this.value)"/>
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-m);font-size:.58rem;color:var(--muted);margin-top:.2rem;">
+              <span>n=1</span><span>n=2</span><span>n=3</span>
+            </div>
+          </div>
+
+          <!-- Molar mass input -->
+          <div class="sl-row">
+            <div class="sl-top" style="margin-bottom:.35rem;">
+              <span class="sl-label">Molar Mass M (g/mol)</span>
+            </div>
+            <input class="num-inp" type="number" id="mInput" min="1" step="0.1"
+                   placeholder="e.g. 97.88 for LFP" value="97.88"
+                   oninput="onMInput(this.value)"/>
+            <div class="err-text" id="mErr">⚠ M must be > 0</div>
+          </div>
+
+          <!-- Reversible fraction slider -->
+          <div class="sl-row">
+            <div class="sl-top">
+              <span class="sl-label">Reversible Li Fraction x</span>
+              <span class="sl-val" id="revDisplay">0.50</span>
+            </div>
+            <input type="range" id="revSlider" min="0" max="1" step="0.01" value="0.5"
+                   oninput="onRevSlider(this.value)"/>
+            <div class="err-text" id="revErr">⚠ 0 ≤ x ≤ 1</div>
+          </div>
+
+          <button class="btn btn-amber btn-full" onclick="calculateCapacity()">
+            ⚡ Calculate Capacity — 计算比容量
+          </button>
+        </div>
+
+        <!-- Result -->
+        <div class="result-panel" id="capResultPanel">
+          <div style="font-family:var(--font-m);font-size:.7rem;color:var(--muted);text-align:center;padding:.5rem;">
+            调整参数后点击计算
+          </div>
+        </div>
+
+        <!-- Formula live display -->
+        <div class="ctrl-block" style="text-align:center;">
+          <div class="cb-title">FORMULA DISPLAY</div>
+          <div id="liveFormula" style="font-size:.95rem;min-height:48px;">
+            $C = \dfrac{n \cdot F}{3.6 \cdot M}$
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-col">
+        <div class="chart-box">
+          <div class="ch-title">📊 n vs Theoretical Capacity — 电子数与理论容量</div>
+          <canvas class="ch" id="nCapChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="ch-title">📉 Reversible Fraction vs Actual Capacity — 可逆量与实际容量</div>
+          <canvas class="ch" id="revCapChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────
+     SEC 3 · N/P RATIO
+──────────────────────────────────────── -->
+<section class="card fu" id="sec-np">
+  <div class="card-head">
+    <div class="card-icon">⚖</div>
+    <span class="c-num">03 /</span>
+    <span class="c-title">N/P RATIO ELECTRODE MATCHING</span>
+    <span class="c-cn">正负极 N/P 比设计</span>
+  </div>
+  <div class="card-body">
+    <div class="np-layout">
+
+      <!-- Controls -->
+      <div class="ctrl-stack">
+
+        <!-- Cathode inputs -->
+        <div class="ctrl-block">
+          <div class="cb-title">⊕ Cathode — 正极</div>
+          <div style="margin-bottom:.5rem;">
+            <div style="font-family:var(--font-m);font-size:.6rem;color:var(--muted2);letter-spacing:.12em;margin-bottom:.4rem;">Quick select:</div>
+            <div class="elec-select-row" id="cathodePresets"></div>
+          </div>
+          <div class="sl-row">
+            <div class="sl-top" style="margin-bottom:.3rem;">
+              <span class="sl-label">Capacity (mAh/g)</span>
+            </div>
+            <input class="num-inp" type="number" id="cCap" min="1" step="1" value="170"
+                   oninput="onNPInput()"/>
+          </div>
+          <div class="sl-row">
+            <div class="sl-top" style="margin-bottom:.3rem;">
+              <span class="sl-label">Mass (g)</span>
+            </div>
+            <input class="num-inp" type="number" id="cMass" min="0.001" step="0.1" value="2.0"
+                   oninput="onNPInput()"/>
+          </div>
+        </div>
+
+        <!-- Anode inputs -->
+        <div class="ctrl-block">
+          <div class="cb-title">⊖ Anode — 负极</div>
+          <div style="margin-bottom:.5rem;">
+            <div style="font-family:var(--font-m);font-size:.6rem;color:var(--muted2);letter-spacing:.12em;margin-bottom:.4rem;">Quick select:</div>
+            <div class="elec-select-row" id="anodePresets"></div>
+          </div>
+          <div class="sl-row">
+            <div class="sl-top" style="margin-bottom:.3rem;">
+              <span class="sl-label">Capacity (mAh/g)</span>
+            </div>
+            <input class="num-inp" type="number" id="aCap" min="1" step="1" value="372"
+                   oninput="onNPInput()"/>
+          </div>
+          <div class="sl-row">
+            <div class="sl-top" style="margin-bottom:.3rem;">
+              <span class="sl-label">Mass (g)</span>
+            </div>
+            <input class="num-inp" type="number" id="aMass" min="0.001" step="0.1" value="1.0"
+                   oninput="onNPInput()"/>
+          </div>
+        </div>
+
+        <!-- Calculate button -->
+        <button class="btn btn-teal btn-full" onclick="calculateNPRatio()">
+          ⚖ Calculate N/P Ratio — 计算 N/P 比
+        </button>
+
+        <!-- N/P result -->
+        <div class="np-gauge-wrap" id="npGauge">
+          <div style="font-family:var(--font-m);font-size:.62rem;color:var(--muted);text-align:center;">计算后显示 N/P 比</div>
+        </div>
+
+      </div>
+
+      <!-- Right: chart + animation -->
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+
+        <div class="chart-box">
+          <div class="ch-title">📈 N/P Ratio Analysis — N/P 比与安全性分析</div>
+          <canvas class="ch" id="npChart"></canvas>
+        </div>
+
+        <!-- Animation canvas -->
+        <div class="anim-box">
+          <div class="anim-title">⚛ Electrode Animation — 电极粒子模拟（析锂风险可视化）</div>
+          <canvas id="npCanvas" height="180"></canvas>
+          <div style="margin-top:.5rem;display:flex;gap:1.2rem;font-family:var(--font-m);font-size:.61rem;color:var(--muted2);">
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#60a5fa;margin-right:.3rem;"></span>Li⁺ 离子</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;margin-right:.3rem;"></span>正极活性位</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#94a3b8;margin-right:.3rem;"></span>负极活性位</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#fb7185;margin-right:.3rem;"></span>锂沉积 (危险)</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────
+     SEC 4 · CHALLENGE
+──────────────────────────────────────── -->
+<section class="card fu" id="sec-challenge">
+  <div class="card-head">
+    <div class="card-icon">🏆</div>
+    <span class="c-num">04 /</span>
+    <span class="c-title">BATTERY DESIGN CHALLENGE</span>
+    <span class="c-cn">电池设计挑战模式</span>
+  </div>
+  <div class="card-body">
+    <div class="ch-layout">
+
+      <!-- Targets -->
+      <div class="ch-target">
+        <div class="ch-target-title">🎯 Design Targets — 设计目标</div>
+        <div class="target-item" id="ch-cap">
+          <span class="ti-icon">⚡</span>
+          <span class="ti-lbl">Actual Capacity > 150 mAh/g</span>
+          <span class="ti-val" id="ch-cap-v">—</span>
+          <span class="ti-st" id="ch-cap-s">⬜</span>
+        </div>
+        <div class="target-item" id="ch-np">
+          <span class="ti-icon">⚖</span>
+          <span class="ti-lbl">N/P Ratio > 1.10</span>
+          <span class="ti-val" id="ch-np-v">—</span>
+          <span class="ti-st" id="ch-np-s">⬜</span>
+        </div>
+        <div class="target-item" id="ch-plating">
+          <span class="ti-icon">🛡</span>
+          <span class="ti-lbl">No Lithium Plating Risk</span>
+          <span class="ti-val" id="ch-pl-v">—</span>
+          <span class="ti-st" id="ch-pl-s">⬜</span>
+        </div>
+        <div style="text-align:center;">
+          <div class="score-circle" id="challengeScore">0/3</div>
+          <div style="font-family:var(--font-m);font-size:.62rem;color:var(--muted2);margin-top:.5rem;" id="challengeHint">
+            完成计算后自动评分
+          </div>
+        </div>
+      </div>
+
+      <!-- Design summary + tips -->
+      <div class="ch-target">
+        <div class="ch-target-title">📋 Current Design — 当前方案总结</div>
+        <div id="designSummary">
+          <div style="font-family:var(--font-m);font-size:.7rem;color:var(--muted);text-align:center;padding:1.2rem;">
+            完成容量计算和 N/P 比计算后显示设计总结
+          </div>
+        </div>
+
+        <div style="margin-top:1rem;" id="optTips">
+          <div class="ch-target-title">💡 Optimization Tips — 优化建议</div>
+          <div id="tipsList" style="display:flex;flex-direction:column;gap:.4rem;font-family:var(--font-m);font-size:.68rem;color:var(--muted2);">
+            <div>▸ Ni-rich NMC 可提升容量至 200+ mAh/g</div>
+            <div>▸ 硅碳负极 (Si/C) 大幅提升负极容量，改善 N/P</div>
+            <div>▸ 增大 reversible fraction 可提高实际利用率</div>
+            <div>▸ N/P 建议范围: 1.05–1.20 兼顾安全与容量</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+</div><!-- /.wrap -->
+
+<!-- ═══════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════ -->
+<script>
+'use strict';
+const F_CONST = 96485; // Faraday constant, C/mol
+
+/* ══════════════════════════════════════
+   PRESET MATERIAL DATA
+══════════════════════════════════════ */
+// Cathode materials preset library
+const CATHODE_PRESETS = [
+  { id:'LFP',  name:'LiFePO₄', M:157.76, n:1, revFrac:0.95, color:'#0d9488', desc:'磷酸铁锂' },
+  { id:'LCO',  name:'LiCoO₂',  M:97.88,  n:1, revFrac:0.5,  color:'#f43f5e', desc:'钴酸锂' },
+  { id:'LMO',  name:'LiMn₂O₄', M:180.81, n:1, revFrac:0.85, color:'#f59e0b', desc:'锰酸锂' },
+  { id:'NMC',  name:'NMC811',   M:96.37,  n:1, revFrac:0.88, color:'#8b5cf6', desc:'高镍三元' },
+  { id:'LNMO', name:'LNMO',     M:177.0,  n:1, revFrac:0.90, color:'#ec4899', desc:'高电压尖晶石' },
+];
+
+// Anode materials
+const ANODE_PRESETS = [
+  { id:'Gr',  name:'Graphite', cap:372,  color:'#94a3b8', desc:'石墨' },
+  { id:'SiC', name:'Si/C',     cap:800,  color:'#60a5fa', desc:'硅碳复合' },
+  { id:'Si',  name:'Pure Si',  cap:4200, color:'#a78bfa', desc:'纯硅' },
+  { id:'LTO', name:'Li₄Ti₅O₁₂',cap:175, color:'#4ade80', desc:'钛酸锂' },
+  { id:'Li',  name:'Li Metal', cap:3860, color:'#fbbf24', desc:'金属锂' },
+];
+
+/* ══════════════════════════════════════
+   APP STATE
+══════════════════════════════════════ */
+const S = {
+  n: 1,
+  M: 97.88,
+  revFrac: 0.5,
+  theoreticalCap: null,
+  actualCap: null,
+  npRatio: null,
+  selectedPreset: 'LCO',
+
+  // Chart instances
+  nCapChart: null,
+  revCapChart: null,
+  npChartInst: null,
+
+  // Animation
+  animFrame: null,
+  npDanger: false,
+};
+
+/* ══════════════════════════════════════
+   MODULE: THEORY RENDERER
+   Renders 3 theory tiles with MathJax
+══════════════════════════════════════ */
+function renderTheory() {
+  const grid = document.getElementById('theoryGrid');
+
+  const tiles = [
+    {
+      n:'01', tag:'Theoretical Specific Capacity', name:'理论比容量公式',
+      formula:'$$C_{th} = \\frac{n \\cdot F}{3.6 \\cdot M}$$',
+      note:'LiCoO₂ 示例: n=1, M=97.88 g/mol → C ≈ 274 mAh/g',
+      items:[
+        '<strong>n</strong>: 电子转移数 (mol)',
+        '<strong>F</strong>: 法拉第常数 96485 C/mol',
+        '<strong>M</strong>: 活性物质摩尔质量 (g/mol)',
+        '3.6 = 换算系数 (1 mAh = 3.6 C)',
+      ]
+    },
+    {
+      n:'02', tag:'Practical Capacity Limitation', name:'实际容量限制',
+      formula:'$$C_{real} = C_{th} \\times x_{rev}$$',
+      note:'LiCoO₂: x_rev ≈ 0.5 → C_real ≈ 140 mAh/g（结构稳定性限制）',
+      items:[
+        'x_rev: 可逆脱锂比例 (0~1)',
+        '过度脱锂导致结构塌陷',
+        'LFP 可逆性优于 LCO',
+        '实际容量 << 理论容量',
+      ]
+    },
+    {
+      n:'03', tag:'N/P Ratio Design Rule', name:'正负极 N/P 比',
+      formula:'$$\\frac{N}{P} = \\frac{C_a \\cdot m_a}{C_c \\cdot m_c} > 1$$',
+      note:'N/P < 1 → 负极析锂风险；推荐设计值: 1.05–1.20',
+      items:[
+        'N/P < 1.0: 锂沉积 (Lithium plating)',
+        'N/P 1.05–1.20: 最佳设计窗口',
+        'N/P > 1.5: 负极过量，降低能量密度',
+        '首效损失需纳入 N/P 计算',
+      ]
+    }
+  ];
+
+  grid.innerHTML = tiles.map(t => `
+    <div class="t-tile" data-n="${t.n}">
+      <div class="tt-tag">${t.tag}</div>
+      <div class="tt-name">${t.name}</div>
+      <div class="tt-formula">${t.formula}</div>
+      <div class="tt-note">${t.note}</div>
+      <ul class="tt-list">${t.items.map(i=>`<li>${i}</li>`).join('')}</ul>
+    </div>`).join('');
+
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([grid]);
+}
+
+/* ══════════════════════════════════════
+   MODULE: PRESET BUTTONS
+══════════════════════════════════════ */
+function renderPresets() {
+  const row = document.getElementById('presetRow');
+  row.innerHTML = CATHODE_PRESETS.map(p => `
+    <button class="preset-btn ${p.id === S.selectedPreset ? 'active' : ''}"
+            id="pre-${p.id}" onclick="loadPreset('${p.id}')">
+      ${p.name}
+    </button>`).join('');
+
+  renderElectrodePresets();
+}
+
+function renderElectrodePresets() {
+  document.getElementById('cathodePresets').innerHTML = CATHODE_PRESETS.map(p => `
+    <button class="elec-btn" onclick="loadCathodeElec('${p.id}')">${p.name}</button>`).join('');
+  document.getElementById('anodePresets').innerHTML = ANODE_PRESETS.map(p => `
+    <button class="elec-btn" onclick="loadAnodeElec('${p.id}')">${p.name}</button>`).join('');
+}
+
+/**
+ * loadPreset — fills capacity calculator with preset material values
+ */
+function loadPreset(id) {
+  const p = CATHODE_PRESETS.find(x => x.id === id);
+  if (!p) return;
+  S.selectedPreset = id;
+  S.n = p.n; S.M = p.M; S.revFrac = p.revFrac;
+
+  document.getElementById('nSlider').value  = p.n;
+  document.getElementById('mInput').value   = p.M;
+  document.getElementById('revSlider').value = p.revFrac;
+  document.getElementById('nDisplay').textContent  = p.n;
+  document.getElementById('revDisplay').textContent = p.revFrac.toFixed(2);
+
+  updateSliderFill('nSlider');
+  updateSliderFill('revSlider');
+  renderPresets();
+  calculateCapacity();
+}
+
+function loadCathodeElec(id) {
+  const p = CATHODE_PRESETS.find(x => x.id === id);
+  if (!p) return;
+  // Compute theoretical capacity for this preset
+  const cap = (p.n * F_CONST) / (3.6 * p.M) * p.revFrac;
+  document.getElementById('cCap').value = cap.toFixed(1);
+  document.querySelectorAll('.elec-btn').forEach(b => b.classList.remove('sel-c'));
+  event.target.classList.add('sel-c');
+  onNPInput();
+}
+
+function loadAnodeElec(id) {
+  const p = ANODE_PRESETS.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('aCap').value = p.cap;
+  document.querySelectorAll('.elec-btn').forEach(b => b.classList.remove('sel-a'));
+  event.target.classList.add('sel-a');
+  onNPInput();
+}
+
+/* ══════════════════════════════════════
+   MODULE: INPUT HANDLERS
+══════════════════════════════════════ */
+function onNSlider(v) {
+  S.n = parseInt(v);
+  document.getElementById('nDisplay').textContent = v;
+  updateSliderFill('nSlider');
+}
+function onRevSlider(v) {
+  const x = parseFloat(v);
+  const err = document.getElementById('revErr');
+  if (x < 0 || x > 1) { err.classList.add('show'); return; }
+  err.classList.remove('show');
+  S.revFrac = x;
+  document.getElementById('revDisplay').textContent = x.toFixed(2);
+  updateSliderFill('revSlider');
+}
+function onMInput(v) {
+  const m = parseFloat(v);
+  const err = document.getElementById('mErr');
+  const inp = document.getElementById('mInput');
+  if (isNaN(m) || m <= 0) { err.classList.add('show'); inp.classList.add('err'); }
+  else { err.classList.remove('show'); inp.classList.remove('err'); S.M = m; }
+}
+function onNPInput() {
+  // Debounced auto-calc
+  clearTimeout(S._npTimer);
+  S._npTimer = setTimeout(calculateNPRatio, 300);
+}
+
+/* ══════════════════════════════════════
+   MODULE: CAPACITY CALCULATOR
+   C = nF / (3.6 * M)  [mAh/g]
+══════════════════════════════════════ */
+/**
+ * calculateTheoreticalCapacity — core formula implementation
+ */
+function calculateTheoreticalCapacity(n, M) {
+  if (!n || n < 1 || !M || M <= 0) return null;
+  return (n * F_CONST) / (3.6 * M);
+}
+
+/**
+ * calculateRealCapacity — applies reversible fraction
+ */
+function calculateRealCapacity(theoretical, revFrac) {
+  if (theoretical === null) return null;
+  return theoretical * revFrac;
+}
+
+/**
+ * calculateCapacity — main function that reads inputs, computes, updates UI + charts
+ */
+function calculateCapacity() {
+  const n = parseInt(document.getElementById('nSlider').value);
+  const M = parseFloat(document.getElementById('mInput').value);
+  const rev = parseFloat(document.getElementById('revSlider').value);
+
+  // Validate
+  if (isNaN(n) || n < 1) return;
+  if (isNaN(M) || M <= 0) {
+    document.getElementById('mErr').classList.add('show');
+    document.getElementById('mInput').classList.add('err');
+    return;
+  }
+  if (isNaN(rev) || rev < 0 || rev > 1) return;
+
+  S.n = n; S.M = M; S.revFrac = rev;
+
+  const Cth = calculateTheoreticalCapacity(n, M);
+  const Creal = calculateRealCapacity(Cth, rev);
+  S.theoreticalCap = Cth;
+  S.actualCap = Creal;
+
+  // Update formula display
+  const fDisp = document.getElementById('liveFormula');
+  fDisp.innerHTML = `$C = \\dfrac{${n} \\times 96485}{3.6 \\times ${M.toFixed(2)}} \\times ${rev.toFixed(2)} = ${Creal.toFixed(1)}\\text{ mAh/g}$`;
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([fDisp]);
+
+  // Render result panel
+  const panel = document.getElementById('capResultPanel');
+  const capClass = Creal > 150 ? 'ok' : Creal > 100 ? 'warn' : 'bad';
+  panel.innerHTML = `
+    <div style="text-align:center;padding:.6rem 0 .3rem;">
+      <span class="big-num">${Creal.toFixed(1)}</span>
+      <span class="big-unit">mAh/g</span>
+      <div style="font-family:var(--font-m);font-size:.6rem;color:var(--muted2);letter-spacing:.12em;margin-top:.2rem;">ACTUAL CAPACITY</div>
+    </div>
+    <div class="res-row">
+      <span class="res-k">Theoretical C_th</span>
+      <span class="res-v hi">${Cth.toFixed(2)} mAh/g</span>
+    </div>
+    <div class="res-row">
+      <span class="res-k">Reversible Fraction x</span>
+      <span class="res-v warn">${rev.toFixed(2)}</span>
+    </div>
+    <div class="res-row">
+      <span class="res-k">Actual C_real</span>
+      <span class="res-v ${capClass}">${Creal.toFixed(2)} mAh/g</span>
+    </div>
+    <div class="res-row">
+      <span class="res-k">Utilization</span>
+      <span class="res-v">${(rev*100).toFixed(0)}%</span>
+    </div>
+    <div style="margin-top:.6rem;">
+      ${Creal > 200 ? '<span class="status-badge sb-ok"><span class="sb-dot"></span>High Capacity Material</span>' :
+        Creal > 150 ? '<span class="status-badge sb-ok"><span class="sb-dot pulse"></span>Good — Meets Target</span>' :
+        Creal > 100 ? '<span class="status-badge sb-warn"><span class="sb-dot pulse"></span>Moderate Capacity</span>' :
+        '<span class="status-badge sb-bad"><span class="sb-dot pulse"></span>Low Capacity — Needs Optimization</span>'}
+    </div>
+  `;
+
+  drawCapacityCharts(n, M, rev, Cth, Creal);
+  updateChallenge();
+}
+
+/* ══════════════════════════════════════
+   MODULE: DRAW CAPACITY CHARTS
+══════════════════════════════════════ */
+/**
+ * drawCapacityChart — two charts:
+ *   1. n (1..3) vs Theoretical Capacity for current M
+ *   2. Reversible fraction (0..1) vs Actual Capacity
+ */
+function drawCapacityCharts(n, M, rev, Cth, Creal) {
+  // === Chart 1: n vs Capacity ===
+  const ns = [1, 2, 3];
+  const caps = ns.map(ni => calculateTheoreticalCapacity(ni, M).toFixed(1));
+
+  const ctx1 = document.getElementById('nCapChart').getContext('2d');
+  if (S.nCapChart) S.nCapChart.destroy();
+  S.nCapChart = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: ns.map(ni => `n = ${ni}`),
+      datasets: [{
+        label: 'Theoretical Capacity (mAh/g)',
+        data: caps,
+        backgroundColor: ns.map(ni => ni === n ? 'rgba(20,184,166,.7)' : 'rgba(20,184,166,.22)'),
+        borderColor: '#14b8a6',
+        borderWidth: 1.5,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, animation: { duration: 500 },
+      plugins: {
+        legend: { labels: { color:'#94a3b8', font:{family:'IBM Plex Mono',size:11} } },
+        tooltip: { callbacks: { label: c => ` ${c.parsed.y} mAh/g` } }
+      },
+      scales: {
+        x: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#94a3b8',font:{family:'IBM Plex Mono',size:11}} },
+        y: {
+          title:{display:true,text:'mAh/g',color:'#64748b',font:{family:'IBM Plex Mono',size:10}},
+          grid:{color:'rgba(255,255,255,.04)'},
+          ticks:{color:'#94a3b8',font:{family:'IBM Plex Mono',size:10}}
+        }
+      }
+    }
+  });
+
+  // === Chart 2: Reversible fraction vs Actual Capacity ===
+  const revSteps = Array.from({length: 21}, (_, i) => i * 0.05);
+  const realCaps = revSteps.map(r => (Cth * r).toFixed(1));
+
+  const ctx2 = document.getElementById('revCapChart').getContext('2d');
+  if (S.revCapChart) S.revCapChart.destroy();
+  S.revCapChart = new Chart(ctx2, {
+    type: 'line',
+    data: {
+      labels: revSteps.map(r => r.toFixed(2)),
+      datasets: [
+        {
+          label: 'Actual Capacity',
+          data: realCaps,
+          borderColor: '#f59e0b',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          backgroundColor: 'rgba(245,158,11,.08)',
+          tension: 0.2,
+        },
+        // Current point marker
+        {
+          label: `Current (x=${rev.toFixed(2)})`,
+          data: revSteps.map(r => Math.abs(r - rev) < 0.026 ? (Cth * r).toFixed(1) : null),
+          borderColor: '#fb7185',
+          pointRadius: 7,
+          pointBackgroundColor: '#fb7185',
+          showLine: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true, animation: { duration: 500 },
+      plugins: {
+        legend: { labels: { color:'#94a3b8', font:{family:'IBM Plex Mono',size:11} } }
+      },
+      scales: {
+        x: {
+          title:{display:true,text:'Reversible Fraction x',color:'#64748b',font:{family:'IBM Plex Mono',size:10}},
+          grid:{color:'rgba(255,255,255,.04)'},
+          ticks:{color:'#94a3b8',font:{family:'IBM Plex Mono',size:10},maxTicksLimit:6}
+        },
+        y: {
+          title:{display:true,text:'mAh/g',color:'#64748b',font:{family:'IBM Plex Mono',size:10}},
+          grid:{color:'rgba(255,255,255,.04)'},
+          ticks:{color:'#94a3b8',font:{family:'IBM Plex Mono',size:10}}
+        }
+      }
+    }
+  });
+}
+
+/* ══════════════════════════════════════
+   MODULE: N/P RATIO CALCULATOR
+══════════════════════════════════════ */
+/**
+ * calculateNPRatio — reads electrode inputs and computes N/P ratio
+ * N/P = (C_anode * m_anode) / (C_cathode * m_cathode)
+ */
+function calculateNPRatio() {
+  const cCap  = parseFloat(document.getElementById('cCap').value);
+  const cMass = parseFloat(document.getElementById('cMass').value);
+  const aCap  = parseFloat(document.getElementById('aCap').value);
+  const aMass = parseFloat(document.getElementById('aMass').value);
+
+  if ([cCap,cMass,aCap,aMass].some(v => isNaN(v) || v <= 0)) return;
+
+  const cTotal = cCap * cMass;  // mAh
+  const aTotal = aCap * aMass;  // mAh
+  const np = aTotal / cTotal;
+  S.npRatio = np;
+
+  // Lithium plating check
+  checkLithiumPlating(np);
+
+  // Render N/P gauge
+  const gauge = document.getElementById('npGauge');
+  const npColor = np < 1.0 ? 'var(--rose)' : np <= 1.05 ? 'var(--amber2)' : np <= 1.5 ? 'var(--green)' : 'var(--ice)';
+  const pct = Math.min(np / 2.0 * 100, 100);
+
+  gauge.innerHTML = `
+    <div class="np-big" style="color:${npColor};">${np.toFixed(3)}</div>
+    <div class="np-lbl">N/P RATIO</div>
+    <div class="risk-bar-wrap" style="margin-top:.7rem;">
+      <div class="risk-bar" style="width:${pct.toFixed(1)}%;background:${npColor};"></div>
+      <div class="risk-zones">
+        <div class="rz" style="background:rgba(251,113,133,.15);color:rgba(251,113,133,.7);">Plating</div>
+        <div class="rz" style="background:rgba(74,222,128,.1);color:rgba(74,222,128,.7);">Optimal</div>
+        <div class="rz" style="background:rgba(186,230,253,.08);color:rgba(186,230,253,.6);">Excess</div>
+      </div>
+    </div>
+    <div style="margin-top:.7rem;font-family:var(--font-m);font-size:.68rem;">
+      <div style="display:flex;justify-content:space-between;">
+        <span style="color:var(--muted2);">Anode total</span>
+        <span style="color:var(--green);">${aTotal.toFixed(2)} mAh</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:.2rem;">
+        <span style="color:var(--muted2);">Cathode total</span>
+        <span style="color:var(--teal2);">${cTotal.toFixed(2)} mAh</span>
+      </div>
+    </div>
+  `;
+
+  drawNPChart(np);
+  updateChallenge();
+}
+
+/* ══════════════════════════════════════
+   MODULE: LITHIUM PLATING CHECK
+══════════════════════════════════════ */
+/**
+ * checkLithiumPlating — evaluates plating risk and triggers animation
+ */
+function checkLithiumPlating(np) {
+  S.npDanger = np < 1.0;
+  const isOptimal = np >= 1.05 && np <= 1.5;
+  const isWarning = np >= 1.0 && np < 1.05;
+  const isExcess  = np > 1.5;
+
+  // Restart animation with new state
+  initNPAnimation(np);
+}
+
+/* ══════════════════════════════════════
+   MODULE: NP CHART
+══════════════════════════════════════ */
+/**
+ * drawNPChart — scatter + line chart showing N/P risk zones
+ */
+function drawNPChart(currentNP) {
+  const ctx = document.getElementById('npChart').getContext('2d');
+  if (S.npChartInst) S.npChartInst.destroy();
+
+  const npVals = Array.from({length: 41}, (_, i) => (i * 0.05).toFixed(2));
+  // Risk score: 0=safe, higher=more dangerous
+  const riskData = npVals.map(v => {
+    const x = parseFloat(v);
+    if (x < 1.0)  return { np: v, risk: (1.0 - x) * 100 };
+    if (x < 1.05) return { np: v, risk: 5 };
+    if (x <= 1.5) return { np: v, risk: 0 };
+    return { np: v, risk: (x - 1.5) * 10 }; // slight penalty for excess
+  });
+
+  S.npChartInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: npVals,
+      datasets: [
+        {
+          label: 'Plating Risk',
+          data: riskData.map(d => d.risk),
+          backgroundColor: riskData.map(d =>
+            parseFloat(d.np) < 1.0 ? 'rgba(251,113,133,.65)' :
+            parseFloat(d.np) < 1.05 ? 'rgba(245,158,11,.55)' : 'rgba(74,222,128,.25)'
+          ),
+          borderWidth: 0,
+        },
+        {
+          label: `Current N/P = ${currentNP.toFixed(3)}`,
+          data: npVals.map(v => Math.abs(parseFloat(v) - currentNP) < 0.03 ? 80 : null),
+          backgroundColor: 'rgba(186,230,253,.9)',
+          borderColor: '#bae6fd',
+          borderWidth: 1,
+          barThickness: 4,
+        }
+      ]
+    },
+    options: {
+      responsive: true, animation: { duration: 400 },
+      plugins: {
+        legend: { labels: { color:'#94a3b8', font:{family:'IBM Plex Mono',size:10} } },
+        tooltip: { callbacks: {
+          label: c => c.datasetIndex === 0 ? ` Risk: ${c.parsed.y.toFixed(0)}` : ` N/P = ${currentNP.toFixed(3)}`
+        }}
+      },
+      scales: {
+        x: {
+          title:{display:true,text:'N/P Ratio',color:'#64748b',font:{family:'IBM Plex Mono',size:10}},
+          grid:{color:'rgba(255,255,255,.03)'},
+          ticks:{color:'#94a3b8',font:{family:'IBM Plex Mono',size:8},maxTicksLimit:10}
+        },
+        y: {
+          title:{display:true,text:'Plating Risk (%)',color:'#64748b',font:{family:'IBM Plex Mono',size:10}},
+          grid:{color:'rgba(255,255,255,.04)'},
+          ticks:{color:'#94a3b8',font:{family:'IBM Plex Mono',size:9}},
+          max: 100
+        }
+      }
+    }
+  });
+}
+
+/* ══════════════════════════════════════
+   MODULE: NP ANIMATION (Canvas)
+   Simulates Li+ ions flowing from cathode to anode
+   When N/P is dangerous, shows red lithium deposits on anode surface
+══════════════════════════════════════ */
+function initNPAnimation(np) {
+  if (S.animFrame) cancelAnimationFrame(S.animFrame);
+
+  const canvas = document.getElementById('npCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.parentElement.clientWidth - 16;
+  const H = 180;
+  canvas.width = W;
+  canvas.height = H;
+
+  const isDanger  = np < 1.0;
+  const isWarning = np >= 1.0 && np < 1.05;
+
+  // Electrode geometry
+  const cX = 10, cW = W * 0.2, eW = W * 0.55, aX = W - W*0.2 - 10, aW = W * 0.2;
+  const eX = cX + cW;
+  const top = 20, bot = H - 20, mid = (top + bot) / 2;
+  const cH = bot - top;
+
+  // Li+ particles array
+  const particles = Array.from({length: isDanger ? 12 : 8}, (_, i) => ({
+    x: cX + cW * Math.random(),
+    y: top + cH * Math.random(),
+    vx: 0.8 + Math.random() * 0.7,
+    vy: (Math.random() - 0.5) * 0.5,
+    r: 4 + Math.random() * 2,
+    absorbed: false,
+    depositX: 0,
+    depositY: 0,
+  }));
+
+  // Li deposits on anode surface (red, dangerous)
+  const deposits = [];
+
+  let frame = 0;
+
+  function tick() {
+    ctx.clearRect(0, 0, W, H);
+
+    // BG
+    ctx.fillStyle = '#060f23';
+    ctx.fillRect(0, 0, W, H);
+
+    // ── Cathode ──
+    const gC = ctx.createLinearGradient(cX, 0, cX+cW, 0);
+    gC.addColorStop(0, '#0d2040'); gC.addColorStop(1, '#1a3a60');
+    ctx.fillStyle = gC;
+    ctx.strokeStyle = '#0d9488'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(cX, top, cW, cH, 4); ctx.fill(); ctx.stroke();
+
+    // Cathode host dots (green)
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+      ctx.fillStyle = '#0d9488';
+      ctx.beginPath();
+      ctx.arc(cX + 12 + c * 14, top + 20 + r * 22, 3, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#0d9488'; ctx.font = 'bold 9px IBM Plex Mono, monospace';
+    ctx.textAlign = 'center'; ctx.fillText('CATHODE', cX + cW/2, top + 12);
+
+    // ── Electrolyte ──
+    ctx.fillStyle = 'rgba(13,148,136,.05)'; ctx.strokeStyle = 'rgba(13,148,136,.2)';
+    ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.rect(eX, top, eW, cH); ctx.fill(); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(13,148,136,.4)'; ctx.font = '8px IBM Plex Mono, monospace';
+    ctx.textAlign = 'center'; ctx.fillText('ELECTROLYTE', eX + eW/2, top + 12);
+
+    // ── Anode ──
+    const gA = ctx.createLinearGradient(aX, 0, aX+aW, 0);
+    gA.addColorStop(0, '#1a3a60'); gA.addColorStop(1, '#0d2040');
+    ctx.fillStyle = gA; ctx.strokeStyle = isDanger ? '#fb7185' : '#4ade80'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(aX, top, aW, cH, 4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = isDanger ? '#fb7185' : '#4ade80';
+    ctx.font = 'bold 9px IBM Plex Mono, monospace'; ctx.textAlign = 'center';
+    ctx.fillText('ANODE', aX + aW/2, top + 12);
+
+    // Graphite slots
+    for (let r = 0; r < 4; r++) {
+      ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(aX + 8, top + 22 + r * 16);
+      ctx.lineTo(aX + aW - 8, top + 22 + r * 16);
+      ctx.stroke();
+    }
+
+    // ── Lithium deposits (red) ──
+    deposits.forEach(d => {
+      ctx.fillStyle = `rgba(251,113,133,${d.opacity})`;
+      ctx.strokeStyle = '#fb7185'; ctx.lineWidth = .8;
+      ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI*2);
+      ctx.fill(); ctx.stroke();
+    });
+
+    // ── Li⁺ particles ──
+    particles.forEach(p => {
+      if (p.absorbed) return;
+
+      p.x += p.vx; p.y += p.vy;
+      if (p.y < top + 5 || p.y > bot - 5) p.vy *= -1;
+
+      // If reaches anode
+      if (p.x > aX - 4) {
+        if (isDanger || isWarning) {
+          // Deposit on surface — lithium plating!
+          if (deposits.length < 18) {
+            deposits.push({
+              x: aX + 2 + Math.random() * 10,
+              y: p.y,
+              r: 3 + Math.random() * 3,
+              opacity: 0.8 + Math.random() * 0.2
+            });
+          }
+        }
+        // Reset particle
+        p.x = cX + 5;
+        p.y = top + cH * Math.random();
+      }
+
+      // Draw glow
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 2.5);
+      g.addColorStop(0, 'rgba(96,165,250,.55)');
+      g.addColorStop(1, 'transparent');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r*2.5, 0, Math.PI*2); ctx.fill();
+
+      ctx.fillStyle = '#60a5fa';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 5px IBM Plex Mono, monospace'; ctx.textAlign = 'center';
+      ctx.fillText('Li', p.x, p.y + 1.8);
+    });
+
+    // Danger overlay
+    if (isDanger && frame % 60 < 30) {
+      ctx.fillStyle = 'rgba(251,113,133,.04)';
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // N/P label overlay
+    const npColor = isDanger ? '#fb7185' : isWarning ? '#fbbf24' : '#4ade80';
+    ctx.fillStyle = npColor; ctx.font = 'bold 11px IBM Plex Mono, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`N/P = ${np.toFixed(3)}`, 8, H - 6);
+    if (isDanger) {
+      ctx.fillStyle = '#fb7185'; ctx.font = 'bold 9px IBM Plex Mono, monospace';
+      ctx.textAlign = 'right'; ctx.fillText('⚠ LITHIUM PLATING RISK', W - 8, H - 6);
+    }
+
+    frame++;
+    S.animFrame = requestAnimationFrame(tick);
+  }
+
+  tick();
+}
+
+/* ══════════════════════════════════════
+   MODULE: CHALLENGE EVALUATOR
+══════════════════════════════════════ */
+/**
+ * updateChallenge — checks all 3 design targets and updates score display
+ */
+function updateChallenge() {
+  const cap = S.actualCap;
+  const np  = S.npRatio;
+
+  let score = 0;
+
+  const setTarget = (id, valId, stId, val, fmt, pass) => {
+    const row = document.getElementById(id);
+    document.getElementById(valId).textContent = val !== null ? fmt(val) : '—';
+    if (val === null) {
+      row.className = 'target-item';
+      document.getElementById(stId).textContent = '⬜';
+      return;
+    }
+    if (pass) {
+      row.className = 'target-item pass';
+      document.getElementById(stId).textContent = '✅';
+      score++;
+    } else {
+      row.className = 'target-item fail';
+      document.getElementById(stId).textContent = '❌';
+    }
+  };
+
+  setTarget('ch-cap', 'ch-cap-v', 'ch-cap-s', cap, v => v.toFixed(1)+' mAh/g', cap !== null && cap > 150);
+  setTarget('ch-np',  'ch-np-v',  'ch-np-s',  np,  v => v.toFixed(3),           np !== null && np > 1.1);
+  setTarget('ch-plating','ch-pl-v','ch-pl-s',  np,  v => v < 1.0 ? 'PLATING ⚠' : 'SAFE ✓', np !== null && np >= 1.0);
+
+  const sc = document.getElementById('challengeScore');
+  sc.textContent = `${score}/3`;
+  sc.className = `score-circle${score === 3 ? ' perfect' : ''}`;
+
+  const hints = [
+    '调整参数后系统自动评分',
+    '已达成 1 项！继续优化…',
+    '出色！2 项达成。尝试提升 N/P 比',
+    '🏆 全部目标达成！完美的电池设计！',
+  ];
+  document.getElementById('challengeHint').textContent = hints[score];
+
+  // Design summary
+  if (cap !== null || np !== null) {
+    document.getElementById('designSummary').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:.35rem;font-family:var(--font-m);font-size:.72rem;">
+        ${cap !== null ? `<div style="display:flex;justify-content:space-between;"><span style="color:var(--muted2);">Actual Capacity</span><span style="color:${cap > 150 ? 'var(--green)':'var(--rose)'};">${cap.toFixed(1)} mAh/g</span></div>` : ''}
+        ${cap !== null ? `<div style="display:flex;justify-content:space-between;"><span style="color:var(--muted2);">Theoretical Cap</span><span style="color:var(--teal2);">${S.theoreticalCap.toFixed(1)} mAh/g</span></div>` : ''}
+        ${np  !== null ? `<div style="display:flex;justify-content:space-between;"><span style="color:var(--muted2);">N/P Ratio</span><span style="color:${np >= 1.05 ? 'var(--green)' : np >= 1.0 ? 'var(--amber2)' : 'var(--rose)'};">${np.toFixed(3)}</span></div>` : ''}
+        ${np  !== null ? `<div style="display:flex;justify-content:space-between;"><span style="color:var(--muted2);">Plating Risk</span><span style="color:${np >= 1.0 ? 'var(--green)':'var(--rose)'};">${np >= 1.05 ? 'None — Safe' : np >= 1.0 ? 'Marginal' : 'HIGH RISK'}</span></div>` : ''}
+        ${cap !== null && np !== null ? `<div style="display:flex;justify-content:space-between;"><span style="color:var(--muted2);">Design Score</span><span style="color:var(--amber2);">${score}/3 Targets Met</span></div>` : ''}
+      </div>`;
+  }
+}
+
+/* ══════════════════════════════════════
+   UTILITY
+══════════════════════════════════════ */
+function updateSliderFill(id) {
+  const sl = document.getElementById(id);
+  const pct = ((sl.value - sl.min) / (sl.max - sl.min) * 100).toFixed(1);
+  sl.style.backgroundSize = pct + '% 100%';
+}
+
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
+function init() {
+  renderTheory();
+  renderPresets();
+
+  ['nSlider','revSlider'].forEach(updateSliderFill);
+
+  // Init NP animation with default safe value
+  setTimeout(() => {
+    initNPAnimation(1.15);
+    // Auto-calculate with defaults
+    loadPreset('LCO');
+    calculateNPRatio();
+  }, 400);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+window.addEventListener('resize', () => {
+  clearTimeout(window._rt);
+  window._rt = setTimeout(() => initNPAnimation(S.npRatio ?? 1.15), 180);
+});
+</script>
+</body>
+</html>
