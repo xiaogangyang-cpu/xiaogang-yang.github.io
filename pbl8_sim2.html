@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电解液降解活化能动力学模拟器 | Electrolyte Degradation Ea Simulator</title>
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 字体 Montserrat / Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js 绘图 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- MathJax 公式渲染 -->
+    <script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    <style>
+        /* 未来科技实验室风格 */
+        body {
+            background-color: #020617;
+            color: #f8fafc;
+            font-family: 'Roboto', sans-serif;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 30%, rgba(13, 148, 136, 0.06) 0%, transparent 30%),
+                radial-gradient(circle at 85% 70%, rgba(13, 148, 136, 0.05) 0%, transparent 35%),
+                repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 2px, transparent 2px, transparent 8px);
+        }
+        h1, h2, h3, .font-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+        }
+        .teal-highlight {
+            color: #0d9488;
+            text-shadow: 0 0 8px rgba(13, 148, 136, 0.5);
+        }
+        .yellow-bullet {
+            color: #facc15;
+            margin-right: 8px;
+            font-size: 1rem;
+        }
+        .glass-panel {
+            background: rgba(2, 6, 23, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(13, 148, 136, 0.3);
+            box-shadow: 0 0 30px rgba(13, 148, 136, 0.2);
+            transition: all 0.3s ease;
+            border-radius: 1.5rem;
+        }
+        .glass-panel:hover {
+            border-color: #0d9488;
+            box-shadow: 0 0 50px rgba(13, 148, 136, 0.4);
+        }
+        .btn-glow {
+            background: rgba(13, 148, 136, 0.1);
+            border: 1px solid #0d9488;
+            color: #f8fafc;
+            padding: 0.75rem 2rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(5px);
+            font-size: 1rem;
+        }
+        .btn-glow:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px #0d9488;
+            background: rgba(13, 148, 136, 0.25);
+            border-color: #0d9488;
+        }
+        .tooltip-icon {
+            position: relative;
+            cursor: help;
+            border-bottom: 1px dashed #0d9488;
+        }
+        .tooltip-icon .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background: #0f172a;
+            border-left: 4px solid #0d9488;
+            color: #f1f5f9;
+            text-align: left;
+            padding: 10px;
+            border-radius: 8px;
+            position: absolute;
+            z-index: 60;
+            bottom: 150%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 0.8rem;
+            box-shadow: 0 0 20px black;
+            pointer-events: none;
+        }
+        .tooltip-icon:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        .modal-overlay {
+            background: rgba(2, 6, 23, 0.95);
+            backdrop-filter: blur(12px);
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slider-teal::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #0d9488;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #0d9488;
+            cursor: pointer;
+        }
+        .slider-teal::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #0d9488;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #0d9488;
+            cursor: pointer;
+        }
+        .prediction-box {
+            background: rgba(13, 148, 136, 0.1);
+            border: 1px solid #0d9488;
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6 fade-in">
+
+    <!-- ========== 顶部核心理论区 ========== -->
+    <div class="max-w-7xl mx-auto mb-8">
+        <div class="glass-panel p-6">
+            <div class="flex items-center gap-3 mb-5">
+                <i class="fa-solid fa-lightbulb text-yellow-400 text-2xl drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]"></i>
+                <h2 class="text-2xl font-bold text-white">核心理论</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 text-sm">
+                <!-- 1 活化能 -->
+                <div class="flex items-start gap-2">
+                    <span class="yellow-bullet">▶</span>
+                    <div class="tooltip-icon">
+                        <span class="font-bold text-base">活化能 $E_a$</span><br>
+                        反应所需跨越的能垒。<br> $E_a \uparrow$ → 温度敏感性 $\uparrow$
+                        <span class="tooltip-text">活化能越高，反应速率对温度越敏感。</span>
+                    </div>
+                </div>
+                <!-- 2 Arrhenius公式 -->
+                <div class="flex items-start gap-2">
+                    <span class="yellow-bullet">▶</span>
+                    <div class="tooltip-icon">
+                        <span class="font-bold text-base">Arrhenius</span><br>
+                        $k = A e^{-E_a/(RT)}$
+                        <span class="tooltip-text">A:指前因子，R:气体常数，T:温度</span>
+                    </div>
+                </div>
+                <!-- 3 Arrhenius寿命外推 -->
+                <div class="flex items-start gap-2">
+                    <span class="yellow-bullet">▶</span>
+                    <div class="tooltip-icon">
+                        <span class="font-bold text-base">寿命外推</span><br>
+                        $t_f \propto e^{E_a/(RT)}$
+                        <span class="tooltip-text">高温实验加速老化，预测室温寿命</span>
+                    </div>
+                </div>
+                <!-- 4 水分影响降解 -->
+                <div class="flex items-start gap-2">
+                    <span class="yellow-bullet">▶</span>
+                    <div class="tooltip-icon">
+                        <span class="font-bold text-base">水分影响</span><br>
+                        微量水促进LiPF₆分解生成HF，降低有效$E_a$。
+                        <span class="tooltip-text">水分增大 → 活化能降低，降解加快</span>
+                    </div>
+                </div>
+                <!-- 5 SEI膜动力学 -->
+                <div class="flex items-start gap-2">
+                    <span class="yellow-bullet">▶</span>
+                    <div class="tooltip-icon">
+                        <span class="font-bold text-base">SEI膜动力学</span><br>
+                        保护电极，但分解产生CO₂、H₂，影响寿命。
+                        <span class="tooltip-text">SEI稳定性影响气体生成速率</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 中部模拟器启动区 ========== -->
+    <div class="max-w-4xl mx-auto mb-12">
+        <div class="glass-panel p-8 text-center relative overflow-hidden">
+            <i class="fa-solid fa-bolt absolute -right-6 -bottom-6 text-8xl text-teal-500/10"></i>
+            <i class="fa-solid fa-chart-line absolute -left-8 top-0 text-7xl text-teal-500/5"></i>
+            <div class="flex justify-center items-center gap-4 mb-3">
+                <i class="fa-solid fa-car-battery text-3xl teal-highlight"></i>
+                <i class="fa-solid fa-chart-simple text-3xl teal-highlight"></i>
+                <h1 class="text-3xl md:text-4xl font-title font-bold text-white tracking-wide">电解液降解活化能动力学模拟器</h1>
+            </div>
+            <span class="inline-block bg-teal-900/30 text-teal-400 border border-teal-500 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-6">基础 · 降解与寿命预测</span>
+            <div class="flex flex-col sm:flex-row justify-center gap-5">
+                <button onclick="openModal('simulatorModal')" class="btn-glow">
+                    <i class="fa-solid fa-play"></i> 启动模拟器
+                </button>
+                <button onclick="openModal('theoryModal')" class="btn-glow">
+                    <i class="fa-solid fa-book"></i> 理论背景
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 模拟器模态窗口 ========== -->
+    <div id="simulatorModal" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50 p-4" style="backdrop-filter: blur(12px);">
+        <div class="glass-panel w-full max-w-7xl max-h-[95vh] overflow-y-auto p-6">
+            <div class="flex justify-between items-center border-b border-teal-800 pb-3 mb-5">
+                <h2 class="text-2xl font-bold teal-highlight"><i class="fa-solid fa-flask mr-2"></i>降解动力学控制台</h2>
+                <button onclick="closeModal('simulatorModal')" class="text-slate-400 hover:text-white text-3xl">&times;</button>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- 左侧参数面板 -->
+                <div class="lg:col-span-1 space-y-4">
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
+                        <h3 class="text-white font-bold mb-3 border-l-4 border-teal-500 pl-2">动力学参数设置</h3>
+                        <div class="space-y-3 text-sm">
+                            <div>
+                                <label class="block text-slate-300 mb-1">活化能 Ea (kJ/mol) <span id="eaVal" class="teal-highlight float-right">60</span></label>
+                                <input type="range" id="eaSlider" min="20" max="120" value="60" step="1" class="w-full slider-teal" oninput="document.getElementById('eaVal').innerText=this.value">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 mb-1">指前因子 A (s⁻¹)</label>
+                                <input type="number" id="preExp" value="1e12" step="1e11" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 mb-1">温度 T (K) <span id="tempVal" class="teal-highlight float-right">298</span></label>
+                                <input type="range" id="tempSlider" min="273" max="400" value="298" step="1" class="w-full slider-teal" oninput="document.getElementById('tempVal').innerText=this.value">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 mb-1">水含量 (ppm) <span id="waterVal" class="text-blue-400 float-right">0</span></label>
+                                <input type="range" id="waterSlider" min="0" max="1000" value="0" step="10" class="w-full slider-teal" oninput="document.getElementById('waterVal').innerText=this.value">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 mb-1">SEI稳定性</label>
+                                <select id="seiStability" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
+                                    <option value="stable">稳定</option>
+                                    <option value="medium" selected>中等</option>
+                                    <option value="unstable">不稳定</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 mb-1">模拟时间 (h)</label>
+                                <input type="number" id="simTime" value="100" min="1" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
+                            </div>
+                            <div class="pt-2 border-t border-slate-700">
+                                <button onclick="runDegradation()" class="w-full bg-teal-600 hover:bg-teal-500 text-white py-2 rounded font-bold transition-colors mt-2"><i class="fa-regular fa-play"></i> 开始模拟</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 寿命预测模块 -->
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-teal-800">
+                        <h4 class="text-sm font-bold text-teal-300 mb-2"><i class="fa-regular fa-clock"></i> 寿命预测 (加速老化)</h4>
+                        <label class="block text-xs text-slate-400">高温测试 T1 (K)</label>
+                        <input type="number" id="T1" value="333" min="300" class="w-full bg-slate-800 border border-slate-600 rounded p-1 mb-2 text-sm">
+                        <label class="block text-xs text-slate-400">预测室温 T2 (K)</label>
+                        <input type="number" id="T2" value="298" min="273" class="w-full bg-slate-800 border border-slate-600 rounded p-1 mb-2 text-sm">
+                        <button onclick="predictLifetime()" class="w-full bg-blue-600/80 hover:bg-blue-600 text-white text-xs py-1.5 rounded">计算寿命外推</button>
+                        <div id="lifetimeResult" class="mt-2 text-xs text-teal-300"></div>
+                    </div>
+
+                    <!-- 教学游戏卡片 -->
+                    <div class="bg-slate-900/70 p-4 rounded-xl border border-yellow-600/40">
+                        <div class="flex items-center gap-2 text-yellow-400 text-xs uppercase tracking-wider mb-2"><i class="fa-solid fa-gamepad"></i> 活化能判断实验</div>
+                        <p class="text-xs text-slate-400 mb-1">材料A: Ea=40 kJ/mol | 材料B: Ea=80 kJ/mol</p>
+                        <p class="text-xs text-slate-400 mb-2">哪个材料温度稳定性更好？</p>
+                        <div class="flex gap-2">
+                            <button onclick="checkGame('A')" class="flex-1 bg-blue-600/80 text-xs py-1 rounded">材料A</button>
+                            <button onclick="checkGame('B')" class="flex-1 bg-blue-600/80 text-xs py-1 rounded">材料B</button>
+                        </div>
+                        <div id="gameFeedback" class="mt-2 text-xs p-2 bg-slate-800 rounded hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 右侧图表区 (4个图) -->
+                <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700 h-56">
+                        <canvas id="chartArrhenius"></canvas>
+                    </div>
+                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700 h-56">
+                        <canvas id="chartRateTemp"></canvas>
+                    </div>
+                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700 h-56">
+                        <canvas id="chartConc"></canvas>
+                    </div>
+                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700 h-56">
+                        <canvas id="chartGas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 理论背景模态窗口 ========== -->
+    <div id="theoryModal" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50 p-4">
+        <div class="glass-panel w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">
+            <div class="flex justify-between items-center border-b border-teal-800 pb-3 mb-4">
+                <h2 class="text-2xl font-bold teal-highlight"><i class="fa-regular fa-file-lines mr-2"></i>动力学理论背景</h2>
+                <button onclick="closeModal('theoryModal')" class="text-slate-400 hover:text-white text-3xl">&times;</button>
+            </div>
+            <div class="space-y-4 text-sm text-slate-300">
+                <section>
+                    <h3 class="text-lg font-bold text-white mb-2">📈 Arrhenius理论推导</h3>
+                    <p>$k = A e^{-E_a/(RT)}$，取对数得 $\ln k = \ln A - \frac{E_a}{R}\cdot\frac{1}{T}$，以 $\ln k$ 对 $1/T$ 作图得直线，斜率 $-E_a/R$。</p>
+                </section>
+                <section>
+                    <h3 class="text-lg font-bold text-white mb-2">⚡ 电解液分解机理</h3>
+                    <p>LiPF₆ 水解：$\text{LiPF}_6 + \text{H}_2\text{O} \rightarrow \text{POF}_3 + 2\text{HF} + \text{LiF}$，水分降低有效活化能：$E_{a,eff}=E_a - \beta\cdot\text{Water}$，本模拟取 $\beta = 0.02$。</p>
+                </section>
+                <section>
+                    <h3 class="text-lg font-bold text-white mb-2">🛡️ SEI膜形成与气体生成</h3>
+                    <p>SEI分解产生 CO₂、H₂等。气体生成速率与 SEI 稳定性相关：稳定 → 低速率；不稳定 → 高速率。</p>
+                </section>
+                <section>
+                    <h3 class="text-lg font-bold text-white mb-2">🔋 工程案例：电池寿命预测</h3>
+                    <p>高温存储实验（60℃）加速老化，利用 Arrhenius 外推室温寿命。寿命比 $t_2/t_1 = \exp\left[\frac{E_a}{R}(\frac{1}{T_2}-\frac{1}{T_1})\right]$。</p>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 模拟器核心 (整合 arrhenius_model, degradation_model, charts) ==========
+        let chartArr, chartRate, chartConc, chartGas;
+        const R = 8.314; // J/mol·K
+
+        // 打开/关闭模态
+        function openModal(id) {
+            document.getElementById(id).style.display = 'flex';
+            if (id === 'simulatorModal') setTimeout(initChartsIfNeeded, 150);
+        }
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        // 计算有效活化能 (水分降低)
+        function effectiveEa(Ea, water) {
+            const beta = 0.02; // 经验系数
+            return Ea - beta * water;
+        }
+
+        // 计算速率常数 k
+        function computeK(A, Ea_eff, T) {
+            return A * Math.exp(-Ea_eff * 1000 / (R * T)); // Ea kJ/mol → J/mol
+        }
+
+        // 运行降解模拟
+        function runDegradation() {
+            // 获取参数
+            const Ea = parseFloat(document.getElementById('eaSlider').value);
+            const A = parseFloat(document.getElementById('preExp').value);
+            const T = parseFloat(document.getElementById('tempSlider').value);
+            const water = parseFloat(document.getElementById('waterSlider').value);
+            const sei = document.getElementById('seiStability').value;
+            const simTime = parseFloat(document.getElementById('simTime').value);
+            
+            // 校验
+            if (Ea <= 0 || T <= 0 || simTime <= 0) { alert('参数必须为正'); return; }
+            
+            const Ea_eff = effectiveEa(Ea, water);
+            const k = computeK(A, Ea_eff, T);
+
+            // 降解曲线：假设一级降解 C = C0 * exp(-k * t) , 取C0=1
+            const times = [];
+            const conc = [];
+            const step = simTime / 60;
+            for (let t = 0; t <= simTime; t += step) {
+                times.push(t);
+                conc.push(Math.exp(-k * t));
+            }
+            if (chartConc) {
+                chartConc.data.labels = times.map(v => v.toFixed(1));
+                chartConc.data.datasets[0].data = conc;
+                chartConc.update();
+            }
+
+            // 气体生成：简化模型 气体量 ∝ (1 - exp(-k_gas * t))，根据SEI调节速率
+            let k_gas = k * 0.5; // 基础
+            if (sei === 'stable') k_gas = k * 0.2;
+            else if (sei === 'unstable') k_gas = k * 1.2;
+            const gas = [];
+            for (let t of times) gas.push(1 - Math.exp(-k_gas * t));
+            if (chartGas) {
+                chartGas.data.labels = times.map(v => v.toFixed(1));
+                chartGas.data.datasets[0].data = gas;
+                chartGas.update();
+            }
+
+            // 更新Arrhenius图 (lnk vs 1/T 范围)
+            const temps = [];
+            const invT = [];
+            const lnk = [];
+            for (let tt = 260; tt <= 400; tt+=10) {
+                temps.push(tt);
+                invT.push(1000/tt); // 方便显示
+                const kk = computeK(A, Ea_eff, tt);
+                lnk.push(Math.log(kk));
+            }
+            if (chartArr) {
+                chartArr.data.labels = invT.map(v => v.toFixed(3));
+                chartArr.data.datasets[0].data = lnk;
+                chartArr.update();
+            }
+
+            // 速率 vs 温度曲线 (在当前温度附近)
+            const tempRange = [];
+            const rateRange = [];
+            for (let dt = -30; dt <= 30; dt+=2) {
+                const Tt = T + dt;
+                if (Tt < 250) continue;
+                tempRange.push(Tt);
+                rateRange.push(computeK(A, Ea_eff, Tt));
+            }
+            if (chartRate) {
+                chartRate.data.labels = tempRange;
+                chartRate.data.datasets[0].data = rateRange;
+                chartRate.update();
+            }
+        }
+
+        // 寿命预测
+        function predictLifetime() {
+            const Ea = parseFloat(document.getElementById('eaSlider').value);
+            const water = parseFloat(document.getElementById('waterSlider').value);
+            const Ea_eff = effectiveEa(Ea, water);
+            const T1 = parseFloat(document.getElementById('T1').value);
+            const T2 = parseFloat(document.getElementById('T2').value);
+            if (T1 <= 0 || T2 <= 0) return;
+            // 寿命比 t2/t1 = exp((Ea/R)*(1/T2 - 1/T1))
+            const ratio = Math.exp((Ea_eff * 1000 / R) * (1/T2 - 1/T1));
+            const result = `高温 T1=${T1}K 寿命为1单位，预测室温 T2=${T2}K 寿命为 ${ratio.toFixed(1)} 倍。`;
+            document.getElementById('lifetimeResult').innerText = result;
+        }
+
+        // 教学游戏
+        function checkGame(material) {
+            const fb = document.getElementById('gameFeedback');
+            fb.classList.remove('hidden');
+            if (material === 'B') {
+                fb.innerHTML = '✅ 正确！材料B (Ea=80 kJ/mol) 活化能更高，温度稳定性更好（对温度变化更敏感，但高温下更稳定）。';
+            } else {
+                fb.innerHTML = '❌ 错误。活化能更高的材料温度稳定性更好。材料B的Ea更大。';
+            }
+        }
+
+        // 初始化图表 (如果未初始化)
+        function initChartsIfNeeded() {
+            if (chartArr) return;
+            const ctx1 = document.getElementById('chartArrhenius')?.getContext('2d');
+            if (ctx1) {
+                chartArr = new Chart(ctx1, {
+                    type: 'line',
+                    data: { labels: [], datasets: [{ label: 'ln(k)', borderColor: '#0d9488', data: [] }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#ccc' } } } }
+                });
+            }
+            const ctx2 = document.getElementById('chartRateTemp')?.getContext('2d');
+            if (ctx2) {
+                chartRate = new Chart(ctx2, {
+                    type: 'line',
+                    data: { labels: [], datasets: [{ label: 'k (s⁻¹)', borderColor: '#f43f5e', data: [] }] },
+                    options: { responsive: true }
+                });
+            }
+            const ctx3 = document.getElementById('chartConc')?.getContext('2d');
+            if (ctx3) {
+                chartConc = new Chart(ctx3, {
+                    type: 'line',
+                    data: { labels: [], datasets: [{ label: '电解液浓度 C/C₀', borderColor: '#0d9488', data: [] }] },
+                    options: { responsive: true }
+                });
+            }
+            const ctx4 = document.getElementById('chartGas')?.getContext('2d');
+            if (ctx4) {
+                chartGas = new Chart(ctx4, {
+                    type: 'line',
+                    data: { labels: [], datasets: [{ label: '气体生成量 (归一化)', borderColor: '#facc15', data: [] }] },
+                    options: { responsive: true }
+                });
+            }
+        }
+
+        // 模态点击外部关闭
+        window.onclick = function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>
