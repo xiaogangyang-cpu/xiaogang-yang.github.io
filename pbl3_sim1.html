@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>渗透压理论基础模拟器</title>
+<style>
+/* ══════════════════════════════════════════
+   CSS 变量
+══════════════════════════════════════════ */
+:root {
+  --bg0:   #01060f;
+  --bg1:   #050d1e;
+  --bg2:   #091628;
+  --bg3:   #0d2040;
+  --bd:    #163050;
+  --bd2:   #1e4070;
+
+  --cyan:  #00e5ff;
+  --teal:  #00b4cc;
+  --amber: #ffaa00;
+  --green: #00e676;
+  --salt:  #ff8c42;
+
+  --t1: #c8e4f8;
+  --t2: #3a6280;
+  --t3: #1c3450;
+
+  --fm: 'Courier New', Courier, monospace;
+  --fb: 'Segoe UI', 'Helvetica Neue', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+
+body {
+  background: var(--bg0);
+  color: var(--t1);
+  font-family: var(--fb);
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+/* ══════════════════════════════════════════
+   顶部标题栏
+══════════════════════════════════════════ */
+#topbar {
+  flex-shrink: 0;
+  height: 62px;
+  background: linear-gradient(90deg,#010508 0%,#061020 42%,#0a1830 58%,#010508 100%);
+  border-bottom: 1px solid var(--bd2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 2px 24px rgba(0,0,0,.8);
+}
+#topbar::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg,transparent 0%,var(--cyan) 28%,var(--teal) 72%,transparent 100%);
+  animation: gline 5s ease-in-out infinite;
+}
+@keyframes gline { 0%,100%{opacity:.2} 50%{opacity:.75} }
+
+.tb-left { display: flex; flex-direction: column; justify-content: center; }
+
+.tb-title {
+  font-family: var(--fm); font-size: .8rem; font-weight: bold;
+  letter-spacing: 4px; text-transform: uppercase;
+  color: var(--cyan);
+  text-shadow: 0 0 16px rgba(0,229,255,.55), 0 0 32px rgba(0,229,255,.2);
+}
+.tb-sub {
+  font-family: var(--fm); font-size: .48rem; color: var(--t2);
+  margin-top: 1px; letter-spacing: 1px;
+}
+/* 外加压力 subtitle 说明 */
+.tb-sub-note {
+  font-family: var(--fm); font-size: .44rem;
+  color: var(--amber); margin-top: 1px; opacity: .85;
+}
+
+.tb-center { display: flex; flex-direction: column; align-items: center; }
+.tb-formula {
+  font-family: var(--fm); font-size: .75rem; letter-spacing: 5px;
+  color: rgba(0,229,255,.55);
+  text-shadow: 0 0 10px rgba(0,229,255,.3);
+}
+.tb-formula b { color: var(--amber); font-weight: normal; }
+.tb-pi-live {
+  font-family: var(--fm); font-size: .6rem; letter-spacing: 2px;
+  color: var(--green); margin-top: 3px;
+  text-shadow: 0 0 8px rgba(0,230,118,.45);
+}
+
+#badge {
+  font-family: var(--fm); font-size: .58rem;
+  font-weight: bold; letter-spacing: 3px; text-transform: uppercase;
+  padding: 5px 14px; border-radius: 3px;
+  border: 1px solid var(--cyan); color: var(--cyan);
+  box-shadow: 0 0 10px rgba(0,229,255,.2);
+  transition: all .4s; white-space: nowrap;
+}
+#badge.eq  { color:var(--green); border-color:var(--green); box-shadow:0 0 10px rgba(0,230,118,.2); }
+#badge.rev { color:var(--amber); border-color:var(--amber); box-shadow:0 0 10px rgba(255,170,0,.25); }
+
+/* ══════════════════════════════════════════
+   主体网格
+══════════════════════════════════════════ */
+#main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 244px 1fr 272px;
+  grid-template-rows: 1fr 76px;
+  gap: 6px;
+  padding: 6px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ══════════════════════════════════════════
+   通用面板
+══════════════════════════════════════════ */
+.panel {
+  background: var(--bg1);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  display: flex; flex-direction: column;
+  overflow: hidden; position: relative;
+}
+.panel::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  pointer-events: none; opacity: .5; z-index: 1;
+}
+.p-cyan::before  { background: linear-gradient(90deg,transparent,var(--cyan),transparent); }
+.p-amber::before { background: linear-gradient(90deg,transparent,var(--amber),transparent); }
+
+.ph {
+  font-family: var(--fm); font-size: .46rem; letter-spacing: 3px;
+  color: var(--t2); text-transform: uppercase;
+  padding: 8px 12px 6px; background: var(--bg2);
+  border-bottom: 1px solid var(--bd);
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+.ph-r { margin-left: auto; font-family: var(--fm); font-size: .44rem; color: var(--t3); }
+
+.pb {
+  flex: 1; overflow-y: auto; padding: 10px 12px;
+  scrollbar-width: thin; scrollbar-color: var(--bd) transparent;
+}
+.pb::-webkit-scrollbar { width: 3px; }
+.pb::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 2px; }
+
+/* ══════════════════════════════════════════
+   左侧控制面板
+══════════════════════════════════════════ */
+#panel-left { grid-column:1; grid-row:1; }
+
+.sg {
+  font-family: var(--fm); font-size: .43rem; letter-spacing: 3px;
+  color: var(--t2); text-transform: uppercase;
+  border-bottom: 1px solid var(--bd);
+  padding-bottom: 3px; margin-bottom: 8px; margin-top: 3px;
+  display: flex; align-items: center; gap: 5px;
+}
+.sg::before {
+  content: ''; display: block; width: 10px; height: 1px;
+  background: var(--cyan); flex-shrink: 0;
+}
+
+.cg { margin-bottom: 13px; }
+.cl {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: var(--fm); font-size: .54rem; color: var(--t2); margin-bottom: 4px;
+}
+.cv { font-family: var(--fm); font-size: .66rem; font-weight: bold; transition: color .3s; }
+.rh {
+  display: flex; justify-content: space-between;
+  font-family: var(--fm); font-size: .44rem; color: var(--t3); margin-top: 2px;
+}
+
+input[type=range] {
+  -webkit-appearance: none; width: 100%; height: 4px;
+  background: var(--bg3); border-radius: 2px;
+  border: 1px solid var(--bd); outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 13px; height: 13px;
+  border-radius: 50%; cursor: pointer; transition: box-shadow .15s;
+}
+#sl-C::-webkit-slider-thumb { background:var(--cyan);  box-shadow:0 0 6px var(--cyan); }
+#sl-i::-webkit-slider-thumb { background:var(--salt);  box-shadow:0 0 6px var(--salt); }
+#sl-T::-webkit-slider-thumb { background:#ff7060;      box-shadow:0 0 6px #ff7060; }
+#sl-P::-webkit-slider-thumb { background:var(--amber); box-shadow:0 0 6px var(--amber); }
+
+/* 公式卡 */
+.fcard {
+  background: rgba(0,229,255,.04);
+  border: 1px solid rgba(0,229,255,.18);
+  border-radius: 5px; padding: 9px 10px; margin-top: 4px;
+}
+.fcard-title {
+  font-family: var(--fm); font-size: .8rem; text-align: center;
+  letter-spacing: 5px; color: var(--cyan);
+  text-shadow: 0 0 10px rgba(0,229,255,.4); margin-bottom: 7px;
+}
+.frow {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,.04);
+  font-family: var(--fm); font-size: .52rem;
+}
+.frow:last-child { border: none; }
+.fk { color: var(--t2); }
+.fv { color: var(--cyan); font-size: .56rem; transition: all .25s; }
+
+/* π 高亮行 */
+.frow-pi {
+  background: rgba(0,230,118,.08); border-radius: 3px;
+  margin-top: 3px; padding: 4px 6px !important;
+  border: none !important;
+}
+.fv-pi {
+  font-size: .88rem !important;
+  color: var(--green) !important;
+  text-shadow: 0 0 10px rgba(0,230,118,.5) !important;
+  font-weight: bold;
+}
+
+/* i 说明卡 */
+.icard {
+  background: rgba(255,140,66,.05);
+  border: 1px solid rgba(255,140,66,.22);
+  border-radius: 5px; padding: 9px 10px; margin-top: 5px;
+}
+.icard-hd {
+  font-family: var(--fm); font-size: .48rem; color: var(--salt);
+  letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px;
+}
+.icard-formula {
+  font-family: var(--fm); font-size: .6rem;
+  color: rgba(255,140,66,.8); text-align: center;
+  margin: 4px 0; letter-spacing: 2px;
+}
+.icard-body {
+  font-family: var(--fm); font-size: .5rem; color: var(--t2); line-height: 1.72;
+}
+.icard-body b { color: var(--salt); font-weight: normal; }
+.icard-warn {
+  font-family: var(--fm); font-size: .46rem; color: var(--t3);
+  margin-top: 4px; line-height: 1.6;
+  border-top: 1px solid rgba(255,140,66,.12); padding-top: 4px;
+}
+
+/* ══════════════════════════════════════════
+   中央 Canvas
+══════════════════════════════════════════ */
+#panel-center {
+  grid-column: 2; grid-row: 1;
+  overflow: hidden; background: #010508; border-color: var(--bd2);
+}
+#panel-center .ph {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 5;
+  background: linear-gradient(var(--bg2) 52%, transparent 100%);
+  border-bottom: none; padding-bottom: 12px;
+}
+#cv { display: block; width: 100%; height: 100%; }
+
+/* ══════════════════════════════════════════
+   右侧数据面板
+══════════════════════════════════════════ */
+#panel-right { grid-column:3; grid-row:1; }
+
+.dc {
+  background: var(--bg2); border: 1px solid var(--bd);
+  border-radius: 6px; padding: 8px 10px; margin-bottom: 7px;
+  position: relative; overflow: hidden;
+}
+.dc::before { content:''; position:absolute; left:0; top:0; bottom:0; width:2px; }
+.dc-c::before { background: var(--cyan); }
+.dc-a::before { background: var(--amber); }
+.dc-g::before { background: var(--green); }
+
+.dl { font-family:var(--fm); font-size:.48rem; color:var(--t2); margin-bottom:2px; }
+.dv { font-family:var(--fm); font-size:1.08rem; font-weight:bold; transition:color .4s; }
+.du { font-family:var(--fm); font-size:.46rem; color:var(--t2); margin-left:3px; }
+.df { font-family:var(--fm); font-size:.46rem; color:var(--t3); margin-top:3px; line-height:1.55; }
+
+/* 通量条 */
+.fbar-wrap { background:var(--bg2); border:1px solid var(--bd); border-radius:6px; padding:8px 10px; margin-bottom:7px; }
+.fbar-title { font-family:var(--fm); font-size:.48rem; color:var(--t2); margin-bottom:5px; }
+.fbar-track { height:11px; background:rgba(0,0,0,.5); border-radius:6px; overflow:hidden; position:relative; border:1px solid var(--bd); }
+.fbar-mid   { position:absolute; left:50%; top:0; bottom:0; width:1px; background:rgba(255,255,255,.18); }
+.fbar-fill  { position:absolute; top:0; height:100%; border-radius:6px; transition:left .35s,width .35s,background .35s; }
+.fbar-ends  { display:flex; justify-content:space-between; margin-top:3px; font-family:var(--fm); font-size:.44rem; color:var(--t3); }
+
+/* 状态卡 */
+.sc { border-radius:6px; padding:8px 10px; margin-bottom:7px; border:1px solid; transition:all .4s; }
+.sc-os { border-color:var(--cyan);  background:rgba(0,229,255,.05); }
+.sc-eq { border-color:var(--green); background:rgba(0,230,118,.05); }
+.sc-rv { border-color:var(--amber); background:rgba(255,170,0,.05); }
+.sc-t  { font-family:var(--fm); font-size:.48rem; letter-spacing:2px; margin-bottom:4px; transition:color .4s; }
+.sc-b  { font-family:var(--fm); font-size:.5rem; color:var(--t2); line-height:1.65; white-space:pre-line; }
+
+/* π sparkline */
+.spark-wrap { background:var(--bg2); border:1px solid var(--bd); border-radius:6px; padding:7px 10px; margin-bottom:7px; }
+.spark-title { font-family:var(--fm); font-size:.48rem; color:var(--t2); margin-bottom:4px; }
+#pi-spark { display:block; width:100%; height:44px; border-radius:3px; }
+
+/* ══════════════════════════════════════════
+   底部提示
+══════════════════════════════════════════ */
+#panel-bottom {
+  grid-column:1/-1; grid-row:2;
+  background:var(--bg1); border:1px solid var(--bd);
+  border-radius:8px; overflow:hidden;
+  display:flex; align-items:stretch;
+}
+.tc {
+  flex:1; display:flex; flex-direction:column;
+  justify-content:center; padding:7px 13px;
+  border-right:1px solid var(--bd);
+}
+.tc:last-child { flex:2; border-right:none; }
+.tl { font-family:var(--fm); font-size:.39rem; letter-spacing:3px; color:var(--t3); margin-bottom:2px; text-transform:uppercase; }
+.tv { font-family:var(--fm); font-size:.56rem; line-height:1.55; transition:color .4s; }
+
+/* 扫描线 */
+body::after {
+  content:''; position:fixed; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,rgba(0,229,255,.06),transparent);
+  animation:scan 9s linear infinite; pointer-events:none; z-index:9999;
+}
+@keyframes scan { 0%{top:0} 100%{top:100vh} }
+
+/* ══════════════════════════════════════════
+   响应式（小屏适配）
+══════════════════════════════════════════ */
+@media (max-width: 900px) {
+  #main {
+    grid-template-columns: 200px 1fr 220px;
+  }
+}
+@media (max-width: 700px) {
+  #main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto 60px;
+    overflow-y: auto;
+  }
+  #panel-left   { grid-column:1; grid-row:1; max-height:260px; }
+  #panel-center { grid-column:1; grid-row:2; min-height:240px; }
+  #panel-right  { grid-column:1; grid-row:3; max-height:300px; }
+  #panel-bottom { grid-column:1; grid-row:4; }
+  .tb-title { font-size:.6rem; letter-spacing:2px; }
+  .tb-sub-note { display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════ TOPBAR ════ -->
+<div id="topbar">
+  <div class="tb-left">
+    <div class="tb-title">渗 透 压 理 论 基 础 模 拟 器</div>
+    <div class="tb-sub">Osmotic Pressure · van't Hoff · Semipermeable Membrane · Reverse Osmosis</div>
+    <!-- 外加压力说明 subtitle -->
+    <div class="tb-sub-note">注：反渗透外加压力 P 实际施加于盐水侧（右侧），用于克服渗透压 π</div>
+  </div>
+  <div class="tb-center">
+    <div class="tb-formula">π = i · C · <b>R</b> · T</div>
+    <div class="tb-pi-live">π = <span id="tb-pi">—</span> atm &nbsp;|&nbsp; P = <span id="tb-P">0.0</span> atm</div>
+  </div>
+  <div id="badge">● 渗 透</div>
+</div>
+
+<!-- ════ MAIN ════ -->
+<div id="main">
+
+  <!-- ── 左侧控制 ── -->
+  <div class="panel p-cyan" id="panel-left">
+    <div class="ph"><span>⚙</span>参 数 控 制 台<span class="ph-r">CONTROLS</span></div>
+    <div class="pb">
+
+      <div class="sg">可调参数</div>
+
+      <div class="cg">
+        <div class="cl">
+          溶液浓度 C <small style="color:var(--t3)">(右侧盐水)</small>
+          <span class="cv" id="dC" style="color:var(--cyan)">0.50 mol/L</span>
+        </div>
+        <input type="range" id="sl-C" min="0" max="100" value="50" step="1">
+        <div class="rh"><span>0</span><span>0.5</span><span>1.0 mol/L</span></div>
+      </div>
+
+      <div class="cg">
+        <div class="cl">
+          van't Hoff 系数 i
+          <span class="cv" id="di" style="color:var(--salt)">2.0</span>
+        </div>
+        <input type="range" id="sl-i" min="10" max="30" value="20" step="1">
+        <div class="rh"><span>1 (非电解质)</span><span>2 (NaCl)</span><span>3</span></div>
+      </div>
+
+      <div class="cg">
+        <div class="cl">
+          温度 T
+          <span class="cv" id="dT" style="color:#ff8080">298 K</span>
+        </div>
+        <input type="range" id="sl-T" min="273" max="350" value="298" step="1">
+        <div class="rh"><span>273 K (0°C)</span><span>350 K (77°C)</span></div>
+      </div>
+
+      <!-- P 滑块：标注施加于盐水侧 -->
+      <div class="cg">
+        <div class="cl">
+          外加压力 P <small style="color:var(--amber)">(→盐水侧，反渗透)</small>
+          <span class="cv" id="dP" style="color:var(--amber)">0.0 atm</span>
+        </div>
+        <input type="range" id="sl-P" min="0" max="6000" value="0" step="10">
+        <div class="rh"><span>0 atm</span><span>30</span><span>60 atm</span></div>
+      </div>
+
+      <div class="sg" style="margin-top:5px">van't Hoff 公式</div>
+
+      <div class="fcard">
+        <div class="fcard-title">π = i · C · R · T</div>
+        <div class="frow"><span class="fk">i — van't Hoff 系数</span><span class="fv" id="fv-i">—</span></div>
+        <div class="frow"><span class="fk">C — 摩尔浓度</span><span class="fv" id="fv-C">—</span></div>
+        <div class="frow"><span class="fk">R — 0.08206 L·atm/mol·K</span><span class="fv" style="color:var(--t3)">常数</span></div>
+        <div class="frow"><span class="fk">T — 温度</span><span class="fv" id="fv-T">—</span></div>
+        <!-- π 高亮行 -->
+        <div class="frow frow-pi">
+          <span class="fk" style="color:var(--green)">π — 渗透压 (实时)</span>
+          <span class="fv fv-pi" id="fv-pi">—</span>
+        </div>
+      </div>
+
+      <!-- i 与解离度说明卡 -->
+      <div class="sg" style="margin-top:7px">i 的物理意义</div>
+      <div class="icard">
+        <div class="icard-hd">⚗ i ≠ 解离常数 Kd</div>
+        <div class="icard-formula">i = 1 + α · (n − 1)</div>
+        <div class="icard-body">
+          <b>α</b> = 解离度 (0–1)，<b>n</b> = 每分子可产生离子数<br>
+          <b>i</b> = 实际粒子数 ÷ 理论分子数（有效粒子乘数）<br>
+          ▸ 蔗糖: n=1, α=0 → <b>i=1</b>（不电离）<br>
+          ▸ NaCl: n=2, α≈1 → <b>i≈2</b>（Na⁺ + Cl⁻）<br>
+          ▸ CaCl₂: n=3, α≈1 → <b>i≈3</b>（Ca²⁺ + 2Cl⁻）
+        </div>
+        <div class="icard-warn">
+          Kd（解离常数）= [产物]/[反应物]，是热力学平衡常数，概念不同于 i。<br>
+          真实 i 略小于整数（离子间相互吸引），本模拟假设完全解离。
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── 中央 Canvas ── -->
+  <div class="panel" id="panel-center">
+    <div class="ph" style="position:absolute;top:0;left:0;right:0;z-index:5;
+      background:linear-gradient(var(--bg2) 52%,transparent 100%);border-bottom:none;">
+      <span>💧</span>半 透 膜 传 质 模 拟
+      <span class="ph-r">蓝=水分子 · 橙=溶质离子 · 粒子运动于液面以下</span>
+    </div>
+    <canvas id="cv"></canvas>
+  </div>
+
+  <!-- ── 右侧数据 ── -->
+  <div class="panel p-amber" id="panel-right">
+    <div class="ph"><span>📊</span>实 时 计 算<span class="ph-r">LIVE DATA</span></div>
+    <div class="pb">
+
+      <!-- π 高亮卡 -->
+      <div class="dc" style="background:rgba(0,230,118,.06);border-color:rgba(0,230,118,.3);margin-bottom:7px;position:relative;overflow:hidden;">
+        <div class="dc::before" style="position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--green);"></div>
+        <div class="dl" style="color:rgba(0,230,118,.7)">渗透压 π（van't Hoff）</div>
+        <div><span class="dv" id="r-pi" style="color:var(--green);font-size:1.3rem;">—</span><span class="du">atm</span></div>
+        <div class="df" id="r-pi-exp" style="color:rgba(0,200,100,.5)">π = i × C × R × T = …</div>
+      </div>
+
+      <div class="dc dc-a">
+        <div class="dl">外加压力 P（盐水侧 → 反渗透）</div>
+        <div><span class="dv" id="r-P" style="color:var(--amber)">—</span><span class="du">atm</span></div>
+        <div class="df">P &gt; π → 反渗透 &nbsp;|&nbsp; P ≈ π → 平衡</div>
+      </div>
+
+      <!-- π 实时 sparkline -->
+      <div class="spark-wrap">
+        <div class="spark-title">π 实时趋势（随参数变化）</div>
+        <canvas id="pi-spark"></canvas>
+      </div>
+
+      <!-- 净通量条 -->
+      <div class="fbar-wrap">
+        <div class="fbar-title">净水通量方向</div>
+        <div class="fbar-track">
+          <div class="fbar-mid"></div>
+          <div class="fbar-fill" id="fbar" style="left:50%;width:0%"></div>
+        </div>
+        <div class="fbar-ends">
+          <span style="color:var(--amber)">← 反渗透（右→左）</span>
+          <span style="color:var(--cyan)">渗透（左→右）→</span>
+        </div>
+      </div>
+
+      <!-- 状态解释 -->
+      <div class="sc sc-os" id="sc">
+        <div class="sc-t" id="sc-t" style="color:var(--cyan)">● 渗透 (Osmosis)</div>
+        <div class="sc-b" id="sc-b">—</div>
+      </div>
+
+      <div class="dc dc-g">
+        <div class="dl">理论平衡液面高差 Δh</div>
+        <div><span class="dv" id="r-dh" style="color:var(--green)">—</span><span class="du">cmH₂O</span></div>
+        <div class="df">Δh = π × 1034 cm/atm（1 atm ≈ 1033 cmH₂O）</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── 底部教学提示 ── -->
+  <div id="panel-bottom">
+    <div class="tc">
+      <div class="tl">当前状态</div>
+      <div class="tv" id="tip-state" style="color:var(--cyan)">正向渗透</div>
+    </div>
+    <div class="tc">
+      <div class="tl">实际参考</div>
+      <div class="tv" id="tip-ref" style="color:var(--t2)">—</div>
+    </div>
+    <div class="tc">
+      <div class="tl">反渗透原理</div>
+      <div class="tv" style="color:var(--t2)">
+        P 施加于<span style="color:var(--amber)">盐水侧</span>；P &gt; π 时水反向穿膜；
+        海水淡化约 <span style="color:var(--amber)">55–70 atm</span>
+      </div>
+    </div>
+    <div class="tc">
+      <div class="tl">💡 教学提示</div>
+      <div class="tv" id="tip-hint" style="color:var(--t2)">π 与溶质种类无关，仅取决于粒子数浓度 i·C 和温度 T（van't Hoff 定律）。</div>
+    </div>
+  </div>
+
+</div><!-- #main -->
+
+<script>
+'use strict';
+/* ══════════════════════════════════════════════════════════════
+   物理常数 & 参数
+══════════════════════════════════════════════════════════════ */
+const R_GAS = 0.08206; // L·atm/(mol·K)
+
+const SIM = { C: 0.50, i: 2.0, T: 298, P: 0.0 };
+
+function calcPi() { return SIM.i * SIM.C * R_GAS * SIM.T; }
+
+/* 容差：避免边界抖动 */
+function getState(pi, P) {
+  const eps = Math.max(pi * 0.07, 0.4);
+  if (P > pi + eps)           return 'reverse';
+  if (Math.abs(P - pi) < eps) return 'equilib';
+  return 'osmosis';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   主 Canvas
+══════════════════════════════════════════════════════════════ */
+const canvas = document.getElementById('cv');
+const ctx    = canvas.getContext('2d');
+
+let W = 0, H = 0;
+let BOX_L, BOX_R, BOX_T, BOX_B, MEM_X;
+let needReinit = true;
+
+/* 液面（归一化 0=空 1=满） */
+let lvL = 0.62, lvR = 0.62;
+
+/* 粒子数量 */
+const N_WATER  = 72;
+const N_SOLUTE = 28;
+let particles  = [];
+let frameN     = 0;
+
+/* 帧率控制 */
+let lastT = 0;
+const FRAME_MS = 1000 / 60;
+
+/* ── 粒子工厂 ── */
+function makePart(type, side) {
+  const xMin = side === 'L' ? BOX_L + 6 : MEM_X + 6;
+  const xMax = side === 'L' ? MEM_X - 6 : BOX_R - 6;
+  const spd  = 0.9 + Math.random() * 1.5;
+  const ang  = Math.random() * Math.PI * 2;
+  /* 初始 y：在各侧液面以下 */
+  const surfY = side === 'L'
+    ? BOX_B - (BOX_B - BOX_T) * lvL
+    : BOX_B - (BOX_B - BOX_T) * lvR;
+  const yMin = surfY + 6;
+  const yMax = BOX_B - 6;
+  return {
+    x:     xMin + Math.random() * (xMax - xMin),
+    y:     yMin + Math.random() * Math.max(yMax - yMin, 1),
+    vx:    Math.cos(ang) * spd,
+    vy:    Math.sin(ang) * spd,
+    r:     type === 'water' ? 3.5 : 4.0,
+    type, side,
+    phase: Math.random() * Math.PI * 2,
+  };
+}
+
+function initParticles() {
+  particles = [];
+  for (let k = 0; k < N_WATER;  k++) particles.push(makePart('water',  k < N_WATER / 2 ? 'L' : 'R'));
+  for (let k = 0; k < N_SOLUTE; k++) particles.push(makePart('solute', 'R'));
+}
+
+/* ══════════════════════════════════════════════════════════════
+   粒子物理更新
+   核心修复①：粒子 y 上边界 = 各侧液面 y 坐标，不得越过
+══════════════════════════════════════════════════════════════ */
+function updateParticles(pi) {
+  /* 净通量：tanh((π-P)/scale) ∈ [-1,+1]
+     +1 = 纯渗透方向（左→右）
+     -1 = 纯反渗透方向（右→左） */
+  const scale   = Math.max(pi * 0.55 + 2.5, 1.5);
+  const netFlux = Math.tanh((pi - SIM.P) / scale);
+
+  const pBase = 0.0025;
+  const pLR   = Math.max(0, pBase + netFlux * 0.0025); // 左→右穿膜概率
+  const pRL   = Math.max(0, pBase - netFlux * 0.0025); // 右→左穿膜概率
+
+  /* 温度影响粒子速度 v ∝ √T（麦克斯韦分布） */
+  const vScale = Math.sqrt(SIM.T / 298);
+
+  /* ① 当前液面 y（上边界） */
+  const surfL = BOX_B - (BOX_B - BOX_T) * lvL;
+  const surfR = BOX_B - (BOX_B - BOX_T) * lvR;
+
+  particles.forEach(p => {
+    /* 布朗运动 */
+    const noise = p.type === 'solute' ? 0.15 : 0.06;
+    p.vx += (Math.random() - 0.5) * noise;
+    p.vy += (Math.random() - 0.5) * noise;
+
+    /* 速度限幅 */
+    const maxV = 2.8 * vScale;
+    const spd  = Math.hypot(p.vx, p.vy);
+    if (spd > maxV) { const s = maxV / spd; p.vx *= s; p.vy *= s; }
+    if (spd < 0.4)  { p.vx *= 1.08; p.vy *= 1.08; }
+
+    p.x += p.vx;
+    p.y += p.vy;
+
+    /* ① 液面上边界约束（最核心修复）：
+       粒子不得越过自身所在侧的液面 */
+    const mySurf = (p.side === 'L') ? surfL : surfR;
+    if (p.y - p.r < mySurf) {
+      p.y  = mySurf + p.r; // 压回液面以下
+      p.vy = Math.abs(p.vy) * 0.7; // 向下反弹（衰减）
+    }
+
+    /* 容器底部 */
+    if (p.y + p.r > BOX_B) { p.y = BOX_B - p.r; p.vy = -Math.abs(p.vy) * 0.7; }
+
+    /* 左右壁 */
+    if (p.x - p.r < BOX_L) { p.x = BOX_L + p.r; p.vx =  Math.abs(p.vx); }
+    if (p.x + p.r > BOX_R) { p.x = BOX_R - p.r; p.vx = -Math.abs(p.vx); }
+
+    /* 溶质离子不穿膜（半透膜的核心性质） */
+    if (p.type === 'solute') {
+      if (p.x - p.r < MEM_X) { p.x = MEM_X + p.r; p.vx = Math.abs(p.vx); }
+      return;
+    }
+
+    /* 水分子穿膜（概率） */
+    const nearMem = Math.abs(p.x - MEM_X) < 12;
+    if (nearMem) {
+      if (p.side === 'L' && Math.random() < pLR) {
+        /* 渗透：左→右 */
+        p.side = 'R';
+        p.x    = MEM_X + p.r + 1;
+        p.vx   = Math.abs(p.vx);
+        /* ① 切换侧后立即约束到新侧液面以下 */
+        if (p.y - p.r < surfR) p.y = surfR + p.r;
+      } else if (p.side === 'R' && Math.random() < pRL) {
+        /* 反渗透：右→左 */
+        p.side = 'L';
+        p.x    = MEM_X - p.r - 1;
+        p.vx   = -Math.abs(p.vx);
+        if (p.y - p.r < surfL) p.y = surfL + p.r;
+      }
+    }
+
+    /* 防止越界到错误侧 */
+    if (p.side === 'L' && p.x > MEM_X - p.r) { p.x = MEM_X - p.r; p.vx = -Math.abs(p.vx); }
+    if (p.side === 'R' && p.x < MEM_X + p.r) { p.x = MEM_X + p.r; p.vx =  Math.abs(p.vx); }
+  });
+
+  /* 液面跟随水分子左右分布缓慢调整 */
+  const wL = particles.filter(p => p.type === 'water' && p.side === 'L').length;
+  const wR = particles.filter(p => p.type === 'water' && p.side === 'R').length;
+  const wT = wL + wR;
+  if (wT > 0) {
+    const tL = 0.28 + (wL / wT) * 0.56;
+    const tR = 0.28 + (wR / wT) * 0.56;
+    lvL += (tL - lvL) * 0.005; // 缓动系数（越小越慢）
+    lvR += (tR - lvR) * 0.005;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   主绘制循环
+══════════════════════════════════════════════════════════════ */
+function drawFrame(ts) {
+  /* 帧率控制：防止过快渲染（低端设备友好） */
+  if (ts - lastT < FRAME_MS * 0.82) { requestAnimationFrame(drawFrame); return; }
+  lastT = ts;
+
+  const pi    = calcPi();
+  const state = getState(pi, SIM.P);
+  const scale = Math.max(pi * 0.55 + 2.5, 1.5);
+  const nf    = Math.tanh((pi - SIM.P) / scale); // 净通量 [-1,+1]
+
+  /* 尺寸自适应 */
+  const ow = canvas.offsetWidth, oh = canvas.offsetHeight;
+  if (ow !== W || oh !== H || needReinit) {
+    W = canvas.width  = ow;
+    H = canvas.height = oh;
+    BOX_L = W * 0.03; BOX_R = W * 0.97;
+    BOX_T = H * 0.15; BOX_B = H * 0.90;
+    MEM_X = (BOX_L + BOX_R) / 2;
+    needReinit = false;
+    initParticles();
+  }
+
+  const boxW = BOX_R - BOX_L;
+  const boxH = BOX_B - BOX_T;
+
+  /* ── 背景 ── */
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#010508'; ctx.fillRect(0, 0, W, H);
+
+  /* 点阵 */
+  ctx.fillStyle = 'rgba(12,34,64,.2)';
+  for (let gx = 0; gx < W; gx += 24)
+    for (let gy = 0; gy < H; gy += 24) {
+      ctx.beginPath(); ctx.arc(gx, gy, 0.75, 0, Math.PI * 2); ctx.fill();
+    }
+
+  /* ── 容器框 ── */
+  pRound(BOX_L, BOX_T, boxW, boxH, 7);
+  ctx.fillStyle = '#010b16'; ctx.fill();
+  ctx.strokeStyle = 'rgba(26,56,100,.9)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  /* 右侧盐水底色 */
+  const sd = 0.07 + SIM.C * 0.20;
+  ctx.beginPath(); ctx.rect(MEM_X, BOX_T+1, BOX_R-MEM_X-1, boxH-2);
+  ctx.fillStyle = `rgba(0,62,145,${sd})`; ctx.fill();
+
+  /* ── 液面高度 ── */
+  const lvHL = boxH * lvL;         // 左侧液高（像素）
+  const lvHR = boxH * lvR;         // 右侧液高（像素）
+  const surfYL = BOX_B - lvHL;     // 左液面 y 坐标
+  const surfYR = BOX_B - lvHR;     // 右液面 y 坐标
+
+  /* ── 液体填充（水体区域） ── */
+  /* 左：纯水 */
+  const wgL = ctx.createLinearGradient(BOX_L, surfYL, BOX_L, BOX_B);
+  wgL.addColorStop(0, 'rgba(0,165,220,.07)'); wgL.addColorStop(1, 'rgba(0,100,165,.14)');
+  ctx.beginPath(); ctx.rect(BOX_L+1, surfYL, MEM_X-BOX_L-1, lvHL);
+  ctx.fillStyle = wgL; ctx.fill();
+
+  /* 右：盐水 */
+  const wgR = ctx.createLinearGradient(MEM_X, surfYR, MEM_X, BOX_B);
+  wgR.addColorStop(0, 'rgba(16,90,188,.08)'); wgR.addColorStop(1, 'rgba(8,60,148,.14)');
+  ctx.beginPath(); ctx.rect(MEM_X+1, surfYR, BOX_R-MEM_X-1, lvHR);
+  ctx.fillStyle = wgR; ctx.fill();
+
+  /* ── 液面波浪线（界面） ── */
+  waveLine(BOX_L+2, MEM_X-2, surfYL, 'rgba(0,205,255,.45)');
+  waveLine(MEM_X+2, BOX_R-2, surfYR, `rgba(26,122,210,${0.30 + SIM.C * 0.22})`);
+
+  /* ── 液面差 Δh 标注 ── */
+  if (Math.abs(lvHR - lvHL) > 8) {
+    const rx = MEM_X + (BOX_R - MEM_X) * 0.82;
+    const ya = Math.min(surfYL, surfYR);
+    const yb = Math.max(surfYL, surfYR);
+    ctx.save();
+    ctx.strokeStyle='rgba(0,215,255,.28)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(rx,ya); ctx.lineTo(rx,yb); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle='rgba(0,210,255,.5)'; ctx.font='9px "Courier New"'; ctx.textAlign='center';
+    ctx.fillText('Δh', rx, ya-4);
+  }
+
+  /* ══════════════════════════════════════════
+     修复②：压力场绘制在右侧（盐水侧），向下压
+     模拟反渗透：外加压力施加于盐水侧
+  ══════════════════════════════════════════ */
+  if (SIM.P > 0.2) {
+    const pr    = SIM.P / 60;                    // 归一化压力 [0,1]
+    const pisW  = BOX_R - MEM_X;                // 盐水侧宽度
+    const pisH  = pr * boxH * 0.40;             // 活塞区高度（最多40%）
+    const aTop  = 0.08 + pr * 0.22;
+
+    /* 橙色渐变压力区（右侧顶部，从上向下衰减） */
+    const grd = ctx.createLinearGradient(MEM_X, BOX_T, MEM_X, BOX_T + pisH);
+    grd.addColorStop(0,    `rgba(255,140,0,${aTop})`);
+    grd.addColorStop(0.65, `rgba(255,100,0,${aTop * 0.28})`);
+    grd.addColorStop(1,    'rgba(255,80,0,0)');
+    ctx.beginPath(); ctx.rect(MEM_X+1, BOX_T+1, pisW-1, pisH);
+    ctx.fillStyle = grd; ctx.fill();
+
+    /* 活塞虚线边界 */
+    ctx.save();
+    ctx.setLineDash([7,4]);
+    ctx.strokeStyle = `rgba(255,148,0,${0.20+pr*0.48})`;
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor='rgba(255,138,0,.4)'; ctx.shadowBlur=4;
+    ctx.beginPath();
+    ctx.moveTo(MEM_X+3, BOX_T+pisH); ctx.lineTo(BOX_R-3, BOX_T+pisH);
+    ctx.stroke(); ctx.restore();
+
+    /* 向下压力箭头（3条，在盐水侧顶部） */
+    const aa = 0.30 + pr * 0.62;
+    const ay1 = BOX_T + 9, ay2 = BOX_T + 12 + pr * 28;
+    [0.22, 0.5, 0.78].forEach(fx => {
+      drawArrow(MEM_X + pisW*fx, ay1, MEM_X + pisW*fx, ay2, `rgba(255,155,36,${aa})`, 1.4);
+    });
+
+    /* P 标注 */
+    ctx.fillStyle = `rgba(255,168,44,${aa+0.12})`;
+    ctx.font='bold 9px "Courier New"'; ctx.textAlign='center';
+    ctx.fillText(`P=${SIM.P.toFixed(1)} atm (盐水侧)`, MEM_X+pisW/2, BOX_T+19);
+  }
+
+  /* ── 更新粒子物理 ── */
+  updateParticles(pi);
+
+  /* ── 绘制粒子（只渲染在液面以下的粒子） ──
+     修复①的可视化部分：液面以上的粒子直接跳过
+  */
+  particles.forEach(p => {
+    const mySurfY = (p.side === 'L') ? surfYL : surfYR;
+    /* 粒子圆心必须在液面以下（y > mySurfY），否则不渲染 */
+    if (p.y - p.r < mySurfY - 1) return;
+    renderPart(p);
+  });
+
+  /* ── 净通量箭头（穿过膜的方向指示） ── */
+  if (state !== 'equilib' && Math.abs(nf) > 0.09) {
+    const aLen = Math.min(56, Math.abs(nf) * 70);
+    const mcy  = (surfYL + BOX_B) / 2;
+    const acol = state === 'osmosis' ? 'rgba(0,212,255,.72)' : 'rgba(255,168,0,.72)';
+    if (state === 'osmosis')
+      drawArrow(MEM_X-4, mcy, MEM_X+aLen+4, mcy, acol, 2.4);
+    else
+      drawArrow(MEM_X+4, mcy, MEM_X-aLen-4, mcy, acol, 2.4);
+  }
+
+  /* ── 半透膜（最后绘制，覆盖粒子） ── */
+  drawMembrane(state);
+
+  /* ── 区域标签 ── */
+  ctx.textAlign='center';
+  ctx.font='bold 10px "Courier New"';
+  ctx.fillStyle='rgba(0,198,238,.62)';
+  ctx.fillText('纯  水', (BOX_L+MEM_X)/2, BOX_T-13);
+  ctx.font='8px "Courier New"'; ctx.fillStyle='rgba(0,162,202,.33)';
+  ctx.fillText('Pure Water', (BOX_L+MEM_X)/2, BOX_T-2);
+
+  ctx.font='bold 10px "Courier New"'; ctx.fillStyle='rgba(48,138,252,.62)';
+  ctx.fillText(`盐水  C=${SIM.C.toFixed(2)} M`, (MEM_X+BOX_R)/2, BOX_T-13);
+  ctx.font='8px "Courier New"'; ctx.fillStyle='rgba(42,112,202,.33)';
+  ctx.fillText('Saline Solution', (MEM_X+BOX_R)/2, BOX_T-2);
+
+  /* π 标注（膜正下方） */
+  ctx.fillStyle='rgba(0,222,115,.52)';
+  ctx.font='9px "Courier New"'; ctx.textAlign='center';
+  ctx.fillText(`π = ${pi.toFixed(2)} atm`, MEM_X, BOX_B+13);
+
+  /* 平衡闪烁 */
+  if (state === 'equilib') {
+    const a = 0.48 + Math.sin(frameN * 0.07) * 0.28;
+    ctx.save(); ctx.globalAlpha=a;
+    ctx.fillStyle='#00e676'; ctx.font='bold 9px "Courier New"'; ctx.textAlign='center';
+    ctx.fillText('⚖  P ≈ π  渗透平衡', MEM_X, BOX_T-24);
+    ctx.restore();
+  }
+
+  frameN++;
+  requestAnimationFrame(drawFrame);
+}
+
+/* ── 渲染粒子 ── */
+function renderPart(p) {
+  const pulse = 0.82 + Math.sin(frameN * 0.055 + p.phase) * 0.14;
+  ctx.save();
+  if (p.type === 'water') {
+    const hue = p.side==='L' ? 192 : 210;
+    const lit = p.side==='L' ? 68  : 53;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fillStyle   = `hsla(${hue},100%,${lit}%,${0.78*pulse})`;
+    ctx.shadowColor = p.side==='L' ? 'rgba(0,198,255,.46)' : 'rgba(0,138,198,.34)';
+    ctx.shadowBlur  = 5; ctx.fill();
+  } else {
+    const alpha = (0.40 + SIM.C * 0.58) * pulse;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r*0.88, 0, Math.PI*2);
+    ctx.fillStyle   = `rgba(255,115,44,${alpha})`;
+    ctx.strokeStyle = `rgba(255,175,70,${alpha*0.45})`;
+    ctx.lineWidth   = 1;
+    ctx.shadowColor = 'rgba(255,106,38,.34)'; ctx.shadowBlur = 4;
+    ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ── 半透膜 ── */
+function drawMembrane(state) {
+  const t   = 0.60 + Math.sin(frameN * 0.04) * 0.18;
+  const rgb = state==='reverse' ? '255,172,0'
+            : state==='equilib' ? '0,225,112'
+            :                     '70,180,255';
+  const col = `rgba(${rgb},${t})`;
+
+  ctx.save(); ctx.setLineDash([9,5]);
+  ctx.strokeStyle=col; ctx.lineWidth=2.5;
+  ctx.shadowColor=col; ctx.shadowBlur=12;
+  ctx.beginPath(); ctx.moveTo(MEM_X,BOX_T); ctx.lineTo(MEM_X,BOX_B); ctx.stroke();
+  ctx.restore();
+
+  /* 菱形节点 */
+  for (let d=0; d<6; d++) {
+    const dy = BOX_T + (BOX_B-BOX_T)/7*(d+1);
+    const s  = 3.8 + Math.sin(frameN*0.035+d)*0.9;
+    const a  = (0.5+Math.sin(frameN*0.035+d)*0.3)*t;
+    ctx.save(); ctx.translate(MEM_X,dy); ctx.rotate(Math.PI/4);
+    ctx.fillStyle=`rgba(${rgb},${a})`;
+    ctx.shadowColor=col; ctx.shadowBlur=6;
+    ctx.fillRect(-s/2,-s/2,s,s);
+    ctx.restore();
+  }
+
+  /* 旋转标签 */
+  ctx.save();
+  ctx.translate(MEM_X,(BOX_T+BOX_B)/2); ctx.rotate(-Math.PI/2);
+  ctx.fillStyle=`rgba(${rgb},.40)`;
+  ctx.font='7px "Courier New"'; ctx.textAlign='center';
+  ctx.fillText('SEMIPERMEABLE MEMBRANE · 半 透 膜', 0, -13);
+  ctx.restore();
+}
+
+/* ── 工具：圆角矩形 ── */
+function pRound(x,y,w,h,r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+/* ── 工具：箭头 ── */
+function drawArrow(x1,y1,x2,y2,col,lw) {
+  const ang=Math.atan2(y2-y1,x2-x1);
+  ctx.save();
+  ctx.strokeStyle=col; ctx.fillStyle=col;
+  ctx.lineWidth=lw; ctx.shadowColor=col; ctx.shadowBlur=7;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.translate(x2,y2); ctx.rotate(ang);
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-8,-3.5); ctx.lineTo(-8,3.5); ctx.closePath();
+  ctx.fill(); ctx.restore();
+}
+
+/* ── 工具：液面波浪线 ── */
+function waveLine(x1,x2,y,col) {
+  if (x2<=x1) return;
+  ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=1.5;
+  ctx.shadowColor=col; ctx.shadowBlur=6;
+  ctx.beginPath(); ctx.moveTo(x1,y);
+  for (let wx=x1; wx<=x2; wx+=2)
+    ctx.lineTo(wx, y + Math.sin((wx/22)*Math.PI*2 + frameN*0.05)*2.2);
+  ctx.stroke(); ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Sparkline：π 实时趋势图
+══════════════════════════════════════════════════════════════ */
+const spkCanvas  = document.getElementById('pi-spark');
+const spkCtx     = spkCanvas.getContext('2d');
+const spkHistory = [];       // 历史 π 值
+const SPK_MAX    = 80;       // 最多80点
+const SPK_RANGE  = 60;       // y 轴最大 atm
+
+function drawSparkline(pi) {
+  spkHistory.push(pi);
+  if (spkHistory.length > SPK_MAX) spkHistory.shift();
+
+  const sw = spkCanvas.offsetWidth || 200, sh = 44;
+  spkCanvas.width  = sw;
+  spkCanvas.height = sh;
+
+  spkCtx.clearRect(0, 0, sw, sh);
+  spkCtx.fillStyle='rgba(0,0,0,.32)'; spkCtx.fillRect(0,0,sw,sh);
+
+  /* P 基准线 */
+  if (SIM.P > 0) {
+    const pY = sh - (SIM.P/SPK_RANGE)*sh;
+    spkCtx.save();
+    spkCtx.setLineDash([3,3]);
+    spkCtx.strokeStyle='rgba(255,168,0,.42)'; spkCtx.lineWidth=1;
+    spkCtx.beginPath(); spkCtx.moveTo(0,pY); spkCtx.lineTo(sw,pY); spkCtx.stroke();
+    spkCtx.restore();
+    spkCtx.fillStyle='rgba(255,168,0,.5)';
+    spkCtx.font='7px "Courier New"'; spkCtx.textAlign='right';
+    spkCtx.fillText(`P=${SIM.P.toFixed(0)}`, sw-2, pY-2);
+  }
+
+  if (spkHistory.length < 2) return;
+
+  const xStep = sw / (SPK_MAX - 1);
+  const grd   = spkCtx.createLinearGradient(0,0,0,sh);
+  grd.addColorStop(0, 'rgba(0,230,118,.75)');
+  grd.addColorStop(1, 'rgba(0,180,100,.15)');
+
+  /* π 曲线 */
+  spkCtx.beginPath();
+  spkHistory.forEach((v,k) => {
+    const x = k * xStep;
+    const y = sh - Math.min(v/SPK_RANGE, 1) * (sh-2) - 1;
+    k===0 ? spkCtx.moveTo(x,y) : spkCtx.lineTo(x,y);
+  });
+  spkCtx.strokeStyle='rgba(0,230,118,.9)'; spkCtx.lineWidth=1.5;
+  spkCtx.shadowColor='rgba(0,230,118,.4)'; spkCtx.shadowBlur=4;
+  spkCtx.stroke(); spkCtx.shadowBlur=0;
+
+  /* 面积填充 */
+  const last = spkHistory.length;
+  spkCtx.lineTo((last-1)*xStep, sh);
+  spkCtx.lineTo(0, sh); spkCtx.closePath();
+  spkCtx.fillStyle=grd; spkCtx.fill();
+
+  /* 当前值圆点 */
+  const lv = spkHistory[spkHistory.length-1];
+  const ly = sh - Math.min(lv/SPK_RANGE,1)*(sh-2) - 1;
+  spkCtx.beginPath(); spkCtx.arc(sw-2, ly, 3, 0, Math.PI*2);
+  spkCtx.fillStyle='#00e676'; spkCtx.fill();
+  spkCtx.fillStyle='#00e676';
+  spkCtx.font='bold 8px "Courier New"'; spkCtx.textAlign='right';
+  spkCtx.fillText(`π=${lv.toFixed(1)}`, sw-7, ly-4);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   UI 更新
+══════════════════════════════════════════════════════════════ */
+function updateUI() {
+  const pi    = calcPi();
+  const P     = SIM.P;
+  const state = getState(pi, P);
+  const scale = Math.max(pi*0.55+2.5, 1.5);
+  const nf    = Math.tanh((pi-P)/scale);
+
+  /* 顶部实时显示 */
+  g('tb-pi').textContent = pi.toFixed(2);
+  g('tb-P').textContent  = P.toFixed(1);
+
+  /* 公式卡 */
+  g('fv-i').textContent  = SIM.i.toFixed(1);
+  g('fv-C').textContent  = SIM.C.toFixed(3)+' mol/L';
+  g('fv-T').textContent  = SIM.T+' K ('+(SIM.T-273)+'°C)';
+  g('fv-pi').textContent = pi.toFixed(2)+' atm';
+
+  /* 右侧卡 */
+  g('r-pi').textContent    = pi.toFixed(2);
+  g('r-pi-exp').textContent = `${SIM.i.toFixed(1)}×${SIM.C.toFixed(3)}×0.08206×${SIM.T} = ${pi.toFixed(3)} atm`;
+  g('r-P').textContent     = P.toFixed(2);
+  g('r-dh').textContent    = (pi*1034).toFixed(0);
+
+  /* Sparkline */
+  drawSparkline(pi);
+
+  /* 净通量条 */
+  const fb=g('fbar');
+  if (nf>0) {
+    fb.style.left='50%'; fb.style.width=(nf*47).toFixed(1)+'%';
+    fb.style.background='linear-gradient(90deg,var(--teal),var(--cyan))';
+  } else if (nf<0) {
+    const w=(-nf*47);
+    fb.style.left=(50-w).toFixed(1)+'%'; fb.style.width=w.toFixed(1)+'%';
+    fb.style.background='linear-gradient(90deg,var(--amber),#ffd040)';
+  } else { fb.style.width='0%'; }
+
+  /* 徽章 & 状态卡 */
+  const badge=g('badge'), sc=g('sc'), sct=g('sc-t'), scb=g('sc-b');
+  if (state==='osmosis') {
+    badge.className=''; badge.textContent='● 渗 透';
+    sc.className='sc sc-os'; sct.style.color='var(--cyan)';
+    sct.textContent='● 渗透 (Osmosis)';
+    scb.textContent=`P=${P.toFixed(1)} atm < π=${pi.toFixed(2)} atm\n水分子自发从纯水侧穿膜→盐水侧，\n降低两侧化学势差（Δμ=RT·ln(a₁/a₂)）。`;
+  } else if (state==='equilib') {
+    badge.className='eq'; badge.textContent='◎ 平 衡';
+    sc.className='sc sc-eq'; sct.style.color='var(--green)';
+    sct.textContent='◎ 渗透平衡 (Equilibrium)';
+    scb.textContent=`P ≈ π ≈ ${pi.toFixed(2)} atm\n净通量为零，液面差稳定：\nΔh ≈ ${(pi*1034).toFixed(0)} cmH₂O（≈ ${(pi*10.33).toFixed(1)} m）。`;
+  } else {
+    badge.className='rev'; badge.textContent='▲ 反渗透';
+    sc.className='sc sc-rv'; sct.style.color='var(--amber)';
+    sct.textContent='▲ 反渗透 (Reverse Osmosis)';
+    /* 修复②：明确说明压力施加于盐水侧 */
+    scb.textContent=`P=${P.toFixed(1)} atm > π=${pi.toFixed(2)} atm\n压力施加于盐水侧（右侧↓），\n克服渗透压，迫使水从盐水侧穿膜→纯水侧。\n超压ΔP=${(P-pi).toFixed(2)} atm 驱动脱盐。`;
+  }
+
+  /* 底部提示 */
+  const ts=g('tip-state');
+  ts.textContent=state==='osmosis' ? `正向渗透 | π−P=+${(pi-P).toFixed(2)} atm`
+    :state==='equilib' ? `渗透平衡 | P=π=${pi.toFixed(2)} atm`
+    :`反渗透 | P−π=+${(P-pi).toFixed(2)} atm`;
+  ts.style.color=state==='osmosis'?'var(--cyan)':state==='equilib'?'var(--green)':'var(--amber)';
+
+  let ref='', special=false;
+  if      (pi<0.4)              ref=`π≈${pi.toFixed(2)} atm，趋近纯水（无渗透驱动力）`;
+  else if (pi<6)                ref=`π≈${pi.toFixed(1)} atm，稀盐溶液`;
+  else if (Math.abs(pi-7.4)<1.5){ ref=`🩸 π≈7.4 atm — 人体血液渗透压！`; special=true; }
+  else if (pi<18)               ref=`π≈${pi.toFixed(1)} atm，中等盐溶液`;
+  else if (Math.abs(pi-27)<3)   { ref=`🌊 π≈27 atm — 接近标准海水渗透压！`; special=true; }
+  else if (pi<48)               ref=`π≈${pi.toFixed(1)} atm，高盐浓度`;
+  else                          ref=`π≈${pi.toFixed(1)} atm，卤水（死海约50 atm）`;
+  g('tip-ref').textContent=ref;
+  g('tip-ref').style.color=special?'#b8ff40':'var(--t2)';
+
+  let hint='';
+  if (SIM.C<0.05)
+    hint='浓度→0，π→0，无渗透驱动力。增大 C 观察渗透现象。';
+  else if (state==='osmosis'&&P<0.5)
+    hint='纯渗透：驱动力=化学势差 Δμ。i 系数体现电解质效应：NaCl(i=2) 比蔗糖(i=1) 渗透压高一倍。';
+  else if (state==='osmosis')
+    hint=`增大 P 至 ${pi.toFixed(1)} atm 可达平衡。注意：P 施加于盐水侧。`;
+  else if (state==='equilib')
+    hint=`平衡时液面差 Δh=${(pi*1034).toFixed(0)} cmH₂O≈${(pi*10.33).toFixed(1)} m，即渗透压的水柱高度直接表示。`;
+  else
+    hint=`反渗透激活！P=${P.toFixed(1)} atm 施加于盐水侧，海水淡化工业标准约 55–70 atm。`;
+  g('tip-hint').textContent=hint;
+  g('tip-hint').style.color=state==='reverse'?'var(--amber)':state==='equilib'?'var(--green)':'#00c8e8';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   滑块事件
+══════════════════════════════════════════════════════════════ */
+function g(id) { return document.getElementById(id); }
+
+g('sl-C').addEventListener('input',function(){
+  SIM.C=this.value/100; g('dC').textContent=SIM.C.toFixed(2)+' mol/L'; updateUI();
+});
+g('sl-i').addEventListener('input',function(){
+  SIM.i=this.value/10; g('di').textContent=SIM.i.toFixed(1); updateUI();
+});
+g('sl-T').addEventListener('input',function(){
+  SIM.T=+this.value; g('dT').textContent=SIM.T+' K ('+(SIM.T-273)+'°C)'; updateUI();
+});
+g('sl-P').addEventListener('input',function(){
+  SIM.P=this.value/100; g('dP').textContent=SIM.P.toFixed(1)+' atm'; updateUI();
+});
+
+/* ══════════════════════════════════════════════════════════════
+   初始化
+══════════════════════════════════════════════════════════════ */
+window.addEventListener('load',()=>{
+  updateUI();
+  requestAnimationFrame(drawFrame);
+  /* Sparkline 定时采样（每600ms推一个点） */
+  setInterval(()=>drawSparkline(calcPi()), 600);
+});
+window.addEventListener('resize',()=>{ needReinit=true; });
+</script>
+</body>
+</html>
