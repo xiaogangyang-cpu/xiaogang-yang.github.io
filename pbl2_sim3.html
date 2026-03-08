@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Haber-Bosch 合成氨能量分析模拟器</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600&display=swap');
+
+/* ══════════════════════════════════════
+   CSS Variables
+══════════════════════════════════════ */
+:root {
+  --bg0: #08090c;
+  --bg1: #0d1118;
+  --bg2: #121820;
+  --bg3: #1a2230;
+  --bg4: #1f2a3a;
+  --bd:  #243040;
+  --bd2: #2e3f55;
+
+  /* Accent palette — steel/fire/chem */
+  --cyan:   #00c8e8;   /* electricity / input */
+  --amber:  #ff8c00;   /* heat / exothermic */
+  --green:  #2dce6a;   /* product NH₃ */
+  --red:    #ff4040;   /* losses / danger */
+  --blue:   #4090ff;   /* N₂ feed */
+  --lime:   #a0ff40;   /* H₂ feed */
+  --purple: #9060ff;   /* recycle */
+  --steel:  #7090b0;   /* neutral */
+  --gold:   #ffd060;   /* ΔG / thermo */
+
+  --tm: #c8d8e8;
+  --td: #4a6080;
+  --ts: #2a3a50;
+
+  --fmono:  'Share Tech Mono', monospace;
+  --ftitle: 'Orbitron', sans-serif;
+  --fbody:  'Rajdhani', sans-serif;
+
+  --r: 5px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--bg0);
+  color: var(--tm);
+  font-family: var(--fbody);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ══════════════════════════════════════
+   Header
+══════════════════════════════════════ */
+#hdr {
+  flex-shrink: 0;
+  height: 50px;
+  background: linear-gradient(90deg, #08090c 0%, #101620 40%, #141d28 60%, #08090c 100%);
+  border-bottom: 1px solid var(--bd2);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  position: relative; z-index: 30;
+  box-shadow: 0 2px 20px rgba(0,0,0,.6);
+}
+#hdr::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--amber) 30%, var(--cyan) 70%, transparent 100%);
+  opacity: .5;
+}
+.htitle {
+  font-family: var(--ftitle); font-weight: 900;
+  font-size: .82rem; letter-spacing: 3px;
+  background: linear-gradient(90deg, var(--amber), var(--cyan));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  text-shadow: none;
+}
+.hsub { font-family: var(--fmono); font-size: .52rem; color: var(--td); margin-top: 2px; }
+
+.hstats {
+  display: flex; gap: 18px; align-items: center;
+}
+.hstat {
+  text-align: center;
+  font-family: var(--fmono); font-size: .55rem;
+}
+.hstat-val {
+  display: block; font-size: .8rem; font-weight: bold; font-family: var(--ftitle);
+}
+.hstat-lbl { color: var(--td); }
+
+.hbtn {
+  font-family: var(--ftitle); font-size: .55rem; font-weight: 700;
+  letter-spacing: 2px; padding: 7px 16px; border-radius: 3px;
+  border: none; cursor: pointer; text-transform: uppercase;
+  transition: all .2s;
+}
+.hbtn.start {
+  background: linear-gradient(135deg, var(--amber), #cc6000);
+  color: #000; box-shadow: 0 0 16px rgba(255,140,0,.35);
+}
+.hbtn.start:hover { box-shadow: 0 0 28px rgba(255,140,0,.55); transform: translateY(-1px); }
+.hbtn.stop {
+  background: linear-gradient(135deg, #ff4040, #aa0000);
+  color: #fff; box-shadow: 0 0 16px rgba(255,64,64,.35);
+}
+
+/* ══════════════════════════════════════
+   Main Layout
+══════════════════════════════════════ */
+#main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 260px 1fr 280px;
+  grid-template-rows: 1fr 80px;
+  gap: 6px; padding: 6px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ══════════════════════════════════════
+   Panel base
+══════════════════════════════════════ */
+.pnl {
+  background: var(--bg1);
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+.pnl::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  opacity: .5; pointer-events: none;
+}
+.pnl.accent-amber::before { background: linear-gradient(90deg, transparent, var(--amber), transparent); }
+.pnl.accent-cyan::before  { background: linear-gradient(90deg, transparent, var(--cyan),  transparent); }
+.pnl.accent-green::before { background: linear-gradient(90deg, transparent, var(--green), transparent); }
+.pnl.accent-multi::before { background: linear-gradient(90deg, transparent, var(--amber) 30%, var(--cyan) 70%, transparent); }
+
+/* Panel title bar */
+.pt {
+  font-family: var(--ftitle); font-size: .5rem; letter-spacing: 3px;
+  color: var(--steel); text-transform: uppercase;
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid var(--bd);
+  display: flex; align-items: center; gap: 7px;
+  flex-shrink: 0;
+  background: var(--bg2);
+}
+.pt-icon { font-size: .75rem; }
+.pt-right { margin-left: auto; font-family: var(--fmono); font-size: .5rem; color: var(--ts); }
+
+/* Scrollable body */
+.pb {
+  flex: 1; overflow-y: auto; padding: 10px 12px;
+  scrollbar-width: thin; scrollbar-color: var(--bd) transparent;
+}
+.pb::-webkit-scrollbar { width: 3px; }
+.pb::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 2px; }
+
+/* ══════════════════════════════════════
+   Left Panel — Controls
+══════════════════════════════════════ */
+#lp { grid-column: 1; grid-row: 1; }
+
+/* Section divider */
+.sdiv {
+  font-family: var(--ftitle); font-size: .44rem; letter-spacing: 3px;
+  color: var(--td); text-transform: uppercase;
+  padding: 8px 0 4px;
+  border-bottom: 1px solid var(--bd);
+  margin-bottom: 8px; margin-top: 4px;
+  display: flex; align-items: center; gap: 6px;
+}
+.sdiv::before { content: ''; display: block; width: 12px; height: 1px; background: var(--amber); }
+
+/* Input group */
+.ig { margin-bottom: 13px; }
+.il {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--fmono); font-size: .57rem; color: var(--td);
+  margin-bottom: 4px;
+}
+.iv {
+  font-family: var(--fmono); font-size: .72rem; font-weight: bold;
+  transition: color .3s;
+}
+
+/* Range sliders */
+input[type=range] {
+  -webkit-appearance: none; width: 100%; height: 3px;
+  background: var(--bg3); border-radius: 2px; outline: none;
+  border: 1px solid var(--bd); cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 12px; height: 12px;
+  border-radius: 50%; cursor: pointer; transition: .15s;
+}
+.sl-amber::-webkit-slider-thumb { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+.sl-cyan::-webkit-slider-thumb  { background: var(--cyan);  box-shadow: 0 0 6px var(--cyan);  }
+.sl-blue::-webkit-slider-thumb  { background: var(--blue);  box-shadow: 0 0 6px var(--blue);  }
+.sl-lime::-webkit-slider-thumb  { background: var(--lime);  box-shadow: 0 0 6px var(--lime);  }
+.sl-green::-webkit-slider-thumb { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.sl-purple::-webkit-slider-thumb{ background: var(--purple);box-shadow: 0 0 6px var(--purple);}
+
+.rl { display: flex; justify-content: space-between;
+  font-family: var(--fmono); font-size: .48rem; color: var(--ts); margin-top: 2px; }
+
+/* Compact info row */
+.irow {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 3px 8px;
+  background: var(--bg2); border-radius: 3px;
+  margin-bottom: 4px;
+  border: 1px solid var(--bd);
+}
+.irow-k { font-family: var(--fmono); font-size: .55rem; color: var(--td); }
+.irow-v { font-family: var(--fmono); font-size: .6rem; color: var(--amber); }
+
+/* H2 input box */
+.h2-input-box {
+  background: linear-gradient(135deg, rgba(0,200,232,.05), rgba(160,255,64,.05));
+  border: 1px solid rgba(0,200,232,.25);
+  border-radius: 4px; padding: 9px 11px; margin-bottom: 10px;
+}
+.h2-label { font-family: var(--ftitle); font-size: .46rem; letter-spacing: 2px;
+  color: var(--cyan); margin-bottom: 5px; }
+.h2-badge {
+  display: inline-block;
+  font-family: var(--fmono); font-size: .55rem;
+  padding: 2px 8px; border-radius: 10px;
+  border: 1px solid var(--lime); color: var(--lime);
+  background: rgba(160,255,64,.08);
+  margin-bottom: 6px;
+}
+
+/* ══════════════════════════════════════
+   Middle — Canvas
+══════════════════════════════════════ */
+#mp { grid-column: 2; grid-row: 1; overflow: hidden; }
+#flow-canvas { display: block; width: 100%; height: 100%; }
+
+/* ══════════════════════════════════════
+   Right Panel — Energy Analysis
+══════════════════════════════════════ */
+#rp { grid-column: 3; grid-row: 1; }
+
+/* Energy card */
+.ec {
+  background: var(--bg2); border: 1px solid var(--bd);
+  border-radius: 4px; padding: 8px 10px; margin-bottom: 7px;
+  position: relative; overflow: hidden;
+}
+.ec::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+}
+.ec.c-amber::before { background: var(--amber); }
+.ec.c-cyan::before  { background: var(--cyan); }
+.ec.c-green::before { background: var(--green); }
+.ec.c-red::before   { background: var(--red); }
+.ec.c-gold::before  { background: var(--gold); }
+.ec.c-purple::before{ background: var(--purple); }
+
+.ec-title { font-family: var(--fmono); font-size: .5rem; color: var(--td); margin-bottom: 2px; }
+.ec-val {
+  font-family: var(--ftitle); font-size: 1rem; font-weight: 900;
+  transition: color .4s, text-shadow .4s;
+}
+.ec-unit { font-family: var(--fmono); font-size: .46rem; color: var(--td); margin-left: 3px; }
+.ec-formula { font-family: var(--fmono); font-size: .5rem; color: var(--ts);
+  margin-top: 3px; line-height: 1.6; }
+.ec-sub { font-family: var(--fmono); font-size: .53rem; color: var(--td); margin-top: 2px; }
+
+/* Sankey mini bar */
+.ebar-wrap { margin-top: 5px; }
+.ebar-track { height: 6px; background: rgba(0,0,0,.4); border-radius: 3px;
+  overflow: hidden; display: flex; }
+.ebar-seg { height: 100%; transition: width .4s; }
+
+/* Efficiency ring */
+.eff-ring-wrap {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; background: var(--bg2);
+  border: 1px solid var(--bd); border-radius: 4px; margin-bottom: 7px;
+}
+#eff-ring { flex-shrink: 0; }
+.eff-ring-info { flex: 1; }
+.eff-ring-val { font-family: var(--ftitle); font-size: 1.1rem; font-weight: 900;
+  color: var(--green); text-shadow: 0 0 10px rgba(45,206,106,.5); }
+.eff-ring-lbl { font-family: var(--fmono); font-size: .5rem; color: var(--td); }
+
+/* ══════════════════════════════════════
+   Bottom — Sankey Score Bar
+══════════════════════════════════════ */
+#bp {
+  grid-column: 1 / -1; grid-row: 2;
+  background: var(--bg1); border: 1px solid var(--bd);
+  border-radius: var(--r); overflow: hidden;
+  display: flex; align-items: stretch;
+}
+
+.bs {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  padding: 6px 14px; border-right: 1px solid var(--bd);
+  position: relative;
+}
+.bs:last-child { border-right: none; }
+.bs-label { font-family: var(--ftitle); font-size: .42rem; letter-spacing: 2px;
+  color: var(--td); margin-bottom: 3px; }
+.bs-val { font-family: var(--ftitle); font-size: 1.3rem; font-weight: 900;
+  line-height: 1; transition: all .5s; }
+.bs-grade { font-family: var(--fmono); font-size: .52rem; margin-top: 2px; }
+.bs-bar { width: 100%; height: 3px; background: var(--bg3); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.bs-barfill { height: 100%; border-radius: 2px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+
+/* Wide advice panel */
+.bs.wide { flex: 2.2; }
+.advice-text {
+  font-family: var(--fmono); font-size: .56rem;
+  color: var(--td); line-height: 1.65;
+  text-align: left; padding: 0 8px;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════ HEADER ══════════════════════════════════ -->
+<div id="hdr">
+  <div>
+    <div class="htitle">HABER-BOSCH PROCESS — 合成氨能量分析模拟器</div>
+    <div class="hsub">N₂ + 3H₂ ⇌ 2NH₃ &nbsp;|&nbsp; ΔH° = −92.4 kJ/mol · 工艺能量集成 · 压缩–反应–分离全流程热力学分析</div>
+  </div>
+  <div class="hstats">
+    <div class="hstat">
+      <span class="hstat-val" id="h-eff" style="color:var(--green)">—%</span>
+      <span class="hstat-lbl">综合能效</span>
+    </div>
+    <div class="hstat">
+      <span class="hstat-val" id="h-sys" style="color:var(--amber)">— GJ/t</span>
+      <span class="hstat-lbl">系统能耗</span>
+    </div>
+    <div class="hstat">
+      <span class="hstat-val" id="h-nh3" style="color:var(--green)">— t/d</span>
+      <span class="hstat-lbl">NH₃产量</span>
+    </div>
+  </div>
+  <button class="hbtn start" id="btn-run" onclick="toggleRun()">▶ 启动模拟</button>
+</div>
+
+<!-- ══════════════════════════════════ MAIN ══════════════════════════════════ -->
+<div id="main">
+
+<!-- ══════════ LEFT: Controls ══════════ -->
+<div class="pnl accent-amber" id="lp">
+  <div class="pt">
+    <span class="pt-icon">⚙</span>工艺参数控制
+    <span class="pt-right">PROCESS CONTROLS</span>
+  </div>
+  <div class="pb">
+
+    <!-- Green H2 input — single upstream input -->
+    <div class="h2-input-box">
+      <div class="h2-label">▲ 上游输入 — 绿氢供给</div>
+      <div class="h2-badge">● 绿氢 (电解槽输出)</div>
+      <div class="ig" style="margin-bottom:0">
+        <div class="il">绿氢供给量 <span class="iv" id="v-h2feed" style="color:var(--lime)">100 t/d</span></div>
+        <input type="range" class="sl-lime" id="s-h2feed" min="20" max="300" value="100" step="5">
+        <div class="rl"><span>20 t/d</span><span>300 t/d</span></div>
+      </div>
+      <div style="font-family:var(--fmono);font-size:.5rem;color:var(--td);margin-top:5px;line-height:1.6">
+        理论制氨: H₂ + ½N₂ → NH₃<br>
+        消耗比: 178 kg H₂ / t NH₃
+      </div>
+    </div>
+
+    <div class="sdiv">反应器参数</div>
+
+    <!-- 操作温度 -->
+    <div class="ig">
+      <div class="il">操作温度 T <span class="iv" id="v-temp" style="color:var(--amber)">450 °C</span></div>
+      <input type="range" class="sl-amber" id="s-temp" min="350" max="550" value="450" step="5">
+      <div class="rl"><span>350°C</span><span>450°C</span><span>550°C</span></div>
+    </div>
+
+    <!-- 操作压力 -->
+    <div class="ig">
+      <div class="il">操作压力 P <span class="iv" id="v-pres" style="color:var(--blue)">150 bar</span></div>
+      <input type="range" class="sl-blue" id="s-pres" min="100" max="300" value="150" step="10">
+      <div class="rl"><span>100 bar</span><span>200 bar</span><span>300 bar</span></div>
+    </div>
+
+    <!-- 单程转化率 -->
+    <div class="ig">
+      <div class="il">单程转化率 X <span class="iv" id="v-conv" style="color:var(--green)">25%</span></div>
+      <input type="range" class="sl-green" id="s-conv" min="10" max="40" value="25" step="1">
+      <div class="rl"><span>10%</span><span>25%</span><span>40%</span></div>
+    </div>
+
+    <!-- 循环比 -->
+    <div class="ig">
+      <div class="il">循环比 R <span class="iv" id="v-recycle" style="color:var(--purple)">5 : 1</span></div>
+      <input type="range" class="sl-purple" id="s-recycle" min="2" max="10" value="5" step="1">
+      <div class="rl"><span>2:1</span><span>5:1</span><span>10:1</span></div>
+    </div>
+
+    <div class="sdiv">热集成参数</div>
+
+    <!-- 换热效率 -->
+    <div class="ig">
+      <div class="il">进出料换热效率 <span class="iv" id="v-hx" style="color:var(--amber)">80%</span></div>
+      <input type="range" class="sl-amber" id="s-hx" min="50" max="95" value="80" step="1">
+      <div class="rl"><span>50%</span><span>80%</span><span>95%</span></div>
+    </div>
+
+    <!-- 余热利用率 -->
+    <div class="ig">
+      <div class="il">反应余热利用率 <span class="iv" id="v-hrec" style="color:var(--amber)">70%</span></div>
+      <input type="range" class="sl-amber" id="s-hrec" min="30" max="95" value="70" step="1">
+      <div class="rl"><span>30%</span><span>70%</span><span>95%</span></div>
+    </div>
+
+    <div class="sdiv">固定工艺参数</div>
+    <div class="irow"><span class="irow-k">ΔH°rxn (合成氨)</span><span class="irow-v">−92.4 kJ/mol</span></div>
+    <div class="irow"><span class="irow-k">ΔG°(25°C)</span><span class="irow-v">−16.5 kJ/mol</span></div>
+    <div class="irow"><span class="irow-k">压缩绝热指数 γ</span><span class="irow-v">1.40</span></div>
+    <div class="irow"><span class="irow-k">N₂/H₂ 进料比</span><span class="irow-v">1 : 3 (化学计量)</span></div>
+    <div class="irow"><span class="irow-k">分离冷凝温度</span><span class="irow-v">−25 °C</span></div>
+
+  </div>
+</div>
+
+<!-- ══════════ MIDDLE: Canvas ══════════ -->
+<div class="pnl accent-multi" id="mp">
+  <div class="pt" style="position:absolute;top:0;left:0;right:0;z-index:5;
+    background:linear-gradient(var(--bg2),transparent 100%);border-bottom:none;padding-bottom:8px">
+    <span class="pt-icon">🔄</span>Haber-Bosch 工艺流程 — 实时能量流
+    <span class="pt-right" id="canvas-status">STANDBY</span>
+  </div>
+  <canvas id="flow-canvas"></canvas>
+</div>
+
+<!-- ══════════ RIGHT: Energy Analysis ══════════ -->
+<div class="pnl accent-amber" id="rp">
+  <div class="pt">
+    <span class="pt-icon">⚡</span>能量分析面板
+    <span class="pt-right">ENERGY ANALYSIS</span>
+  </div>
+  <div class="pb">
+
+    <!-- Overall efficiency ring -->
+    <div class="eff-ring-wrap">
+      <canvas id="eff-ring" width="56" height="56"></canvas>
+      <div class="eff-ring-info">
+        <div class="eff-ring-val" id="r-eff">—%</div>
+        <div class="eff-ring-lbl">综合热力学效率</div>
+        <div style="font-family:var(--fmono);font-size:.48rem;color:var(--ts);margin-top:1px">
+          η = W_useful / W_input
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. 压缩功 -->
+    <div class="ec c-cyan">
+      <div class="ec-title">① 压缩功耗 W_comp</div>
+      <div><span class="ec-val" id="r-comp" style="color:var(--cyan)">—</span><span class="ec-unit">GJ/t NH₃</span></div>
+      <div class="ec-formula">W = (γ/γ−1)·R·T_in·[(P₂/P₁)^((γ−1)/γ)−1]</div>
+      <div class="ec-sub" id="r-comp-sub">—</div>
+    </div>
+
+    <!-- 2. 反应热 -->
+    <div class="ec c-amber">
+      <div class="ec-title">② 反应放热 Q_rxn (外热利用)</div>
+      <div><span class="ec-val" id="r-qrxn" style="color:var(--amber)">—</span><span class="ec-unit">GJ/t NH₃</span></div>
+      <div class="ec-formula">Q = ΔH° × n_NH₃ = 92.4×(1000/17) kJ/t</div>
+      <div class="ec-sub" id="r-qrxn-sub">—</div>
+    </div>
+
+    <!-- 3. 换热节能 -->
+    <div class="ec c-amber">
+      <div class="ec-title">③ 换热器回收热 Q_HX</div>
+      <div><span class="ec-val" id="r-qhx" style="color:var(--gold)">—</span><span class="ec-unit">GJ/t NH₃</span></div>
+      <div class="ec-formula">Q_HX = η_HX × Q_rxn</div>
+      <div class="ec-sub" id="r-qhx-sub">—</div>
+    </div>
+
+    <!-- 4. 分离冷凝能耗 -->
+    <div class="ec c-red">
+      <div class="ec-title">④ 分离冷凝能耗 W_sep</div>
+      <div><span class="ec-val" id="r-wsep" style="color:var(--red)">—</span><span class="ec-unit">GJ/t NH₃</span></div>
+      <div class="ec-formula">W_sep ≈ 0.77 GJ/t · (T_cond 修正)</div>
+      <div class="ec-sub" id="r-wsep-sub">—</div>
+    </div>
+
+    <!-- 5. 循环压缩额外功 -->
+    <div class="ec c-purple">
+      <div class="ec-title">⑤ 循环压缩补偿功 W_recycle</div>
+      <div><span class="ec-val" id="r-wrec" style="color:var(--purple)">—</span><span class="ec-unit">GJ/t NH₃</span></div>
+      <div class="ec-formula">W_rec = W_comp × (R/(R+1)) × ΔP_factor</div>
+      <div class="ec-sub" id="r-wrec-sub">—</div>
+    </div>
+
+    <!-- 6. 净系统能耗 -->
+    <div class="ec c-green" style="border-color:rgba(45,206,106,.3);background:rgba(45,206,106,.05)">
+      <div class="ec-title">⑥ 净系统能耗 E_net</div>
+      <div><span class="ec-val" id="r-enet" style="color:var(--green)">—</span><span class="ec-unit">GJ/t NH₃</span></div>
+      <div class="ec-formula">E_net = W_comp + W_sep + W_rec − Q_HX</div>
+      <div class="ec-sub" id="r-enet-sub">—</div>
+
+      <!-- Sankey energy breakdown bar -->
+      <div class="ebar-wrap">
+        <div style="font-family:var(--fmono);font-size:.48rem;color:var(--td);margin-bottom:3px">能量分布</div>
+        <div class="ebar-track" id="sankey-bar">
+          <div class="ebar-seg" id="sb-comp"  style="background:var(--cyan);"></div>
+          <div class="ebar-seg" id="sb-sep"   style="background:var(--red);"></div>
+          <div class="ebar-seg" id="sb-rec"   style="background:var(--purple);"></div>
+          <div class="ebar-seg" id="sb-save"  style="background:rgba(45,206,106,.4);"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap">
+          <span style="font-family:var(--fmono);font-size:.44rem;color:var(--cyan)">■压缩</span>
+          <span style="font-family:var(--fmono);font-size:.44rem;color:var(--red)">■分离</span>
+          <span style="font-family:var(--fmono);font-size:.44rem;color:var(--purple)">■循环</span>
+          <span style="font-family:var(--fmono);font-size:.44rem;color:var(--green)">■节热</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Thermodynamic minimum -->
+    <div class="ec c-gold" style="background:rgba(255,208,96,.04)">
+      <div class="ec-title">⑦ 热力学最小功 (可逆极限)</div>
+      <div><span class="ec-val" id="r-wmin" style="color:var(--gold)">—</span><span class="ec-unit">GJ/t NH₃</span></div>
+      <div class="ec-formula">W_min = −ΔG°×n = 16.5×(1000/17)/1000</div>
+      <div class="ec-sub" id="r-wmin-sub">超额损耗 = E_net − W_min</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════ BOTTOM: Score ══════════ -->
+<div id="bp">
+  <div class="bs">
+    <div class="bs-label">⚡ ENERGY SCORE</div>
+    <div class="bs-val" id="s-energy" style="color:var(--amber)">--</div>
+    <div class="bs-grade" id="sg-energy" style="color:var(--td)">等待启动</div>
+    <div class="bs-bar"><div class="bs-barfill" id="sb-energy" style="width:0%;background:var(--amber)"></div></div>
+  </div>
+  <div class="bs">
+    <div class="bs-label">🔄 INTEGRATION SCORE</div>
+    <div class="bs-val" id="s-integ" style="color:var(--cyan)">--</div>
+    <div class="bs-grade" id="sg-integ" style="color:var(--td)">热集成效率</div>
+    <div class="bs-bar"><div class="bs-barfill" id="sb-integ" style="width:0%;background:var(--cyan)"></div></div>
+  </div>
+  <div class="bs">
+    <div class="bs-label">🏭 YIELD SCORE</div>
+    <div class="bs-val" id="s-yield" style="color:var(--green)">--</div>
+    <div class="bs-grade" id="sg-yield" style="color:var(--td)">氨产率</div>
+    <div class="bs-bar"><div class="bs-barfill" id="sb-yield" style="width:0%;background:var(--green)"></div></div>
+  </div>
+  <div class="bs">
+    <div class="bs-label">🏆 TOTAL SCORE</div>
+    <div class="bs-val" id="s-total" style="color:var(--gold)">--</div>
+    <div class="bs-grade" id="sg-total" style="color:var(--td)">综合评分</div>
+    <div class="bs-bar"><div class="bs-barfill" id="sb-total" style="width:0%;background:var(--gold)"></div></div>
+  </div>
+  <div class="bs wide">
+    <div class="bs-label" style="margin-bottom:4px">💡 优化建议</div>
+    <div class="advice-text" id="advice">调节左侧参数，点击「启动模拟」开始实时能量流分析。</div>
+  </div>
+</div>
+
+</div><!-- #main -->
+
+<script>
+'use strict';
+/* ════════════════════════════════════════════════════════════
+   Physical constants & process parameters
+════════════════════════════════════════════════════════════ */
+const DH_MOL    = 92400;      // J/mol NH3 (exothermic, magnitude)
+const DG_MOL    = 16500;      // J/mol NH3 (ΔG° = -16.5 kJ/mol → W_min)
+const MW_NH3    = 17.03;      // g/mol
+const MW_H2     = 2.016;
+const MW_N2     = 28.014;
+const H2_PER_T  = 1000 / MW_NH3 * 3 * MW_H2 / 1000; // t H2 / t NH3 = 0.1782
+const GAMMA     = 1.40;       // diatomic gas
+const RG        = 8.314;      // J/mol·K
+const P_INLET   = 20;         // bar (after initial compression from storage)
+
+// Thermodynamic minimum work to make NH3 from H2+N2
+const W_MIN_GJ  = DG_MOL * (1000 / MW_NH3) / 1e6;  // GJ/t NH3 ≈ 0.969
+
+/* ════════════════════════════════════════════════════════════
+   State
+════════════════════════════════════════════════════════════ */
+let running = false;
+const P = {
+  h2feed: 100,   // t H2 / day
+  temp:   450,   // °C
+  pres:   150,   // bar
+  conv:   25,    // % single-pass conversion
+  recycle: 5,    // recycle ratio
+  hx:     80,    // % heat exchanger effectiveness
+  hrec:   70,    // % reaction heat recovery
+};
+
+const sparkHistory = [];
+
+/* ════════════════════════════════════════════════════════════
+   Core energy calculations
+════════════════════════════════════════════════════════════ */
+function calcEnergy() {
+  const T_K    = P.temp + 273.15;
+  const conv   = P.conv / 100;
+  const hx     = P.hx   / 100;
+  const hrec   = P.hrec / 100;
+  const R_rec  = P.recycle;      // recycle ratio (recycled / product)
+  const P_op   = P.pres;         // bar
+
+  // ── NH3 production rate ──
+  // H2 feed → NH3:  3 H2 + N2 → 2 NH3
+  // n_NH3(t/d) = h2feed / H2_PER_T
+  const nh3_td = P.h2feed / H2_PER_T;   // t NH3 / day
+
+  // ── 1. Compression work (feed gas from P_inlet to P_op) ──
+  // Adiabatic compression, ideal gas
+  // W_comp = γ/(γ-1) · R·T_in · [(P2/P1)^((γ-1)/γ) - 1]  per mole
+  // T_in = 40°C (feed gas temperature)
+  const T_in   = 313.15; // K
+  const ratio  = P_op / P_INLET;
+  const exp_    = (GAMMA - 1) / GAMMA;
+  const W_comp_mol = (GAMMA / (GAMMA - 1)) * RG * T_in * (Math.pow(ratio, exp_) - 1); // J/mol feed
+  // Feed is stoichiometric mix: MW_avg = (28.014 + 3×2.016)/4 = 8.51 g/mol
+  const MW_feed = (MW_N2 + 3 * MW_H2) / 4;
+  // Per t NH3: n_feed = (1000/17.03) * (4/2) mol (4 mol feed per 2 mol NH3)
+  const n_feed_per_tNH3 = (1000 / MW_NH3) * 2;   // mol feed / t NH3
+  const W_comp_GJ = W_comp_mol * n_feed_per_tNH3 / 1e9; // GJ/t NH3
+
+  // ── 2. Reaction enthalpy (exothermic heat available) ──
+  const Q_rxn_GJ = DH_MOL * (1000 / MW_NH3) / 1e9;   // GJ/t NH3 ≈ 5.43
+
+  // ── 3. Heat exchanger recovery ──
+  // Recovers fraction hx of reaction heat from hot outlet → preheats feed
+  const Q_HX_GJ = hrec * Q_rxn_GJ;    // heat recovered from reaction
+  const Q_preheat_GJ = hx * Q_HX_GJ;  // actually used to preheat feed gas
+
+  // ── 4. Separation / condensation work ──
+  // NH3 condensation at -25°C: ~0.77 GJ/t NH3 (standard estimate)
+  // Slightly higher pressure reduces compression but may affect condensation
+  const W_sep_GJ = 0.77 * (1 + (1 - conv) * 0.3);   // higher inerts → more sep work
+
+  // ── 5. Recycle loop compression (makeup compression for pressure drop) ──
+  // Pressure drop in recycle loop ~5-8% of operating pressure
+  const dp_loop    = 0.06 * P_op;                    // bar pressure drop
+  const ratio_rec  = (P_op + dp_loop) / P_op;
+  const W_rec_mol  = (GAMMA / (GAMMA - 1)) * RG * T_K * (Math.pow(ratio_rec, exp_) - 1);
+  // Recycle flow = R_rec × feed flow
+  const W_rec_GJ   = W_rec_mol * n_feed_per_tNH3 * R_rec / 1e9;
+
+  // ── 6. Net system energy ──
+  const E_net_GJ = W_comp_GJ + W_sep_GJ + W_rec_GJ - Q_preheat_GJ;
+
+  // ── 7. Overall efficiency ──
+  // η = W_min / E_net  (how close to thermodynamic limit)
+  const eta = Math.min(W_MIN_GJ / Math.max(E_net_GJ, 0.1), 0.99);
+
+  return {
+    nh3_td, W_comp_GJ, Q_rxn_GJ, Q_HX_GJ, Q_preheat_GJ,
+    W_sep_GJ, W_rec_GJ, E_net_GJ, W_MIN_GJ, eta,
+    T_K, ratio, conv, hx, hrec, R_rec,
+  };
+}
+
+/* ════════════════════════════════════════════════════════════
+   Scoring
+════════════════════════════════════════════════════════════ */
+function calcScores(m) {
+  // Energy score: E_net range 3 (excellent) to 12 (poor)
+  const eScore  = Math.max(0, Math.min(100, 100 - (m.E_net_GJ - 3) / 9 * 100));
+
+  // Integration score: based on heat recovery fraction
+  const iScore  = Math.max(0, Math.min(100,
+    (m.Q_preheat_GJ / m.Q_rxn_GJ) * 100));
+
+  // Yield score: based on single-pass conversion and recycle
+  // Overall conversion ≈ 1 - (1-conv)^(R_rec+1) approx
+  const X_overall = Math.min(0.98, 1 - Math.pow(1 - m.conv, m.R_rec + 1));
+  const yScore  = Math.min(100, X_overall * 120);
+
+  const total = eScore * 0.45 + iScore * 0.30 + yScore * 0.25;
+  return { eScore, iScore, yScore, total };
+}
+
+function grade(s) {
+  if (s >= 88) return { lbl:'S 卓越', col:'#2dce6a' };
+  if (s >= 75) return { lbl:'A 优良', col:'#00c8e8' };
+  if (s >= 60) return { lbl:'B 合格', col:'#ffd060' };
+  if (s >= 40) return { lbl:'C 较差', col:'#ff8c00' };
+  return { lbl:'D 不合格', col:'#ff4040' };
+}
+
+/* ════════════════════════════════════════════════════════════
+   UI Update
+════════════════════════════════════════════════════════════ */
+function updateUI() {
+  const m  = calcEnergy();
+  const sc = calcScores(m);
+
+  // Header stats
+  set('h-eff',  (m.eta * 100).toFixed(1) + '%');
+  set('h-sys',  m.E_net_GJ.toFixed(2) + ' GJ/t');
+  set('h-nh3',  m.nh3_td.toFixed(1) + ' t/d');
+
+  // Right panel — energy cards
+  set('r-comp', m.W_comp_GJ.toFixed(3));
+  set('r-comp-sub',
+    `压比 ${P.pres}/${P_INLET} = ${(P.pres/P_INLET).toFixed(1)} | T_in=40°C | γ=${GAMMA}`);
+
+  set('r-qrxn', m.Q_rxn_GJ.toFixed(3));
+  set('r-qrxn-sub',
+    `${DH_MOL/1000} kJ/mol × ${(1000/MW_NH3).toFixed(0)} mol/t = ${(DH_MOL*1000/MW_NH3/1e6).toFixed(3)} GJ/t`);
+
+  const qhxColor = m.Q_HX_GJ > 2 ? 'var(--gold)' : m.Q_HX_GJ > 1 ? 'var(--amber)' : 'var(--red)';
+  document.getElementById('r-qhx').style.color = qhxColor;
+  set('r-qhx', m.Q_HX_GJ.toFixed(3));
+  set('r-qhx-sub',
+    `余热利用率 ${P.hrec}% × Q_rxn | 换热器效率 ${P.hx}% → 预热节省 ${m.Q_preheat_GJ.toFixed(3)} GJ/t`);
+
+  set('r-wsep', m.W_sep_GJ.toFixed(3));
+  set('r-wsep-sub',
+    `冷凝 −25°C | 转化率${P.conv}% 影响惰气浓度`);
+
+  set('r-wrec', m.W_rec_GJ.toFixed(3));
+  set('r-wrec-sub',
+    `循环比 ${P.recycle}:1 | 循环补压 ΔP≈6% × ${P.pres}bar`);
+
+  const enetEl = document.getElementById('r-enet');
+  enetEl.style.color = m.E_net_GJ < 5 ? 'var(--green)' : m.E_net_GJ < 8 ? 'var(--gold)' : 'var(--red)';
+  set('r-enet', m.E_net_GJ.toFixed(3));
+  set('r-enet-sub',
+    `${m.W_comp_GJ.toFixed(2)} + ${m.W_sep_GJ.toFixed(2)} + ${m.W_rec_GJ.toFixed(2)} − ${m.Q_preheat_GJ.toFixed(2)}`);
+
+  set('r-wmin', W_MIN_GJ.toFixed(3));
+  set('r-wmin-sub',
+    `超额损耗 = ${(m.E_net_GJ - W_MIN_GJ).toFixed(3)} GJ/t | 效率 ${(m.eta*100).toFixed(1)}%`);
+
+  // Sankey bar proportions
+  const total_in = m.W_comp_GJ + m.W_sep_GJ + m.W_rec_GJ;
+  const normalize = (v) => Math.max(0, v / total_in * 100).toFixed(1) + '%';
+  const save_frac = Math.max(0, m.Q_preheat_GJ / total_in * 100).toFixed(1) + '%';
+  document.getElementById('sb-comp').style.width  = normalize(m.W_comp_GJ);
+  document.getElementById('sb-sep').style.width   = normalize(m.W_sep_GJ);
+  document.getElementById('sb-rec').style.width   = normalize(m.W_rec_GJ);
+  document.getElementById('sb-save').style.width  = save_frac;
+
+  // Efficiency ring
+  drawEffRing(m.eta);
+  set('r-eff', (m.eta * 100).toFixed(1) + '%');
+
+  // Bottom scores
+  if (running) {
+    const eg = grade(sc.eScore), ig = grade(sc.iScore), yg = grade(sc.yScore), tg = grade(sc.total);
+    setScore('s-energy', sc.eScore, eg, 'sb-energy', 'sg-energy', 'var(--amber)');
+    setScore('s-integ',  sc.iScore, ig, 'sb-integ',  'sg-integ',  'var(--cyan)');
+    setScore('s-yield',  sc.yScore, yg, 'sb-yield',  'sg-yield',  'var(--green)');
+    setScore('s-total',  sc.total,  tg, 'sb-total',  'sg-total',  'var(--gold)');
+    generateAdvice(m, sc);
+  }
+
+  // Spark
+  sparkHistory.push(m.E_net_GJ);
+  if (sparkHistory.length > 100) sparkHistory.shift();
+
+  // Update canvas params
+  flowViz.update(P, m);
+}
+
+function setScore(valId, score, g, barId, gradeId, col) {
+  const el = document.getElementById(valId);
+  el.textContent = score.toFixed(0);
+  el.style.color = g.col;
+  document.getElementById(gradeId).textContent = g.lbl;
+  document.getElementById(gradeId).style.color = g.col;
+  document.getElementById(barId).style.width = score + '%';
+  document.getElementById(barId).style.background = col;
+}
+
+function generateAdvice(m, sc) {
+  const tips = [];
+  if (P.hx < 75)   tips.push('🔥 进出料换热效率偏低，提高至 >80% 可大幅降低净能耗');
+  if (P.hrec < 65) tips.push('♻ 增加反应余热利用率，余热可转化为蒸汽/预热节能');
+  if (P.temp > 490) tips.push('🌡 温度>490°C平衡常数K显著下降，降温有利热力学但需催化剂');
+  if (P.temp < 380) tips.push('⚗ 温度<380°C反应动力学极慢，工业须 >400°C');
+  if (P.pres < 120) tips.push('📉 压力偏低，提高压力可增大平衡转化率（勒夏特列原理）');
+  if (P.pres > 250) tips.push('⚠ 极高压增加压缩功和设备成本，超额损耗大');
+  if (P.conv < 15)  tips.push('🔄 单程转化率过低，需增大循环比补偿，循环压缩耗能大');
+  if (P.recycle > 8 && P.conv < 20) tips.push('🔄 高循环比+低转化率组合能耗极高，建议提高转化率');
+  if (m.E_net_GJ < 4.5) tips.push('✅ 系统能耗接近工业先进水平（< 4.5 GJ/t），优秀！');
+  if (m.eta > 0.15) tips.push('🏆 综合热力学效率良好');
+  if (tips.length === 0) tips.push('⚙ 参数配置合理，继续调节换热集成以进一步优化。');
+  document.getElementById('advice').innerHTML = tips.slice(0, 3).join('<br>');
+}
+
+/* ════════════════════════════════════════════════════════════
+   Efficiency Ring (Canvas)
+════════════════════════════════════════════════════════════ */
+function drawEffRing(eta) {
+  const cv  = document.getElementById('eff-ring');
+  const ctx = cv.getContext('2d');
+  const W = 56, H = 56;
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W/2, cy = H/2, r = 22;
+  const startAngle = -Math.PI / 2;
+  const endAngle   = startAngle + eta * 2 * Math.PI;
+
+  // background
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.strokeStyle = '#1a2230'; ctx.lineWidth = 5; ctx.stroke();
+
+  // progress
+  const col = eta > 0.15 ? '#2dce6a' : eta > 0.08 ? '#ffd060' : '#ff8c00';
+  ctx.beginPath(); ctx.arc(cx, cy, r, startAngle, endAngle);
+  ctx.strokeStyle = col; ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+  ctx.shadowColor = col; ctx.shadowBlur = 8;
+  ctx.stroke(); ctx.shadowBlur = 0;
+
+  // text
+  ctx.fillStyle = col;
+  ctx.font = 'bold 10px Orbitron';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText((eta * 100).toFixed(0) + '%', cx, cy);
+}
+
+/* ════════════════════════════════════════════════════════════
+   Slider bindings
+════════════════════════════════════════════════════════════ */
+const sliders = [
+  ['s-h2feed', 'v-h2feed', 'h2feed', v => v + ' t/d',   'var(--lime)'],
+  ['s-temp',   'v-temp',   'temp',   v => v + ' °C',     'var(--amber)'],
+  ['s-pres',   'v-pres',   'pres',   v => v + ' bar',    'var(--blue)'],
+  ['s-conv',   'v-conv',   'conv',   v => v + '%',       'var(--green)'],
+  ['s-recycle','v-recycle','recycle', v => v + ' : 1',   'var(--purple)'],
+  ['s-hx',     'v-hx',     'hx',     v => v + '%',       'var(--amber)'],
+  ['s-hrec',   'v-hrec',   'hrec',   v => v + '%',       'var(--amber)'],
+];
+sliders.forEach(([sid, vid, key, fmt, col]) => {
+  const el = document.getElementById(sid);
+  el.addEventListener('input', function() {
+    P[key] = +this.value;
+    const vel = document.getElementById(vid);
+    vel.textContent = fmt(+this.value);
+    vel.style.color = col;
+    updateUI();
+  });
+});
+
+/* ════════════════════════════════════════════════════════════
+   Toggle simulation
+════════════════════════════════════════════════════════════ */
+function toggleRun() {
+  running = !running;
+  const btn = document.getElementById('btn-run');
+  const cs  = document.getElementById('canvas-status');
+  if (running) {
+    btn.textContent = '⏹ 停止';
+    btn.className = 'hbtn stop';
+    cs.textContent = 'RUNNING';
+    cs.style.color = 'var(--green)';
+  } else {
+    btn.textContent = '▶ 启动模拟';
+    btn.className = 'hbtn start';
+    cs.textContent = 'STANDBY';
+    cs.style.color = 'var(--td)';
+  }
+  updateUI();
+}
+
+/* ════════════════════════════════════════════════════════════
+   Flow Canvas Visualization
+════════════════════════════════════════════════════════════ */
+const flowViz = (() => {
+  const cv  = document.getElementById('flow-canvas');
+  const ctx = cv.getContext('2d');
+  let W = 0, H = 0, frame = 0;
+  let params = { ...P };
+  let metrics = calcEnergy();
+  let particles = [];
+  let isActive = false;
+
+  /* ── Process node definitions ── */
+  function getNodes() {
+    const mw = W, mh = H;
+    const row1 = mh * 0.38;  // main process row
+    const row2 = mh * 0.72;  // recycle row
+    const padL = mw * 0.06;
+    const padR = mw * 0.94;
+
+    return {
+      // Feed inputs
+      h2in:    { x: padL,           y: row1 - mh*0.12, r: 26, label:'H₂', sub:'绿氢进料', col:'#a0ff40', type:'feed' },
+      n2in:    { x: padL,           y: row1 + mh*0.12, r: 26, label:'N₂', sub:'空分进料', col:'#4090ff', type:'feed' },
+      // Main process units
+      comp:    { x: mw * 0.22,      y: row1,           r: 30, label:'COMP', sub:'合成气压缩', col:'#00c8e8', type:'unit' },
+      hxin:    { x: mw * 0.38,      y: row1,           r: 24, label:'HX₁', sub:'进料预热', col:'#ff8c00', type:'unit' },
+      reactor: { x: mw * 0.55,      y: row1,           r: 36, label:'REACTOR', sub:'Haber-Bosch催化床', col:'#ff8c00', type:'reactor' },
+      hxout:   { x: mw * 0.70,      y: row1,           r: 24, label:'HX₂', sub:'出料换热', col:'#ff8c00', type:'unit' },
+      cond:    { x: mw * 0.82,      y: row1,           r: 28, label:'COND', sub:'冷凝分离', col:'#4090ff', type:'unit' },
+      product: { x: padR,           y: row1,           r: 24, label:'NH₃', sub:'液氨产品', col:'#2dce6a', type:'product' },
+      // Recycle & bypass
+      recycle: { x: mw * 0.55,      y: row2,           r: 22, label:'REC', sub:'循环压缩', col:'#9060ff', type:'unit' },
+      // Heat rejection
+      heat_out:{ x: mw * 0.55,      y: mh * 0.12,      r: 20, label:'Q↑', sub:'高温余热', col:'#ff4040', type:'heat' },
+    };
+  }
+
+  /* ── Particle types ── */
+  const PTYPES = {
+    feed:    { col: '#a0ff40', size: 3 },
+    electric:{ col: '#00c8e8', size: 3 },
+    hot:     { col: '#ff8c00', size: 2.5 },
+    product: { col: '#2dce6a', size: 3 },
+    recycle: { col: '#9060ff', size: 2 },
+    heat:    { col: '#ff4040', size: 2 },
+  };
+
+  function bezier(a, b, t, lift = 0) {
+    const cx = (a.x + b.x) / 2;
+    const cy = (a.y + b.y) / 2 - lift;
+    const mt = 1 - t;
+    return {
+      x: mt*mt*a.x + 2*mt*t*cx + t*t*b.x,
+      y: mt*mt*a.y + 2*mt*t*cy + t*t*b.y,
+    };
+  }
+
+  function spawnParticle(type, route, speed, lift) {
+    return {
+      ptype: type, route, seg: 0,
+      t: Math.random() * 0.6,
+      speed: speed || (0.003 + Math.random() * 0.003),
+      trail: [], lift: lift || 0,
+      col: PTYPES[type]?.col || '#fff',
+      size: PTYPES[type]?.size || 2.5,
+      alpha: 0.7 + Math.random() * 0.3,
+    };
+  }
+
+  function manageParticles() {
+    if (!isActive) { particles = []; return; }
+    const nd = getNodes();
+
+    const targets = {
+      // Feed streams
+      h2_feed:  Math.max(1, Math.round(3 + params.h2feed / 50)),
+      // Compression (count reflects power)
+      comp_main:Math.max(2, Math.round(metrics.W_comp_GJ * 3)),
+      // Hot gas through HX and reactor
+      hot_main: Math.max(2, Math.round(4 + params.temp / 100)),
+      // Heat to waste
+      heat_rej: Math.max(1, Math.round((1 - params.hrec/100) * 5)),
+      // Product
+      product:  Math.max(1, Math.round(nd.product ? 3 : 0)),
+      // Recycle
+      recycle:  Math.max(1, Math.round(params.recycle)),
+    };
+
+    function ensure(key, type, route, speed, lift) {
+      const existing = particles.filter(p => p.routeKey === key).length;
+      const target   = targets[key] || 0;
+      if (existing < target) {
+        const p = spawnParticle(type, route, speed, lift);
+        p.routeKey = key;
+        particles.push(p);
+      }
+    }
+
+    ensure('h2_feed',   'feed',    [nd.h2in, nd.comp, nd.hxin],      0.004);
+    ensure('comp_main', 'electric',[nd.comp, nd.hxin],               0.006);
+    ensure('hot_main',  'hot',     [nd.hxin, nd.reactor, nd.hxout],  0.003);
+    ensure('heat_rej',  'heat',    [nd.reactor, nd.heat_out],         0.004, -20);
+    ensure('product',   'product', [nd.hxout, nd.cond, nd.product],  0.004);
+    ensure('recycle',   'recycle', [nd.cond, nd.recycle, nd.hxin],   0.003,  30);
+  }
+
+  /* ── Draw a node ── */
+  function drawNode(nd) {
+    const { x, y, r, label, sub, col, type } = nd;
+    const glow = type === 'reactor' ? 2.5 : 1.8;
+
+    // glow halo
+    const g = ctx.createRadialGradient(x, y, r * 0.4, x, y, r * glow);
+    g.addColorStop(0, col + '35'); g.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.arc(x, y, r * glow, 0, Math.PI * 2);
+    ctx.fillStyle = g; ctx.fill();
+
+    // outer ring (pulse for reactor when active)
+    if (type === 'reactor' && isActive) {
+      const pulse = (Math.sin(frame * 0.05) + 1) * 0.5;
+      ctx.beginPath(); ctx.arc(x, y, r + 4 + pulse * 6, 0, Math.PI * 2);
+      ctx.strokeStyle = col + Math.round((0.2 + pulse * 0.3) * 255).toString(16).padStart(2,'0');
+      ctx.lineWidth = 1.5; ctx.stroke();
+    }
+
+    // body
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = type === 'reactor' ? '#1c1000' : '#0d1520';
+    ctx.strokeStyle = col;
+    ctx.lineWidth = type === 'reactor' ? 2.5 : 1.5;
+    ctx.shadowColor = col; ctx.shadowBlur = isActive ? 12 : 5;
+    ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
+
+    // label
+    const fs = type === 'reactor' ? Math.round(r * .28) : Math.round(r * .35);
+    ctx.fillStyle = col;
+    ctx.font = `bold ${fs}px Share Tech Mono`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, x, y - 2);
+
+    // sub-label
+    ctx.fillStyle = 'rgba(180,210,240,.45)';
+    ctx.font = `${Math.max(7, Math.round(r * .22))}px Share Tech Mono`;
+    ctx.fillText(sub, x, y + r + 10);
+  }
+
+  /* ── Draw pipe ── */
+  function drawPipe(a, b, col, active, lift = 0) {
+    const cx = (a.x + b.x) / 2;
+    const cy = (a.y + b.y) / 2 - lift;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.quadraticCurveTo(cx, cy, b.x, b.y);
+    ctx.strokeStyle = active ? col + 'aa' : col + '28';
+    ctx.lineWidth   = active ? 2 : 1.2;
+    ctx.setLineDash(active ? [] : [5, 5]);
+    ctx.shadowColor = col; ctx.shadowBlur = active ? 6 : 0;
+    ctx.stroke();
+    ctx.setLineDash([]); ctx.shadowBlur = 0;
+  }
+
+  /* ── Pipe energy label ── */
+  function pipeLabel(a, b, text, col, lift = 0) {
+    if (!isActive) return;
+    const x = (a.x + b.x) / 2;
+    const y = (a.y + b.y) / 2 - lift - 12;
+    ctx.fillStyle = col + 'cc';
+    ctx.font = '9px Share Tech Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, x, y);
+  }
+
+  /* ── Draw particle ── */
+  function drawParticle(p) {
+    if (p.seg >= p.route.length - 1) return;
+    const a = p.route[p.seg], b = p.route[p.seg + 1];
+    const pos = bezier(a, b, p.t, p.lift);
+
+    p.trail.push({ ...pos });
+    if (p.trail.length > 7) p.trail.shift();
+
+    p.trail.forEach((pt, i) => {
+      const a_ = (i / p.trail.length) * 0.5;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, p.size * (i / p.trail.length) * 0.8, 0, Math.PI * 2);
+      ctx.fillStyle = p.col + Math.round(a_ * 200).toString(16).padStart(2, '0');
+      ctx.fill();
+    });
+
+    ctx.beginPath(); ctx.arc(pos.x, pos.y, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = p.col;
+    ctx.shadowColor = p.col; ctx.shadowBlur = 8;
+    ctx.fill(); ctx.shadowBlur = 0;
+  }
+
+  /* ── Temperature gradient bar on reactor ── */
+  function drawReactorHeat(nd) {
+    if (!isActive) return;
+    const { x, y, r } = nd.reactor;
+    const T_norm = (params.temp - 350) / 200; // 0..1
+    const alpha  = 0.15 + T_norm * 0.25;
+    const heat   = ctx.createRadialGradient(x, y - r*0.2, 0, x, y, r * 0.9);
+    heat.addColorStop(0, `rgba(255,${Math.round(140 - T_norm*60)},0,${alpha})`);
+    heat.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.arc(x, y, r * 0.9, 0, Math.PI * 2);
+    ctx.fillStyle = heat; ctx.fill();
+
+    // Temperature text inside reactor
+    ctx.fillStyle = 'rgba(255,160,60,.8)';
+    ctx.font = 'bold 9px Share Tech Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${params.temp}°C`, x, y + r * 0.45);
+    ctx.fillStyle = 'rgba(180,120,60,.6)';
+    ctx.font = '8px Share Tech Mono';
+    ctx.fillText(`${params.pres} bar`, x, y + r * 0.45 + 11);
+  }
+
+  /* ── Main draw loop ── */
+  function draw() {
+    W = cv.width  = cv.offsetWidth  || 900;
+    H = cv.height = cv.offsetHeight || 480;
+    ctx.clearRect(0, 0, W, H);
+
+    // background
+    ctx.fillStyle = '#08090c'; ctx.fillRect(0, 0, W, H);
+
+    // grid
+    ctx.fillStyle = 'rgba(22,44,70,.25)';
+    for (let gx = 18; gx < W; gx += 26)
+      for (let gy = 18; gy < H; gy += 26) {
+        ctx.beginPath(); ctx.arc(gx, gy, .9, 0, Math.PI * 2); ctx.fill();
+      }
+
+    const nd = getNodes();
+
+    // ── Pipes ──
+    drawPipe(nd.h2in,   nd.comp,    '#a0ff40', isActive);
+    drawPipe(nd.n2in,   nd.comp,    '#4090ff', isActive);
+    drawPipe(nd.comp,   nd.hxin,    '#00c8e8', isActive);
+    drawPipe(nd.hxin,   nd.reactor, '#ff8c00', isActive);
+    drawPipe(nd.reactor,nd.heat_out,'#ff4040', isActive, -20);
+    drawPipe(nd.reactor,nd.hxout,   '#ffd060', isActive);
+    drawPipe(nd.hxout,  nd.cond,    '#ffd060', isActive);
+    drawPipe(nd.cond,   nd.product, '#2dce6a', isActive);
+    drawPipe(nd.cond,   nd.recycle, '#9060ff', isActive, 30);
+    drawPipe(nd.recycle,nd.hxin,    '#9060ff', isActive, 30);
+
+    // ── Pipe labels ──
+    pipeLabel(nd.h2in,   nd.comp,    `H₂ ${params.h2feed}t/d`,      '#a0ff40');
+    pipeLabel(nd.comp,   nd.hxin,    `W=${metrics.W_comp_GJ.toFixed(2)}GJ/t`, '#00c8e8');
+    pipeLabel(nd.hxin,   nd.reactor, `预热 η=${params.hx}%`,         '#ff8c00');
+    pipeLabel(nd.reactor,nd.heat_out,`Q_loss ${((1-params.hrec/100)*metrics.Q_rxn_GJ).toFixed(2)}GJ/t`, '#ff4040', -20);
+    pipeLabel(nd.reactor,nd.hxout,   `Q_rxn=${metrics.Q_rxn_GJ.toFixed(2)}GJ/t`, '#ffd060');
+    pipeLabel(nd.hxout,  nd.cond,    `出料换热`,                     '#ffd060');
+    pipeLabel(nd.cond,   nd.product, `${metrics.nh3_td.toFixed(1)}t/d NH₃`, '#2dce6a');
+    pipeLabel(nd.cond,   nd.recycle, `循环比 ${params.recycle}:1`,   '#9060ff', 30);
+
+    // ── Reactor heat visualization ──
+    drawReactorHeat(nd);
+
+    // ── Particles ──
+    manageParticles();
+    particles = particles.filter(p => {
+      p.t += p.speed;
+      if (p.t >= 1) {
+        p.t = 0; p.seg++;
+        if (p.seg >= p.route.length - 1) return false;
+      }
+      drawParticle(p);
+      return true;
+    });
+
+    // ── Nodes (drawn on top of particles) ──
+    [nd.h2in, nd.n2in, nd.comp, nd.hxin, nd.reactor, nd.hxout, nd.cond, nd.product, nd.recycle, nd.heat_out]
+      .forEach(n => drawNode(n));
+
+    // ── Energy summary overlay (bottom strip) ──
+    if (isActive) {
+      const bh = 28, by = H - bh - 2, bx = 6, bw = W - 12;
+      ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(bx, by, bw, bh);
+
+      const eCol = metrics.E_net_GJ < 5 ? '#2dce6a' : metrics.E_net_GJ < 8 ? '#ffd060' : '#ff4040';
+      ctx.fillStyle = eCol; ctx.font = 'bold 10px Orbitron'; ctx.textAlign = 'center';
+      ctx.fillText(
+        `净能耗 ${metrics.E_net_GJ.toFixed(2)} GJ/t NH₃  |  ` +
+        `压缩 ${metrics.W_comp_GJ.toFixed(2)}  +  分离 ${metrics.W_sep_GJ.toFixed(2)}  +  循环 ${metrics.W_rec_GJ.toFixed(2)}  −  节热 ${metrics.Q_preheat_GJ.toFixed(2)}  =  ${metrics.E_net_GJ.toFixed(2)} GJ/t`,
+        W / 2, by + 17
+      );
+    } else {
+      ctx.fillStyle = 'rgba(255,140,0,.3)';
+      ctx.font = '14px Orbitron'; ctx.textAlign = 'center';
+      ctx.fillText('点击「启动模拟」查看实时能量流', W / 2, H * 0.85);
+    }
+
+    // ── Process step callouts (static labels) ──
+    const steps = [
+      { nd: nd.comp,    step:'① 压缩', desc:`功耗 ${metrics.W_comp_GJ.toFixed(2)} GJ/t`,    col:'#00c8e8' },
+      { nd: nd.reactor, step:'② 催化反应', desc:`ΔH = −92.4 kJ/mol`,               col:'#ff8c00' },
+      { nd: nd.hxout,   step:'③ 热集成', desc:`回收 ${metrics.Q_HX_GJ.toFixed(2)} GJ/t`,   col:'#ffd060' },
+      { nd: nd.cond,    step:'④ 冷凝分离', desc:`W_sep ${metrics.W_sep_GJ.toFixed(2)} GJ/t`, col:'#4090ff' },
+      { nd: nd.recycle, step:'⑤ 循环', desc:`比 ${params.recycle}:1`,                col:'#9060ff' },
+    ];
+    steps.forEach(s => {
+      ctx.fillStyle = s.col + 'aa';
+      ctx.font = 'bold 8px Orbitron'; ctx.textAlign = 'center';
+      ctx.fillText(s.step,  s.nd.x, s.nd.y - s.nd.r - 20);
+      ctx.fillStyle = 'rgba(180,210,240,.35)';
+      ctx.font = '8px Share Tech Mono';
+      ctx.fillText(s.desc, s.nd.x, s.nd.y - s.nd.r - 10);
+    });
+
+    frame++;
+    requestAnimationFrame(draw);
+  }
+
+  draw(); // start immediately (shows idle state)
+
+  return {
+    update(pr, mt) {
+      params  = { ...pr };
+      metrics = { ...mt };
+      isActive = running;
+    }
+  };
+})();
+
+/* ════════════════════════════════════════════════════════════
+   Utilities
+════════════════════════════════════════════════════════════ */
+function set(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+/* ════════════════════════════════════════════════════════════
+   Init
+════════════════════════════════════════════════════════════ */
+window.addEventListener('load', () => {
+  updateUI();
+});
+
+window.addEventListener('resize', () => {
+  const cv = document.getElementById('flow-canvas');
+  cv.width  = cv.offsetWidth;
+  cv.height = cv.offsetHeight;
+});
+</script>
+</body>
+</html>
