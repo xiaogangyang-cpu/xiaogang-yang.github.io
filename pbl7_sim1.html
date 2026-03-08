@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>胶体结构与界面电荷理论模拟器 | Colloid Interface Charge Simulator</title>
+    <!-- TailwindCSS via CDN (轻量) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MathJax 渲染公式 -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    <!-- Chart.js 绘制势能曲线 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        /* 自定义未来科技风格 & 平滑动画 */
+        body {
+            background-color: #020617;
+            color: #f8fafc;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            transition: background-color 0.3s ease;
+        }
+        /* 科技感发光边框 */
+        .glass-panel {
+            background: rgba(2, 6, 23, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(13, 148, 136, 0.3);
+            box-shadow: 0 0 20px rgba(13, 148, 136, 0.2);
+            transition: all 0.3s ease;
+        }
+        .glass-panel:hover {
+            border-color: #0d9488;
+            box-shadow: 0 0 30px rgba(13, 148, 136, 0.5);
+        }
+        .teal-glow {
+            color: #0d9488;
+            text-shadow: 0 0 8px rgba(13, 148, 136, 0.7);
+        }
+        .slider-thumb::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #0d9488;
+            cursor: pointer;
+            box-shadow: 0 0 12px #0d9488;
+            transition: 0.1s;
+        }
+        .slider-thumb::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #0d9488;
+            cursor: pointer;
+            box-shadow: 0 0 12px #0d9488;
+        }
+        .tooltip {
+            position: relative;
+            cursor: help;
+            border-bottom: 1px dashed #0d9488;
+        }
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 240px;
+            background-color: #0f172a;
+            color: #f8fafc;
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px 12px;
+            border-left: 3px solid #0d9488;
+            position: absolute;
+            z-index: 20;
+            bottom: 150%;
+            left: 0%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        /* 粒子画布 */
+        #particleCanvas {
+            background: #0b1120;
+            border-radius: 12px;
+            border: 1px solid #0d9488;
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        /* 平滑动画 */
+        button, input, canvas, .curve-transition {
+            transition: all 0.2s ease-in-out;
+        }
+        /* 挑战模式高亮 */
+        .challenge-badge {
+            background: rgba(13, 148, 136, 0.2);
+            border: 1px solid #0d9488;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-6 font-sans antialiased">
+
+    <!-- 主容器 -->
+    <div class="max-w-7xl mx-auto space-y-6 animate-fade-in" style="animation: fadeIn 0.8s;">
+        <!-- 标题区 -->
+        <div class="text-center py-2">
+            <h1 class="text-3xl md:text-4xl font-bold teal-glow tracking-wider">⚡ 胶体结构与界面电荷理论模拟器</h1>
+            <p class="text-sm text-slate-300 mt-1">Colloid Interface Charge Simulator · DLVO 理论 & 可视化</p>
+        </div>
+
+        <!-- 核心理论模块 (三块卡片) + 工具提示 -->
+        <div class="glass-panel rounded-xl p-5">
+            <h2 class="text-xl font-semibold teal-glow mb-3">🧪 核心理论 <span class="text-xs text-slate-400 ml-2">鼠标悬停查看解释</span></h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- 1 DLVO -->
+                <div class="tooltip bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                    <div class="font-bold text-lg">① DLVO 理论</div>
+                    <p class="text-sm">胶体稳定性由：范德华吸引力 + 双电层排斥力共同决定。</p>
+                    <p class="text-xs font-mono mt-1">\( V_{total} = V_{vdW} + V_{electrostatic} \)</p>
+                    <span class="tooltip-text">范德华力普遍存在，双电层排斥来自表面电荷。总势能决定粒子是否聚集。</span>
+                </div>
+                <!-- 2 Zeta电位 -->
+                <div class="tooltip bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                    <div class="font-bold text-lg">② Zeta 电位</div>
+                    <p class="text-sm">Zeta 电位表征颗粒表面电荷。<br>经验规则：</p>
+                    <ul class="text-xs list-disc ml-4">
+                        <li>|ζ| > 30 mV → 稳定</li>
+                        <li>|ζ| < 15 mV → 易絮凝</li>
+                    </ul>
+                    <span class="tooltip-text">Zeta电位是剪切面电位，反映双电层净电荷。高绝对值阻碍碰撞。</span>
+                </div>
+                <!-- 3 pH与盐浓度 -->
+                <div class="tooltip bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                    <div class="font-bold text-lg">③ pH & 盐浓度</div>
+                    <p class="text-sm">改变表面电荷及双电层厚度，影响胶体分散或絮凝。</p>
+                    <p class="text-xs mt-1">pH ↑ → ζ 更负（多数氧化物）<br>盐浓度 ↑ → 双电层压缩</p>
+                    <span class="tooltip-text">pH影响表面基团质子化；盐增加离子强度，Debye长度减小，排斥减弱。</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主模拟区域：两列 (左: 控制+曲线 ; 右: 可视化+挑战) -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
+            <!-- 左侧 占3列: DLVO势能模拟器 + 曲线 -->
+            <div class="lg:col-span-3 space-y-5">
+                <!-- 参数控制卡 -->
+                <div class="glass-panel rounded-xl p-5">
+                    <h2 class="text-xl font-semibold teal-glow mb-3">⚙️ DLVO 势能模拟器</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- 颗粒半径 -->
+                        <div>
+                            <label class="block text-sm text-slate-300">颗粒半径 \( R \) (nm): <span id="radiusVal" class="text-teal-400">50</span></label>
+                            <input type="range" id="radius" min="10" max="500" value="50" step="1" class="w-full slider-thumb accent-teal-600">
+                        </div>
+                        <!-- Zeta 电位 -->
+                        <div>
+                            <label class="block text-sm text-slate-300">Zeta 电位 \( \zeta \) (mV): <span id="zetaVal" class="text-teal-400">-30</span></label>
+                            <input type="range" id="zeta" min="-50" max="50" value="-30" step="1" class="w-full slider-thumb accent-teal-600">
+                        </div>
+                        <!-- 盐浓度 (log) -->
+                        <div>
+                            <label class="block text-sm text-slate-300">盐浓度 \( C \) (M): <span id="saltVal" class="text-teal-400">0.001</span></label>
+                            <input type="range" id="salt" min="0.0001" max="0.1" value="0.001" step="0.0001" class="w-full slider-thumb accent-teal-600">
+                        </div>
+                        <!-- pH -->
+                        <div>
+                            <label class="block text-sm text-slate-300">pH: <span id="pHVal" class="text-teal-400">7.0</span></label>
+                            <input type="range" id="pH" min="2" max="12" value="7.0" step="0.1" class="w-full slider-thumb accent-teal-600">
+                        </div>
+                    </div>
+                    <!-- 输入校验提示区 -->
+                    <div id="inputWarning" class="text-xs text-yellow-400 mt-2 h-5"></div>
+                    <!-- 快速描述 -->
+                    <p class="text-xs text-slate-400 mt-2">调节参数实时更新势能曲线和胶体状态</p>
+                </div>
+                <!-- DLVO 势能曲线图 -->
+                <div class="glass-panel rounded-xl p-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-semibold teal-glow">📈 DLVO 势能曲线</h2>
+                        <span class="text-xs bg-slate-800 px-2 py-1 rounded">能量单位: kT (25°C)</span>
+                    </div>
+                    <div class="h-64 w-full">
+                        <canvas id="dlvoChart"></canvas>
+                    </div>
+                    <!-- 能量势垒/次极小显示 -->
+                    <div id="barrierInfo" class="flex justify-between text-xs mt-2 text-slate-300"></div>
+                </div>
+            </div>
+
+            <!-- 右侧 占2列: 胶体结构可视化 + 挑战模式 -->
+            <div class="lg:col-span-2 space-y-5">
+                <!-- 胶体结构可视化 Canvas -->
+                <div class="glass-panel rounded-xl p-4">
+                    <h2 class="text-xl font-semibold teal-glow mb-2">🟦 胶体结构可视化</h2>
+                    <canvas id="particleCanvas" width="400" height="300"></canvas>
+                    <!-- 状态标签 -->
+                    <div id="stabilityState" class="mt-2 text-sm font-bold text-center p-2 rounded-md"></div>
+                </div>
+                <!-- 教学挑战模式 -->
+                <div class="glass-panel rounded-xl p-5 challenge-badge">
+                    <h2 class="text-xl font-semibold teal-glow mb-2">🏆 Colloid Stability Challenge</h2>
+                    <p class="text-xs text-slate-300">设计稳定分散体系：<span class="text-teal-300">Energy barrier > 25 kT & 无絮凝</span></p>
+                    <div class="flex justify-between items-center mt-3 text-sm">
+                        <span>当前势垒: <span id="currentBarrier" class="font-mono text-teal-400">0</span> kT</span>
+                        <span id="challengeResult" class="px-3 py-1 rounded-full text-xs bg-slate-700">🏁 待评估</span>
+                    </div>
+                    <p class="text-xs mt-2 text-slate-400">提示：提高|Zeta|、降低盐浓度或调整pH</p>
+                </div>
+                <!-- 简明盐浓度与pH影响 -->
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="bg-slate-800/50 p-2 rounded border border-slate-700">
+                        <span class="teal-glow">🧂 盐浓度↑</span> → 双电层压缩 → 排斥↓
+                    </div>
+                    <div class="bg-slate-800/50 p-2 rounded border border-slate-700">
+                        <span class="teal-glow">⚗️ pH↑</span> → 表面电荷更负 (模型简化)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 脚注公式 -->
+        <div class="text-xs text-center text-slate-500 pt-2 border-t border-slate-800">
+            \( V_{vdW} = -\frac{A}{12\pi h^2} \quad V_{edl} = B e^{-\kappa h} \)  |  A = 1e-20 J,  B ∝ ζ² 简化教学模型
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ---------- 胶体与界面化学教学模拟器 ----------
+            // 所有模块化函数 & 动画
+
+            // DOM 元素
+            const radiusInput = document.getElementById('radius');
+            const zetaInput = document.getElementById('zeta');
+            const saltInput = document.getElementById('salt');
+            const pHInput = document.getElementById('pH');
+            const radiusSpan = document.getElementById('radiusVal');
+            const zetaSpan = document.getElementById('zetaVal');
+            const saltSpan = document.getElementById('saltVal');
+            const pHSpan = document.getElementById('pHVal');
+            const warningDiv = document.getElementById('inputWarning');
+            const barrierInfoDiv = document.getElementById('barrierInfo');
+            const currentBarrierSpan = document.getElementById('currentBarrier');
+            const challengeResultSpan = document.getElementById('challengeResult');
+            const stabilityStateDiv = document.getElementById('stabilityState');
+
+            // 固定参数
+            const A = 1e-20;        // Hamaker常数 焦耳
+            const kT = 4.11e-21;     // 300K 下 kT ≈ 4.11e-21 J
+            const canvas = document.getElementById('particleCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // 粒子数组用于可视化
+            let particles = [];
+            const PARTICLE_COUNT = 40;
+
+            // Chart 实例
+            let chart;
+            const ctxChart = document.getElementById('dlvoChart').getContext('2d');
+
+            // 初始化粒子
+            function initParticles() {
+                particles = [];
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    particles.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        vx: (Math.random() - 0.5) * 1.2,
+                        vy: (Math.random() - 0.5) * 1.2,
+                        r: 5 + Math.random() * 4, // 半径 5-9px 视觉
+                    });
+                }
+            }
+            initParticles();
+
+            // ---------- 辅助函数：单位转换、德拜长度、势能计算 ----------
+            function validateInputs() {
+                let warn = '';
+                const z = parseFloat(zetaInput.value);
+                const s = parseFloat(saltInput.value);
+                const p = parseFloat(pHInput.value);
+                if (p < 2 || p > 12) warn = 'pH 超出范围 (2-12)';
+                else if (s <= 0) warn = '盐浓度必须 >0';
+                else if (Math.abs(z) > 50) warn = 'Zeta电位绝对值不得超过 50 mV';
+                warningDiv.innerText = warn;
+                return warn === '';
+            }
+
+            // 计算德拜长度 kappa (1/nm)  简化模型: κ = 3.29 * sqrt(I) (I以M计) 约 0.3-30 nm^-1 
+            function getKappa(saltM) {
+                // 单电解质 1:1  Ionic strength = saltM
+                return 3.29 * Math.sqrt(saltM); // 单位 nm^{-1} 大致
+            }
+
+            // 计算范德华吸引势 (kT单位)  VvdW = -A/(12π h^2)   h为距离nm  A单位J，输出除以kT
+            function vanDerWaalsEnergy(h, A_joule, kT_joule) {
+                if (h <= 0.1) h = 0.1; // 避免除零
+                return -A_joule / (12 * Math.PI * h * h) / kT_joule;
+            }
+
+            // 计算双电层排斥 (简化: Vedl = B * exp(-κ h) ) , B 与zeta电位平方成正比，并考虑半径
+            function doubleLayerEnergy(h, zeta_mV, kappa, R_nm, kT_joule) {
+                if (h <= 0.1) h = 0.1;
+                // 换算zeta为V，但采用经验比例：B = 2e-11 * zeta^2 * R  粗略使数量级合理
+                const zetaVolt = zeta_mV / 1000;
+                const B = 1e-11 * Math.pow(zetaVolt, 2) * R_nm * 1e-9; // 能量J
+                return B * Math.exp(-kappa * h) / kT_joule;
+            }
+
+            // 计算总势能并返回数组
+            function calculateDLVO(R_nm, zeta_mV, salt_M) {
+                const kappa = getKappa(salt_M);
+                const distances = [];
+                const vdwCurve = [];
+                const edlCurve = [];
+                const totalCurve = [];
+                // 距离从 0.2 nm 到 20 nm
+                for (let d = 0.2; d <= 20; d += 0.2) {
+                    const vdw = vanDerWaalsEnergy(d, A, kT);
+                    const edl = doubleLayerEnergy(d, zeta_mV, kappa, R_nm, kT);
+                    const total = vdw + edl;
+                    distances.push(d);
+                    vdwCurve.push(vdw);
+                    edlCurve.push(edl);
+                    totalCurve.push(total);
+                }
+                return { distances, vdwCurve, edlCurve, totalCurve };
+            }
+
+            // 提取势垒和次极小 (简化识别)
+            function findBarrierAndSecondary(totalCurve, distances) {
+                let maxIdx = 0;
+                let maxVal = -Infinity;
+                let minIdx = 0;
+                let minVal = Infinity;
+                // 忽略前几个点(接触区)
+                for (let i = 5; i < totalCurve.length; i++) {
+                    if (totalCurve[i] > maxVal) {
+                        maxVal = totalCurve[i];
+                        maxIdx = i;
+                    }
+                    if (totalCurve[i] < minVal) {
+                        minVal = totalCurve[i];
+                        minIdx = i;
+                    }
+                }
+                const barrier = maxVal > 0 ? maxVal : 0; // 势垒高度（若为正）
+                const secondary = (minVal < 0 && distances[minIdx] > 2) ? minVal : null; // 仅当在较远距离
+                return { barrier: Math.round(barrier * 10) / 10, secondary: secondary ? Math.round(secondary * 10) / 10 : null };
+            }
+
+            // 更新曲线图
+            function updateCurve() {
+                if (!validateInputs()) return;
+                const R = parseFloat(radiusInput.value);
+                const zeta = parseFloat(zetaInput.value);
+                const salt = parseFloat(saltInput.value);
+                const pH = parseFloat(pHInput.value);
+
+                // 模拟pH对zeta的简化影响：zeta偏移 (pH 7 为基础)
+                let effectiveZeta = zeta + (pH - 7.0) * 2.5;  // pH增加使负电增加(更负)
+                if (effectiveZeta > 50) effectiveZeta = 50;
+                if (effectiveZeta < -50) effectiveZeta = -50;
+
+                const { distances, vdwCurve, edlCurve, totalCurve } = calculateDLVO(R, effectiveZeta, salt);
+                const { barrier, secondary } = findBarrierAndSecondary(totalCurve, distances);
+
+                // 更新图表
+                if (chart) {
+                    chart.data.labels = distances.map(d => d.toFixed(1));
+                    chart.data.datasets[0].data = vdwCurve;
+                    chart.data.datasets[1].data = edlCurve;
+                    chart.data.datasets[2].data = totalCurve;
+                    chart.update();
+                }
+
+                // 显示 barrier 和 secondary
+                let barrierHtml = `🔰 势垒: ${barrier} kT`;
+                if (secondary !== null) barrierHtml += ` | 次级极小: ${secondary} kT`;
+                else barrierHtml += ` | 次级极小: 无`;
+                barrierInfoDiv.innerHTML = barrierHtml;
+                currentBarrierSpan.innerText = barrier;
+
+                // 挑战模式判断
+                let challengeMsg = '';
+                let stableState = '';
+                if (barrier > 25) {
+                    challengeMsg = '✅ 稳定分散 (目标达成)';
+                    stableState = '🟦 稳定分散';
+                } else if (barrier < 10) {
+                    challengeMsg = '⚠️ 强絮凝风险';
+                    stableState = '🟥 强絮凝';
+                } else {
+                    challengeMsg = '🟨 弱絮凝/不稳定';
+                    stableState = '🟨 弱絮凝';
+                }
+                challengeResultSpan.innerText = challengeMsg;
+                stabilityStateDiv.innerText = stableState;
+                if (barrier > 25) stabilityStateDiv.className = 'mt-2 text-sm font-bold text-center p-2 rounded-md bg-teal-900/50 text-teal-300';
+                else if (barrier < 10) stabilityStateDiv.className = 'mt-2 text-sm font-bold text-center p-2 rounded-md bg-rose-900/50 text-rose-300';
+                else stabilityStateDiv.className = 'mt-2 text-sm font-bold text-center p-2 rounded-md bg-yellow-900/50 text-yellow-300';
+
+                // 更新粒子动画状态 (根据barrier调整聚集倾向)
+                return { barrier, effectiveZeta };
+            }
+
+            // 绘制粒子 Canvas (带布朗运动与聚集模拟)
+            function drawParticles(barrier) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // 背景网格线 (科技感)
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 0.5;
+                for (let i = 0; i < canvas.width; i += 30) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, canvas.height);
+                    ctx.strokeStyle = '#1e2b3a';
+                    ctx.stroke();
+                }
+                for (let i = 0; i < canvas.height; i += 30) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i);
+                    ctx.lineTo(canvas.width, i);
+                    ctx.strokeStyle = '#1e2b3a';
+                    ctx.stroke();
+                }
+
+                // 根据势垒决定聚集系数 (barrier 低 => 聚集倾向高 => 粒子靠近)
+                const cohesionFactor = barrier < 10 ? 0.02 : (barrier > 25 ? 0.002 : 0.008);
+                // 更新粒子位置模拟简单布朗+聚集
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    // 随机游走
+                    p.vx += (Math.random() - 0.5) * 0.3;
+                    p.vy += (Math.random() - 0.5) * 0.3;
+                    // 与其他粒子的吸引 (极简: 朝中心靠拢)
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const q = particles[j];
+                        const dx = q.x - p.x;
+                        const dy = q.y - p.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < 30 && dist > 0) {
+                            const force = cohesionFactor * (30 - dist) / 30;
+                            p.vx += force * dx * 0.01;
+                            p.vy += force * dy * 0.01;
+                            q.vx -= force * dx * 0.01;
+                            q.vy -= force * dy * 0.01;
+                        }
+                    }
+                    // 限制速度
+                    p.vx = Math.min(2, Math.max(-2, p.vx));
+                    p.vy = Math.min(2, Math.max(-2, p.vy));
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    // 边界反弹
+                    if (p.x < 0 || p.x > canvas.width) { p.vx *= -0.9; p.x = Math.min(canvas.width, Math.max(0, p.x)); }
+                    if (p.y < 0 || p.y > canvas.height) { p.vy *= -0.9; p.y = Math.min(canvas.height, Math.max(0, p.y)); }
+                }
+
+                // 绘制粒子 (蓝色调，亮度随zeta电位略变)
+                const zeta = parseFloat(zetaInput.value);
+                const blueIntensity = Math.min(255, 180 + Math.abs(zeta) * 2);
+                for (let p of particles) {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, 2 * Math.PI);
+                    ctx.fillStyle = `rgba(13, 148, 136, ${0.7 + Math.abs(zeta)/200})`;
+                    ctx.shadowColor = '#0d9488';
+                    ctx.shadowBlur = 10;
+                    ctx.fill();
+                    // 内圈高亮
+                    ctx.shadowBlur = 5;
+                    ctx.beginPath();
+                    ctx.arc(p.x-1, p.y-1, p.r-2, 0, 2*Math.PI);
+                    ctx.fillStyle = '#b2f0e8';
+                    ctx.fill();
+                }
+                ctx.shadowBlur = 0;
+                requestAnimationFrame(() => {
+                    const R = parseFloat(radiusInput.value);
+                    const z = parseFloat(zetaInput.value);
+                    const s = parseFloat(saltInput.value);
+                    const pH = parseFloat(pHInput.value);
+                    const effectiveZeta = z + (pH - 7.0) * 2.5;
+                    const { barrier } = findBarrierAndSecondary(calculateDLVO(R, effectiveZeta, s).totalCurve, []);
+                    drawParticles(barrier);
+                });
+            }
+
+            // 更新所有显示
+            function refreshAll() {
+                if (!validateInputs()) return;
+                // 更新span
+                radiusSpan.innerText = radiusInput.value;
+                zetaSpan.innerText = zetaInput.value;
+                saltSpan.innerText = parseFloat(saltInput.value).toFixed(4);
+                pHSpan.innerText = parseFloat(pHInput.value).toFixed(1);
+
+                const R = parseFloat(radiusInput.value);
+                const zeta = parseFloat(zetaInput.value);
+                const salt = parseFloat(saltInput.value);
+                const pH = parseFloat(pHInput.value);
+                const effectiveZeta = zeta + (pH - 7.0) * 2.5;
+                const { totalCurve } = calculateDLVO(R, effectiveZeta, salt);
+                const { barrier } = findBarrierAndSecondary(totalCurve, []);
+                updateCurve();
+                // 更新canvas动画 (触发)
+            }
+
+            // 初始化 Chart
+            function initChart() {
+                const defaultData = calculateDLVO(50, -30, 0.001);
+                chart = new Chart(ctxChart, {
+                    type: 'line',
+                    data: {
+                        labels: defaultData.distances.map(d => d.toFixed(1)),
+                        datasets: [
+                            { label: '范德华吸引', data: defaultData.vdwCurve, borderColor: '#f43f5e', backgroundColor: 'transparent', borderWidth: 2, tension: 0.1, pointRadius: 0 },
+                            { label: '双电层排斥', data: defaultData.edlCurve, borderColor: '#0d9488', backgroundColor: 'transparent', borderWidth: 2, tension: 0.1, pointRadius: 0 },
+                            { label: '总势能 Vtotal', data: defaultData.totalCurve, borderColor: '#f8fafc', backgroundColor: 'transparent', borderWidth: 3, tension: 0.1, pointRadius: 0 },
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: '#f8fafc' } } },
+                        scales: { x: { title: { display: true, text: '距离 (nm)', color: '#aaa' }, grid: { color: '#1e293b' } },
+                                 y: { title: { display: true, text: '能量 (kT)', color: '#aaa' }, grid: { color: '#1e293b' } } }
+                    }
+                });
+            }
+
+            // 事件绑定
+            radiusInput.addEventListener('input', refreshAll);
+            zetaInput.addEventListener('input', refreshAll);
+            saltInput.addEventListener('input', refreshAll);
+            pHInput.addEventListener('input', refreshAll);
+
+            // 启动动画循环
+            window.addEventListener('load', () => {
+                initChart();
+                refreshAll();
+                // 启动粒子绘制
+                function animate() {
+                    const R = parseFloat(radiusInput.value);
+                    const z = parseFloat(zetaInput.value);
+                    const s = parseFloat(saltInput.value);
+                    const pH = parseFloat(pHInput.value);
+                    const effectiveZeta = z + (pH - 7.0) * 2.5;
+                    const { totalCurve } = calculateDLVO(R, effectiveZeta, s);
+                    const { barrier } = findBarrierAndSecondary(totalCurve, []);
+                    drawParticles(barrier);
+                }
+                animate();
+            });
+
+            // 重新校验并刷新
+            refreshAll();
+        })();
+    </script>
+
+    <!-- 简单的淡入动画 -->
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+    </style>
+
+</body>
+</html>
