@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Battery Thermodynamics Designer — 电池热力学材料设计模拟器</title>
+
+<!-- MathJax -->
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},svg:{fontCache:'global'}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;600;700;800&family=Courier+Prime:wght@400;700&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet"/>
+
+<style>
+/* ═══════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════ */
+:root{
+  --bg:     #020617;
+  --bg1:    #060f23;
+  --bg2:    #0a1730;
+  --bg3:    #0e2040;
+  --teal:   #0d9488;
+  --teal2:  #14b8a6;
+  --teal3:  #5eead4;
+  --gold:   #f59e0b;
+  --gold2:  #fbbf24;
+  --rose:   #f43f5e;
+  --blue:   #3b82f6;
+  --blue2:  #60a5fa;
+  --violet: #8b5cf6;
+  --lime:   #84cc16;
+  --text:   #f8fafc;
+  --muted:  #64748b;
+  --muted2: #94a3b8;
+  --border: rgba(13,148,136,0.22);
+  --borderB:rgba(13,148,136,0.07);
+  --glow:   0 0 18px rgba(13,148,136,0.35);
+  --glow2:  0 0 40px rgba(13,148,136,0.18),0 0 80px rgba(13,148,136,0.08);
+  --font-h: 'Exo 2', sans-serif;
+  --font-m: 'Courier Prime', monospace;
+  --font-c: 'Noto Sans SC', sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-h);
+  min-height:100vh;
+  overflow-x:hidden;
+  background-image:
+    radial-gradient(ellipse at 10% 0%,  rgba(13,148,136,0.06) 0%,transparent 55%),
+    radial-gradient(ellipse at 90% 80%, rgba(59,130,246,0.04) 0%,transparent 50%),
+    linear-gradient(rgba(13,148,136,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(13,148,136,0.025) 1px, transparent 1px);
+  background-size:100% 100%,100% 100%,48px 48px,48px 48px;
+}
+
+/* ═══════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════ */
+@keyframes fadeUp  {from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes fadeIn  {from{opacity:0}to{opacity:1}}
+@keyframes scan    {0%{top:-4px}100%{top:100vh}}
+@keyframes glow    {0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes blink   {0%,100%{opacity:1}50%{opacity:.15}}
+@keyframes orbit   {from{transform:rotate(0deg) translateX(var(--r)) rotate(0deg)}
+                    to  {transform:rotate(360deg) translateX(var(--r)) rotate(-360deg)}}
+@keyframes flowR   {0%{left:-8px;opacity:0}20%{opacity:1}80%{opacity:1}100%{left:calc(100% + 8px);opacity:0}}
+@keyframes pulse   {0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.18);opacity:1}}
+@keyframes barGrow {from{width:0}to{width:var(--w)}}
+@keyframes ripple  {0%{transform:scale(.6);opacity:.8}100%{transform:scale(2.5);opacity:0}}
+@keyframes nodeOn  {0%{opacity:.3}100%{opacity:1}}
+@keyframes drift   {0%{transform:translateY(0)}50%{transform:translateY(-6px)}100%{transform:translateY(0)}}
+
+.fu{animation:fadeUp .7s ease both;}
+.fu:nth-child(1){animation-delay:.05s}
+.fu:nth-child(2){animation-delay:.18s}
+.fu:nth-child(3){animation-delay:.31s}
+.fu:nth-child(4){animation-delay:.44s}
+
+/* Scanline */
+.scan{
+  pointer-events:none;position:fixed;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--teal2),transparent);
+  animation:scan 7s linear infinite;z-index:9999;opacity:.4;
+}
+
+/* ═══════════════════════════════════
+   HEADER
+═══════════════════════════════════ */
+header{
+  padding:2.5rem 2rem 2rem;text-align:center;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,rgba(13,148,136,0.08)0%,transparent 100%);
+  position:relative;overflow:hidden;animation:fadeIn .9s ease;
+}
+header::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,transparent,transparent 95px,rgba(13,148,136,0.03) 95px,rgba(13,148,136,0.03) 96px);
+  pointer-events:none;
+}
+.h-eyebrow{
+  display:inline-block;font-family:var(--font-m);font-size:.6rem;
+  color:var(--teal2);border:1px solid var(--teal);
+  padding:.18rem 1rem;border-radius:2px;
+  letter-spacing:.25em;margin-bottom:.9rem;
+  animation:blink 3.5s ease infinite;
+}
+.h-title{
+  font-family:var(--font-h);font-weight:800;
+  font-size:clamp(1.5rem,3.8vw,2.7rem);
+  letter-spacing:.04em;line-height:1.2;
+}
+.h-title .accent{color:var(--teal2);}
+.h-title .gold{color:var(--gold2);}
+.h-sub{
+  font-family:var(--font-m);font-size:.73rem;
+  color:var(--muted2);letter-spacing:.18em;margin-top:.55rem;
+}
+.h-metrics{
+  display:flex;justify-content:center;gap:2rem;margin-top:1.3rem;
+  flex-wrap:wrap;
+}
+.h-metric{
+  font-family:var(--font-m);font-size:.65rem;color:var(--muted2);
+  border-left:2px solid var(--teal);padding-left:.6rem;
+}
+.h-metric strong{display:block;color:var(--teal2);font-size:.85rem;}
+
+/* ═══════════════════════════════════
+   LAYOUT
+═══════════════════════════════════ */
+.wrap{max-width:1440px;margin:0 auto;padding:2rem 1.5rem 5rem;display:flex;flex-direction:column;gap:2rem;}
+
+/* ═══════════════════════════════════
+   CARD
+═══════════════════════════════════ */
+.card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;
+  position:relative;transition:box-shadow .3s;
+}
+.card:hover{box-shadow:var(--glow2);}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--teal),var(--teal2),transparent);
+}
+.card-head{
+  display:flex;align-items:center;gap:.8rem;
+  padding:1.1rem 1.6rem;border-bottom:1px solid var(--borderB);
+  background:rgba(13,148,136,0.035);
+}
+.card-icon{
+  width:32px;height:32px;border:1px solid var(--teal);border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--teal);font-size:.88rem;flex-shrink:0;
+}
+.card-num{font-family:var(--font-m);font-size:.6rem;color:var(--teal);letter-spacing:.28em;}
+.card-title{font-family:var(--font-h);font-weight:700;font-size:.9rem;letter-spacing:.1em;}
+.card-cn{font-family:var(--font-c);font-size:.72rem;color:var(--muted2);margin-left:.3rem;}
+.card-body{padding:1.6rem;}
+
+/* ═══════════════════════════════════
+   SECTION 1 — THEORY
+═══════════════════════════════════ */
+.theory-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:1.1rem;}
+
+.theory-tile{
+  background:var(--bg3);border:1px solid var(--border);border-radius:7px;
+  padding:1.3rem 1.4rem;position:relative;overflow:hidden;
+  transition:transform .25s,box-shadow .25s;
+}
+.theory-tile:hover{transform:translateY(-3px);box-shadow:var(--glow);}
+.theory-tile::after{
+  content:attr(data-n);
+  position:absolute;right:.8rem;top:.3rem;
+  font-family:var(--font-h);font-weight:800;font-size:3rem;
+  color:rgba(13,148,136,0.06);line-height:1;pointer-events:none;
+}
+.t-tag{font-family:var(--font-m);font-size:.6rem;color:var(--teal);letter-spacing:.22em;text-transform:uppercase;margin-bottom:.5rem;}
+.t-name{font-family:var(--font-h);font-weight:700;font-size:1.02rem;margin-bottom:.8rem;}
+.t-formula{
+  background:rgba(13,148,136,0.07);border:1px solid rgba(13,148,136,0.2);
+  border-radius:5px;padding:.8rem;text-align:center;
+  margin-bottom:.8rem;font-size:1.05rem;
+}
+.t-list{list-style:none;display:flex;flex-direction:column;gap:.28rem;}
+.t-list li{font-family:var(--font-m);font-size:.71rem;color:var(--muted2);padding-left:1rem;position:relative;}
+.t-list li::before{content:'▸';position:absolute;left:0;color:var(--teal);}
+.t-list li strong{color:var(--teal3);}
+.reaction-box{
+  background:var(--bg);border:1px dashed rgba(245,158,11,0.35);
+  border-radius:4px;padding:.7rem;text-align:center;
+  font-size:.82rem;color:var(--gold2);margin-top:.5rem;
+}
+
+/* ═══════════════════════════════════
+   LI-ION ANIMATION  (canvas-based)
+═══════════════════════════════════ */
+.anim-section{
+  background:var(--bg3);border:1px solid var(--border);border-radius:7px;
+  padding:1rem;overflow:hidden;position:relative;
+}
+.anim-title{font-family:var(--font-m);font-size:.63rem;color:var(--teal);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.7rem;}
+#batteryCanvas{width:100%;display:block;border-radius:4px;}
+
+/* ═══════════════════════════════════
+   SECTION 2 — MATERIAL SELECTOR
+═══════════════════════════════════ */
+.mat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1.4rem;}
+
+.mat-card{
+  background:var(--bg3);border:2px solid var(--border);border-radius:7px;
+  padding:1.1rem 1.2rem;cursor:pointer;transition:all .22s;position:relative;
+  overflow:hidden;
+}
+.mat-card:hover{border-color:var(--teal);transform:translateY(-2px);box-shadow:var(--glow);}
+.mat-card.selected{border-color:var(--gold2);box-shadow:0 0 20px rgba(245,158,11,0.25);}
+.mat-card.selected::before{
+  content:'✓ SELECTED';
+  position:absolute;top:.5rem;right:.7rem;
+  font-family:var(--font-m);font-size:.58rem;color:var(--gold2);letter-spacing:.15em;
+}
+.mat-name{font-family:var(--font-h);font-weight:700;font-size:1.1rem;margin-bottom:.3rem;}
+.mat-cn{font-family:var(--font-c);font-size:.72rem;color:var(--muted2);margin-bottom:.7rem;}
+.mat-props{display:flex;flex-direction:column;gap:.25rem;}
+.mat-prop{display:flex;justify-content:space-between;align-items:center;font-family:var(--font-m);font-size:.7rem;}
+.mat-prop .pk{color:var(--muted2);}
+.mat-prop .pv{font-weight:700;}
+.mat-prop .pv.v{color:var(--teal2);}
+.mat-prop .pv.g{color:var(--rose);}
+.mat-prop .pv.c{color:var(--gold2);}
+/* voltage bar */
+.vbar-wrap{margin-top:.7rem;height:4px;background:var(--bg);border-radius:2px;overflow:hidden;}
+.vbar{height:100%;border-radius:2px;transition:width .6s ease;}
+
+/* Calculation panel */
+.calc-panel{
+  display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;
+  background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:1.3rem;
+}
+@media(max-width:700px){.calc-panel{grid-template-columns:1fr;}}
+
+.cp-left,.cp-right{display:flex;flex-direction:column;gap:.9rem;}
+
+.inp-block{display:flex;flex-direction:column;gap:.35rem;}
+.inp-label{font-family:var(--font-m);font-size:.62rem;color:var(--muted2);letter-spacing:.15em;text-transform:uppercase;}
+.inp{
+  background:var(--bg);border:1px solid var(--border);border-radius:4px;
+  color:var(--text);font-family:var(--font-m);font-size:.9rem;
+  padding:.5rem .75rem;outline:none;transition:border-color .2s,box-shadow .2s;
+  width:100%;
+}
+.inp:focus{border-color:var(--teal);box-shadow:var(--glow);}
+.inp.err{border-color:var(--rose);}
+.err-msg{font-family:var(--font-m);font-size:.64rem;color:var(--rose);display:none;}
+.err-msg.show{display:block;}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.45rem;
+  padding:.6rem 1.2rem;border-radius:5px;border:1px solid;
+  font-family:var(--font-m);font-size:.72rem;letter-spacing:.1em;
+  cursor:pointer;transition:all .22s;text-transform:uppercase;
+  position:relative;overflow:hidden;
+}
+.btn::after{content:'';position:absolute;inset:0;background:currentColor;opacity:0;transition:.2s;}
+.btn:hover::after{opacity:.07;}
+.btn-teal{background:rgba(13,148,136,.15);border-color:var(--teal);color:var(--teal);}
+.btn-teal:hover{background:rgba(13,148,136,.28);box-shadow:var(--glow);}
+.btn-gold{background:rgba(245,158,11,.12);border-color:var(--gold);color:var(--gold);}
+.btn-gold:hover{background:rgba(245,158,11,.25);box-shadow:0 0 18px rgba(245,158,11,.3);}
+.btn-rose{background:rgba(244,63,94,.1);border-color:var(--rose);color:var(--rose);}
+.btn-rose:hover{background:rgba(244,63,94,.22);}
+.btn-full{width:100%;}
+.btn[disabled]{opacity:.35;cursor:not-allowed;}
+
+/* Result display */
+.result-box{
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  padding:1.1rem;display:flex;flex-direction:column;gap:.6rem;
+}
+.result-row{display:flex;justify-content:space-between;align-items:center;font-family:var(--font-m);font-size:.78rem;}
+.result-key{color:var(--muted2);}
+.result-val{font-weight:700;font-size:1rem;}
+.result-val.big{font-size:1.8rem;font-family:var(--font-h);color:var(--teal2);}
+.comparison-tag{
+  display:inline-block;font-family:var(--font-m);font-size:.65rem;
+  padding:.2rem .7rem;border-radius:3px;border:1px solid;margin-top:.3rem;
+}
+.comp-high{border-color:var(--lime);color:var(--lime);background:rgba(132,204,22,.08);}
+.comp-low {border-color:var(--rose);color:var(--rose);background:rgba(244,63,94,.08);}
+.comp-sim {border-color:var(--blue2);color:var(--blue2);background:rgba(96,165,250,.08);}
+
+.feedback-pill{
+  display:flex;align-items:center;gap:.5rem;
+  font-family:var(--font-m);font-size:.72rem;
+  padding:.45rem .8rem;border-radius:4px;border:1px solid;
+}
+.fb-ok {border-color:var(--lime);color:var(--lime);background:rgba(132,204,22,.08);}
+.fb-err{border-color:var(--rose);color:var(--rose);background:rgba(244,63,94,.08);}
+
+/* ═══════════════════════════════════
+   SECTION 3 — DOPING SIMULATOR
+═══════════════════════════════════ */
+.doping-layout{display:grid;grid-template-columns:380px 1fr;gap:1.5rem;}
+@media(max-width:1000px){.doping-layout{grid-template-columns:1fr;}}
+
+.doping-controls{display:flex;flex-direction:column;gap:1rem;}
+
+.doping-el-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
+.doping-el{
+  background:var(--bg3);border:2px solid var(--border);border-radius:6px;
+  padding:.8rem;cursor:pointer;transition:all .2s;text-align:center;
+}
+.doping-el:hover{border-color:var(--teal);}
+.doping-el.sel-Ni {border-color:#60a5fa;background:rgba(96,165,250,.08);}
+.doping-el.sel-Mn {border-color:#a78bfa;background:rgba(167,139,250,.08);}
+.doping-el.sel-Al {border-color:#f59e0b;background:rgba(245,158,11,.08);}
+.doping-el.sel-Co {border-color:#f43f5e;background:rgba(244,63,94,.08);}
+.el-sym{font-family:var(--font-h);font-weight:800;font-size:1.6rem;line-height:1;}
+.el-name{font-family:var(--font-m);font-size:.62rem;color:var(--muted2);margin-top:.2rem;}
+.el-effect{font-family:var(--font-m);font-size:.58rem;margin-top:.3rem;}
+.el-effect.cap{color:#60a5fa;}
+.el-effect.stab{color:#a78bfa;}
+.el-effect.str{color:#f59e0b;}
+.el-effect.v{color:#f43f5e;}
+
+.range-block{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.6rem;}
+.range-top{display:flex;justify-content:space-between;}
+.rng-lbl{font-family:var(--font-m);font-size:.68rem;color:var(--muted2);}
+.rng-val{font-family:var(--font-m);font-size:.72rem;color:var(--teal2);font-weight:700;}
+
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:4px;
+  background:var(--bg);border-radius:2px;outline:none;
+  background-image:linear-gradient(var(--teal),var(--teal));
+  background-size:50% 100%;background-repeat:no-repeat;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+  background:var(--teal2);border:2px solid var(--bg);cursor:pointer;
+  box-shadow:0 0 7px rgba(13,148,136,.65);
+}
+
+.doping-result-block{
+  background:var(--bg);border:1px solid var(--border);border-radius:5px;
+  padding:.9rem;display:flex;flex-direction:column;gap:.45rem;
+}
+.dr-row{display:flex;justify-content:space-between;font-family:var(--font-m);font-size:.72rem;}
+.dr-k{color:var(--muted2);}
+.dr-v{font-weight:700;}
+
+/* Mini bar */
+.mini-bar-wrap{height:5px;background:var(--bg2);border-radius:3px;overflow:hidden;margin-top:.15rem;}
+.mini-bar{height:100%;border-radius:3px;transition:width .5s ease;}
+
+/* Charts section */
+.charts-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;}
+@media(max-width:1000px){.charts-3col{grid-template-columns:1fr;}}
+.chart-box{
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  padding:1rem;
+}
+.chart-lbl{font-family:var(--font-m);font-size:.63rem;color:var(--teal);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.7rem;}
+canvas.chart{max-height:220px;}
+
+/* ═══════════════════════════════════
+   SECTION 4 — CHALLENGE
+═══════════════════════════════════ */
+.challenge-layout{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;}
+@media(max-width:900px){.challenge-layout{grid-template-columns:1fr;}}
+
+.challenge-targets{
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:1.2rem;
+}
+.ch-title{font-family:var(--font-m);font-size:.63rem;color:var(--teal);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.9rem;}
+.target-row{
+  display:flex;align-items:center;gap:.8rem;
+  padding:.55rem .8rem;border-radius:4px;border:1px solid var(--border);
+  margin-bottom:.5rem;background:var(--bg);font-family:var(--font-m);font-size:.74rem;
+  transition:all .3s;
+}
+.target-row.pass{border-color:var(--lime);background:rgba(132,204,22,.07);}
+.target-row.fail{border-color:var(--rose);background:rgba(244,63,94,.07);}
+.tr-icon{font-size:1rem;width:22px;text-align:center;}
+.tr-label{flex:1;color:var(--muted2);}
+.tr-value{color:var(--text);font-weight:700;}
+.tr-status{font-size:.7rem;margin-left:.3rem;}
+
+.score-display{
+  text-align:center;padding:1.5rem;
+  background:rgba(13,148,136,0.06);border:1px solid var(--border);
+  border-radius:6px;margin-top:.8rem;
+}
+.score-num{
+  font-family:var(--font-h);font-weight:800;font-size:3.5rem;
+  color:var(--teal2);text-shadow:var(--glow);
+}
+.score-lbl{font-family:var(--font-m);font-size:.65rem;color:var(--muted2);letter-spacing:.15em;}
+
+/* ═══════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════ */
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--teal);}
+</style>
+</head>
+<body>
+<div class="scan"></div>
+
+<!-- ═══════════════════════════════════
+     HEADER
+═══════════════════════════════════ -->
+<header>
+  <div class="h-eyebrow">BATTERY THERMODYNAMICS LAB · ELECTROCHEMISTRY MODULE v4.0</div>
+  <h1 class="h-title"><span class="accent">电池</span> 热力学材料设计 <span class="gold">模拟器</span></h1>
+  <p class="h-sub">Battery Thermodynamics Designer— ΔG · EMF · DOPING OPTIMIZATION</p>
+  <div class="h-metrics">
+    <div class="h-metric"><strong>ΔG = −nFE</strong>Gibbs–Voltage</div>
+    <div class="h-metric"><strong>F = 96485 C/mol</strong>Faraday Const.</div>
+    <div class="h-metric"><strong>5 Materials</strong>Cathode Library</div>
+    <div class="h-metric"><strong>4 Dopants</strong>Ni·Mn·Al·Co</div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════
+     MAIN WRAP
+═══════════════════════════════════ -->
+<div class="wrap">
+
+<!-- ────────────────────────────────
+     SEC 1 · THEORY
+──────────────────────────────────── -->
+<section class="card fu" id="sec-theory">
+  <div class="card-head">
+    <div class="card-icon">⚡</div>
+    <span class="card-num">01 /</span>
+    <span class="card-title">CORE THEORY</span>
+    <span class="card-cn">核心理论</span>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:1fr 280px;gap:1.2rem;">
+      <div class="theory-wrap" id="theoryGrid"></div>
+      <!-- Li-ion animation canvas -->
+      <div class="anim-section">
+        <div class="anim-title">⚛ Li⁺ Ion Migration — 锂离子迁移动画</div>
+        <canvas id="batteryCanvas" height="230"></canvas>
+        <div style="margin-top:.6rem;display:flex;gap:1rem;font-family:var(--font-m);font-size:.62rem;color:var(--muted2);">
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#60a5fa;margin-right:.3rem;"></span>Li⁺</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#fbbf24;margin-right:.3rem;"></span>e⁻</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#0d9488;margin-right:.3rem;"></span>Host</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────────────────────
+     SEC 2 · MATERIAL SELECTOR
+──────────────────────────────────── -->
+<section class="card fu" id="sec-material">
+  <div class="card-head">
+    <div class="card-icon">🔋</div>
+    <span class="card-num">02 /</span>
+    <span class="card-title">CATHODE MATERIAL SELECTOR</span>
+    <span class="card-cn">正极材料自由能比较</span>
+  </div>
+  <div class="card-body">
+    <!-- Material cards -->
+    <div class="mat-grid" id="matGrid"></div>
+
+    <!-- Calculation panel -->
+    <div class="calc-panel">
+      <div class="cp-left">
+        <div style="font-family:var(--font-m);font-size:.63rem;color:var(--teal);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.2rem;">
+          Selected: <span id="selMatName" style="color:var(--gold2);">— None —</span>
+        </div>
+
+        <div class="inp-block">
+          <span class="inp-label">Electron Transfer Number n</span>
+          <input class="inp" type="number" id="nInput" min="1" max="10" step="1" placeholder="e.g. 1"
+                 oninput="onNInput(this.value)"/>
+          <div class="err-msg" id="nErr">⚠ n must be integer ≥ 1</div>
+        </div>
+
+        <div class="inp-block">
+          <span class="inp-label">Override ΔG (kJ/mol) — Optional</span>
+          <input class="inp" type="number" id="dgInput" placeholder="Leave blank = use preset" step="0.1"
+                 oninput="onDGInput(this.value)"/>
+        </div>
+
+        <button class="btn btn-gold btn-full" onclick="calculateVoltage()">
+          ⚡ Calculate Theoretical Voltage — 计算理论电压
+        </button>
+
+        <div id="electronFeedback" style="display:none;"></div>
+      </div>
+
+      <div class="cp-right">
+        <div style="font-family:var(--font-m);font-size:.63rem;color:var(--teal);letter-spacing:.18em;text-transform:uppercase;">
+          Calculation Result — 计算结果
+        </div>
+        <div class="result-box" id="resultBox">
+          <div style="font-family:var(--font-m);font-size:.7rem;color:var(--muted);text-align:center;padding:.5rem;">
+            选择材料并输入 n 值后点击计算
+          </div>
+        </div>
+
+        <div style="background:var(--bg);border:1px solid var(--borderB);border-radius:5px;padding:.8rem;">
+          <div style="font-family:var(--font-m);font-size:.62rem;color:var(--teal);letter-spacing:.15em;margin-bottom:.5rem;">FORMULA</div>
+          <div id="formulaDisplay" style="font-size:.95rem;text-align:center;">
+            $E = \dfrac{-\Delta G}{n \cdot F}$
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voltage comparison chart -->
+    <div style="margin-top:1.4rem;">
+      <div class="chart-box">
+        <div class="chart-lbl">📊 Material vs Theoretical Voltage — 材料电压对比</div>
+        <canvas class="chart" id="voltageChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────────────────────
+     SEC 3 · DOPING SIMULATOR
+──────────────────────────────────── -->
+<section class="card fu" id="sec-doping">
+  <div class="card-head">
+    <div class="card-icon">⚗</div>
+    <span class="card-num">03 /</span>
+    <span class="card-title">DOPING OPTIMIZATION SIMULATOR</span>
+    <span class="card-cn">正极材料掺杂设计</span>
+  </div>
+  <div class="card-body">
+    <div class="doping-layout">
+
+      <!-- Left: controls -->
+      <div class="doping-controls">
+        <div style="font-family:var(--font-m);font-size:.63rem;color:var(--teal);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.3rem;">
+          Base Material: <span style="color:var(--gold2);">LiCoO₂</span>
+          <span style="color:var(--muted2);margin-left:.4rem;">(140 mAh/g baseline)</span>
+        </div>
+
+        <!-- Dopant element selection -->
+        <div>
+          <div style="font-family:var(--font-m);font-size:.63rem;color:var(--muted2);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;">Select Dopant — 选择掺杂元素</div>
+          <div class="doping-el-grid" id="dopantGrid"></div>
+        </div>
+
+        <!-- Doping level slider -->
+        <div>
+          <div class="range-block">
+            <div class="range-top">
+              <span class="rng-lbl">Doping Level — 掺杂比例</span>
+              <span class="rng-val" id="dopeLvlDisplay">0.20</span>
+            </div>
+            <input type="range" id="dopeSlider" min="0" max="0.5" step="0.01" value="0.2"
+                   oninput="onDopeSlider(this.value)"/>
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-m);font-size:.58rem;color:var(--muted);">
+              <span>0%</span><span>25%</span><span>50%</span>
+            </div>
+            <div class="err-msg" id="dopeErr">⚠ 0 ≤ doping ≤ 0.5</div>
+          </div>
+        </div>
+
+        <!-- Simulate button -->
+        <button class="btn btn-teal btn-full" onclick="simulateDoping()">
+          🔬 Simulate Doping — 模拟掺杂效果
+        </button>
+
+        <!-- Doping result panel -->
+        <div class="doping-result-block" id="dopingResult">
+          <div style="font-family:var(--font-m);font-size:.7rem;color:var(--muted);text-align:center;">
+            选择掺杂元素并点击模拟
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: charts -->
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="charts-3col" id="chartsRow">
+          <div class="chart-box">
+            <div class="chart-lbl">📈 Doping vs Capacity</div>
+            <canvas class="chart" id="capacityChart"></canvas>
+          </div>
+          <div class="chart-box">
+            <div class="chart-lbl">⚡ Energy Density</div>
+            <canvas class="chart" id="energyChart"></canvas>
+          </div>
+          <div class="chart-box">
+            <div class="chart-lbl">🛡 Stability Radar</div>
+            <canvas class="chart" id="radarChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────────────────────
+     SEC 4 · CHALLENGE
+──────────────────────────────────── -->
+<section class="card fu" id="sec-challenge">
+  <div class="card-head">
+    <div class="card-icon">🏆</div>
+    <span class="card-num">04 /</span>
+    <span class="card-title">BATTERY MATERIAL DESIGNER CHALLENGE</span>
+    <span class="card-cn">材料设计挑战模式</span>
+  </div>
+  <div class="card-body">
+    <div class="challenge-layout">
+
+      <!-- Targets -->
+      <div>
+        <div class="challenge-targets">
+          <div class="ch-title">🎯 Design Targets — 设计目标</div>
+          <div class="target-row" id="ch-voltage">
+            <span class="tr-icon">⚡</span>
+            <span class="tr-label">Voltage > 3.7 V</span>
+            <span class="tr-value" id="ch-v-val">—</span>
+            <span class="tr-status" id="ch-v-st">⬜</span>
+          </div>
+          <div class="target-row" id="ch-capacity">
+            <span class="tr-icon">🔋</span>
+            <span class="tr-label">Capacity > 180 mAh/g</span>
+            <span class="tr-value" id="ch-c-val">—</span>
+            <span class="tr-status" id="ch-c-st">⬜</span>
+          </div>
+          <div class="target-row" id="ch-energy">
+            <span class="tr-icon">💎</span>
+            <span class="tr-label">Energy Density > 650 Wh/kg</span>
+            <span class="tr-value" id="ch-e-val">—</span>
+            <span class="tr-status" id="ch-e-st">⬜</span>
+          </div>
+          <div class="target-row" id="ch-stab">
+            <span class="tr-icon">🛡</span>
+            <span class="tr-label">Stability Score ≥ 70</span>
+            <span class="tr-value" id="ch-s-val">—</span>
+            <span class="tr-status" id="ch-s-st">⬜</span>
+          </div>
+        </div>
+
+        <div class="score-display">
+          <div class="score-num" id="challengeScore">0 / 4</div>
+          <div class="score-lbl">TARGETS MET — 达成目标数</div>
+          <div style="margin-top:.7rem;font-family:var(--font-m);font-size:.68rem;color:var(--muted2);" id="challengeHint">
+            完成材料选择与掺杂设计，系统将自动评分
+          </div>
+        </div>
+      </div>
+
+      <!-- Current design summary -->
+      <div class="challenge-targets">
+        <div class="ch-title">📋 Current Design Summary — 当前设计方案</div>
+
+        <div id="designSummary" style="display:flex;flex-direction:column;gap:.6rem;">
+          <div style="font-family:var(--font-m);font-size:.7rem;color:var(--muted);text-align:center;padding:1rem;">
+            选择材料并模拟掺杂后显示设计总结
+          </div>
+        </div>
+
+        <div style="margin-top:1rem;">
+          <div class="ch-title">📊 Material Ranking — 全材料能量密度排名</div>
+          <div id="rankingList" style="display:flex;flex-direction:column;gap:.4rem;margin-top:.4rem;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /.wrap -->
+
+<!-- ═══════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ════════════════════════════════════
+   DATA: CATHODE MATERIAL LIBRARY
+   Each material has preset thermodynamic properties
+════════════════════════════════════ */
+const MATERIALS = [
+  {
+    id: 'LCO',
+    name: 'LiCoO₂',
+    cn: '钴酸锂',
+    dG: -263000,         // J/mol  ΔG reaction
+    nCorrect: 1,         // correct electron transfer number
+    voltageRef: 3.90,    // V (literature)
+    capacity: 140,       // mAh/g theoretical usable
+    color: '#f43f5e',
+    desc: '最早商业化正极，电压高但含贵金属',
+  },
+  {
+    id: 'LFP',
+    name: 'LiFePO₄',
+    cn: '磷酸铁锂',
+    dG: -226000,
+    nCorrect: 1,
+    voltageRef: 3.45,
+    capacity: 170,
+    color: '#0d9488',
+    desc: '安全性高，循环寿命长，磷酸盐骨架稳定',
+  },
+  {
+    id: 'LMO',
+    name: 'LiMn₂O₄',
+    cn: '锰酸锂',
+    dG: -246000,
+    nCorrect: 1,
+    voltageRef: 4.05,
+    capacity: 120,
+    color: '#f59e0b',
+    desc: '尖晶石结构，成本低，高温稳定性差',
+  },
+  {
+    id: 'NMC',
+    name: 'NMC 811',
+    cn: '镍锰钴酸锂',
+    dG: -310000,
+    nCorrect: 1,
+    voltageRef: 3.85,
+    capacity: 200,
+    color: '#8b5cf6',
+    desc: 'Ni:Mn:Co = 8:1:1，高能量密度，EV主流正极',
+  },
+  {
+    id: 'LNO',
+    name: 'LiNiO₂',
+    cn: '镍酸锂',
+    dG: -285000,
+    nCorrect: 1,
+    voltageRef: 3.75,
+    capacity: 190,
+    color: '#3b82f6',
+    desc: '高容量，热稳定性差，需掺杂改善',
+  },
+];
+
+const FARADAY = 96485; // C/mol
+
+/* ════════════════════════════════════
+   DATA: DOPANT LIBRARY
+════════════════════════════════════ */
+const DOPANTS = [
+  {
+    id: 'Ni', sym: 'Ni', name: 'Nickel 镍', color: '#60a5fa',
+    effect: 'capacity increase ↑', effectCls: 'cap',
+    // Capacity modifier as function of doping level x
+    capFn:   x => 140 * (1 + 1.1 * x),
+    voltFn:  x => 3.90 * (1 - 0.08 * x),
+    stabFn:  x => Math.max(30, 75 - 60 * x),  // stability 0-100
+    volFn:   x => 1 + 0.05 * x,               // volume change factor
+  },
+  {
+    id: 'Mn', sym: 'Mn', name: 'Manganese 锰', color: '#a78bfa',
+    effect: 'stability increase ↑', effectCls: 'stab',
+    capFn:   x => 140 * (1 + 0.3 * x),
+    voltFn:  x => 3.90 * (1 + 0.05 * x),
+    stabFn:  x => 70 + 28 * x,
+    volFn:   x => 1 + 0.02 * x,
+  },
+  {
+    id: 'Al', sym: 'Al', name: 'Aluminum 铝', color: '#f59e0b',
+    effect: 'structure stabilization', effectCls: 'str',
+    capFn:   x => 140 * (1 - 0.25 * x),
+    voltFn:  x => 3.90 * (1 + 0.07 * x),
+    stabFn:  x => 68 + 30 * x,
+    volFn:   x => 1 - 0.03 * x,
+  },
+  {
+    id: 'Co', sym: 'Co', name: 'Cobalt 钴', color: '#f43f5e',
+    effect: 'voltage boost ↑', effectCls: 'v',
+    capFn:   x => 140 * (1 + 0.05 * x),
+    voltFn:  x => 3.90 * (1 + 0.12 * x),
+    stabFn:  x => 72 + 15 * x,
+    volFn:   x => 1 + 0.01 * x,
+  },
+];
+
+/* ════════════════════════════════════
+   APP STATE
+════════════════════════════════════ */
+const S = {
+  selectedMat: null,
+  selectedDopant: null,
+  dopeLevel: 0.2,
+  calcVoltage: null,
+  calcCapacity: null,
+  dopingSimDone: false,
+
+  // Chart instances
+  voltChart: null,
+  capChart: null,
+  engChart: null,
+  radChart: null,
+};
+
+/* ════════════════════════════════════
+   MODULE: THEORY RENDERER
+   Renders 3 theory tiles with MathJax formulas
+════════════════════════════════════ */
+function renderTheory() {
+  const grid = document.getElementById('theoryGrid');
+
+  const tiles = [
+    {
+      n: '01', tag: 'Gibbs–Voltage Relation', name: '自由能与电动势',
+      formula: '$$\\Delta G = -nFE$$',
+      items: [
+        '<strong>ΔG</strong>: 反应吉布斯自由能变化 (J/mol)',
+        '<strong>n</strong>: 电子转移数 (mol⁻¹)',
+        '<strong>F</strong>: 法拉第常数 96485 C/mol',
+        '<strong>E</strong>: 电池理论电动势 (V)',
+      ]
+    },
+    {
+      n: '02', tag: 'Maximum Work', name: '电池最大电功',
+      formula: '$$W_{max} = -\\Delta G = nFE$$',
+      items: [
+        '自由能变化决定最大可输出电功',
+        'ΔG < 0 时反应自发进行',
+        '电压 E 越高，单位摩尔可做电功越多',
+        '实际功 < 理论最大功（不可逆损失）',
+      ]
+    },
+    {
+      n: '03', tag: 'LiCoO₂ Voltage Platform', name: 'LiCoO₂ 脱锂反应',
+      formula: null,
+      reaction: 'LiCoO₂ ⇌ Li₁₋ₓCoO₂ + xLi⁺ + xe⁻',
+      voltage: '典型电压 ≈ 3.9 V',
+      items: [
+        'Co³⁺ → Co⁴⁺ 氧化（脱锂时）',
+        '层状岩盐结构提供二维Li扩散通道',
+        '电压平台由 Co³⁺/Co⁴⁺ 氧化还原电位决定',
+        'x ≤ 0.5 时结构稳定',
+      ]
+    }
+  ];
+
+  grid.innerHTML = tiles.map(t => `
+    <div class="theory-tile" data-n="${t.n}">
+      <div class="t-tag">${t.tag}</div>
+      <div class="t-name">${t.name}</div>
+      ${t.formula ? `<div class="t-formula">${t.formula}</div>` : ''}
+      ${t.reaction ? `<div class="reaction-box">${t.reaction}<br/><span style="color:var(--teal2);font-size:.78rem;">${t.voltage}</span></div>` : ''}
+      <ul class="t-list">${t.items.map(i=>`<li>${i}</li>`).join('')}</ul>
+    </div>`).join('');
+
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([grid]);
+}
+
+/* ════════════════════════════════════
+   MODULE: MATERIAL CARDS
+════════════════════════════════════ */
+function renderMaterialCards() {
+  const grid = document.getElementById('matGrid');
+  const maxV = Math.max(...MATERIALS.map(m => m.voltageRef));
+
+  grid.innerHTML = MATERIALS.map(m => `
+    <div class="mat-card" id="mat-${m.id}" onclick="selectMaterial('${m.id}')">
+      <div class="mat-name" style="color:${m.color};">${m.name}</div>
+      <div class="mat-cn">${m.cn} — ${m.desc}</div>
+      <div class="mat-props">
+        <div class="mat-prop">
+          <span class="pk">ΔG (kJ/mol)</span>
+          <span class="pv g">${(m.dG/1000).toFixed(0)}</span>
+        </div>
+        <div class="mat-prop">
+          <span class="pk">Voltage (V)</span>
+          <span class="pv v">${m.voltageRef.toFixed(2)}</span>
+        </div>
+        <div class="mat-prop">
+          <span class="pk">Capacity (mAh/g)</span>
+          <span class="pv c">${m.capacity}</span>
+        </div>
+        <div class="mat-prop">
+          <span class="pk">n (correct)</span>
+          <span class="pv" style="color:var(--muted2);">${m.nCorrect}</span>
+        </div>
+      </div>
+      <div class="vbar-wrap">
+        <div class="vbar" style="width:${(m.voltageRef/maxV*100).toFixed(1)}%;background:${m.color};"></div>
+      </div>
+    </div>`).join('');
+}
+
+/**
+ * selectMaterial — marks material as selected in UI and state
+ */
+function selectMaterial(id) {
+  S.selectedMat = MATERIALS.find(m => m.id === id);
+  document.querySelectorAll('.mat-card').forEach(el => el.classList.remove('selected'));
+  document.getElementById('mat-' + id).classList.add('selected');
+  document.getElementById('selMatName').textContent = S.selectedMat.name + ' — ' + S.selectedMat.cn;
+
+  // Pre-fill n
+  document.getElementById('nInput').value = S.selectedMat.nCorrect;
+  document.getElementById('nErr').classList.remove('show');
+  document.getElementById('nInput').classList.remove('err');
+
+  // Hide old feedback
+  document.getElementById('electronFeedback').style.display = 'none';
+  document.getElementById('resultBox').innerHTML = '<div style="font-family:var(--font-m);font-size:.7rem;color:var(--muted);text-align:center;padding:.5rem;">点击 Calculate 计算</div>';
+}
+
+/* ════════════════════════════════════
+   MODULE: VOLTAGE CALCULATOR
+   E = -ΔG / (n * F)
+════════════════════════════════════ */
+
+function onNInput(v) {
+  const n = parseInt(v);
+  const err = document.getElementById('nErr');
+  const inp = document.getElementById('nInput');
+  if (isNaN(n) || n < 1 || !Number.isInteger(n)) {
+    inp.classList.add('err'); err.classList.add('show');
+  } else {
+    inp.classList.remove('err'); err.classList.remove('show');
+  }
+}
+
+function onDGInput(v) { /* optional override — no special validation needed */ }
+
+/**
+ * calculateVoltage — computes E = -ΔG/(nF) and compares to LiCoO₂
+ * Also calls validateElectronNumber
+ */
+function calculateVoltage() {
+  if (!S.selectedMat) { alert('请先选择一个正极材料！'); return; }
+
+  const nRaw = document.getElementById('nInput').value;
+  const n = parseInt(nRaw);
+  if (isNaN(n) || n < 1) {
+    document.getElementById('nErr').classList.add('show');
+    document.getElementById('nInput').classList.add('err');
+    return;
+  }
+
+  const dgOverride = document.getElementById('dgInput').value;
+  const dG = dgOverride ? parseFloat(dgOverride) * 1000 : S.selectedMat.dG;
+
+  // Core formula: E = -ΔG / (n * F)
+  const E = -dG / (n * FARADAY);
+  S.calcVoltage = E;
+
+  // Compare to LiCoO₂ reference (3.90 V)
+  const refV = 3.90;
+  const diff = E - refV;
+  let compTag = '';
+  if (diff > 0.05) compTag = `<span class="comparison-tag comp-high">▲ Higher than LiCoO₂ (+${diff.toFixed(2)} V)</span>`;
+  else if (diff < -0.05) compTag = `<span class="comparison-tag comp-low">▼ Lower than LiCoO₂ (${diff.toFixed(2)} V)</span>`;
+  else compTag = `<span class="comparison-tag comp-sim">≈ Similar to LiCoO₂</span>`;
+
+  const deltaGkJ = (dG / 1000).toFixed(1);
+  const Wmax = Math.abs(dG / 1000).toFixed(1);
+
+  document.getElementById('resultBox').innerHTML = `
+    <div class="result-row">
+      <span class="result-key">ΔG (kJ/mol)</span>
+      <span class="result-val" style="color:var(--rose);">${deltaGkJ}</span>
+    </div>
+    <div class="result-row">
+      <span class="result-key">n (entered)</span>
+      <span class="result-val" style="color:var(--gold2);">${n}</span>
+    </div>
+    <div class="result-row">
+      <span class="result-key">F (C/mol)</span>
+      <span class="result-val" style="color:var(--muted2);">96485</span>
+    </div>
+    <div class="result-row" style="border-top:1px solid var(--borderB);padding-top:.5rem;margin-top:.2rem;">
+      <span class="result-key">E = −ΔG/nF</span>
+      <span class="result-val big">${E.toFixed(3)} V</span>
+    </div>
+    <div class="result-row">
+      <span class="result-key">W_max (kJ/mol)</span>
+      <span class="result-val" style="color:var(--teal2);">${Wmax}</span>
+    </div>
+    <div>${compTag}</div>
+  `;
+
+  // Update formula display with numbers
+  const fDisplay = document.getElementById('formulaDisplay');
+  fDisplay.innerHTML = `$E = \\dfrac{-${deltaGkJ}\\times 10^3}{${n} \\times 96485} = ${E.toFixed(3)}\\text{ V}$`;
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([fDisplay]);
+
+  // Validate n
+  validateElectronNumber(n);
+
+  // Update voltage chart
+  drawVoltageChart(E, n);
+
+  // Update challenge
+  updateChallenge();
+}
+
+/**
+ * validateElectronNumber — checks if student's n matches the correct value
+ * for the selected material
+ */
+function validateElectronNumber(n) {
+  const fb = document.getElementById('electronFeedback');
+  fb.style.display = 'block';
+  if (n === S.selectedMat.nCorrect) {
+    fb.innerHTML = `<div class="feedback-pill fb-ok">✓ Correct electron transfer number for ${S.selectedMat.name}</div>`;
+  } else {
+    fb.innerHTML = `<div class="feedback-pill fb-err">✗ Check redox reaction stoichiometry — ${S.selectedMat.name} typically n = ${S.selectedMat.nCorrect}</div>`;
+  }
+}
+
+/* ════════════════════════════════════
+   MODULE: VOLTAGE CHART
+════════════════════════════════════ */
+/**
+ * drawVoltageChart — bar chart of all materials' theoretical voltages
+ * Highlights the currently selected / calculated material
+ */
+function drawVoltageChart(calcE, n) {
+  const ctx = document.getElementById('voltageChart').getContext('2d');
+  if (S.voltChart) S.voltChart.destroy();
+
+  // Calculate E for each material using entered n
+  const labels = MATERIALS.map(m => m.name);
+  const voltages = MATERIALS.map(m => (-m.dG / (n * FARADAY)).toFixed(3));
+  const colors = MATERIALS.map(m =>
+    S.selectedMat && m.id === S.selectedMat.id
+      ? m.color
+      : m.color + '70'
+  );
+
+  S.voltChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: `Theoretical Voltage (V) at n=${n}`,
+        data: voltages,
+        backgroundColor: colors,
+        borderColor: MATERIALS.map(m => m.color),
+        borderWidth: 1.5,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { family: 'Courier Prime', size: 11 } } },
+        tooltip: { callbacks: { label: c => ` ${c.parsed.y} V` } }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#94a3b8', font: { family: 'Courier Prime', size: 11 } } },
+        y: {
+          min: 0, max: 5,
+          title: { display: true, text: 'Voltage (V)', color: '#64748b', font: { family: 'Courier Prime', size: 11 } },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#94a3b8', font: { family: 'Courier Prime', size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+/* ════════════════════════════════════
+   MODULE: DOPANT ELEMENT GRID
+════════════════════════════════════ */
+function renderDopantGrid() {
+  const grid = document.getElementById('dopantGrid');
+  grid.innerHTML = DOPANTS.map(d => `
+    <div class="doping-el" id="dop-${d.id}" onclick="selectDopant('${d.id}')">
+      <div class="el-sym" style="color:${d.color};">${d.sym}</div>
+      <div class="el-name">${d.name}</div>
+      <div class="el-effect ${d.effectCls}">${d.effect}</div>
+    </div>`).join('');
+}
+
+/** selectDopant — marks dopant element as selected */
+function selectDopant(id) {
+  S.selectedDopant = DOPANTS.find(d => d.id === id);
+  document.querySelectorAll('.doping-el').forEach(el => {
+    el.className = 'doping-el';
+  });
+  document.getElementById('dop-' + id).classList.add('sel-' + id);
+}
+
+/** Slider sync */
+function onDopeSlider(v) {
+  const x = parseFloat(v);
+  const err = document.getElementById('dopeErr');
+  if (x < 0 || x > 0.5) { err.classList.add('show'); return; }
+  err.classList.remove('show');
+  S.dopeLevel = x;
+  document.getElementById('dopeLvlDisplay').textContent = x.toFixed(2);
+  updateSliderFill('dopeSlider');
+}
+
+/* ════════════════════════════════════
+   MODULE: DOPING SIMULATOR
+════════════════════════════════════ */
+/**
+ * simulateDoping — computes new capacity, voltage, stability from dopant model
+ * Outputs results and updates all three charts
+ */
+function simulateDoping() {
+  if (!S.selectedDopant) { alert('请先选择一个掺杂元素！'); return; }
+
+  const d = S.selectedDopant;
+  const x = S.dopeLevel;
+
+  // Calculate doped properties
+  const newCap   = d.capFn(x);
+  const newVolt  = d.voltFn(x);
+  const stabScore= d.stabFn(x);
+  const energy   = newVolt * newCap;  // Wh/kg proxy
+
+  S.calcCapacity = newCap;
+  if (S.calcVoltage === null) S.calcVoltage = newVolt;
+
+  S.dopingSimDone = true;
+
+  // Capacity change vs baseline
+  const capDiff = ((newCap - 140) / 140 * 100).toFixed(1);
+  const capColor = parseFloat(capDiff) >= 0 ? '#84cc16' : '#f43f5e';
+  const voltDiff = (newVolt - 3.90).toFixed(3);
+  const voltColor = parseFloat(voltDiff) >= 0 ? '#84cc16' : '#f43f5e';
+
+  document.getElementById('dopingResult').innerHTML = `
+    <div style="font-family:var(--font-m);font-size:.62rem;color:${d.color};letter-spacing:.15em;margin-bottom:.5rem;">
+      ${d.sym} DOPING @ x = ${x.toFixed(2)} — ${d.name}
+    </div>
+    <div class="dr-row"><span class="dr-k">New Capacity</span><span class="dr-v" style="color:${capColor};">${newCap.toFixed(1)} mAh/g (${capDiff}%)</span></div>
+    <div class="mini-bar-wrap"><div class="mini-bar" style="width:${Math.min(newCap/250*100,100).toFixed(1)}%;background:${capColor};"></div></div>
+    <div class="dr-row" style="margin-top:.4rem;"><span class="dr-k">New Voltage</span><span class="dr-v" style="color:${voltColor};">${newVolt.toFixed(3)} V (${voltDiff >= 0 ? '+' : ''}${voltDiff})</span></div>
+    <div class="dr-row" style="margin-top:.3rem;"><span class="dr-k">Stability Score</span><span class="dr-v" style="color:#a78bfa;">${stabScore.toFixed(0)} / 100</span></div>
+    <div class="mini-bar-wrap"><div class="mini-bar" style="width:${stabScore.toFixed(0)}%;background:#a78bfa;"></div></div>
+    <div class="dr-row" style="margin-top:.3rem;"><span class="dr-k">Energy Density</span><span class="dr-v" style="color:var(--gold2);">${energy.toFixed(0)} Wh/kg</span></div>
+  `;
+
+  drawCapacityChart(d);
+  drawEnergyDensityChart(d, x);
+  drawRadarChart(d, x);
+  updateChallenge();
+  updateDesignSummary(d, x, newCap, newVolt, stabScore, energy);
+  renderRanking();
+}
+
+/* ════════════════════════════════════
+   MODULE: CAPACITY CHART
+════════════════════════════════════ */
+/**
+ * drawCapacityChart — line chart of Capacity vs Doping Level for all dopants
+ */
+function drawCapacityChart(activeDopant) {
+  const ctx = document.getElementById('capacityChart').getContext('2d');
+  if (S.capChart) S.capChart.destroy();
+
+  const levels = Array.from({length: 26}, (_, i) => i * 0.02); // 0..0.5
+
+  S.capChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: levels.map(x => x.toFixed(2)),
+      datasets: DOPANTS.map(d => ({
+        label: d.sym,
+        data: levels.map(x => d.capFn(x).toFixed(1)),
+        borderColor: d.color,
+        borderWidth: d.id === activeDopant.id ? 2.5 : 1.2,
+        pointRadius: 0,
+        fill: false,
+        tension: 0.3,
+        borderDash: d.id === activeDopant.id ? [] : [4, 3],
+      }))
+    },
+    options: {
+      responsive: true, animation: { duration: 600 },
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { family: 'Courier Prime', size: 10 }, boxWidth: 14 } }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Doping x', color: '#64748b', font: { family: 'Courier Prime', size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#94a3b8', font: { family: 'Courier Prime', size: 9 }, maxTicksLimit: 6 }
+        },
+        y: {
+          title: { display: true, text: 'Capacity (mAh/g)', color: '#64748b', font: { family: 'Courier Prime', size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#94a3b8', font: { family: 'Courier Prime', size: 9 } }
+        }
+      }
+    }
+  });
+}
+
+/* ════════════════════════════════════
+   MODULE: ENERGY DENSITY CHART
+════════════════════════════════════ */
+/**
+ * drawEnergyDensityChart — bar chart Energy = V × C for each material
+ * given the current doping simulation result
+ */
+function drawEnergyDensityChart(activeDopant, x) {
+  const ctx = document.getElementById('energyChart').getContext('2d');
+  if (S.engChart) S.engChart.destroy();
+
+  // Energy for each material (undoped base) + doped LCO
+  const base = MATERIALS.map(m => ({ name: m.name, e: m.voltageRef * m.capacity, color: m.color }));
+  const dopedE = activeDopant.voltFn(x) * activeDopant.capFn(x);
+  base.push({ name: `LCO+${activeDopant.sym}(${x.toFixed(2)})`, e: dopedE, color: activeDopant.color });
+
+  S.engChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: base.map(b => b.name),
+      datasets: [{
+        label: 'Energy Density (Wh/kg)',
+        data: base.map(b => b.e.toFixed(0)),
+        backgroundColor: base.map(b => b.color + '80'),
+        borderColor: base.map(b => b.color),
+        borderWidth: 1.5,
+        borderRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true, animation: { duration: 700 },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${c.parsed.y} Wh/kg` } }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#94a3b8', font: { family: 'Courier Prime', size: 9 } } },
+        y: {
+          title: { display: true, text: 'Wh/kg', color: '#64748b', font: { family: 'Courier Prime', size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#94a3b8', font: { family: 'Courier Prime', size: 9 } }
+        }
+      }
+    }
+  });
+}
+
+/* ════════════════════════════════════
+   MODULE: RADAR CHART
+════════════════════════════════════ */
+/**
+ * drawRadarChart — spider chart comparing doped vs undoped LCO properties
+ */
+function drawRadarChart(d, x) {
+  const ctx = document.getElementById('radarChart').getContext('2d');
+  if (S.radChart) S.radChart.destroy();
+
+  // Normalized scores 0-100
+  const base = { cap: 140/2.5, volt: 3.9/0.05, stab: 72, safe: 60, cost: 55 };
+  const doped = {
+    cap:  Math.min(d.capFn(x) / 2.5, 100),
+    volt: Math.min(d.voltFn(x) / 0.05, 100),
+    stab: d.stabFn(x),
+    safe: Math.max(20, 65 - x * 30),
+    cost: Math.max(10, 60 - x * 50),
+  };
+
+  S.radChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['Capacity', 'Voltage', 'Stability', 'Safety', 'Cost↓'],
+      datasets: [
+        {
+          label: 'LiCoO₂ (base)',
+          data: [base.cap, base.volt, base.stab, base.safe, base.cost],
+          borderColor: '#f43f5e', backgroundColor: 'rgba(244,63,94,0.08)',
+          pointBackgroundColor: '#f43f5e', borderWidth: 1.5, pointRadius: 3,
+        },
+        {
+          label: `+${d.sym} x=${x.toFixed(2)}`,
+          data: [doped.cap, doped.volt, doped.stab, doped.safe, doped.cost],
+          borderColor: d.color, backgroundColor: d.color + '18',
+          pointBackgroundColor: d.color, borderWidth: 2, pointRadius: 4,
+        }
+      ]
+    },
+    options: {
+      responsive: true, animation: { duration: 600 },
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { family: 'Courier Prime', size: 10 }, boxWidth: 14 } }
+      },
+      scales: {
+        r: {
+          min: 0, max: 100,
+          grid: { color: 'rgba(255,255,255,0.07)' },
+          angleLines: { color: 'rgba(255,255,255,0.07)' },
+          pointLabels: { color: '#94a3b8', font: { family: 'Courier Prime', size: 10 } },
+          ticks: { display: false, stepSize: 25 }
+        }
+      }
+    }
+  });
+}
+
+/* ════════════════════════════════════
+   MODULE: CHALLENGE CHECKER
+   Evaluates whether design targets are met
+════════════════════════════════════ */
+/**
+ * updateChallenge — checks all 4 design targets and updates score
+ */
+function updateChallenge() {
+  const voltage = S.calcVoltage
+    ?? (S.selectedMat ? S.selectedMat.voltageRef : null);
+  const capacity = S.calcCapacity
+    ?? (S.selectedMat ? S.selectedMat.capacity : null);
+  const energy = (voltage && capacity) ? voltage * capacity : null;
+
+  // Stability from latest doping sim or default
+  const dopant = S.selectedDopant;
+  const stab = dopant ? dopant.stabFn(S.dopeLevel) : (S.selectedMat ? 60 : null);
+
+  let passed = 0;
+
+  const check = (id, valId, stId, val, threshold, pass, fmt) => {
+    const row = document.getElementById(id);
+    document.getElementById(valId).textContent = val !== null ? fmt(val) : '—';
+    if (val === null) {
+      row.className = 'target-row'; document.getElementById(stId).textContent = '⬜'; return;
+    }
+    if (pass) {
+      row.className = 'target-row pass'; document.getElementById(stId).textContent = '✅'; passed++;
+    } else {
+      row.className = 'target-row fail'; document.getElementById(stId).textContent = '❌';
+    }
+  };
+
+  check('ch-voltage',  'ch-v-val', 'ch-v-st', voltage,  3.7,  voltage  > 3.7,  v => v.toFixed(3)+' V');
+  check('ch-capacity', 'ch-c-val', 'ch-c-st', capacity, 180,  capacity > 180,  c => c.toFixed(0)+' mAh/g');
+  check('ch-energy',   'ch-e-val', 'ch-e-st', energy,   650,  energy   > 650,  e => e.toFixed(0)+' Wh/kg');
+  check('ch-stab',     'ch-s-val', 'ch-s-st', stab,     70,   stab     >= 70,  s => s.toFixed(0));
+
+  document.getElementById('challengeScore').textContent = passed + ' / 4';
+  const hints = [
+    '继续调整材料和掺杂参数…',
+    '已达成 1 项目标！加油继续优化',
+    '良好！2 项达成。尝试 Ni 掺杂提升容量',
+    '优秀！3 项达成。平衡稳定性与能量密度',
+    '🏆 全部目标达成！出色的材料设计！',
+  ];
+  document.getElementById('challengeHint').textContent = hints[passed];
+}
+
+/** Update design summary card */
+function updateDesignSummary(d, x, cap, volt, stab, energy) {
+  const mat = S.selectedMat;
+  document.getElementById('designSummary').innerHTML = `
+    <div class="dr-row"><span class="dr-k">Base Material</span><span class="dr-v" style="color:var(--gold2);">${mat ? mat.name : 'Not selected'}</span></div>
+    <div class="dr-row"><span class="dr-k">Dopant</span><span class="dr-v" style="color:${d.color};">${d.sym} — ${d.name}</span></div>
+    <div class="dr-row"><span class="dr-k">Doping Level</span><span class="dr-v">${(x*100).toFixed(0)}%</span></div>
+    <div class="dr-row" style="border-top:1px solid var(--borderB);margin-top:.3rem;padding-top:.3rem;">
+      <span class="dr-k">Capacity</span><span class="dr-v" style="color:#84cc16;">${cap.toFixed(1)} mAh/g</span>
+    </div>
+    <div class="dr-row"><span class="dr-k">Voltage</span><span class="dr-v" style="color:var(--teal2);">${volt.toFixed(3)} V</span></div>
+    <div class="dr-row"><span class="dr-k">Energy Density</span><span class="dr-v" style="color:var(--gold2);">${energy.toFixed(0)} Wh/kg</span></div>
+    <div class="dr-row"><span class="dr-k">Stability</span><span class="dr-v" style="color:#a78bfa;">${stab.toFixed(0)} / 100</span></div>
+  `;
+}
+
+/** Render material ranking by energy density */
+function renderRanking() {
+  const items = MATERIALS.map(m => ({
+    name: m.name, color: m.color,
+    energy: m.voltageRef * m.capacity
+  })).sort((a, b) => b.energy - a.energy);
+
+  const maxE = items[0].energy;
+  const list = document.getElementById('rankingList');
+  list.innerHTML = items.map((it, i) => `
+    <div style="display:flex;align-items:center;gap:.6rem;font-family:var(--font-m);font-size:.68rem;">
+      <span style="color:var(--muted2);width:14px;">${i+1}</span>
+      <span style="color:${it.color};flex:1;">${it.name}</span>
+      <div style="flex:2;height:4px;background:var(--bg);border-radius:2px;overflow:hidden;">
+        <div style="width:${(it.energy/maxE*100).toFixed(1)}%;height:100%;background:${it.color};border-radius:2px;transition:width .6s;"></div>
+      </div>
+      <span style="color:${it.color};width:65px;text-align:right;">${it.energy.toFixed(0)} Wh/kg</span>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════
+   MODULE: BATTERY ANIMATION (Canvas)
+   Li⁺ ions flow through electrolyte,
+   e⁻ flow through external circuit
+════════════════════════════════════ */
+function initBatteryAnimation() {
+  const canvas = document.getElementById('batteryCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Set canvas resolution
+  const W = canvas.parentElement.clientWidth - 32;
+  const H = 230;
+  canvas.width = W;
+  canvas.height = H;
+
+  // Structural dimensions
+  const cW = W * 0.18;  // cathode width
+  const aW = W * 0.18;  // anode width
+  const eL = W * 0.26;  // electrolyte left
+  const eR = W - aW - 10;
+  const eW = eR - eL;
+  const topY = 20, botY = H - 30;
+  const midY = (topY + botY) / 2;
+
+  // Particles: Li+ (blue), e- (yellow)
+  const liParticles = Array.from({ length: 7 }, (_, i) => ({
+    x: eL + (i + 0.5) * eW / 7,
+    y: midY + (Math.random() - 0.5) * 50,
+    vy: (Math.random() - 0.5) * 0.6,
+    vx: 0.7 + Math.random() * 0.5,
+    r: 5,
+  }));
+
+  const eParticles = Array.from({ length: 5 }, (_, i) => ({
+    t: i / 5,  // 0..1 progress along external circuit
+    speed: 0.004 + Math.random() * 0.002,
+  }));
+
+  // External circuit path (top arc)
+  function getExtCircuitPos(t) {
+    // Cathode top-center → arc → Anode top-center
+    const x1 = cW + 5, y1 = topY + 20;
+    const x2 = W - aW - 5, y2 = topY + 20;
+    const cx = W / 2, cy = topY - 30;
+    const bx = (1-t)*(1-t)*x1 + 2*(1-t)*t*cx + t*t*x2;
+    const by = (1-t)*(1-t)*y1 + 2*(1-t)*t*cy + t*t*y2;
+    return { x: bx, y: by };
+  }
+
+  let frame = 0;
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    frame++;
+
+    // Background
+    ctx.fillStyle = '#060f23';
+    ctx.fillRect(0, 0, W, H);
+
+    // === Cathode ===
+    const gradC = ctx.createLinearGradient(5, topY, 5+cW, topY);
+    gradC.addColorStop(0, '#0f2040');
+    gradC.addColorStop(1, '#1a3060');
+    ctx.fillStyle = gradC;
+    ctx.strokeStyle = '#f43f5e';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(5, topY, cW, botY - topY, 5);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#f43f5e';
+    ctx.font = 'bold 10px Courier Prime, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('CATHODE', 5 + cW/2, topY + 16);
+    ctx.font = '9px Courier Prime, monospace';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('LiCoO₂', 5 + cW/2, topY + 30);
+
+    // === Anode ===
+    const gradA = ctx.createLinearGradient(W-aW-5, topY, W-5, topY);
+    gradA.addColorStop(0, '#1a3060');
+    gradA.addColorStop(1, '#0f2040');
+    ctx.fillStyle = gradA;
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(W-aW-5, topY, aW, botY-topY, 5);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#3b82f6';
+    ctx.font = 'bold 10px Courier Prime, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('ANODE', W-aW-5+aW/2, topY+16);
+    ctx.font = '9px Courier Prime, monospace';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('Graphite', W-aW-5+aW/2, topY+30);
+
+    // === Electrolyte ===
+    ctx.fillStyle = 'rgba(13,148,136,0.07)';
+    ctx.strokeStyle = 'rgba(13,148,136,0.3)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.rect(eL, topY, eW, botY-topY);
+    ctx.fill(); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(13,148,136,0.5)';
+    ctx.font = '9px Courier Prime, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('ELECTROLYTE', eL+eW/2, topY+14);
+
+    // === External circuit (top wire) ===
+    ctx.beginPath();
+    ctx.moveTo(cW + 5, topY + 20);
+    const p0 = getExtCircuitPos(0), pEnd = getExtCircuitPos(1);
+    ctx.quadraticCurveTo(W/2, topY - 30, W - aW - 5, topY + 20);
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Load symbol (resistor)
+    const rx = W/2 - 18, ry = topY - 40;
+    ctx.fillStyle = '#1a3060';
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(rx, ry, 36, 14);
+    ctx.strokeRect(rx, ry, 36, 14);
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = '8px Courier Prime, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('LOAD', W/2, ry + 9);
+
+    // Bottom wire
+    ctx.beginPath();
+    ctx.moveTo(cW + 5, botY - 10);
+    ctx.lineTo(W - aW - 5, botY - 10);
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // === Li⁺ particles (blue, in electrolyte, left→right) ===
+    liParticles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // Bounce vertical
+      if (p.y < topY + 10 || p.y > botY - 10) p.vy *= -1;
+
+      // Reset when reaching anode
+      if (p.x > eR - 5) {
+        p.x = eL + 5;
+        p.y = midY + (Math.random() - 0.5) * 50;
+      }
+
+      // Draw glow + particle
+      const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 2.5);
+      grd.addColorStop(0, 'rgba(96,165,250,0.6)');
+      grd.addColorStop(1, 'transparent');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#60a5fa';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 6px Courier Prime, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('Li', p.x, p.y + 2);
+    });
+
+    // === e⁻ particles (yellow, on external circuit arc) ===
+    eParticles.forEach(ep => {
+      ep.t = (ep.t + ep.speed) % 1;
+      const pos = getExtCircuitPos(ep.t);
+
+      const grd2 = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, 8);
+      grd2.addColorStop(0, 'rgba(251,191,36,0.7)');
+      grd2.addColorStop(1, 'transparent');
+      ctx.fillStyle = grd2;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#020617';
+      ctx.font = 'bold 5px Courier Prime, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('e⁻', pos.x, pos.y + 1.5);
+    });
+
+    // Labels
+    ctx.fillStyle = 'rgba(13,148,136,0.6)';
+    ctx.font = '9px Courier Prime, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Li⁺ →', eL + eW/2, botY + 18);
+    ctx.fillStyle = 'rgba(251,191,36,0.6)';
+    ctx.fillText('← e⁻', W/2, topY - 52);
+
+    requestAnimationFrame(draw);
+  }
+
+  draw();
+}
+
+/* ════════════════════════════════════
+   UTILITY
+════════════════════════════════════ */
+function updateSliderFill(id) {
+  const sl = document.getElementById(id);
+  const pct = ((sl.value - sl.min) / (sl.max - sl.min) * 100).toFixed(1);
+  sl.style.backgroundSize = pct + '% 100%';
+}
+
+/* ════════════════════════════════════
+   INIT
+════════════════════════════════════ */
+function init() {
+  renderTheory();
+  renderMaterialCards();
+  renderDopantGrid();
+  renderRanking();
+
+  // Initialize sliders
+  updateSliderFill('dopeSlider');
+
+  // Battery animation
+  setTimeout(initBatteryAnimation, 300);
+
+  // Pre-select NMC for demo
+  setTimeout(() => {
+    selectMaterial('NMC');
+    selectDopant('Ni');
+  }, 500);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+window.addEventListener('resize', () => {
+  // Reinitialize battery canvas on resize
+  clearTimeout(window._resizeTimer);
+  window._resizeTimer = setTimeout(initBatteryAnimation, 200);
+});
+</script>
+</body>
+</html>
