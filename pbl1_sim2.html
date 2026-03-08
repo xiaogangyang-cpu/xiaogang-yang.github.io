@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
+<title>电池热容侦探 · 可调参数模拟器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #050d1a;
+    --bg2: #0a1628;
+    --panel: #0d1e30;
+    --border: #1e4068;
+    --border2: #1a3050;
+    --orange: #ff6b35;
+    --teal: #4ecdc4;
+    --blue: #45b7d1;
+    --gold: #ffd700;
+    --text: #c8d8e8;
+    --muted: #556677;
+    --dim: #334455;
+    --dimmer: #1a3050;
+  }
+  html, body {
+    height: 100%;
+    background: linear-gradient(135deg, var(--bg) 0%, var(--bg2) 50%, #060e1c 100%);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    color: var(--text);
+    overflow: hidden;
+  }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--dimmer); }
+
+  /* Animations */
+  @keyframes scanline { 0%{top:-10%} 100%{top:110%} }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  @keyframes slide-in { from{transform:translateX(-18px);opacity:0} to{transform:translateX(0);opacity:1} }
+  @keyframes fade-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes pulse-glow { 0%,100%{box-shadow:0 0 6px currentColor} 50%{box-shadow:0 0 20px currentColor, 0 0 40px currentColor} }
+  @keyframes flash-ok  { 0%,100%{background:transparent} 50%{background:#00ff8822} }
+  @keyframes flash-err { 0%,100%{background:transparent} 50%{background:#ff003322} }
+
+  /* Overlay effects */
+  #scanline-overlay {
+    position: fixed; inset: 0; pointer-events: none; z-index: 999; overflow: hidden;
+  }
+  #scanline-beam {
+    position: absolute; left: 0; right: 0; height: 2px;
+    background: linear-gradient(transparent, rgba(78,205,196,0.15), transparent);
+    animation: scanline 5s linear infinite;
+  }
+  #crt-lines {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+  }
+  #noise-overlay {
+    position: fixed; inset: 0; pointer-events: none; z-index: 998; opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
+
+  /* Layout */
+  #app { display: flex; flex-direction: column; height: 100vh; }
+
+  /* Header */
+  #header {
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(90deg, #0a1e3a, #0d2647, #0a1e3a);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px; flex-shrink: 0; z-index: 10;
+  }
+  #header-left { display: flex; align-items: center; gap: 12px; }
+  .status-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--orange); box-shadow: 0 0 8px var(--orange);
+    animation: blink 2s infinite;
+  }
+  .brand {
+    font-family: 'Orbitron', monospace; font-size: 18px; font-weight: 900;
+    color: var(--teal); letter-spacing: 3px; text-shadow: 0 0 10px rgba(78,205,196,0.4);
+  }
+  .brand-sub { font-size: 11px; color: #445566; letter-spacing: 2px; }
+  #header-right { display: flex; align-items: center; gap: 16px; }
+  .sys-label { font-size: 11px; color: #445566; }
+  .sys-active { font-size: 11px; color: var(--teal); animation: blink 3s infinite; }
+  #btn-next-header {
+    background: transparent; border: 1px solid var(--dimmer); color: #778899;
+    padding: 4px 14px; cursor: pointer; font-size: 11px; letter-spacing: 1px;
+    font-family: inherit; transition: all 0.2s;
+  }
+  #btn-next-header:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* Main grid */
+  #main {
+    flex: 1; display: grid;
+    grid-template-columns: 280px 1fr 300px;
+    grid-template-rows: 1fr auto;
+    overflow: hidden; min-height: 0;
+  }
+
+  /* ----- Responsive breakpoints ----- */
+  @media (max-width: 1000px) {
+    #main { grid-template-columns: 240px 1fr 280px; }
+  }
+  @media (max-width: 800px) {
+    #main { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; }
+    #left-panel { grid-row: 1; border-right: none; border-bottom: 1px solid var(--border2); }
+    #center-panel { grid-row: 2; min-height: 500px; }
+    #right-panel { grid-row: 3; border-left: none; border-top: 1px solid var(--border2); }
+    #bottom-panel { grid-row: 4; }
+  }
+  @media (max-width: 500px) {
+    #center-panel { min-height: 420px; }
+    #battery-wrap { width: 240px; }
+    .ring-1 { width: 320px; height: 320px; }
+    .ring-2 { width: 380px; height: 380px; }
+  }
+
+  /* Left Panel */
+  #left-panel {
+    grid-column: 1; grid-row: 1;
+    border-right: 1px solid var(--border2);
+    background: linear-gradient(180deg, #060f1e 0%, #08141f 100%);
+    padding: 20px; display: flex; flex-direction: column; gap: 14px;
+    overflow-y: auto;
+  }
+  .panel-label {
+    font-size: 10px; color: #445566; letter-spacing: 2px; margin-bottom: 6px;
+  }
+  .case-title {
+    font-family: 'Orbitron', monospace; font-size: 13px;
+    color: var(--gold); line-height: 1.4; text-shadow: 0 0 8px rgba(255,215,0,0.3);
+    animation: slide-in 0.5s ease;
+  }
+  .value-card {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 14px 16px; position: relative; overflow: hidden;
+  }
+  .value-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .value-card.gold::before { background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+  .value-card.dynamic::before { background: linear-gradient(90deg, transparent, var(--teal), transparent); transition: background 0.5s; }
+  .value-card.dynamic.red::before { background: linear-gradient(90deg, transparent, var(--orange), transparent); }
+  .big-value {
+    font-family: 'Orbitron', monospace; font-size: 28px; font-weight: 700;
+    text-shadow: 0 0 14px currentColor;
+  }
+  .big-unit { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .diff-card {
+    background: var(--panel); border: 1px solid; padding: 12px;
+    transition: border-color 0.5s;
+  }
+  .diff-row { display: flex; align-items: center; gap: 10px; }
+  .diff-icon { font-size: 20px; }
+  .formula-card {
+    background: #080f1a; border: 1px solid var(--dimmer); padding: 12px;
+  }
+  .formula-line { font-size: 12px; color: var(--teal); margin-bottom: 4px; }
+  .formula-sub { font-size: 11px; color: var(--muted); padding-left: 8px; line-height: 1.8; }
+
+  /* Center Panel */
+  #center-panel {
+    grid-column: 2; grid-row: 1;
+    position: relative; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 24px; overflow: hidden;
+  }
+  #particle-canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;
+  }
+  #energy-svg {
+    position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;
+  }
+  .center-hint {
+    font-size: 10px; color: #334455; letter-spacing: 3px;
+    margin-bottom: 20px; text-align: center; position: relative; z-index: 2;
+  }
+  #battery-wrap { position: relative; z-index: 2; width: 270px; }
+  .battery-terminal {
+    width: 44px; height: 12px; background: #2a4060;
+    border: 1px solid #3a5070; margin: 0 auto -1px;
+    border-radius: 4px 4px 0 0;
+  }
+  #battery-body {
+    border: 2px solid var(--border); border-radius: 8px; overflow: hidden;
+    box-shadow: 0 0 30px rgba(69,183,209,0.15), inset 0 0 20px rgba(0,0,0,0.4);
+  }
+  .comp-layer {
+    padding: 20px 18px; cursor: pointer; transition: all 0.3s;
+    position: relative; overflow: hidden; border-bottom: 1px solid var(--border2);
+  }
+  .comp-layer:last-child { border-bottom: none; }
+  .comp-layer::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    opacity: 0; transition: opacity 0.3s;
+    background: linear-gradient(90deg, transparent, currentColor, transparent);
+  }
+  .comp-layer.active::after { opacity: 1; animation: pulse-glow 2s infinite; }
+  .comp-layer:hover { transform: scaleX(1.01); }
+  .comp-layer-inner { display: flex; align-items: center; justify-content: space-between; }
+  .comp-icon { font-size: 22px; font-weight: 700; text-shadow: 0 0 10px currentColor; }
+  .comp-name { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; }
+  .comp-mat { font-size: 10px; color: #445566; margin-top: 2px; }
+  .comp-mc { font-size: 11px; color: #778899; text-align: right; }
+  .comp-mc span { font-weight: 700; }
+  .comp-bar-wrap { margin-top: 10px; height: 3px; background: #0a1520; border-radius: 2px; overflow: hidden; }
+  .comp-bar { height: 100%; border-radius: 2px; transition: width 1s ease; }
+  .comp-bar-label { font-size: 9px; color: #334455; margin-top: 3px; text-align: right; }
+  .battery-foot {
+    height: 8px; background: linear-gradient(#1a3050, #0d1e30);
+    border: 2px solid var(--border); border-top: none;
+    border-radius: 0 0 8px 8px;
+  }
+  /* Decorative rings */
+  #deco-rings {
+    position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ring {
+    position: absolute; border-radius: 50%; border: 1px solid;
+    opacity: 0.08;
+  }
+  .ring-1 { width: 380px; height: 380px; border-color: var(--teal); animation: rotate-ring 20s linear infinite; }
+  .ring-2 { width: 440px; height: 440px; border-color: var(--orange); animation: counter-rotate 28s linear infinite; }
+  @keyframes rotate-ring { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes counter-rotate { from{transform:rotate(0deg)} to{transform:rotate(-360deg)} }
+
+  /* Total readout */
+  #total-readout {
+    position: relative; z-index: 2; margin-top: 22px; text-align: center;
+    background: #080f1a; padding: 12px 36px; border-radius: 4px;
+    border: 1px solid; transition: border-color 0.5s;
+  }
+  .total-label { font-size: 10px; color: #445566; letter-spacing: 2px; }
+  .total-value {
+    font-family: 'Orbitron', monospace; font-size: 24px; font-weight: 900;
+    text-shadow: 0 0 12px currentColor; transition: color 0.5s;
+  }
+
+  /* Right Panel */
+  #right-panel {
+    grid-column: 3; grid-row: 1;
+    border-left: 1px solid var(--border2);
+    background: linear-gradient(180deg, #060f1e 0%, #08141f 100%);
+    padding: 20px; display: flex; flex-direction: column; gap: 12px;
+    overflow-y: auto;
+  }
+  #detail-card {
+    background: var(--panel); padding: 16px;
+    position: relative; overflow: hidden; border: 1px solid;
+    animation: fade-in 0.3s ease; display: none;
+    transition: border-color 0.3s;
+  }
+  #detail-card .side-bar {
+    position: absolute; top: 0; left: 0; bottom: 0; width: 3px;
+    transition: background 0.3s;
+  }
+  #detail-card .inner { padding-left: 12px; }
+  .detail-name { font-family: 'Orbitron', monospace; font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .detail-mat { font-size: 11px; color: #445566; margin-bottom: 12px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .stat-lbl { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
+  .stat-val { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; }
+  .stat-unit { font-size: 9px; color: #445566; }
+  #detail-empty {
+    color: #334455; font-size: 12px; text-align: center;
+    padding: 20px; border: 1px dashed var(--dimmer); line-height: 2;
+  }
+  /* 可调参数卡片 */
+  .mini-comp {
+    background: #0a1520; border: 1px solid var(--dimmer);
+    padding: 12px; cursor: pointer; transition: all 0.2s;
+  }
+  .mini-comp:hover { background: #0d1e30; }
+  .mini-comp.active { border-color: currentColor; }
+  .mini-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .mini-name { font-size: 11px; }
+  .mini-mass { font-size: 10px; color: #445566; }
+  .slider-group {
+    margin-top: 8px; padding-top: 6px; border-top: 1px dashed #1a3050;
+  }
+  .slider-row {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+  }
+  .slider-row label {
+    font-size: 10px; color: #778899; min-width: 22px;
+  }
+  .slider-row input[type=range] {
+    flex: 1; height: 5px; background: #1a3050; border-radius: 3px;
+    -webkit-appearance: none; appearance: none;
+  }
+  .slider-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; background: var(--teal); border: 1px solid #fff;
+    cursor: pointer; box-shadow: 0 0 8px var(--teal);
+  }
+  .slider-val {
+    min-width: 40px; text-align: right; font-size: 10px; color: var(--gold);
+  }
+  .mini-contrib { font-size: 10px; color: var(--muted); }
+
+  /* Bottom Panel */
+  #bottom-panel {
+    grid-column: 1 / -1; grid-row: 2;
+    border-top: 1px solid var(--dimmer);
+    background: linear-gradient(90deg, #060e1c, #08121e, #060e1c);
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+    transition: background 0.3s;
+  }
+  #bottom-panel.flash-ok  { animation: flash-ok  0.8s ease; }
+  #bottom-panel.flash-err { animation: flash-err 0.8s ease; }
+  .bottom-info { min-width: 200px; }
+  .bottom-warn { font-size: 10px; color: var(--orange); letter-spacing: 2px; margin-bottom: 6px; }
+  .bottom-diff { font-size: 11px; color: #334455; }
+  #reason-btns { display: flex; gap: 10px; flex-wrap: wrap; flex: 1; }
+  .reason-btn {
+    background: #0a1520; border: 1px solid var(--dimmer); color: var(--muted);
+    padding: 8px 16px; cursor: pointer; font-family: inherit;
+    font-size: 12px; letter-spacing: 1px; transition: all 0.2s;
+  }
+  .reason-btn:hover:not(:disabled) { background: #1a3050; border-color: var(--blue); color: var(--blue); }
+  .reason-btn.selected { background: #1a3a55; border-color: var(--blue); color: var(--blue); }
+  .reason-btn:disabled { opacity: 0.4; cursor: default; }
+  #btn-submit {
+    background: #1a2a3a; border: none; color: #445566;
+    padding: 10px 26px; cursor: default;
+    font-family: 'Orbitron', monospace; font-size: 12px;
+    font-weight: 700; letter-spacing: 2px; transition: all 0.2s;
+  }
+  #btn-submit.ready {
+    background: var(--orange); color: #fff; cursor: pointer;
+  }
+  #btn-submit.ready:hover { background: #ff8c42; transform: scale(1.02); }
+  #feedback-box {
+    border: 1px solid; padding: 8px 16px; max-width: 300px;
+    display: none; animation: fade-in 0.4s ease;
+  }
+  #feedback-box.ok  { background: #0d2a1a; border-color: var(--teal); }
+  #feedback-box.err { background: #2a0d0d; border-color: #ff4444; }
+  .fb-title { font-size: 11px; font-weight: 700; margin-bottom: 3px; }
+  .fb-ok  .fb-title { color: var(--teal); }
+  .fb-err .fb-title { color: var(--orange); }
+  .fb-hint { font-size: 10px; color: var(--muted); line-height: 1.5; }
+  #btn-next-bottom, #btn-reset {
+    background: #1a3a35; border: 1px solid var(--teal); color: var(--teal);
+    padding: 8px 18px; cursor: pointer; font-family: inherit;
+    font-size: 11px; transition: all 0.2s; display: inline-block;
+  }
+  #btn-next-bottom:hover, #btn-reset:hover { background: var(--teal); color: #000; }
+  #btn-reset { background: #3a2a1a; border-color: var(--gold); color: var(--gold); }
+  #btn-reset:hover { background: var(--gold); color: #000; }
+</style>
+</head>
+<body>
+
+<!-- Overlays -->
+<div id="noise-overlay"></div>
+<div id="scanline-overlay">
+  <div id="scanline-beam"></div>
+  <div id="crt-lines"></div>
+</div>
+
+<div id="app">
+
+  <!-- Header -->
+  <div id="header">
+    <div id="header-left">
+      <div class="status-dot"></div>
+      <span class="brand">THERMAL DETECTIVE</span>
+      <span class="brand-sub">可调参数模拟器</span>
+    </div>
+    <div id="header-right">
+      <span class="sys-label">SYS_STATUS:</span>
+      <span class="sys-active">● ACTIVE</span>
+      <button id="btn-next-header">下一案件 →</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div id="main">
+
+    <!-- Left Panel -->
+    <div id="left-panel">
+      <div>
+        <div class="panel-label">▶ CASE FILE</div>
+        <div class="case-title" id="case-title"></div>
+      </div>
+
+      <div class="value-card gold">
+        <div class="panel-label">实验测量值 (固定)</div>
+        <div class="big-value" style="color:var(--gold)" id="cexp-display"></div>
+        <div class="big-unit">J·K⁻¹  ← C_exp</div>
+      </div>
+
+      <div class="value-card dynamic" id="ccalc-card">
+        <div class="panel-label">当前计算值 (可调)</div>
+        <div class="big-value" id="ccalc-display"></div>
+        <div class="big-unit">J·K⁻¹  ← C_total</div>
+      </div>
+
+      <div class="diff-card" id="diff-card">
+        <div class="panel-label">差值分析</div>
+        <div class="diff-row">
+          <span class="diff-icon" id="diff-icon"></span>
+          <div>
+            <div id="diff-value" style="font-size:12px"></div>
+            <div id="diff-label" style="font-size:10px;color:#445566;margin-top:2px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="formula-card">
+        <div class="panel-label">计算公式</div>
+        <div class="formula-line">C_total = Σ(mᵢ × cᵢ)</div>
+        <div class="formula-sub" id="formula-lines"></div>
+      </div>
+    </div>
+
+    <!-- Center Panel -->
+    <div id="center-panel">
+      <canvas id="particle-canvas"></canvas>
+      <svg id="energy-svg" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="eg0" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#ff6b35" stop-opacity="0"/>
+            <stop offset="50%" stop-color="#ff6b35" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#ff6b35" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="eg1" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#4ecdc4" stop-opacity="0"/>
+            <stop offset="50%" stop-color="#4ecdc4" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#4ecdc4" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="eg2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#45b7d1" stop-opacity="0"/>
+            <stop offset="50%" stop-color="#45b7d1" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#45b7d1" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="22%" width="100%" height="3" fill="url(#eg0)" opacity="0.35">
+          <animate attributeName="x" from="-100%" to="100%" dur="2.2s" repeatCount="indefinite"/>
+        </rect>
+        <rect x="0" y="50%" width="100%" height="3" fill="url(#eg1)" opacity="0.35">
+          <animate attributeName="x" from="-100%" to="100%" dur="1.8s" repeatCount="indefinite"/>
+        </rect>
+        <rect x="0" y="78%" width="100%" height="3" fill="url(#eg2)" opacity="0.35">
+          <animate attributeName="x" from="-100%" to="100%" dur="2.6s" repeatCount="indefinite"/>
+        </rect>
+      </svg>
+
+      <div id="deco-rings">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+      </div>
+
+      <div class="center-hint">▼ BATTERY STRUCTURE — 点击组件查看详情 ▼</div>
+
+      <div id="battery-wrap">
+        <div class="battery-terminal"></div>
+        <div id="battery-body"></div>
+        <div class="battery-foot"></div>
+      </div>
+
+      <div id="total-readout">
+        <div class="total-label">C_TOTAL CURRENT</div>
+        <div class="total-value" id="total-val"></div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div id="right-panel">
+      <div class="panel-label">▶ MATERIAL DATABASE (可调)</div>
+
+      <div id="detail-card">
+        <div class="side-bar"></div>
+        <div class="inner">
+          <div class="detail-name" id="d-name"></div>
+          <div class="detail-mat"  id="d-mat"></div>
+          <div class="stat-row">
+            <span class="stat-lbl">质量 m</span>
+            <span class="stat-val" id="d-m" style="color:var(--gold)"></span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-lbl">比热容 c</span>
+            <span class="stat-val" id="d-c" style="color:var(--teal)"></span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-lbl">热容贡献</span>
+            <span class="stat-val" id="d-mc"></span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-lbl">质量占比</span>
+            <span class="stat-val" id="d-pct" style="color:var(--blue)"></span>
+          </div>
+        </div>
+      </div>
+      <div id="detail-empty">← 点击电池组件<br>查看详细数据</div>
+
+      <div class="panel-label" style="margin-top:4px">▶ 调节滑块改变参数</div>
+      <div id="mini-list"><!-- injected by JS --></div>
+    </div>
+
+    <!-- Bottom Panel -->
+    <div id="bottom-panel">
+      <div class="bottom-info">
+        <div class="bottom-warn">⚠ 推理分析 — 选择异常原因</div>
+        <div class="bottom-diff" id="bottom-diff"></div>
+      </div>
+      <div id="reason-btns"></div>
+      <button id="btn-submit">SUBMIT</button>
+      <div id="feedback-box">
+        <div class="fb-title" id="fb-title"></div>
+        <div class="fb-hint"  id="fb-hint"></div>
+      </div>
+      <button id="btn-next-bottom">下一案件 →</button>
+      <button id="btn-reset">↺ 重置案件参数</button>
+    </div>
+
+  </div><!-- #main -->
+</div><!-- #app -->
+
+<script>
+// ══════════════════════════════════════════
+//  DATA (添加原始值字段)
+// ══════════════════════════════════════════
+const CASES = [
+  {
+    id: 1,
+    title: "案件 #001：三元锂电池热容异常",
+    C_exp: 142.5,
+    components: [
+      { name:"正极", material:"LiNiMnCoO₂ (NCM622)", m_orig:48.2, c_orig:0.87, color:"#ff6b35", icon:"⊕" },
+      { name:"负极", material:"石墨 (Graphite)",       m_orig:26.5, c_orig:0.71, color:"#4ecdc4", icon:"⊖" },
+      { name:"电解液", material:"LiPF₆/EC+DMC",        m_orig:28.3, c_orig:2.05, color:"#45b7d1", icon:"≋" },
+    ],
+    answer: "电解液比例变化",
+    hint: "实验值偏高，电解液比热容较大，若其质量增加会导致总热容升高。",
+  },
+  {
+    id: 2,
+    title: "案件 #002：磷酸铁锂电池热容偏低",
+    C_exp: 89.1,
+    components: [
+      { name:"正极",   material:"LiFePO₄ (LFP)",      m_orig:52.0, c_orig:0.98, color:"#ff6b35", icon:"⊕" },
+      { name:"负极",   material:"硅碳复合材料",          m_orig:22.0, c_orig:0.68, color:"#4ecdc4", icon:"⊖" },
+      { name:"电解液", material:"LiTFSI/DMSO",         m_orig:18.5, c_orig:1.45, color:"#45b7d1", icon:"≋" },
+    ],
+    answer: "材料污染",
+    hint: "计算值偏高而实验值偏低，正极材料可能被杂质污染，导致实际比热容下降。",
+  },
+  {
+    id: 3,
+    title: "案件 #003：固态电池热容核验",
+    C_exp: 110.2,
+    components: [
+      { name:"正极",   material:"LiCoO₂ (LCO)",        m_orig:44.0, c_orig:0.74, color:"#ff6b35", icon:"⊕" },
+      { name:"负极",   material:"Li金属 (Li Metal)",    m_orig:15.0, c_orig:3.58, color:"#4ecdc4", icon:"⊖" },
+      { name:"固态电解质", material:"LLZO (氧化物)",    m_orig:32.0, c_orig:0.63, color:"#45b7d1", icon:"≋" },
+    ],
+    answer: "实验误差",
+    hint: "计算值与实验值接近，偏差在允许范围内，可能来自量热仪系统误差。",
+  },
+];
+
+const REASONS = ["电解液比例变化", "材料污染", "实验误差", "计算错误"];
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+let caseIdx      = 0;
+let selectedComp = null;
+let selectedReason = null;
+let submitted    = false;
+
+// 当前可调参数 (动态更新)
+let currentM = [];  // 每个组件的当前质量
+let currentC = [];  // 每个组件的当前比热容
+
+function loadCase(idx) {
+  const comps = CASES[idx].components;
+  currentM = comps.map(c => c.m_orig);
+  currentC = comps.map(c => c.c_orig);
+  selectedComp = null;
+  selectedReason = null;
+  submitted = false;
+  document.getElementById('feedback-box').style.display = 'none';
+  document.getElementById('btn-next-bottom').style.display = 'none';
+  document.getElementById('btn-submit').style.display = 'block';
+  document.getElementById('btn-submit').classList.remove('ready');
+  render();
+}
+
+// ══════════════════════════════════════════
+//  PARTICLE SYSTEM (原样保留)
+// ══════════════════════════════════════════
+const canvas = document.getElementById('particle-canvas');
+const ctx    = canvas.getContext('2d');
+let particles = [];
+let animId;
+
+function resizeCanvas() {
+  canvas.width  = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
+function initParticles() {
+  const colors = ["#ff6b35","#4ecdc4","#45b7d1","#ffd700"];
+  particles = Array.from({length: 70}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random()-0.5) * 0.6,
+    vy: (Math.random()-0.5) * 0.6,
+    r: Math.random() * 2 + 0.4,
+    alpha: Math.random() * 0.5 + 0.1,
+    color: colors[Math.floor(Math.random()*4)],
+  }));
+}
+function animateParticles() {
+  const caseData = CASES[caseIdx];
+  const C_calc   = currentM.reduce((sum, m, i) => sum + m * currentC[i], 0);
+  const isMatch  = Math.abs(C_calc - caseData.C_exp) < 0.5;
+  const speed    = isMatch ? 0.3 : 2.0;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => {
+    p.x += p.vx * speed;
+    p.y += p.vy * speed;
+    if (p.x < 0) p.x = canvas.width;
+    if (p.x > canvas.width) p.x = 0;
+    if (p.y < 0) p.y = canvas.height;
+    if (p.y > canvas.height) p.y = 0;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    const alpha = Math.floor(p.alpha*255).toString(16).padStart(2,'0');
+    ctx.fillStyle = p.color + alpha;
+    ctx.fill();
+  });
+  animId = requestAnimationFrame(animateParticles);
+}
+
+// ══════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════
+function render() {
+  const caseData  = CASES[caseIdx];
+  const comps     = caseData.components;
+  const totalMass = currentM.reduce((s,v)=>s+v,0);
+  const C_calc    = currentM.reduce((sum, m, i) => sum + m * currentC[i], 0);
+  const diff      = Math.abs(C_calc - caseData.C_exp);
+  const isMatch   = diff < 0.5;
+
+  // ── Case title
+  document.getElementById('case-title').textContent = caseData.title;
+
+  // ── Value cards
+  document.getElementById('cexp-display').textContent = caseData.C_exp.toFixed(1);
+  const ccDisp = document.getElementById('ccalc-display');
+  ccDisp.textContent = C_calc.toFixed(1);
+  ccDisp.style.color = isMatch ? 'var(--teal)' : 'var(--orange)';
+  const ccCard = document.getElementById('ccalc-card');
+  if (isMatch) ccCard.classList.remove('red'); else ccCard.classList.add('red');
+
+  // ── Diff card
+  const diffCard  = document.getElementById('diff-card');
+  const diffColor = isMatch ? 'var(--teal)' : '#ff4444';
+  diffCard.style.borderColor = diffColor;
+  document.getElementById('diff-icon').textContent = isMatch ? '✓' : '✗';
+  document.getElementById('diff-icon').style.color = diffColor;
+  document.getElementById('diff-value').style.color = isMatch ? 'var(--teal)' : 'var(--orange)';
+  document.getElementById('diff-value').textContent = `ΔC = ${diff.toFixed(2)} J·K⁻¹`;
+  document.getElementById('diff-label').textContent = isMatch ? '数值吻合，无异常' : '⚠ 存在显著偏差！';
+
+  // ── Formula
+  let formulaHTML = '';
+  comps.forEach((c, i) => {
+    formulaHTML += `<span style="color:${c.color}">+ ${currentM[i].toFixed(1)} × ${currentC[i].toFixed(2)} = ${(currentM[i]*currentC[i]).toFixed(2)}</span><br>`;
+  });
+  document.getElementById('formula-lines').innerHTML = formulaHTML;
+
+  // ── Battery layers
+  const body = document.getElementById('battery-body');
+  body.innerHTML = '';
+  comps.forEach((c, i) => {
+    const pct = (currentM[i]*currentC[i] / C_calc * 100).toFixed(1);
+    const active = selectedComp === i;
+    const bg = active
+      ? `linear-gradient(135deg, ${c.color}22, ${c.color}11)`
+      : (i%2===0 ? '#0d1e30' : '#0a1825');
+    const div = document.createElement('div');
+    div.className = 'comp-layer' + (active ? ' active' : '');
+    div.style.background   = bg;
+    div.style.borderColor  = active ? c.color : 'transparent';
+    div.style.color        = c.color;
+    div.innerHTML = `
+      <div class="comp-layer-inner">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="comp-icon" style="color:${c.color}">${c.icon}</span>
+          <div>
+            <div class="comp-name" style="color:${c.color}">${c.name}</div>
+            <div class="comp-mat">${c.material}</div>
+          </div>
+        </div>
+        <div class="comp-mc">
+          m·c = <span style="color:${c.color}">${(currentM[i]*currentC[i]).toFixed(1)}</span><br>
+          <span style="font-size:9px;color:#445566">J·K⁻¹</span>
+        </div>
+      </div>
+      <div class="comp-bar-wrap">
+        <div class="comp-bar" style="width:${pct}%;background:linear-gradient(90deg,${c.color}88,${c.color})"></div>
+      </div>
+      <div class="comp-bar-label">${pct}% 热容贡献</div>`;
+    div.addEventListener('click', () => {
+      selectedComp = selectedComp === i ? null : i;
+      render();
+    });
+    body.appendChild(div);
+  });
+
+  // ── Total readout
+  const totalEl = document.getElementById('total-val');
+  totalEl.textContent = C_calc.toFixed(2) + ' J·K⁻¹';
+  totalEl.style.color = isMatch ? 'var(--teal)' : 'var(--orange)';
+  document.getElementById('total-readout').style.borderColor = isMatch ? 'rgba(78,205,196,0.4)' : 'rgba(255,107,53,0.4)';
+
+  // ── Detail card
+  const dc = document.getElementById('detail-card');
+  const de = document.getElementById('detail-empty');
+  if (selectedComp !== null) {
+    const sc = comps[selectedComp];
+    const mCurr = currentM[selectedComp];
+    const cCurr = currentC[selectedComp];
+    dc.style.display   = 'block';
+    dc.style.borderColor = sc.color + '66';
+    dc.querySelector('.side-bar').style.background = sc.color;
+    document.getElementById('d-name').textContent = sc.name;
+    document.getElementById('d-name').style.color = sc.color;
+    document.getElementById('d-mat').textContent  = sc.material;
+    document.getElementById('d-m').innerHTML  = `${mCurr.toFixed(1)} <span class="stat-unit">g</span>`;
+    document.getElementById('d-c').innerHTML  = `${cCurr.toFixed(2)} <span class="stat-unit">J·g⁻¹·K⁻¹</span>`;
+    document.getElementById('d-mc').innerHTML = `${(mCurr*cCurr).toFixed(2)} <span class="stat-unit">J·K⁻¹</span>`;
+    document.getElementById('d-mc').style.color = sc.color;
+    document.getElementById('d-pct').innerHTML = `${(mCurr/totalMass*100).toFixed(1)} <span class="stat-unit">%</span>`;
+    de.style.display = 'none';
+  } else {
+    dc.style.display = 'none';
+    de.style.display = 'block';
+  }
+
+  // ── Mini list with sliders
+  const ml = document.getElementById('mini-list');
+  ml.innerHTML = '';
+  comps.forEach((c, i) => {
+    const div = document.createElement('div');
+    div.className = 'mini-comp' + (selectedComp===i ? ' active' : '');
+    div.style.color = c.color;
+    div.innerHTML = `
+      <div class="mini-top">
+        <span class="mini-name" style="color:${c.color}">${c.icon} ${c.name}</span>
+        <span class="mini-mass">${currentM[i].toFixed(1)}g</span>
+      </div>
+      <div class="slider-group">
+        <div class="slider-row">
+          <label>m</label>
+          <input type="range" class="m-slider" data-index="${i}" min="5" max="80" step="0.1" value="${currentM[i]}">
+          <span class="slider-val" id="m-val-${i}">${currentM[i].toFixed(1)}</span>
+        </div>
+        <div class="slider-row">
+          <label>c</label>
+          <input type="range" class="c-slider" data-index="${i}" min="0.2" max="5.0" step="0.01" value="${currentC[i]}">
+          <span class="slider-val" id="c-val-${i}">${currentC[i].toFixed(2)}</span>
+        </div>
+      </div>
+      <div class="mini-contrib">贡献 = ${(currentM[i]*currentC[i]).toFixed(1)} J·K⁻¹</div>`;
+    div.addEventListener('click', (e) => {
+      // 点击卡片时选中，但避免点击滑块时触发放射
+      if (e.target.tagName !== 'INPUT') {
+        selectedComp = selectedComp === i ? null : i;
+        render();
+      }
+    });
+    ml.appendChild(div);
+
+    // 绑定滑块事件
+    const mSlider = div.querySelector('.m-slider');
+    const cSlider = div.querySelector('.c-slider');
+    mSlider.addEventListener('input', (e) => {
+      const idx = parseInt(e.target.dataset.index);
+      currentM[idx] = parseFloat(e.target.value);
+      document.getElementById(`m-val-${idx}`).textContent = currentM[idx].toFixed(1);
+      render();
+    });
+    cSlider.addEventListener('input', (e) => {
+      const idx = parseInt(e.target.dataset.index);
+      currentC[idx] = parseFloat(e.target.value);
+      document.getElementById(`c-val-${idx}`).textContent = currentC[idx].toFixed(2);
+      render();
+    });
+    // 阻止点击滑块时选中卡片
+    mSlider.addEventListener('click', (e) => e.stopPropagation());
+    cSlider.addEventListener('click', (e) => e.stopPropagation());
+  });
+
+  // ── Bottom diff text
+  document.getElementById('bottom-diff').textContent =
+    `C_exp=${caseData.C_exp.toFixed(1)}  vs  C_calc=${C_calc.toFixed(2)}  →  ΔC=${diff.toFixed(2)}`;
+
+  // ── Reason buttons
+  const rb = document.getElementById('reason-btns');
+  rb.innerHTML = '';
+  REASONS.forEach(r => {
+    const btn = document.createElement('button');
+    btn.className  = 'reason-btn' + (selectedReason===r ? ' selected' : '');
+    btn.textContent = r;
+    btn.disabled   = submitted;
+    btn.addEventListener('click', () => {
+      if (submitted) return;
+      selectedReason = r;
+      updateSubmitBtn();
+      render();
+    });
+    rb.appendChild(btn);
+  });
+
+  updateSubmitBtn();
+}
+
+function updateSubmitBtn() {
+  const sb = document.getElementById('btn-submit');
+  if (!submitted) {
+    if (selectedReason) { sb.classList.add('ready'); }
+    else                { sb.classList.remove('ready'); }
+    sb.style.display = 'block';
+  }
+}
+
+// ══════════════════════════════════════════
+//  ACTIONS
+// ══════════════════════════════════════════
+document.getElementById('btn-submit').addEventListener('click', () => {
+  if (!selectedReason || submitted) return;
+  submitted = true;
+
+  const caseData = CASES[caseIdx];
+  const correct  = selectedReason === caseData.answer;
+
+  const bp = document.getElementById('bottom-panel');
+  bp.classList.add(correct ? 'flash-ok' : 'flash-err');
+  setTimeout(() => bp.classList.remove('flash-ok', 'flash-err'), 900);
+
+  const fb = document.getElementById('feedback-box');
+  fb.className     = 'fb-' + (correct ? 'ok' : 'err');
+  fb.style.display = 'block';
+  document.getElementById('fb-title').textContent =
+    correct ? '✓ 推理正确！案件已侦破。' : `✗ 推理有误 — 正确答案：${caseData.answer}`;
+  document.getElementById('fb-hint').textContent  = caseData.hint;
+
+  document.getElementById('btn-next-bottom').style.display = 'inline-block';
+  document.getElementById('btn-submit').style.display = 'none';
+
+  render();
+});
+
+document.getElementById('btn-next-header').addEventListener('click', () => {
+  caseIdx = (caseIdx + 1) % CASES.length;
+  loadCase(caseIdx);
+});
+
+document.getElementById('btn-next-bottom').addEventListener('click', () => {
+  caseIdx = (caseIdx + 1) % CASES.length;
+  loadCase(caseIdx);
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  // 重置当前案件参数到原始值
+  const comps = CASES[caseIdx].components;
+  currentM = comps.map(c => c.m_orig);
+  currentC = comps.map(c => c.c_orig);
+  selectedReason = null;
+  submitted = false;
+  document.getElementById('feedback-box').style.display = 'none';
+  document.getElementById('btn-next-bottom').style.display = 'none';
+  document.getElementById('btn-submit').style.display = 'block';
+  document.getElementById('btn-submit').classList.remove('ready');
+  render();
+});
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+window.addEventListener('load', () => {
+  resizeCanvas();
+  initParticles();
+  animateParticles();
+  loadCase(0);
+});
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  initParticles();
+});
+</script>
+</body>
+</html>
