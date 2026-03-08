@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<!-- 优化viewport：移除最大缩放限制，允许自由缩放，适配iOS全屏 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>工业合成氨热力学平衡模拟器 v3 · 完全响应式</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600&display=swap');
+
+/* ----- 响应式根基：动态根字体 + 颜色变量 ----- */
+:root{
+  --bg0:#020b16; --bg1:#071220; --bg2:#0b1a2e; --bg3:#0f2240;
+  --bd:#1a3d6a; --bd2:#224070;
+  --c1:#00d4ff;  --c2:#ff4444;  --c3:#39ff14;  --c4:#ffcc00;
+  --c5:#b060ff;  --c6:#ff6b35;
+  --tm:#c4dfff; --td:#3d6a99;
+  --danger:#ff3d3d; --warn:#ffcc00; --good:#39ff14;
+  --fmono:'Share Tech Mono',monospace;
+  --ftitle:'Orbitron',sans-serif;
+  --fbody:'Rajdhani',sans-serif;
+  /* 动态根字体：小屏14px，中屏约16px，大屏20px，平滑过渡 */
+  font-size: clamp(14px, 2vw + 10px, 20px);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;min-height: 100%; overflow-x: hidden;} /* 防止水平溢出 */
+body{background:var(--bg0);color:var(--tm);font-family:var(--fbody);
+  background-image:radial-gradient(ellipse 70% 50% at 10% 10%,rgba(0,60,160,.06) 0%,transparent 70%),
+                   radial-gradient(ellipse 60% 60% at 90% 90%,rgba(0,30,100,.07) 0%,transparent 70%);
+  line-height: 1.5;
+}
+
+/* ── Header 使用rem ── */
+#hdr{
+  height: 3rem; min-height: 44px; /* 保证最小高度 */
+  background:linear-gradient(90deg,#03091a,#0a1c3e,#03091a);
+  border-bottom:1px solid var(--c1); display:flex; align-items:center;
+  justify-content:space-between; padding:0 1.2rem;
+  box-shadow:0 2px 20px rgba(0,212,255,.15); position:relative; z-index:10; flex-shrink:0;
+}
+#hdr::after{content:''; position:absolute; bottom:-1px; left:0; right:0; height:1px;
+  background:linear-gradient(90deg,transparent,var(--c1),transparent); animation:glow 3s linear infinite;}
+@keyframes glow{0%,100%{opacity:.3}50%{opacity:1}}
+.ht{font-family:var(--ftitle); font-size:1rem; font-weight:900; color:var(--c1);
+  letter-spacing:2px; text-shadow:0 0 10px var(--c1);}
+.hs{font-family:var(--fmono); font-size:0.7rem; color:var(--td); margin-top:2px;}
+.hb{font-family:var(--fmono); font-size:0.7rem; color:var(--c3); border:1px solid var(--c3);
+  padding:0.25rem 0.8rem; border-radius:3px; text-shadow:0 0 5px var(--c3);
+  box-shadow:0 0 6px rgba(57,255,20,.15); animation:blink 2s step-end infinite;}
+@keyframes blink{50%{opacity:.3}}
+
+/* ── 主网格：完全响应式，无硬性最小宽度 ── */
+#main{
+  display:grid;
+  /* 三列最小宽度300px，剩余空间等比分配，保证在任何屏幕都不溢出 */
+  grid-template-columns: repeat(3, minmax(300px, 1fr));
+  /* 第一行最小400px，自动撑开；第二行自适应；第三行固定但可收缩 */
+  grid-template-rows: minmax(400px, auto) auto minmax(2.5rem, auto);
+  gap:0.5rem;
+  padding:0.5rem;
+  min-height:calc(100vh - 3rem); /* 最小高度，确保全屏 */
+  height: auto; /* 允许内容撑开 */
+  overflow-y: auto; /* 允许垂直滚动，防止内容被挡 */
+  transition: grid-template-columns 0.2s;
+}
+
+/* 网格区域分配 */
+#lc { grid-column: 1; grid-row: 1; }
+#mc { grid-column: 2; grid-row: 1; }
+#rc { grid-column: 3; grid-row: 1; }
+#bottom-panels { grid-column: 1/-1; grid-row: 2; }
+#bot { grid-column: 1/-1; grid-row: 3; }
+
+/* 平板媒体查询：宽度768-1200px，两列布局 */
+@media (max-width: 1200px) {
+  #main {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  #lc { grid-column: 1; }
+  #mc { grid-column: 2; }
+  #rc { grid-column: 1 / -1; grid-row: 2; }
+  #bottom-panels { grid-column: 1 / -1; grid-row: 3; }
+  #bot { grid-column: 1 / -1; grid-row: 4; }
+}
+
+/* 手机：宽度<768px，单列堆叠 */
+@media (max-width: 768px) {
+  #main {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(auto, minmax(0, auto)); gap: 10px;
+    overflow-y: auto;
+    height: auto;
+    min-height: calc(100vh - 3rem);
+  }
+  #lc, #mc, #rc, #bottom-panels, #bot { grid-column: 1; grid-row: auto; }
+  .lcb { max-height: none; }
+  #mc .chart-panel { height: auto; min-height: 200px; }
+  #bottom-panels { flex-direction: column; gap: 10px; }
+}
+
+/* 小手机进一步优化 */
+@media (max-width: 500px) {
+  #main { gap: 5px; padding: 5px; }
+  #hdr { padding: 0 8px; }
+  .ht { font-size: 0.85rem; }
+  .hs { font-size: 0.55rem; }
+  .catg { flex-direction: column; }
+  input[type=range]::-webkit-slider-thumb { width: 20px; height: 20px; }
+}
+
+/* ── 面板通用样式（改用rem） ── */
+.pnl{
+  background:var(--bg1); border:1px solid var(--bd); border-radius:0.4rem;
+  position:relative; display: flex; flex-direction: column;
+  min-height: 0; /* 防止flex溢出 */
+  overflow: hidden; /* 由内部控制滚动 */
+}
+.pnl::before{content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--c1),transparent); opacity:.45;}
+.pt{
+  font-family:var(--ftitle); font-size:0.8rem; letter-spacing:2px; color:var(--c1);
+  text-transform:uppercase; padding:0.5rem 0.8rem 0.4rem;
+  border-bottom:1px solid rgba(0,212,255,.1);
+  display:flex; align-items:center; gap:0.4rem; flex-shrink:0;
+}
+.dot{width:0.4rem;height:0.4rem; border-radius:50%; background:var(--c1);
+  box-shadow:0 0 4px var(--c1); animation:p 1.8s ease-in-out infinite; flex-shrink:0;}
+@keyframes p{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.6)}}
+.dot.r{background:var(--c2); box-shadow:0 0 4px var(--c2);}
+.dot.g{background:var(--c3); box-shadow:0 0 4px var(--c3);}
+.dot.y{background:var(--c4); box-shadow:0 0 4px var(--c4);}
+.dot.o{background:var(--c6); box-shadow:0 0 4px var(--c6);}
+.dot.p{background:var(--c5); box-shadow:0 0 4px var(--c5);}
+
+/* 左列滚动区 */
+.lcb{
+  padding:0.8rem 0.9rem; overflow-y:auto; flex:1;
+  scrollbar-width:thin; scrollbar-color:var(--bd) transparent;
+}
+.lcb::-webkit-scrollbar{width:4px;}
+.lcb::-webkit-scrollbar-thumb{background:var(--bd); border-radius:3px;}
+
+/* 滑块组 */
+.cg{margin-bottom:1.2rem;}
+.cl{
+  font-family:var(--fmono); font-size:0.8rem; color:var(--td); margin-bottom:0.4rem;
+  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;
+  gap:0.2rem;
+}
+.cv{font-family:var(--fmono); font-size:0.9rem; color:var(--c1); font-weight:bold;}
+.cv.w{color:var(--warn);} .cv.d{color:var(--danger);}
+
+/* 滑块美化：拇指放大便于触控 */
+input[type=range]{
+  -webkit-appearance:none; width:100%; height:0.4rem;
+  background:var(--bg3); border-radius:3px; outline:none; border:1px solid var(--bd); cursor:pointer;
+  touch-action: pan-y; /* 优化手机触控 */
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:1.2rem; height:1.2rem; /* 加大拇指 */
+  border-radius:50%; background:var(--c1); box-shadow:0 0 8px var(--c1); cursor:pointer;
+  transition:box-shadow .2s;
+}
+input[type=range]:hover::-webkit-slider-thumb{box-shadow:0 0 14px var(--c1);}
+.rl{display:flex; justify-content:space-between; font-family:var(--fmono); font-size:0.6rem; color:var(--td); margin-top:0.3rem;}
+
+/* NH₃移除滑块拇指颜色 */
+#RM-sl::-webkit-slider-thumb{background:var(--c4); box-shadow:0 0 6px var(--c4);}
+
+/* 进料比例条 */
+.rbar{height:0.8rem; background:var(--bg3); border:1px solid var(--bd); border-radius:4px; margin-top:0.4rem; display:flex;}
+.rn2{height:100%; background:var(--c1); transition:width .3s;}
+.rh2{height:100%; background:var(--c2); flex:1;}
+
+/* 催化剂按钮：加大触控区 */
+.catg{display:flex; gap:0.4rem; margin-top:0.4rem;}
+.catb{
+  flex:1; padding:0.6rem 0.2rem; font-family:var(--fmono); font-size:0.7rem;
+  border:1px solid var(--bd); background:var(--bg2); color:var(--td);
+  border-radius:4px; cursor:pointer; transition:all .2s; letter-spacing:0.5px;
+  min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center;
+}
+.catb.on{border-color:var(--c6); color:var(--c6); background:rgba(255,107,53,.1); box-shadow:0 0 7px rgba(255,107,53,.2);}
+
+/* 常数框等 */
+.cbox{background:var(--bg2); border:1px solid var(--bd); border-radius:4px; padding:0.5rem 0.6rem; margin-bottom:0.8rem;}
+.crow{display:flex; justify-content:space-between; padding:0.15rem 0; border-bottom:1px solid rgba(255,255,255,.04);}
+.crow:last-child{border-bottom:none;}
+.ck{font-family:var(--fmono); font-size:0.7rem; color:var(--td);}
+.cv2{font-family:var(--fmono); font-size:0.75rem; color:var(--c4);}
+
+/* 任务卡片 */
+.task{background:linear-gradient(135deg,rgba(57,255,20,.04),rgba(0,212,255,.04));
+  border:1px solid rgba(57,255,20,.22); border-radius:4px; padding:0.6rem;}
+.ttl{font-family:var(--ftitle); font-size:0.6rem; letter-spacing:2px; color:var(--c3); margin-bottom:0.3rem;}
+.ttxt{font-size:0.85rem; color:var(--tm); line-height:1.5;}
+
+/* 中列：分子动画 + 图表 */
+#mc{
+  display:flex; flex-direction:column; gap:0.5rem; min-height:0; /* 防止flex溢出 */
+}
+#molc{
+  flex: 1 1 0; min-height: 160px; width:100%; display:block;
+  background:var(--bg0); border-radius:0 0 4px 4px;
+}
+.req{font-family:var(--fmono); font-size:0.9rem; text-align:center;
+  color:var(--c4); padding:0.3rem 0 0.2rem; letter-spacing:3px; text-shadow:0 0 7px var(--c4); flex-shrink:0;}
+.mol-legend{display:flex; gap:1rem; justify-content:center; padding:0.3rem 0 0.4rem; flex-shrink:0;}
+.ml-item{font-family:var(--fmono); font-size:0.7rem; display:flex; align-items:center; gap:0.3rem;}
+.ml-dot{width:0.6rem; height:0.6rem; border-radius:50%;}
+
+/* 曲线图面板 — 自适应高度 */
+#mc .chart-panel {
+  flex-shrink: 0;
+  height: 40%; min-height: 220px; /* 适当最小高度 */
+  display: flex; flex-direction: column;
+}
+#mc .chart-panel .chartbox {
+  flex: 1; margin: 0 0.5rem 0.5rem; display:flex; flex-direction: column;
+}
+#ychart { width: 100%; height: 100%; display: block; }
+
+/* 右列滚动 */
+#rc{
+  display:flex; flex-direction:column; gap:0.5rem; overflow-y:auto; min-height:0;
+  scrollbar-width:thin; scrollbar-color:var(--bd) transparent;
+}
+#rc::-webkit-scrollbar{width:4px;}
+#rc::-webkit-scrollbar-thumb{background:var(--bd); border-radius:3px;}
+
+/* 底部双面板：并排，窄屏换列 */
+#bottom-panels {
+  display: flex; gap: 0.5rem; flex-wrap: wrap;
+}
+#bottom-panels .pnl {
+  flex: 1 1 280px; /* 最小宽度280px */
+  margin: 0;
+}
+
+/* K-bar 公式 */
+.k-formula-bar {
+  background: var(--bg3); border:1px solid var(--c1); border-radius:5px;
+  margin:0.4rem 0.6rem 0.2rem; padding:0.5rem 0.6rem;
+  display:flex; flex-wrap:wrap; justify-content:space-around; align-items:center;
+  font-family:var(--fmono); box-shadow:0 0 8px rgba(0,212,255,0.2);
+}
+.k-formula-bar span { font-size:0.75rem; color:var(--c1); background:rgba(0,0,0,0.2); padding:0.15rem 0.4rem; border-radius:4px; }
+.k-formula-bar .big { color:var(--c4); font-size:0.85rem; }
+@media (max-width:500px){ .k-formula-bar{flex-direction:column; gap:0.3rem;} }
+
+/* K面板 */
+.kpanel{background:linear-gradient(135deg,rgba(0,212,255,.05),rgba(57,255,20,.04));
+  border:1px solid rgba(0,212,255,.25);}
+.kpanel::before{background:linear-gradient(90deg,transparent,var(--c1),var(--c3),transparent);}
+.kg{display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;padding:0.5rem 0.6rem 0.3rem;}
+.kc{background:var(--bg2);border:1px solid var(--bd);border-radius:5px;padding:0.45rem 0.6rem;}
+.kn{font-family:var(--fmono);font-size:0.65rem;color:var(--td);margin-bottom:0.15rem;}
+.kv{font-family:var(--fmono);font-size:1rem;font-weight:bold;color:var(--c1);
+  text-shadow:0 0 6px rgba(0,212,255,.4);}
+.kv.neg{color:var(--c3);text-shadow:0 0 6px rgba(57,255,20,.5);}
+.kv.pos{color:var(--c2);text-shadow:0 0 6px rgba(255,107,53,.5);}
+.kv.y{color:var(--c4);}
+.ku{font-family:var(--fmono);font-size:0.6rem;color:var(--td);}
+
+/* 推导表 */
+.kderive{padding:0.4rem 0.6rem 0.5rem;}
+.krow{display:flex;align-items:flex-start;gap:0.4rem;padding:0.2rem 0;
+  border-bottom:1px solid rgba(255,255,255,.04);}
+.krow:last-child{border-bottom:none;}
+.klbl{
+  font-family:var(--fmono);
+  font-size:0.7rem;
+  color:var(--td);
+  min-width: 95px;
+  flex-shrink: 0;
+  word-break: break-word;
+  line-height: 1.3;
+}
+.kval{
+  font-family:var(--fmono);
+  font-size:0.8rem;
+  color:var(--tm);
+  word-break: break-word;
+}
+
+/* 进度条通用 */
+.bhd{font-family:var(--fmono);font-size:0.7rem;color:var(--td);margin-bottom:0.3rem;display:flex;justify-content:space-between;}
+.btrack{height:0.8rem;background:var(--bg3);border:1px solid var(--bd);border-radius:4px;overflow:hidden;}
+.bfill{height:100%;background:linear-gradient(90deg,var(--c4),var(--warn));transition:width .3s;}
+.bfill.med{background:linear-gradient(90deg,var(--warn),#ff8c00);}
+.bfill.lo{background:linear-gradient(90deg,#ff8c00,var(--danger));}
+
+/* 物料平衡表 */
+.mbt{width:100%;border-collapse:collapse;font-family:var(--fmono);font-size:0.7rem;color:var(--tm);}
+.mbt thead td{padding:0.2rem 0;border-bottom:1px solid var(--bd);color:var(--td);font-size:0.65rem;}
+.mbt tbody td{padding:0.15rem 0;border-bottom:1px dotted rgba(255,255,255,.04);}
+
+/* 成本面板 */
+.costbox{padding:0.5rem 0.6rem;}
+.cost-row{display:flex;justify-content:space-between;padding:0.15rem 0;border-bottom:1px solid rgba(255,255,255,.04);}
+.cost-row:last-of-type{border-bottom:none;}
+.ck3{font-family:var(--fmono);font-size:0.7rem;color:var(--td);}
+.cn{font-family:var(--fmono);font-size:0.75rem;color:var(--c6);}
+.ctotal{display:flex;justify-content:space-between;padding:0.3rem 0 0;font-weight:bold;background:rgba(255,107,53,.04);margin-top:0.3rem;border-radius:3px;}
+.ctk{color:var(--td);font-size:0.75rem;}
+.ctn{color:var(--c6);font-size:0.9rem;}
+
+/* 反馈列表 */
+.fblist{padding:0.5rem 0.6rem;}
+.fbi{margin-bottom:0.4rem;font-family:var(--fbody);font-size:0.75rem;display:flex;gap:0.4rem;align-items:center;line-height:1.4;}
+.fbi.g{color:var(--good);} .fbi.w{color:var(--warn);} .fbi.d{color:var(--danger);}
+.fbi span{width:1.2rem;height:1.2rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;background:rgba(0,0,0,.2);flex-shrink:0;}
+
+/* 底部状态栏 */
+#bot{
+  background:var(--bg1); border:1px solid var(--bd); border-radius:0.4rem;
+  padding:0 1rem; display:flex; align-items:center; gap:0.8rem; overflow-x:auto; white-space:nowrap;
+}
+.blbl{font-family:var(--ftitle); font-size:0.6rem; letter-spacing:2px; color:var(--td);}
+#bchips{display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; flex:1;}
+.chip{font-family:var(--fmono); font-size:0.7rem; padding:0.2rem 0.6rem; border-radius:20px; border:1px solid; text-shadow:0 0 3px;}
+.chip.b{color:var(--c1);border-color:var(--c1);background:rgba(0,212,255,.1);}
+.chip.g{color:var(--good);border-color:var(--good);background:rgba(57,255,20,.1);}
+.chip.w{color:var(--warn);border-color:var(--warn);background:rgba(255,204,0,.1);}
+.chip.d{color:var(--danger);border-color:var(--danger);background:rgba(255,61,61,.1);}
+
+/* 扫描线动画优化will-change */
+body::after{content:''; position:fixed; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,rgba(0,212,255,.08),transparent);
+  animation:scan 5s linear infinite; pointer-events:none; z-index:9999; will-change:transform;}
+@keyframes scan{0%{top:0}100%{top:100vh}}
+
+/* 确保画布不溢出 */
+canvas { max-width: 100%; height: auto; }
+
+/* 大屏优化：增大列间距和字体 */
+@media (min-width: 1920px) {
+  :root { font-size: 18px; }
+  #main { grid-template-columns: repeat(3, minmax(400px, 1fr)); gap: 1rem; padding: 1rem; }
+}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <div>
+    <div class="ht">⚗ NH₃-SIM v3 — 工业合成氨热力学平衡模拟器</div>
+    <div class="hs">N₂ + 3H₂ ⇌ 2NH₃ &nbsp;|&nbsp; 单次通过平衡 · ΔG = ΔH − TΔS · Kp 严格求解 · van't Hoff</div>
+  </div>
+  <div class="hb">● LIVE SIM</div>
+</div>
+
+<div id="main">
+
+<!-- 左列：控制 -->
+<div class="pnl" id="lc">
+  <div class="pt"><span class="dot"></span>进料参数控制台</div>
+  <div class="lcb">
+    <div class="cg">
+      <div class="cl">温度 T &nbsp;<span style="font-size:.6rem;">(↑T → K↓，平衡不利)</span> <span class="cv" id="T-d">500 K</span></div>
+      <input type="range" id="T-sl" min="300" max="800" value="500" step="5">
+      <div class="rl"><span>300 K</span><span>550 K</span><span>800 K</span></div>
+    </div>
+    <div class="cg">
+      <div class="cl">总压 P &nbsp;<span style="font-size:.6rem;">(↑P → 转化率↑)</span> <span class="cv" id="P-d">150 bar</span></div>
+      <input type="range" id="P-sl" min="1" max="300" value="150" step="1">
+      <div class="rl"><span>1</span><span>150</span><span>300 bar</span></div>
+    </div>
+    <div class="cg">
+      <div class="cl">H₂/N₂ 进料比 &nbsp;<span class="cv" id="R-d" style="color:var(--c4);">1 : 3.0</span></div>
+      <input type="range" id="R-sl" min="10" max="50" value="30" step="1">
+      <div class="rl"><span>1:1</span><span>1:3 (化学计量)</span><span>1:5</span></div>
+      <div class="rbar"><div id="rn2" class="rn2" style="width:25%"></div><div class="rh2"></div></div>
+      <div style="font-family:var(--fmono); font-size:.6rem; color:var(--td); margin-top:4px;">
+        进料: N₂ <span id="yn2d" style="color:var(--c1);">25.0%</span> &nbsp; H₂ <span id="yh2d" style="color:var(--c2);">75.0%</span>
+      </div>
+    </div>
+    <div class="cg">
+      <div class="cl">N₂ 进料量 (mol/s) <span class="cv" id="F-d">10 mol/s</span></div>
+      <input type="range" id="F-sl" min="1" max="50" value="10" step="1">
+      <div class="rl"><span>1</span><span>25</span><span>50</span></div>
+    </div>
+    <div class="cg">
+      <div class="cl">NH₃ 移除率 &nbsp;<span style="font-size:.55rem; color:var(--c4);">(模拟冷凝分离)</span>
+        <span class="cv" id="RM-d" style="color:var(--c4);">0%</span></div>
+      <input type="range" id="RM-sl" min="0" max="95" value="0" step="5">
+      <div class="rl"><span>0% (不移除)</span><span>50%</span><span>95%</span></div>
+      <div style="font-family:var(--fmono); font-size:.6rem; color:var(--td); margin-top:4px;">↑ 移除NH₃使平衡正移，转化率提高 (勒夏特列原理)</div>
+    </div>
+    <div class="cg">
+      <div class="cl">催化剂活性 &nbsp;<span style="font-size:.55rem;">(趋近平衡系数 α)</span></div>
+      <div class="catg">
+        <button class="catb" id="cat-lo" onclick="setCat('lo')">低 α=0.60</button>
+        <button class="catb on"  id="cat-md" onclick="setCat('md')">中 α=0.85</button>
+        <button class="catb" id="cat-hi" onclick="setCat('hi')">高 α=0.97</button>
+      </div>
+    </div>
+    <div class="cl" style="margin-bottom:4px;">标准热力学参数</div>
+    <div class="cbox">
+      <div class="crow"><span class="ck">ΔH° (焓变)</span><span class="cv2">−92.4 kJ/mol</span></div>
+      <div class="crow"><span class="ck">ΔS° (熵变)</span><span class="cv2">−198 J/mol·K</span></div>
+      <div class="crow"><span class="ck">R (气体常数)</span><span class="cv2">8.314 J/mol·K</span></div>
+      <div class="crow"><span class="ck">T* (ΔG=0)</span><span class="cv2">≈ 466.7 K</span></div>
+    </div>
+    <div class="task">
+      <div class="ttl">▶ 教学探索任务</div>
+      <div class="ttxt">
+        调节参数，在 <strong style="color:var(--c4)">总成本 ≤ 200</strong> 的前提下，<br>
+        使 NH₃ 出口摩尔分数 <strong style="color:var(--c3)">&gt; 20%</strong>。<br>
+        <span style="font-size:.7rem; color:var(--td);">低温→K大；高压→转化率高；移除NH₃→平衡正移；1:3最优比。</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 中列：动画+曲线图 -->
+<div class="pnl" id="mc">
+  <div class="pt"><span class="dot y"></span>反应腔体 — 分子运动可视化</div>
+  <div class="req">N₂ + 3H₂ ⇌ 2NH₃</div>
+  <div class="mol-legend">
+    <div class="ml-item"><div class="ml-dot" style="background:var(--c1); box-shadow:0 0 4px var(--c1);"></div><span style="color:var(--c1);">N₂ (蓝)</span></div>
+    <div class="ml-item"><div class="ml-dot" style="background:var(--c2); box-shadow:0 0 4px var(--c2);"></div><span style="color:var(--c2);">H₂ (红)</span></div>
+    <div class="ml-item"><div class="ml-dot" style="background:var(--c4); box-shadow:0 0 4px var(--c4);"></div><span style="color:var(--c4);">NH₃ (黄)</span></div>
+  </div>
+  <canvas id="molc"></canvas>
+  <div class="pnl chart-panel">
+    <div class="pt"><span class="dot"></span>Temperature vs NH₃ Yield</div>
+    <div class="chartbox">
+      <div class="cttl">NH₃ MOLE FRACTION vs T — (当前P粗线; 参考P细线)</div>
+      <canvas id="ychart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 右列：核心面板 -->
+<div id="rc">
+  <div class="pnl kpanel">
+    <div class="pt"><span class="dot g"></span>平衡常数 K — 热力学核心计算</div>
+    <div class="k-formula-bar">
+      <span>K = exp( –ΔG°/RT )</span>
+      <span class="big">ΔG° = ΔH° – TΔS°</span>
+      <span>Kp = (y_NH₃)² / (y_N₂·y_H₂³) · (P_ref/P)²</span>
+    </div>
+    <div class="kg">
+      <div class="kc" style="border-color:rgba(0,212,255,.3)">
+        <div class="kn">ΔH° (焓变，恒定)</div>
+        <div class="kv y">−92.4<span class="ku"> kJ/mol</span></div>
+      </div>
+      <div class="kc" style="border-color:rgba(0,212,255,.3)">
+        <div class="kn">−TΔS° 贡献</div>
+        <div class="kv" id="TdS-v">—<span class="ku"> kJ/mol</span></div>
+      </div>
+      <div class="kc" style="grid-column:1/-1; border-color:rgba(57,255,20,.3); background:rgba(57,255,20,.04)">
+        <div class="kn">ΔG°(T) = ΔH° − TΔS°</div>
+        <div class="kv" id="dG-v" style="font-size:1.1rem;">—<span class="ku"> kJ/mol</span></div>
+      </div>
+    </div>
+    <div class="derive-box">
+      <div class="drow">① &nbsp;ΔG°(T) = ΔH° − T·ΔS° &nbsp;= &nbsp;<span id="dG-step">—</span> <span class="eq">kJ/mol</span></div>
+      <div class="drow">② &nbsp;K = exp( −ΔG° / RT ) &nbsp;= &nbsp;exp( <span id="K-arg">—</span> ) &nbsp;<span class="res">= <span id="K-step">—</span></span></div>
+      <div class="drow">③ &nbsp;ln K = −ΔG° / RT &nbsp;= &nbsp;<span id="lnK-step" class="eq">—</span></div>
+      <div class="drow">④ &nbsp;log₁₀ K &nbsp;= &nbsp;<span id="lgK-step" class="eq">—</span></div>
+      <div class="drow">⑤ &nbsp;d(ln K)/dT = ΔH°/RT² &nbsp;= &nbsp;<span id="vH-step">—</span> <span class="eq">K⁻¹</span></div>
+    </div>
+    <div class="kderive">
+      <div class="krow" style="background:rgba(176,96,255,.07); border-radius:2px; padding:4px 6px; margin-bottom:4px;">
+        <span class="klbl" style="color:var(--c5);">自发条件 (ΔG&lt;0)</span>
+        <span class="kval" id="spont-v">—</span>
+      </div>
+      <div class="krow">
+        <span class="klbl">当前 K(T)</span>
+        <span class="kval hi" id="K-v">—</span>
+      </div>
+      <div class="krow">
+        <span class="klbl">当前 Kp (含压力修正)</span>
+        <span class="kval y" id="Kp-v">—</span>
+      </div>
+      <div class="krow">
+        <span class="klbl">反应商 Q (当前状态)</span>
+        <span class="kval" id="Q-v">—</span>
+      </div>
+      <div class="krow" style="background:rgba(57,255,20,.05); border-radius:2px; padding:3px 5px;">
+        <span class="klbl">平衡判断 (K vs Q)</span>
+        <span class="kval" id="KQ-v">—</span>
+      </div>
+    </div>
+  </div>
+  <div class="pnl">
+    <div class="pt"><span class="dot o"></span>单次通过平衡转化率</div>
+    <div style="padding:8px 10px 4px">
+      <div class="bhd">出口 NH₃ 摩尔分数 (y_NH₃) <span id="nh3-pct">—%</span></div>
+      <div class="btrack"><div class="bfill" id="nh3-bar" style="width:0%"></div></div>
+    </div>
+    <div style="padding:5px 10px 4px">
+      <div class="bhd">N₂ 单程平衡转化率 (X_N₂) <span id="xn2-pct">—%</span></div>
+      <div class="btrack"><div class="bfill med" id="xn2-bar" style="width:0%"></div></div>
+    </div>
+    <div style="padding:4px 10px 8px; font-family:var(--fmono); font-size:.6rem; color:var(--td);">
+      平衡态: ξ_eq = <span id="xi-eq" style="color:var(--c1);">—</span> (basis N₂=1) &nbsp;|
+      实际: ξ×α(<span id="alpha-v" style="color:var(--c6);">0.85</span>) = <span id="xi-act" style="color:var(--c4);">—</span> &nbsp;|
+      NH₃移除率: <span id="rm-disp" style="color:var(--c4);">0%</span>
+    </div>
+  </div>
+  <div class="pnl">
+    <div class="pt"><span class="dot"></span>进出料物料平衡 (mol/s)</div>
+    <div style="padding:6px 10px 8px">
+      <table class="mbt">
+        <thead><tr><td>组分</td><td style="text-align:right">进料</td><td style="text-align:right">出口(平衡)</td><td style="text-align:right">出口摩尔分率</td></tr></thead>
+        <tbody id="mb-body"><tr><td colspan="4" style="color:var(--td); text-align:center; padding:5px">计算中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 底部双面板 -->
+<div id="bottom-panels">
+  <div class="pnl">
+    <div class="pt"><span class="dot y"></span>工业成本评估</div>
+    <div class="costbox">
+      <div class="cost-row"><span class="ck3">温度成本 (T/10)</span><span class="cn" id="cT">—</span></div>
+      <div class="cost-row"><span class="ck3">压力成本 (P/5)</span><span class="cn" id="cP">—</span></div>
+      <div class="cost-row"><span class="ck3">催化剂成本</span><span class="cn" id="cC">—</span></div>
+      <div class="cost-row"><span class="ck3">NH₃移除成本 (RM×0.5)</span><span class="cn" id="cRM">—</span></div>
+      <div class="ctotal"><span class="ctk">TOTAL COST</span><span class="ctn" id="cTot">—</span></div>
+    </div>
+  </div>
+  <div class="pnl">
+    <div class="pt"><span class="dot g"></span>系统决策反馈</div>
+    <div class="fblist" id="fb-list"></div>
+  </div>
+</div>
+
+<!-- 底部状态栏 -->
+<div id="bot">
+  <span class="blbl">SYS STATUS</span>
+  <div id="bchips"></div>
+</div>
+
+</div><!-- #main -->
+
+<script>
+/* ========== 物理常数与核心计算 ========== */
+const DH  = -92400;
+const DS  = -198;
+const RG  = 8.314;
+
+const CAT = {
+  lo:{lbl:'低', cost:10, alpha:0.60},
+  md:{lbl:'中', cost:20, alpha:0.85},
+  hi:{lbl:'高', cost:40, alpha:0.97},
+};
+
+const S = { T:500, P:150, ratio:3.0, Fn2:10, cat:'md', rm:0 };
+
+function dGfn(T){ return DH - T * DS; }
+function Keq(T){ return Math.exp(-dGfn(T) / (RG * T)); }
+
+function solveEq(T, P, ratio, rm){
+  const K = Keq(T);
+  const xiMax = Math.min(1, ratio/3) * 0.99999;
+  function Kp_at(xi){
+    const nN2  = 1 - xi;
+    const nH2  = ratio - 3*xi;
+    const nNH3_eff = 2*xi * (1 - rm);
+    const nTot = nN2 + nH2 + nNH3_eff;
+    if(nN2 <= 0 || nH2 <= 0) return 1e30;
+    const yN2  = nN2  / nTot;
+    const yH2  = nH2  / nTot;
+    const yNH3 = nNH3_eff / nTot;
+    return (yNH3*yNH3) / (yN2 * yH2*yH2*yH2) / (P*P);
+  }
+  let lo=1e-10, hi=xiMax;
+  for(let i=0;i<80;i++){
+    const mid=(lo+hi)/2;
+    Kp_at(mid) < K ? lo=mid : hi=mid;
+  }
+  return (lo+hi)/2;
+}
+
+function calcAll(T, P, ratio, rm, cat){
+  const alpha = CAT[cat].alpha;
+  const xiEq  = solveEq(T, P, ratio, rm);
+  const xiAct = xiEq * alpha;
+  const nN2  = 1 - xiAct;
+  const nH2  = ratio - 3*xiAct;
+  const nNH3_produced = 2*xiAct;
+  const nNH3_remaining = nNH3_produced * (1 - rm);
+  const nTot = nN2 + nH2 + nNH3_remaining;
+  const yN2  = nN2 / nTot;
+  const yH2  = nH2 / nTot;
+  const yNH3 = nNH3_remaining / nTot;
+  const Xn2 = xiAct;
+  const Qval = (yNH3*yNH3) / (Math.max(yN2,1e-10) * Math.pow(Math.max(yH2,1e-10),3)) / (P*P);
+  return { xiEq, xiAct, yN2, yH2, yNH3, Xn2, nTot, Qval };
+}
+
+function calcCost(T,P,cat,rm){ return T/10 + P/5 + CAT[cat].cost + rm*0.5; }
+
+function g(id){return document.getElementById(id);}
+function fmt(v,d){return (v>=0?'+':'')+v.toFixed(d);}
+function fmtK(K){return K>1e6?K.toExponential(3):K<1e-6?K.toExponential(3):K.toPrecision(4);}
+function setBar(id,pct){
+  const f=g(id); f.style.width=Math.min(Math.max(pct,0),100)+'%';
+  f.className=pct>=20?'bfill':pct>=10?'bfill med':'bfill lo';
+}
+
+function updateUI(){
+  const {T,P,ratio,Fn2,cat,rm} = S;
+  const dGval  = dGfn(T); const dGkJ   = dGval / 1000;
+  const TdSkJ  = -(T*DS)/1000; const K = Keq(T);
+  const lnK = Math.log(K); const lgK = Math.log10(K);
+  const dlnKdT = DH / (RG * T * T); const spontT = -DH / DS;
+
+  g('TdS-v').innerHTML  = fmt(TdSkJ,2)+'<span class="ku"> kJ/mol</span>';
+  g('dG-v').innerHTML   = fmt(dGkJ,2)+'<span class="ku"> kJ/mol</span>';
+  g('dG-v').className   = 'kv '+(dGkJ<0?'neg':'pos');
+  g('dG-step').textContent = fmt(dGkJ,2);
+  g('K-arg').textContent   = fmt(-dGval/(RG*T),3);
+  g('K-step').textContent  = fmtK(K);
+  g('lnK-step').textContent = lnK.toFixed(3);
+  g('lgK-step').textContent = lgK.toFixed(3);
+  g('vH-step').textContent  = dlnKdT.toExponential(3);
+  g('K-v').textContent  = fmtK(K);
+  g('Kp-v').textContent = 'K = '+fmtK(K)+' (与压力无关)';
+  g('Q-v').textContent = 'Q₀ = 0 (进口无NH₃)';
+  if(dGkJ < 0){ g('KQ-v').innerHTML = '<span class="g">K > Q₀ → 反应正向自发 ✔</span>'; }
+  else { g('KQ-v').innerHTML = '<span class="r">K < 1, ΔG > 0 → 正反应受抑制 ✘</span>'; }
+  g('spont-v').innerHTML = dGkJ<0 ? `<span class="g">✔ 自发 (T &lt; ${spontT.toFixed(0)} K)</span>` : `<span class="r">✘ 非自发 (T &gt; ${spontT.toFixed(0)} K)</span>`;
+
+  const res = calcAll(T,P,ratio,rm,cat);
+  const nh3pct = (res.yNH3*100).toFixed(1); const xn2pct = (res.Xn2*100).toFixed(1);
+  g('nh3-pct').textContent = nh3pct+'%'; setBar('nh3-bar', res.yNH3*100);
+  g('xn2-pct').textContent = xn2pct+'%'; setBar('xn2-bar', res.Xn2*100);
+  g('xi-eq').textContent  = res.xiEq.toFixed(4); g('xi-act').textContent = res.xiAct.toFixed(4);
+  g('alpha-v').textContent= CAT[cat].alpha.toFixed(2); g('rm-disp').textContent= (rm*100).toFixed(0)+'%';
+
+  const Fh2   = Fn2*ratio; const xiF   = res.xiAct * Fn2;
+  const outN2 = Fn2*(1-res.Xn2); const outH2 = Fh2 - 3*xiF;
+  const outNH3_prod = 2*xiF; const outNH3_rem  = outNH3_prod*rm; const outNH3_out  = outNH3_prod*(1-rm);
+  const outTot = outN2+outH2+outNH3_out;
+  g('mb-body').innerHTML = `
+    <tr><td style="color:var(--c1)">N₂</td><td style="text-align:right">${Fn2.toFixed(1)}</td><td style="text-align:right;color:var(--c1)">${outN2.toFixed(2)}</td><td style="text-align:right">${(outN2/outTot*100).toFixed(1)}%</td></tr>
+    <tr><td style="color:var(--c2)">H₂</td><td style="text-align:right">${Fh2.toFixed(1)}</td><td style="text-align:right;color:var(--c2)">${outH2.toFixed(2)}</td><td style="text-align:right">${(outH2/outTot*100).toFixed(1)}%</td></tr>
+    <tr style="background:rgba(255,204,0,.05)"><td style="color:var(--c4)">NH₃(出口)</td><td style="text-align:right">0.0</td><td style="text-align:right;color:var(--c4)">${outNH3_out.toFixed(2)}</td><td style="text-align:right">${(outNH3_out/outTot*100).toFixed(1)}%</td></tr>
+    ${rm>0?`<tr style="color:var(--td);font-size:.52rem"><td colspan="2">NH₃已移除(冷凝)</td><td style="text-align:right;color:var(--c4)">${outNH3_rem.toFixed(2)}</td><td></td></tr>`:''}
+    <tr style="border-top:1px solid var(--bd)"><td style="color:var(--td)">合计(体系)</td><td style="text-align:right;color:var(--td)">${(Fn2+Fh2).toFixed(1)}</td><td style="text-align:right;color:var(--td)">${outTot.toFixed(2)}</td><td style="text-align:right;color:var(--td)">100%</td></tr>`;
+
+  const cT=T/10, cP=P/5, cC=CAT[cat].cost, cRM=rm*0.5, tot=calcCost(T,P,cat,rm);
+  g('cT').textContent  = cT.toFixed(1); g('cP').textContent  = cP.toFixed(1);
+  g('cC').textContent  = cC; g('cRM').textContent = cRM.toFixed(1); g('cTot').textContent= tot.toFixed(1);
+
+  const fbs=[];
+  fbs.push(dGkJ<0 ? {c:'g',i:'✔',t:`ΔG = ${fmt(dGkJ,1)} kJ/mol < 0，反应自发`} : {c:'d',i:'✘',t:`ΔG = ${fmt(dGkJ,1)} kJ/mol > 0，反应非自发`});
+  fbs.push(res.yNH3>0.2 ? {c:'g',i:'★',t:`NH₃出口 ${nh3pct}% > 20%，工业产率良好`} : res.yNH3>0.1 ? {c:'w',i:'△',t:`NH₃出口 ${nh3pct}%，产率偏低`} : {c:'d',i:'✘',t:`NH₃出口 ${nh3pct}%，产率过低`});
+  fbs.push(T>650 ? {c:'d',i:'⚠',t:`T=${T}K 过高，K=${fmtK(K)}极小，平衡不利`} : T<400 ? {c:'w',i:'△',t:`T=${T}K 偏低，速率极慢，工业不可行`} : {c:'g',i:'✔',t:`T=${T}K 在工业窗口 (400–650 K)`});
+  fbs.push(Math.abs(ratio-3)<0.15 ? {c:'g',i:'✔',t:'H₂/N₂=1:3，化学计量比，热力学最优'} : ratio<2.5 ? {c:'w',i:'△',t:`H₂不足(1:${ratio.toFixed(1)})，转化受限`} : {c:'w',i:'△',t:`H₂过量(1:${ratio.toFixed(1)})，分离成本高`});
+  if(rm>0.5) fbs.push({c:'g',i:'↑',t:`NH₃移除${(rm*100).toFixed(0)}%，平衡正移显著`});
+  if(tot<=200 && res.yNH3>0.2) fbs.push({c:'g',i:'🏆',t:`任务达成！Cost=${tot.toFixed(0)}, NH₃=${nh3pct}%`});
+  g('fb-list').innerHTML = fbs.map(f=>`<div class="fbi ${f.c}"><span>${f.i}</span>${f.t}</div>`).join('');
+
+  g('bchips').innerHTML = [
+    {c:dGkJ<0?'g':'d', t:dGkJ<0?'自发反应':'非自发'},
+    {c:res.yNH3>0.2?'g':res.yNH3>0.1?'w':'d', t:`NH₃ ${nh3pct}%`},
+    {c:T>650||T<400?'w':'g', t:`T=${T}K`}, {c:P>200?'w':'b', t:`P=${P}bar`},
+    {c:'b', t:`K=${fmtK(K)}`}, {c:tot<=200?'g':'w', t:`Cost=${tot.toFixed(0)}`},
+    rm>0?{c:'g', t:`NH₃移除${(rm*100).toFixed(0)}%`}:null,
+  ].filter(Boolean).map(c=>`<span class="chip ${c.c}">${c.t}</span>`).join('');
+
+  drawChart(); molSim.setParams(T,P,ratio,res.yNH3,res.yN2,res.yH2);
+}
+
+/* 滑块监听 */
+g('T-sl').addEventListener('input',function(){ S.T=+this.value; g('T-d').textContent=S.T+' K'; g('T-d').className='cv'+(S.T>650?' d':S.T<400?' w':''); updateUI(); });
+g('P-sl').addEventListener('input',function(){ S.P=+this.value; g('P-d').textContent=S.P+' bar'; updateUI(); });
+g('R-sl').addEventListener('input',function(){ S.ratio=+this.value/10; g('R-d').textContent='1 : '+S.ratio.toFixed(1); const n2f=1/(1+S.ratio), h2f=S.ratio/(1+S.ratio); g('yn2d').textContent=(n2f*100).toFixed(1)+'%'; g('yh2d').textContent=(h2f*100).toFixed(1)+'%'; g('rn2').style.width=(n2f*100).toFixed(1)+'%'; updateUI(); });
+g('F-sl').addEventListener('input',function(){ S.Fn2=+this.value; g('F-d').textContent=S.Fn2+' mol/s'; updateUI(); });
+g('RM-sl').addEventListener('input',function(){ S.rm=+this.value/100; g('RM-d').textContent=(S.rm*100).toFixed(0)+'%'; updateUI(); });
+function setCat(c){ S.cat=c; ['lo','md','hi'].forEach(x=>g('cat-'+x).classList.toggle('on',x===c)); updateUI(); }
+
+/* 图表绘制 (绑定到新的画布) */
+const yc=g('ychart'), yct=yc.getContext('2d');
+function drawChart(){
+  const W=yc.width=yc.offsetWidth||300, H=yc.height=yc.offsetHeight||130; if(!W||!H)return;
+  const pad={t:16,r:16,b:24,l:38}; const iW=W-pad.l-pad.r, iH=H-pad.t-pad.b;
+  yct.clearRect(0,0,W,H); yct.fillStyle='#020b16'; yct.fillRect(0,0,W,H);
+  for(let i=0;i<=4;i++){ const y=pad.t+iH/4*i; yct.strokeStyle='rgba(20,50,90,.7)';yct.lineWidth=1; yct.beginPath();yct.moveTo(pad.l,y);yct.lineTo(pad.l+iW,y);yct.stroke(); yct.fillStyle='#3d6a99';yct.font='8px Share Tech Mono';yct.textAlign='right'; yct.fillText(((1-i/4)*100).toFixed(0)+'%',pad.l-3,y+3); }
+  for(let i=0;i<=5;i++){ const x=pad.l+iW/5*i; yct.strokeStyle='rgba(20,50,90,.7)';yct.beginPath();yct.moveTo(x,pad.t);yct.lineTo(x,pad.t+iH);yct.stroke(); yct.fillStyle='#3d6a99';yct.font='8px Share Tech Mono';yct.textAlign='center'; yct.fillText((300+i*100)+'K',x,pad.t+iH+13); }
+  [10,50,100,200,300].forEach((pv,i)=>{ const cols=['#0d2540','#0e3050','#0d3d60','#0d4870','#0d5480']; yct.beginPath();yct.strokeStyle=cols[i];yct.lineWidth=1; for(let ti=0;ti<=iW;ti++){ const tt=300+(ti/iW)*500; const r=calcAll(tt,pv,S.ratio,S.rm,S.cat); const x=pad.l+ti, y=pad.t+iH-r.yNH3*iH; ti===0?yct.moveTo(x,y):yct.lineTo(x,y); } yct.stroke(); const r0=calcAll(300,pv,S.ratio,S.rm,S.cat); yct.fillStyle='rgba(61,106,153,.55)';yct.font='7px Share Tech Mono';yct.textAlign='left'; yct.fillText(pv+'b',pad.l+2,pad.t+iH-r0.yNH3*iH-2); });
+  yct.beginPath();yct.strokeStyle='#00d4ff';yct.lineWidth=2; yct.shadowColor='#00d4ff';yct.shadowBlur=6; for(let ti=0;ti<=iW;ti++){ const tt=300+(ti/iW)*500; const r=calcAll(tt,S.P,S.ratio,S.rm,S.cat); const x=pad.l+ti, y=pad.t+iH-r.yNH3*iH; ti===0?yct.moveTo(x,y):yct.lineTo(x,y); } yct.stroke();yct.shadowBlur=0;
+  const ty=pad.t+iH-0.2*iH; yct.beginPath();yct.strokeStyle='rgba(255,204,0,.45)';yct.lineWidth=1; yct.setLineDash([3,3]);yct.moveTo(pad.l,ty);yct.lineTo(pad.l+iW,ty); yct.stroke();yct.setLineDash([]); yct.fillStyle='rgba(255,204,0,.6)';yct.font='7px Share Tech Mono'; yct.textAlign='left';yct.fillText('20%',pad.l+2,ty-2);
+  const cx=pad.l+((S.T-300)/500)*iW; yct.beginPath();yct.strokeStyle='rgba(255,107,53,.65)';yct.lineWidth=1; yct.setLineDash([3,3]);yct.moveTo(cx,pad.t);yct.lineTo(cx,pad.t+iH); yct.stroke();yct.setLineDash([]);
+  const cr=calcAll(S.T,S.P,S.ratio,S.rm,S.cat); const cy=pad.t+iH-cr.yNH3*iH; yct.beginPath();yct.arc(cx,cy,4.5,0,Math.PI*2); yct.fillStyle='#ff6b35';yct.shadowColor='#ff6b35';yct.shadowBlur=9;yct.fill(); yct.shadowBlur=0; yct.fillStyle='#ff6b35';yct.font='9px Share Tech Mono';yct.textAlign='left'; const lx=cx+7<pad.l+iW-42?cx+7:cx-46; yct.fillText((cr.yNH3*100).toFixed(1)+'%',lx,cy-4);
+  yct.fillStyle='#3d6a99';yct.font='7px Share Tech Mono'; yct.textAlign='center';yct.fillText('Temperature (K)',pad.l+iW/2,H-2);
+}
+
+/* 分子动画 */
+const mc2=g('molc'), mct=mc2.getContext('2d');
+const molSim = (()=>{ let T=500,P=150,ratio=3.0,yNH3=0.1,yN2=0.25,yH2=0.65,mols=[],W=0,H=0,frame=0; const MDEF={ N2:{col:'#00d4ff',r:8,lbl:'N₂'}, H2:{col:'#ff4444',r:5,lbl:'H₂'}, NH3:{col:'#ffcc00',r:10,lbl:'NH₃'} }; function spd(){return 0.55+(T/800)*3.0;} function mkMol(type){ const r=MDEF[type].r; const s=spd()*(0.5+Math.random()*1.0); const a=Math.random()*Math.PI*2; return{type, x:r+Math.random()*(W-2*r), y:r+Math.random()*(H-2*r), vx:Math.cos(a)*s, vy:Math.sin(a)*s, rot:Math.random()*Math.PI*2, rs:(Math.random()-.5)*.06, flash:0}; } function init(){ mols=[]; const total=Math.round(5+(P/300)*30); const yn=Math.max(0.05, yN2); const yh=Math.max(0.05, yH2); const ya=Math.max(0, yNH3); const sum=yn+yh+ya; const n2n=Math.max(1, Math.round(total*yn/sum)); const h2n=Math.max(1, Math.round(total*yh/sum)); const nh3n=Math.max(0, Math.round(total*ya/sum)); for(let i=0;i<n2n;i++) mols.push(mkMol('N2')); for(let i=0;i<h2n;i++) mols.push(mkMol('H2')); for(let i=0;i<nh3n;i++) mols.push(mkMol('NH3')); } function drawN2(m){ const t=MDEF.N2, fl=m.flash>0?Math.min(m.flash/25,1):0; mct.save();mct.translate(m.x,m.y);mct.rotate(m.rot); if(fl>0){ const g=mct.createRadialGradient(0,0,t.r,0,0,t.r*2.5); g.addColorStop(0,t.col+'55');g.addColorStop(1,'transparent'); mct.beginPath();mct.arc(0,0,t.r*2.5*fl,0,Math.PI*2); mct.fillStyle=g;mct.fill(); } mct.strokeStyle=t.col+'99';mct.lineWidth=1.2; for(const dy of[-1.8,0,1.8]){ mct.beginPath();mct.moveTo(-6.5,dy);mct.lineTo(6.5,dy);mct.stroke(); } for(const dx of[-5,5]){ mct.beginPath();mct.arc(dx,0,t.r*.62,0,Math.PI*2); mct.fillStyle=t.col+'cc';mct.shadowColor=t.col;mct.shadowBlur=6+fl*8;mct.fill(); } mct.shadowBlur=0;mct.rotate(-m.rot); mct.fillStyle='rgba(160,220,255,.6)';mct.font='7px Share Tech Mono';mct.textAlign='center'; mct.fillText(t.lbl,0,t.r+9);mct.restore(); } function drawH2(m){ const t=MDEF.H2, fl=m.flash>0?Math.min(m.flash/25,1):0; mct.save();mct.translate(m.x,m.y);mct.rotate(m.rot); if(fl>0){ const g=mct.createRadialGradient(0,0,t.r,0,0,t.r*2.5); g.addColorStop(0,t.col+'44');g.addColorStop(1,'transparent'); mct.beginPath();mct.arc(0,0,t.r*2.5*fl,0,Math.PI*2); mct.fillStyle=g;mct.fill(); } mct.strokeStyle=t.col+'aa';mct.lineWidth=1.5; mct.beginPath();mct.moveTo(-4.5,0);mct.lineTo(4.5,0);mct.stroke(); for(const dx of[-4,4]){ mct.beginPath();mct.arc(dx,0,t.r*.58,0,Math.PI*2); mct.fillStyle=t.col+'dd';mct.shadowColor=t.col;mct.shadowBlur=5+fl*7;mct.fill(); } mct.shadowBlur=0;mct.rotate(-m.rot); mct.fillStyle='rgba(255,160,160,.6)';mct.font='7px Share Tech Mono';mct.textAlign='center'; mct.fillText(t.lbl,0,t.r+8);mct.restore(); } function drawNH3(m){ const t=MDEF.NH3, fl=m.flash>0?Math.min(m.flash/25,1):0; mct.save();mct.translate(m.x,m.y);mct.rotate(m.rot); if(fl>0){ const g=mct.createRadialGradient(0,0,t.r,0,0,t.r*2.8); g.addColorStop(0,t.col+'60');g.addColorStop(1,'transparent'); mct.beginPath();mct.arc(0,0,t.r*2.8*fl,0,Math.PI*2); mct.fillStyle=g;mct.fill(); } const ny=-2; mct.beginPath();mct.arc(0,ny,t.r*.62,0,Math.PI*2); mct.fillStyle='#ddaa00cc';mct.shadowColor=t.col;mct.shadowBlur=8+fl*10;mct.fill(); const hAngles=[-Math.PI/2+Math.PI*2/3*0, -Math.PI/2+Math.PI*2/3*1, -Math.PI/2+Math.PI*2/3*2]; const hDist=t.r*0.9; hAngles.forEach(a=>{ const hx=Math.cos(a)*hDist, hy=Math.sin(a)*hDist+2; mct.strokeStyle=t.col+'99';mct.lineWidth=1.5; mct.beginPath();mct.moveTo(0,ny);mct.lineTo(hx,hy);mct.stroke(); mct.beginPath();mct.arc(hx,hy,t.r*.32,0,Math.PI*2); mct.fillStyle='#ffee88cc';mct.shadowColor='#ffff00';mct.shadowBlur=4+fl*5;mct.fill(); }); mct.shadowBlur=0;mct.rotate(-m.rot); mct.fillStyle='rgba(255,220,100,.7)';mct.font='7px Share Tech Mono';mct.textAlign='center'; mct.fillText(t.lbl,0,t.r+10);mct.restore(); } function drawZone(){ const grd=mct.createRadialGradient(W/2,H/2,8,W/2,H/2,65); grd.addColorStop(0,'rgba(255,204,0,.04)');grd.addColorStop(1,'transparent'); mct.beginPath();mct.arc(W/2,H/2,65,0,Math.PI*2); mct.fillStyle=grd;mct.fill(); mct.strokeStyle='rgba(255,204,0,.07)';mct.lineWidth=1; mct.beginPath();mct.arc(W/2,H/2,65,0,Math.PI*2);mct.stroke(); } function triggerFlash(){ const prob=0.015+yNH3*0.04; if(Math.random()<prob){ const n2s=mols.filter(m=>m.type==='N2'); const h2s=mols.filter(m=>m.type==='H2'); const nh3s=mols.filter(m=>m.type==='NH3'); if(n2s.length) n2s[0|Math.random()*n2s.length].flash=35; for(let i=0;i<Math.min(3,h2s.length);i++) h2s[0|Math.random()*h2s.length].flash=25; if(nh3s.length) nh3s[0|Math.random()*nh3s.length].flash=40; } } function tick(){ const nW=mc2.offsetWidth, nH=mc2.offsetHeight; if(nW!==W||nH!==H){W=nW;H=nH;mc2.width=W;mc2.height=H;init();} if(!W||!H){requestAnimationFrame(tick);return;} mct.clearRect(0,0,W,H); mct.fillStyle='#020b16'; mct.fillRect(0,0,W,H); const ha=Math.max(0,(T-400)/400)*0.07; if(ha>0){ const g=mct.createRadialGradient(W/2,H/2,0,W/2,H/2,W/2); g.addColorStop(0,`rgba(255,60,0,${ha})`);g.addColorStop(1,'transparent'); mct.fillStyle=g;mct.fillRect(0,0,W,H); } drawZone(); mols.forEach(m=>{ m.x+=m.vx;m.y+=m.vy;m.rot+=m.rs; const r=MDEF[m.type].r; if(m.x<r||m.x>W-r) m.vx=-m.vx; if(m.y<r||m.y>H-r) m.vy=-m.vy; m.x=Math.max(r,Math.min(W-r,m.x)); m.y=Math.max(r,Math.min(H-r,m.y)); if(m.flash>0)m.flash--; if(m.type==='N2') drawN2(m); else if(m.type==='H2') drawH2(m); else drawNH3(m); }); triggerFlash(); const n2c=mols.filter(m=>m.type==='N2').length; const h2c=mols.filter(m=>m.type==='H2').length; const nh3c=mols.filter(m=>m.type==='NH3').length; mct.fillStyle='rgba(61,106,153,.5)';mct.font='8px Share Tech Mono';mct.textAlign='left'; mct.fillText(`T=${T}K  P=${P}bar  H₂/N₂=1:${ratio.toFixed(1)}  N₂:${n2c} H₂:${h2c} NH₃:${nh3c}`,6,H-6); frame++; requestAnimationFrame(tick); } return{ start(){W=mc2.offsetWidth;H=mc2.offsetHeight;mc2.width=W;mc2.height=H;init();tick();}, setParams(nT,nP,nr,nya,nyn,nyh){ const changed=nT!==T||nP!==P||nr!==ratio||Math.abs(nya-yNH3)>.015; T=nT;P=nP;ratio=nr;yNH3=nya;yN2=nyn;yH2=nyh; if(changed) init(); } }; })();
+
+window.addEventListener('load',()=>{ 
+  const n2f=1/(1+S.ratio), h2f=S.ratio/(1+S.ratio); 
+  g('yn2d').textContent=(n2f*100).toFixed(1)+'%'; 
+  g('yh2d').textContent=(h2f*100).toFixed(1)+'%'; 
+  g('rn2').style.width=(n2f*100).toFixed(1)+'%'; 
+  molSim.start(); updateUI(); 
+  // 添加ResizeObserver观察画布父元素变化以重绘图表
+  const ro = new ResizeObserver(() => { drawChart(); });
+  ro.observe(g('ychart').parentElement);
+});
+window.addEventListener('resize',()=>drawChart());
+</script>
+</body>
+</html>
