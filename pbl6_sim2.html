@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电解水动力学系统模拟器 v2.0 · 柔和版</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:      #06080f;
+  --bg2:     #0b0f1a;
+  --panel:   #0d1220;
+  --panel2:  #111828;
+  --border:  #1a2540;
+  --border2: #243050;
+
+  /* 柔和化主色调 — 降低饱和度/亮度，更耐看 */
+  --oer:     #5c8fd9;   /* 柔和阳极蓝 */
+  --oer-d:   #2c4a7a;   /* 深蓝渐变 */
+  --her:     #30bc94;   /* 柔和阴极青绿 */
+  --her-d:   #1a684a;   /* 深绿 */
+  --ir:      #e57e40;   /* 柔和IR橙 */
+  --ir-d:    #914e20;   /* 深橙 */
+  --thermo:  #7f6adf;   /* 柔和热力学紫 */
+  --thermo-d:#41358f;   /* 深紫 */
+
+  --text:    #c0d4f0;
+  --dim:     #aaddff;
+  --bright:  #e8f4ff;
+
+  /* 更新glow颜色 (RGB与主色匹配) */
+  --glow-oer: 0 0 20px rgba(92,143,217,0.2);
+  --glow-her: 0 0 20px rgba(48,188,148,0.2);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+   font-family: 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+  font-size: 13px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── 动态背景 ── 使用柔和色RGB */
+body::before {
+  content:'';
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 20%, rgba(92,143,217,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 35% at 80% 80%, rgba(48,188,148,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(229,126,64,0.03) 0%, transparent 70%);
+}
+body::after {
+  content:'';
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(92,143,217,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(92,143,217,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.app { position:relative; z-index:1; max-width:1440px; margin:0 auto; padding:14px; }
+
+/* ── HEADER ── */
+header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 20px;
+  background: linear-gradient(135deg, rgba(13,18,32,0.95), rgba(17,24,40,0.95));
+  border:1px solid var(--border2);
+  border-bottom: 2px solid transparent;
+  border-image: linear-gradient(90deg, var(--oer), var(--her), var(--ir)) 1;
+  margin-bottom:12px;
+  backdrop-filter: blur(10px);
+}
+.h-title {
+  font-size:26px; font-weight:800; letter-spacing:2px;
+  background: linear-gradient(90deg, var(--ir-d), var(--ir));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.h-sub { font-family:'DM Mono',monospace; font-size:12px; color:var(--dim); letter-spacing:3px; margin-top:3px; }
+.badge {
+  font-family:'DM Mono',monospace; font-size:10px; letter-spacing:2px;
+  border:1px solid var(--border2); padding:5px 12px; color:var(--dim);
+  background:rgba(255,255,255,0.02);
+}
+.badge.live { border-color:rgba(48,188,148,0.4); color:var(--her); }
+.badge.live::before {
+  content:''; display:inline-block; width:6px; height:6px;
+  border-radius:50%; background:var(--her); margin-right:7px;
+  box-shadow:0 0 6px var(--her);
+  animation:blink 1.8s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ── VOLTAGE FORMULA BAR ── */
+.formula-bar {
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  padding:10px 20px; margin-bottom:12px;
+  background:var(--panel2); border:1px solid var(--border2);
+  font-family:'DM Mono',monospace; font-size:13px; flex-wrap:wrap;
+}
+.f-seg {
+  padding:4px 12px; border-radius:2px;
+  font-weight:700; letter-spacing:1px; font-size:13px;
+  transition: all 0.3s;
+}
+/* 更新所有 .f-* 背景为柔和色 rgba */
+.f-thermo { background:rgba(127,106,223,0.12); color:var(--thermo); border:1px solid rgba(127,106,223,0.25); }
+.f-oer    { background:rgba(92,143,217,0.12);  color:var(--oer);    border:1px solid rgba(92,143,217,0.25); }
+.f-her    { background:rgba(48,188,148,0.10);  color:var(--her);    border:1px solid rgba(48,188,148,0.25); }
+.f-ir     { background:rgba(229,126,64,0.12);  color:var(--ir);     border:1px solid rgba(229,126,64,0.25); }
+.f-op { color:var(--dim); font-size:16px; }
+.f-total { color:var(--bright); font-size:15px; font-weight:800; letter-spacing:1px; }
+
+/* ── 3-COLUMN LAYOUT ── */
+.main-grid {
+  display:grid;
+  grid-template-columns: 300px 1fr 270px;
+  gap:12px; margin-bottom:12px;
+  align-items: start;
+}
+
+/* ── PANEL BASE ── */
+.panel {
+  background:var(--panel); border:1px solid var(--border);
+  padding:16px; position:relative;
+}
+.p-title {
+  font-family:'DM Mono',monospace; font-size:14px; letter-spacing:3px;
+  text-transform:uppercase; padding-bottom:10px; margin-bottom:14px;
+  border-bottom:1px solid var(--border2);
+  display:flex; align-items:center; gap:8px;
+}
+.p-title .dot {
+  width:8px; height:8px; border-radius:50%;
+}
+.p-title.oer-t { color:var(--oer); }
+.p-title.oer-t .dot { background:var(--oer); box-shadow:0 0 8px var(--oer); }
+.p-title.her-t { color:var(--her); }
+.p-title.her-t .dot { background:var(--her); box-shadow:0 0 8px var(--her); }
+.p-title.sys-t { color:var(--ir); }
+.p-title.sys-t .dot { background:var(--ir); box-shadow:0 0 8px var(--ir); }
+.p-title.res-t { color:var(--bright); }
+.p-title.res-t .dot { background:var(--bright); }
+
+/* ── CATALYST SELECTOR ── */
+.cat-select {
+  display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:6px;
+}
+.cat-btn {
+  padding:8px 6px; background:transparent;
+  border:1px solid var(--border2); color:var(--dim);
+  font-family:'DM Mono',monospace; font-size:12px; letter-spacing:1px;
+  cursor:pointer; transition:all 0.2s; text-align:center; 
+}
+.cat-btn:hover { border-color:rgba(255,255,255,0.2); color:var(--text); }
+.cat-btn.active-oer { border-color:var(--oer); color:var(--oer); background:rgba(92,143,217,0.08); box-shadow:var(--glow-oer); }
+.cat-btn.active-her { border-color:var(--her); color:var(--her); background:rgba(48,188,148,0.08); box-shadow:var(--glow-her); }
+.cat-btn.custom-btn { grid-column:span 2; }
+
+/* ── SLIDERS ── */
+.sl-group { margin-bottom:6px; }
+.sl-label {
+  font-family:'DM Mono',monospace; font-size:11px; color:var(--dim);
+  letter-spacing:1px; margin-bottom:3px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.sl-label .sl-val {
+  font-size:13px; font-weight:700; font-family:'DM Mono',monospace;
+  transition:color 0.2s;
+}
+.sl-val.oer-c { color:var(--oer); }
+.sl-val.her-c { color:var(--her); }
+.sl-val.sys-c { color:var(--ir); }
+
+.sl-track { position:relative; height:3px; background:var(--border2); border-radius:2px; margin:3px 0; }
+.sl-fill  { position:absolute; left:0; top:0; bottom:0; border-radius:2px; pointer-events:none; transition:width 0.08s; }
+.sl-fill.oer-f { background:linear-gradient(90deg,var(--oer-d),var(--oer)); }
+.sl-fill.her-f { background:linear-gradient(90deg,var(--her-d),var(--her)); }
+.sl-fill.sys-f { background:linear-gradient(90deg,var(--ir-d),var(--ir)); }
+
+input[type=range] {
+  width:100%; appearance:none; background:transparent;
+  cursor:pointer; position:relative; z-index:1; padding:3px 0; margin:0;
+}
+input[type=range]::-webkit-slider-thumb {
+  appearance:none; width:13px; height:13px; border-radius:50%;
+  border:2px solid var(--bg); transition:transform 0.15s;
+}
+input[type=range]:hover::-webkit-slider-thumb { transform:scale(1.4); }
+input[type=range]::-webkit-slider-runnable-track { background:transparent; height:0; }
+.oer-sl::-webkit-slider-thumb { background:var(--oer); box-shadow:0 0 8px var(--oer); }
+.her-sl::-webkit-slider-thumb { background:var(--her); box-shadow:0 0 8px var(--her); }
+.sys-sl::-webkit-slider-thumb { background:var(--ir);  box-shadow:0 0 8px var(--ir); }
+
+.sl-range { display:flex; justify-content:space-between; font-family:'DM Mono',monospace; font-size:9px; color:var(--border2); }
+
+/* ── DIVIDER ── */
+.divider { height:1px; background:var(--border); margin:6px 0; }
+.sect-label { font-size:14px; font-family:'DM Mono',monospace; color:var(--dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+
+/* ── MIDDLE CHARTS ── */
+.charts-col {
+  display:flex; flex-direction:column; gap:12px;
+}
+.chart-wrap {
+  height: 325px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box;
+margin-bottom:16px;
+}
+.chart-wrap > .chart-header,
+.chart-wrap > div[style*="margin-top:18px"] { flex: 0 0 auto !important; }
+.chart-wrap > canvas { flex: 1 !important; width: 100% !important; height: 100% !important; display: block !important; }
+.bar-chart { height: 295px !important; flex: none !important; }
+@media (max-width: 900px) {
+  .chart-wrap { height: 240px !important; }
+  .bar-chart { height: 280px !important; }
+}
+
+.bar-chart {
+  height: 295px !important;
+  flex: none !important;
+}
+
+.chart-header {
+  display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;
+}
+.chart-title { font-family:'DM Mono',monospace; font-size:14px; letter-spacing:2px; margin-bottom:12px;}
+.chart-title.oer-t { color:var(--oer); }
+.chart-title.her-t { color:var(--her); }
+.chart-title.bar-t { color:var(--ir); }
+.chart-sub { font-size:12px; color:var(--dim); font-family:'DM Mono',monospace; }
+
+canvas { width:100%; display:block; }
+
+/* ── RIGHT OUTPUTS ── */
+.out-card {
+  margin-bottom:10px; padding:12px 14px;
+  background:var(--panel2); border:1px solid var(--border);
+  position:relative; overflow:hidden; transition:border-color 0.3s;
+}
+.out-card::before {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+}
+.out-card.card-main::before { background:var(--bright); }
+.out-card.card-oer::before  { background:var(--oer); }
+.out-card.card-her::before  { background:var(--her); }
+.out-card.card-ir::before   { background:var(--ir); }
+.out-card.card-w::before    { background:var(--thermo); }
+
+.out-label { font-family:'DM Mono',monospace; font-size:14px; letter-spacing:2px; color:var(--dim); text-transform:uppercase; margin-bottom:4px; }
+.out-val   { font-family:'DM Mono',monospace; font-size:14px; font-weight:700; line-height:1; transition:all 0.25s; }
+.out-val.v-main  { color:var(--bright); text-shadow:0 0 12px rgba(255,255,255,0.2); }
+.out-val.v-oer   { color:var(--oer); text-shadow:0 0 10px rgba(92,143,217,0.3); }
+.out-val.v-her   { color:var(--her); text-shadow:0 0 10px rgba(48,188,148,0.3); }
+.out-val.v-ir    { color:var(--ir);  text-shadow:0 0 10px rgba(229,126,64,0.3); }
+.out-val.v-w     { color:var(--thermo); }
+.out-unit { font-family:'DM Mono',monospace; font-size:10px; color:var(--dim); margin-top:3px; }
+
+.pct-bar { height:3px; background:var(--border); border-radius:2px; margin-top:7px; overflow:hidden; }
+.pct-fill { height:100%; border-radius:2px; transition:width 0.4s cubic-bezier(.4,0,.2,1); }
+
+/* ── ENGINEERING VERDICT ── */
+.verdict {
+  padding:12px 14px; border:1px solid var(--border2);
+  background: linear-gradient(135deg, rgba(13,18,32,0.8), rgba(11,15,26,0.8));
+  margin-top:10px;
+}
+.verdict-title { font-family:'DM Mono',monospace; font-size:14px; letter-spacing:3px; color:var(--dim); text-transform:uppercase; margin-bottom:8px; }
+.verdict-badge {
+  display:inline-block; padding:4px 10px;
+  font-family:'DM Mono',monospace; font-size:11px; font-weight:700; letter-spacing:2px;
+  border-radius:2px; margin-bottom:6px;
+}
+.verdict-text { font-size:12px; color:var(--dim); line-height:1.7; }
+
+/* ── BOTTOM: 3-STEP TASKS ── */
+.tasks-row {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
+}
+.task-card {
+  background:var(--panel); border:1px solid var(--border);
+  padding:16px; transition:all 0.25s; cursor:pointer; position:relative; overflow:hidden;
+}
+.task-card:hover { transform:translateY(-3px); }
+.task-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+}
+.task1::before { background:linear-gradient(90deg, var(--oer), transparent); }
+.task2::before { background:linear-gradient(90deg, var(--her), transparent); }
+.task3::before { background:linear-gradient(90deg, var(--ir), transparent); }
+.task1:hover { box-shadow:var(--glow-oer); }
+.task2:hover { box-shadow:var(--glow-her); }
+.task3:hover { border-color:rgba(229,126,64,0.4); }
+
+.task-n { font-size:20px; font-weight:800; color:rgba(255,255,255,0.34); line-height:1; margin-bottom:4px; }
+.task-title { font-family:'DM Mono',monospace; font-size:14px; letter-spacing:2px; margin-bottom:10px; }
+.task1 .task-title { color:var(--oer); }
+.task2 .task-title { color:var(--her); }
+.task3 .task-title { color:var(--ir); }
+
+.task-body { font-size:12px; color:var(--dim); line-height:1.7; margin-bottom:12px; }
+.task-body code {
+  font-family:'DM Mono',monospace; font-size:11px; padding:2px 7px;
+  background:rgba(255,255,255,0.05); border:1px solid var(--border2); border-radius:2px;
+}
+.task-q {
+  font-size:12px; color:var(--text); line-height:1.6;
+  padding:8px 10px; background:rgba(255,255,255,0.03); border-left:2px solid;
+  font-style:italic; margin-bottom:10px;
+}
+.task1 .task-q { border-color:var(--oer); }
+.task2 .task-q { border-color:var(--her); }
+.task3 .task-q { border-color:var(--ir); }
+
+.task-btn {
+  width:100%; padding:8px; background:transparent; cursor:pointer;
+  font-family:'DM Mono',monospace; font-size:10px; letter-spacing:2px; 
+  transition:all 0.2s;
+}
+.task1 .task-btn { border:1px solid var(--oer); color:var(--oer); }
+.task1 .task-btn:hover { background:rgba(92,143,217,0.1); }
+.task2 .task-btn { border:1px solid var(--her); color:var(--her); }
+.task2 .task-btn:hover { background:rgba(48,188,148,0.1); }
+.task3 .task-btn { border:1px solid var(--ir);  color:var(--ir); }
+.task3 .task-btn:hover { background:rgba(229,126,64,0.1); }
+
+.tasks-header {
+  font-family:'DM Mono',monospace; font-size:10px; letter-spacing:4px;
+  color:var(--dim); text-transform:uppercase; margin-bottom:12px;
+  display:flex; align-items:center; gap:12px;
+}
+.tasks-header::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+/* custom input box */
+.custom-box {
+  width:100%; background:var(--bg2); border:1px solid var(--border2);
+  color:var(--text); font-family:'DM Mono',monospace; font-size:12px;
+  padding:5px 10px; margin-top:6px; outline:none;
+  transition:border-color 0.2s;
+}
+.custom-box:focus { border-color:var(--oer); }
+.custom-box.her-b:focus { border-color:var(--her); }
+
+/* param tag — 更新为柔和色 */
+.ptag {
+  display:inline-block; font-family:'DM Mono',monospace; font-size:10px;
+  padding:2px 8px; margin:2px 3px 2px 0;
+  background:rgba(92,143,217,0.07); border:1px solid rgba(92,143,217,0.2); color:var(--oer);
+}
+.ptag.h { background:rgba(48,188,148,0.07); border-color:rgba(48,188,148,0.2); color:var(--her); }
+.ptag.s { background:rgba(229,126,64,0.07); border-color:rgba(229,126,64,0.2); color:var(--ir); }
+
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+
+@keyframes flash { 0%{background:rgba(92,143,217,0.1)} 100%{background:transparent} }
+.flash-oer { animation:flash 0.4s ease-out; }
+
+/* 响应式设计 */
+@media (max-width: 900px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .chart-wrap { height: 240px !important; }
+  .bar-chart { height: 280px !important; }
+  .main-grid > .panel, .main-grid > .charts-col { width: 100%; }
+  .formula-bar { flex-wrap: wrap; justify-content: flex-start; font-size: 11px; }
+  .badge.live { display: none; }
+  .h-title { font-size: 16px; }
+  .h-sub { font-size: 8px; }
+  .tasks-row { grid-template-columns: 1fr; }
+  .verdict-text { font-size: 11px; }
+  .out-val { font-size: 18px; }
+}
+
+@media (max-width: 480px) {
+  .app { padding: 8px; }
+  header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .badge { font-size: 8px; padding: 3px 6px; }
+  .formula-bar { padding: 8px 10px; }
+  .f-seg { padding: 2px 6px; font-size: 10px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div>
+    <div class="h-title">电解水Tafel动力学系统模拟器</div>
+    <div class="h-sub">WATER ELECTROLYSIS KINETICS SYSTEM SIMULATOR</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <div class="badge">Tafel Kinetics Model</div>
+    <div class="badge live">REALTIME</div>
+    <div class="badge" style="color:var(--ir)">v2.0</div>
+  </div>
+</header>
+
+<!-- ═══ FORMULA BAR ═══ -->
+<div class="formula-bar">
+  <span style="color:var(--dim);font-family:'DM Mono',monospace;font-size:12px;margin-right:6px">U_cell =</span>
+  <div class="f-seg f-thermo">E° = 1.230 V</div>
+  <span class="f-op">+</span>
+  <div class="f-seg f-oer" id="fb-oer">η<sub>OER</sub> = —</div>
+  <span class="f-op">+</span>
+  <div class="f-seg f-her" id="fb-her">η<sub>HER</sub> = —</div>
+  <span class="f-op">+</span>
+  <div class="f-seg f-ir"  id="fb-ir">IR = —</div>
+  <span class="f-op">=</span>
+  <div class="f-total" id="fb-total">— V</div>
+</div>
+
+<!-- ═══ MAIN 3-COL ═══ -->
+<div class="main-grid">
+
+  <!-- LEFT: PARAMETERS -->
+  <div class="panel">
+
+    <!-- OER Section -->
+    <div class="p-title oer-t"><div class="dot"></div>阳极 — OER</div>
+    <div class="sect-label">催化剂</div>
+    <div class="cat-select" id="oer-cats">
+      <button class="cat-btn active-oer" onclick="selectCat('oer','nife')">NiFe</button>
+      <button class="cat-btn" onclick="selectCat('oer','iro2')">IrO₂</button>
+      <button class="cat-btn custom-btn" onclick="selectCat('oer','custom')">⚙ 单原子催化剂</button>
+    </div>
+
+    <div class="sl-group">
+      <div class="sl-label">
+        Tafel 斜率 b<sub>OER</sub> (mV/dec)
+        <span class="sl-val oer-c" id="v-b-oer">40</span>
+      </div>
+      <div class="sl-track"><div class="sl-fill oer-f" id="f-b-oer"></div>
+        <input type="range" class="oer-sl" id="b-oer" min="20" max="120" step="1" value="40"></div>
+      <div class="sl-range"><span>20</span><span>120</span></div>
+    </div>
+
+    <div class="sl-group">
+      <div class="sl-label">
+       交换电流 log(i₀_OER) &nbsp;[i₀ in mA/cm²]
+        <span class="sl-val oer-c" id="v-log-oer">-0.30</span>
+      </div>
+      <div class="sl-track"><div class="sl-fill oer-f" id="f-log-oer"></div>
+        <input type="range" class="oer-sl" id="log-oer" min="-4" max="2" step="0.05" value="-0.3"></div>
+      <div class="sl-range"><span>−4</span><span>+2</span></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- HER Section -->
+    <div class="p-title her-t"><div class="dot"></div>阴极 — HER</div>
+    <div class="sect-label">催化剂</div>
+    <div class="cat-select" id="her-cats">
+      <button class="cat-btn active-her" onclick="selectCat('her','pt')">Pt</button>
+      <button class="cat-btn" onclick="selectCat('her','nimo')">NiMo</button>
+      <button class="cat-btn custom-btn" onclick="selectCat('her','custom')">⚙ 研发产品</button>
+    </div>
+
+    <div class="sl-group">
+      <div class="sl-label">
+        Tafel 斜率 b<sub>HER</sub> (mV/dec)
+        <span class="sl-val her-c" id="v-b-her">30</span>
+      </div>
+      <div class="sl-track"><div class="sl-fill her-f" id="f-b-her"></div>
+        <input type="range" class="her-sl" id="b-her" min="20" max="120" step="1" value="30"></div>
+      <div class="sl-range"><span>20</span><span>120</span></div>
+    </div>
+
+    <div class="sl-group">
+      <div class="sl-label">
+      交换电流  log(i₀_HER) &nbsp;[i₀ in mA/cm²]
+        <span class="sl-val her-c" id="v-log-her">0.00</span>
+      </div>
+      <div class="sl-track"><div class="sl-fill her-f" id="f-log-her"></div>
+        <input type="range" class="her-sl" id="log-her" min="-4" max="2" step="0.05" value="0.0"></div>
+      <div class="sl-range"><span>−4</span><span>+2</span></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- System Section -->
+    <div class="p-title sys-t"><div class="dot"></div>电解系统</div>
+
+    <div class="sl-group">
+      <div class="sl-label">
+        j 电流密度 (mA/cm²)
+        <span class="sl-val sys-c" id="v-j">100</span>
+      </div>
+      <div class="sl-track"><div class="sl-fill sys-f" id="f-j"></div>
+        <input type="range" class="sys-sl" id="sl-j" min="1" max="500" step="1" value="100"></div>
+      <div class="sl-range"><span>1</span><span>500</span></div>
+    </div>
+
+    <div class="sl-group">
+      <div class="sl-label">
+        R 电阻 (Ω·cm²)
+        <span class="sl-val sys-c" id="v-R">0.50</span>
+      </div>
+      <div class="sl-track"><div class="sl-fill sys-f" id="f-R"></div>
+        <input type="range" class="sys-sl" id="sl-R" min="0.05" max="2.0" step="0.05" value="0.5"></div>
+      <div class="sl-range"><span>0.05</span><span>2.0</span></div>
+    </div>
+
+    <div class="sl-group">
+      <div class="sl-label">
+        T 温度 (K)
+        <span class="sl-val sys-c" id="v-T">298</span>
+      </div>
+      <div class="sl-track"><div class="sl-fill sys-f" id="f-T"></div>
+        <input type="range" class="sys-sl" id="sl-T" min="273" max="363" step="1" value="298"></div>
+      <div class="sl-range"><span>273K</span><span>363K</span></div>
+    </div>
+
+  </div>
+
+  <!-- MIDDLE: CHARTS -->
+  <div class="charts-col">
+
+    <!-- Charts 1 & 2 side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:0 0 auto">
+
+      <div class="chart-wrap">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title oer-t">① 阳极极化曲线 OER</div>
+            <div class="chart-sub">η<sub>OER</sub> vs log(j)</div>
+          </div>
+          <div id="oer-op-display" style="font-family:'DM Mono';font-size:11px;color:var(--oer);text-align:right">
+            <div style="font-size:9px;color:var(--dim)">当前操作点</div>
+            <div id="oer-op-val">—</div>
+          </div>
+        </div>
+        <canvas id="chart-oer"></canvas>
+        <div style="margin-top:8px;font-family:'DM Mono';font-size:10px;color:var(--dim)">
+          Tafel: η = b·log(j/j₀), slope = <span id="oer-slope-note" style="color:var(--oer)">40</span> mV/dec
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title her-t">② 阴极极化曲线 HER</div>
+            <div class="chart-sub">|η<sub>HER</sub>| vs log(j)</div>
+          </div>
+          <div id="her-op-display" style="font-family:'DM Mono';font-size:11px;color:var(--her);text-align:right">
+            <div style="font-size:9px;color:var(--dim)">当前操作点</div>
+            <div id="her-op-val">—</div>
+          </div>
+        </div>
+        <canvas id="chart-her"></canvas>
+        <div style="margin-top:8px;font-family:'DM Mono';font-size:10px;color:var(--dim)">
+          Tafel: |η| = b·log(j/j₀), slope = <span id="her-slope-note" style="color:var(--her)">30</span> mV/dec
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 3: stacked bar -->
+    <div class="chart-wrap bar-chart">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title bar-t">③ 实际分解电压组成</div>
+          <div class="chart-sub">实时堆叠柱状图 — U = E° + η<sub>OER</sub> + η<sub>HER</sub> + IR</div>
+        </div>
+        <div id="total-display" style="font-family:'DM Mono';font-size:14px;font-weight:700;color:var(--bright)">
+          <span id="total-val">—</span><span style="font-size:11px;color:var(--dim);margin-left:4px">V</span>
+        </div>
+      </div>
+      <canvas id="chart-bar"></canvas>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: OUTPUTS -->
+  <div class="panel" style="display:flex;flex-direction:column">
+    <div class="p-title res-t"><div class="dot"></div>仿真结果</div>
+
+    <div class="out-card card-main">
+      <div class="out-label">实际电压</div>
+      <div class="out-val v-main" id="r-U">— V</div>
+      <div class="out-unit">Volts | 槽电压</div>
+    </div>
+
+    <div class="out-card card-w">
+      <div class="out-label">单位能耗</div>
+      <div class="out-val v-w" id="r-W">— kWh/kg</div>
+      <div class="out-unit">kWh per kg H₂</div>
+    </div>
+
+    <div style="padding:10px 0 8px;font-family:'DM Mono';font-size:9px;letter-spacing:3px;color:var(--dim);border-top:1px solid var(--border);margin-top:4px">
+      电压占比 VOLTAGE FRACTIONS
+    </div>
+
+    <div class="out-card card-oer">
+      <div class="out-label">OER 过电位占比</div>
+      <div class="out-val v-oer" id="r-oer-pct">—%</div>
+      <div class="out-unit" id="r-oer-abs">—</div>
+      <div class="pct-bar"><div class="pct-fill" id="b-oer-pct" style="background:var(--oer);width:0%"></div></div>
+    </div>
+
+    <div class="out-card card-her">
+      <div class="out-label">HER 过电位占比</div>
+      <div class="out-val v-her" id="r-her-pct">—%</div>
+      <div class="out-unit" id="r-her-abs">—</div>
+      <div class="pct-bar"><div class="pct-fill" id="b-her-pct" style="background:var(--her);width:0%"></div></div>
+    </div>
+
+    <div class="out-card card-ir">
+      <div class="out-label">IR 损失占比</div>
+      <div class="out-val v-ir" id="r-ir-pct">—%</div>
+      <div class="out-unit" id="r-ir-abs">—</div>
+      <div class="pct-bar"><div class="pct-fill" id="b-ir-pct" style="background:var(--ir);width:0%"></div></div>
+    </div>
+
+    <div class="verdict" style="flex:1">
+      <div class="verdict-title">工程评价</div>
+      <div id="verdict-badge" class="verdict-badge" style="background:rgba(92,143,217,0.1);color:var(--oer);border:1px solid rgba(92,143,217,0.3)">—</div>
+      <div class="verdict-text" id="verdict-text">正在计算...</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- TASK SECTION -->
+<div style="margin-bottom:8px">
+  <div class="tasks-header">教学探索任务</div>
+  <div class="tasks-row">
+
+    <div class="task-card task1">
+      <div class="task-n">01</div>
+      <div class="task-title">催化剂筛选</div>
+      <div class="task-body">
+        固定参数 <code>j = 100 mA/cm²</code> <code>R = 0.5 Ω</code><br>
+        分别选择 <span class="ptag">NiFe</span> 和 <span class="ptag">IrO₂</span> 作为阳极催化剂，观察极化曲线斜率差异。
+      </div>
+      <div class="task-q">❓ 为什么 NiFe 的 Tafel 斜率更小（曲线更平缓）？这意味着什么工程优势？</div>
+      <button class="task-btn" onclick="applyTask(1)">▶ 加载 NiFe vs IrO₂ 对比参数</button>
+    </div>
+
+    <div class="task-card task2">
+      <div class="task-n">02</div>
+      <div class="task-title">能耗对比</div>
+      <div class="task-body">
+        固定 <code>j = 100 mA/cm²</code>，对比：<br>
+        <span class="ptag">NiFe + Pt</span> 组合 vs <span class="ptag h">IrO₂ + NiMo</span> 组合<br>
+        读取右侧能耗数值，记录差异。
+      </div>
+      <div class="task-q">❓ 哪个催化剂组合能耗更低？OER 还是 HER 对总能耗影响更大？</div>
+      <button class="task-btn" onclick="applyTask(2)">▶ 加载高性能催化剂参数</button>
+    </div>
+
+    <div class="task-card task3">
+      <div class="task-n">03</div>
+      <div class="task-title">工业电流密度</div>
+      <div class="task-body">
+        从 <code>j = 50</code> 缓慢拖至 <span class="ptag s">j = 500 mA/cm²</span><br>
+        观察柱状图：<span class="ptag s">IR 部分</span>如何随电流急剧增长？
+      </div>
+      <div class="task-q">❓ 工业高电流密度下，为什么降低电阻比优化催化剂更重要？</div>
+      <button class="task-btn" onclick="applyTask(3)">▶ 加载工业高电流场景</button>
+    </div>
+
+  </div>
+</div>
+
+</div>
+
+<script>
+// CATALYST PRESETS (数值不变)
+const CATALYSTS = {
+  oer: {
+    nife:   { b: 40,  log_i0: -0.30, name: 'NiFe' },
+    iro2:   { b: 50,  log_i0:  0.70, name: 'IrO₂' },
+    custom: { b: 35,  log_i0: -0.20, name: 'Custom' },
+  },
+  her: {
+    pt:     { b: 30,  log_i0:  0.00, name: 'Pt' },
+    nimo:   { b: 60,  log_i0: -1.00, name: 'NiMo' },
+    custom: { b: 30,  log_i0:  0.00, name: 'Custom' },
+  },
+};
+
+let oerCat = 'nife';
+let herCat = 'pt';
+
+// PHYSICS: Tafel equation
+function tafelEta(j_mA, b_mV, log_i0) {
+  const b = b_mV / 1000;
+  const i0 = Math.pow(10, log_i0);
+  if (j_mA <= 0) return 0;
+  const eta = b * Math.log10(j_mA / i0);
+  return Math.max(0, eta);
+}
+
+function calcAll() {
+  const j   = parseFloat(document.getElementById('sl-j').value);
+  const R   = parseFloat(document.getElementById('sl-R').value);
+  const T   = parseFloat(document.getElementById('sl-T').value);
+  const b_oer   = parseFloat(document.getElementById('b-oer').value);
+  const log_oer = parseFloat(document.getElementById('log-oer').value);
+  const b_her   = parseFloat(document.getElementById('b-her').value);
+  const log_her = parseFloat(document.getElementById('log-her').value);
+
+  const E0 = 1.230 - 8.5e-4 * (T - 298);
+
+  const eta_oer = tafelEta(j, b_oer, log_oer);
+  const eta_her = tafelEta(j, b_her, log_her);
+  const IR      = (j * 1e-3) * R;
+  const U       = E0 + eta_oer + eta_her + IR;
+
+  const F = 96485, M_H2 = 2.016e-3, ne = 2;
+  const W = (U * ne * F) / (M_H2) / 3.6e6;
+
+  return { j, R, T, b_oer, log_oer, b_her, log_her, E0, eta_oer, eta_her, IR, U, W };
+}
+
+// UPDATE UI
+function updateFill(id, min, max, val, fillId) {
+  const pct = (val - min) / (max - min) * 100;
+  document.getElementById(fillId).style.width = pct + '%';
+}
+
+function update() {
+  const sliders = [
+    ['b-oer',  'v-b-oer',  'f-b-oer',  20, 120],
+    ['log-oer','v-log-oer','f-log-oer',-4, 2],
+    ['b-her',  'v-b-her',  'f-b-her',  20, 120],
+    ['log-her','v-log-her','f-log-her',-4, 2],
+    ['sl-j',   'v-j',      'f-j',       1, 500],
+    ['sl-R',   'v-R',      'f-R',       0.05, 2.0],
+    ['sl-T',   'v-T',      'f-T',       273, 363],
+  ];
+  sliders.forEach(([id, vid, fid, mn, mx]) => {
+    const v = parseFloat(document.getElementById(id).value);
+    const el = document.getElementById(vid);
+    if (id === 'sl-R') el.textContent = v.toFixed(2);
+    else if (id === 'log-oer' || id === 'log-her') el.textContent = v.toFixed(2);
+    else el.textContent = v.toFixed(0);
+    updateFill(id, mn, mx, v, fid);
+  });
+
+  document.getElementById('oer-slope-note').textContent = document.getElementById('b-oer').value;
+  document.getElementById('her-slope-note').textContent = document.getElementById('b-her').value;
+
+  const s = calcAll();
+  const { E0, eta_oer, eta_her, IR, U, W } = s;
+
+  document.getElementById('fb-oer').innerHTML   = `η<sub>OER</sub> = ${eta_oer.toFixed(3)} V`;
+  document.getElementById('fb-her').innerHTML   = `η<sub>HER</sub> = ${eta_her.toFixed(3)} V`;
+  document.getElementById('fb-ir').textContent  = `IR = ${IR.toFixed(3)} V`;
+  document.getElementById('fb-total').textContent = U.toFixed(3) + ' V';
+
+  document.getElementById('oer-op-val').textContent = eta_oer.toFixed(3) + ' V';
+  document.getElementById('her-op-val').textContent = eta_her.toFixed(3) + ' V';
+  document.getElementById('total-val').textContent  = U.toFixed(3);
+
+  document.getElementById('r-U').textContent = U.toFixed(3) + ' V';
+  document.getElementById('r-W').textContent = W.toFixed(2) + ' kWh/kg';
+
+  const pOER = (eta_oer / U) * 100;
+  const pHER = (eta_her / U) * 100;
+  const pIR  = (IR / U) * 100;
+
+  document.getElementById('r-oer-pct').textContent = pOER.toFixed(1) + '%';
+  document.getElementById('r-oer-abs').textContent = eta_oer.toFixed(4) + ' V';
+  document.getElementById('r-her-pct').textContent = pHER.toFixed(1) + '%';
+  document.getElementById('r-her-abs').textContent = eta_her.toFixed(4) + ' V';
+  document.getElementById('r-ir-pct').textContent  = pIR.toFixed(1) + '%';
+  document.getElementById('r-ir-abs').textContent  = IR.toFixed(4) + ' V';
+
+  document.getElementById('b-oer-pct').style.width = Math.min(pOER, 100) + '%';
+  document.getElementById('b-her-pct').style.width = Math.min(pHER, 100) + '%';
+  document.getElementById('b-ir-pct').style.width  = Math.min(pIR, 100) + '%';
+
+  genVerdict(pOER, pHER, pIR, U, W);
+
+  drawPolarization('chart-oer', s.j, s.b_oer, s.log_oer, eta_oer, 'oer');
+  drawPolarization('chart-her', s.j, s.b_her, s.log_her, eta_her, 'her');
+  drawBarChart(E0, eta_oer, eta_her, IR);
+}
+
+// VERDICT GENERATOR — 更新所有硬编码rgba为柔和色
+function genVerdict(pOER, pHER, pIR, U, W) {
+  const badge = document.getElementById('verdict-badge');
+  const text  = document.getElementById('verdict-text');
+  let label, color, border, bg, msg;
+
+  const dominant = Math.max(pOER, pHER, pIR);
+
+  if (dominant === pIR && pIR > 35) {
+    label = '⚡ IR 主导';
+    color = 'var(--ir)'; border = 'rgba(229,126,64,0.3)'; bg = 'rgba(229,126,64,0.08)';
+    msg = `IR 损失占总电压 ${pIR.toFixed(1)}%，是当前能耗的主要瓶颈。\n工程建议：优先降低电解质电阻或改善膜电极界面。`;
+  } else if (dominant === pOER && pOER > 30) {
+    label = '🔵 OER 主导';
+    color = 'var(--oer)'; border = 'rgba(92,143,217,0.3)'; bg = 'rgba(92,143,217,0.08)';
+    msg = `阳极 OER 过电位占 ${pOER.toFixed(1)}%，是限制因素。\n建议选用低 Tafel 斜率催化剂（如 NiFe）。`;
+  } else if (dominant === pHER && pHER > 20) {
+    label = '🟢 阴极限制';
+    color = 'var(--her)'; border = 'rgba(48,188,148,0.3)'; bg = 'rgba(48,188,148,0.08)';
+    msg = `HER 过电位占 ${pHER.toFixed(1)}%，建议换用 Pt 或高活性 NiMo。`;
+  } else {
+    label = '✅ 均衡工况';
+    color = 'var(--thermo)'; border = 'rgba(127,106,223,0.3)'; bg = 'rgba(127,106,223,0.08)';
+    msg = `各部分损失分布均匀，热力学效率 = ${((1.23/U)*100).toFixed(1)}%，能耗 ${W.toFixed(2)} kWh/kg。`;
+  }
+
+  if (U > 2.5) {
+    label += ' ⚠ 高压警告';
+    msg += '\n\n⚠ 槽电压超过 2.5V，能耗极高。';
+  }
+
+  badge.textContent = label;
+  badge.style.color = color;
+  badge.style.borderColor = border;
+  badge.style.background = bg;
+  text.textContent = msg;
+}
+
+// CHART HELPERS - 修复版，使用柔和色常量
+function setupCtx(id) {
+  const canvas = document.getElementById(id);
+  const dpr = window.devicePixelRatio || 1;
+
+  let w = canvas.clientWidth;
+  let h = canvas.clientHeight;
+
+  if (w < 50) w = 520;
+  if (h < 50) h = id === 'chart-bar' ? 295 : 255;
+
+  canvas.width  = w * dpr;
+  canvas.height = h * dpr;
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, w, h };
+}
+
+// 柔和色Canvas常量 (与CSS变量匹配)
+const COLORS = { 
+  oer: '#5c8fd9', 
+  her: '#30bc94', 
+  ir: '#e57e40', 
+  thermo: '#7f6adf', 
+  dim: '#c0d8f0', 
+  bg: '#07090f', 
+  grid: 'rgba(92,143,217,0.05)' 
+};
+
+function drawPolarization(canvasId, j_op, b_mV, log_i0, eta_op, type) {
+  const { ctx, w, h } = setupCtx(canvasId);
+  const PL = 52, PR = 14, PT = 14, PB = 32;
+  const pw = w - PL - PR, ph = h - PT - PB;
+  const color = type === 'oer' ? COLORS.oer : COLORS.her;
+  const gridColor = type === 'oer' ? 'rgba(92,143,217,0.06)' : 'rgba(48,188,148,0.06)';
+  const gradStop0 = type === 'oer' ? 'rgba(92,143,217,0.2)' : 'rgba(48,188,148,0.15)';
+
+  ctx.fillStyle = COLORS.bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Grid & Axes
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = PT + (ph/5)*i;
+    ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(PL+pw, y); ctx.stroke();
+  }
+  for (let i = 0; i <= 5; i++) {
+    const x = PL + (pw/5)*i;
+    ctx.beginPath(); ctx.moveTo(x, PT); ctx.lineTo(x, PT+ph); ctx.stroke();
+  }
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(PL, PT); ctx.lineTo(PL, PT+ph); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PL, PT+ph); ctx.lineTo(PL+pw, PT+ph); ctx.stroke();
+
+  const logMin = -1, logMax = Math.log10(500);
+  const i0 = Math.pow(10, log_i0);
+  const b  = b_mV / 1000;
+
+  const etaMax = 0.9;
+
+  function toX(j_val) { 
+    return PL + ((Math.log10(Math.max(j_val, 0.1)) - logMin) / (logMax - logMin)) * pw; 
+  }
+  function toY(eta) { 
+    return PT + ph - (Math.min(eta, etaMax) / etaMax) * ph;
+  }
+
+  // Gradient
+  const grad = ctx.createLinearGradient(0, PT, 0, PT+ph);
+  grad.addColorStop(0, gradStop0);
+  grad.addColorStop(1, 'transparent');
+
+  ctx.beginPath();
+  let first = true;
+  for (let li = logMin; li <= logMax; li += 0.03) {
+    const jj = Math.pow(10, li);
+    const ee = Math.max(0, b * Math.log10(jj / i0));
+    const x = toX(jj), y = toY(ee);
+    first ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    first = false;
+  }
+  ctx.lineTo(toX(500), PT+ph);
+  ctx.lineTo(toX(0.1), PT+ph);
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  ctx.beginPath();
+  first = true;
+  for (let li = logMin; li <= logMax; li += 0.03) {
+    const jj = Math.pow(10, li);
+    const ee = Math.max(0, b * Math.log10(jj / i0));
+    first ? ctx.moveTo(toX(jj), toY(ee)) : ctx.lineTo(toX(jj), toY(ee));
+    first = false;
+  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 10;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // 操作点
+  const ox = toX(j_op), oy = toY(eta_op);
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(ox, PT); ctx.lineTo(ox, PT+ph); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PL, oy); ctx.lineTo(PL+pw, oy); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = color; ctx.shadowBlur = 18;
+  ctx.beginPath(); ctx.arc(ox, oy, 5.5, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = color;
+  ctx.font = 'bold 11px DM Mono, monospace';
+  ctx.fillText(`${eta_op.toFixed(3)}V`, ox + 8, oy - 16);
+
+  // X 轴
+  ctx.fillStyle = COLORS.dim;
+  ctx.font = '12px DM Mono, monospace';
+  [0.1,1,10,100,500].forEach(v=>{ 
+    const x=toX(v); 
+    ctx.fillText(v<1?v.toFixed(1):v, x-8, PT+ph+18); 
+  });
+  ctx.fillText('j (mA/cm²)', PL + pw/2 - 30, PT+ph+29);
+
+  // Y轴刻度 0~0.9V
+  ctx.fillStyle = COLORS.dim;
+  ctx.font = '9px DM Mono, monospace';
+  const yTicks = [0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9];
+  yTicks.forEach(eta => {
+    const y = toY(eta);
+    ctx.fillText(eta.toFixed(2), 20, y + 4);
+  });
+  ctx.save();
+  ctx.translate(12, PT + ph/2 + 18);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillText('η (V)', 0, 0);
+  ctx.restore();
+
+  // Slope 标注
+  const midLi = (logMin + logMax)/2;
+  const midJ  = Math.pow(10, midLi);
+  const x1 = toX(midJ * 0.25), y1 = toY(Math.max(0, b * Math.log10(midJ*0.25/i0)));
+  const x2 = toX(midJ * 4),   y2 = toY(Math.max(0, b * Math.log10(midJ*4/i0)));
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.setLineDash([2,2]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.font = 'bold 12px DM Mono, monospace';
+  ctx.fillText(`${b_mV} mV/dec`, (x1+x2)/2 + 6, (y1+y2)/2 - 16);
+}
+
+function drawBarChart(E0, eta_oer, eta_her, IR) {
+  const { ctx, w, h } = setupCtx('chart-bar');
+  const PL = 60, PR = 100, PT = 20, PB = 36;
+  const pw = w - PL - PR, ph = h - PT - PB;
+
+  ctx.fillStyle = COLORS.bg;
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.strokeStyle = 'rgba(229,126,64,0.06)'; // 柔和IR色网格
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = PT + (ph/5)*i;
+    ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(PL+pw, y); ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(PL, PT); ctx.lineTo(PL, PT+ph); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PL, PT+ph); ctx.lineTo(PL+pw, PT+ph); ctx.stroke();
+
+  const U = E0 + eta_oer + eta_her + IR;
+  const segs = [
+    { label: 'E° (热力学)', val: E0,      color: COLORS.thermo, alpha: 0.85 },
+    { label: 'η_OER',      val: eta_oer,  color: COLORS.oer,    alpha: 0.9  },
+    { label: 'η_HER',      val: eta_her,  color: COLORS.her,    alpha: 0.9  },
+    { label: 'IR 损失',    val: IR,       color: COLORS.ir,     alpha: 0.9  },
+  ];
+
+  const barW = pw * 0.55;
+  const barX = PL + (pw - barW) / 2;
+  const vMax = U * 1.05;
+
+  let yBottom = PT + ph;
+  segs.forEach(s => {
+    const barH = (s.val / vMax) * ph;
+    const y    = yBottom - barH;
+
+    const g = ctx.createLinearGradient(barX, y, barX+barW, y);
+    g.addColorStop(0, s.color + 'cc');
+    g.addColorStop(1, s.color + '88');
+    ctx.fillStyle = g;
+    ctx.fillRect(barX, y, barW, barH - 1);
+
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, y, barW, barH - 1);
+
+    if (barH > 18) {
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${barH > 28 ? 12 : 10}px DM Mono, monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(s.val.toFixed(3) + 'V', barX + barW/2, y + barH/2 + 4);
+    }
+
+    const pct = (s.val / U * 100).toFixed(1);
+    const cy = y + barH / 2;
+    ctx.fillStyle = s.color;
+    ctx.font = '10px DM Mono, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(s.label, barX + barW + 10, cy - 5);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '9px DM Mono, monospace';
+    ctx.fillText(pct + '%', barX + barW + 10, cy + 8);
+
+    yBottom = y;
+  });
+  ctx.textAlign = 'left';
+
+  ctx.fillStyle = COLORS.dim;
+  ctx.font = '9px DM Mono, monospace';
+  for (let i = 0; i <= 5; i++) {
+    const v = vMax * (1 - i/5);
+    const y = PT + (ph/5)*i;
+    ctx.fillText(v.toFixed(2), 20, y+4);
+  }
+  ctx.fillText('U (V)', 4, PT+ph+26);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 12px DM Mono, monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(`Total: ${U.toFixed(3)} V`, barX, PT + ph + 22);
+}
+
+// CATALYST SELECTION
+function selectCat(type, key) {
+  const container = document.getElementById(type + '-cats');
+  container.querySelectorAll('.cat-btn').forEach(b => {
+    b.className = 'cat-btn' + (b.textContent.includes('Custom') ? ' custom-btn' : '');
+  });
+  container.querySelectorAll('.cat-btn').forEach(b => {
+    const names = { nife:'NiFe', iro2:'IrO₂', pt:'Pt', nimo:'NiMo', custom:'Custom' };
+    if (b.textContent.includes(names[key] || key)) {
+      b.className += ` active-${type}`;
+    }
+  });
+
+  if (type === 'oer') oerCat = key;
+  else herCat = key;
+
+  const preset = CATALYSTS[type][key];
+  if (preset && key !== 'custom') {
+    document.getElementById('b-' + type).value    = preset.b;
+    document.getElementById('log-' + type).value  = preset.log_i0;
+  }
+
+  update();
+}
+
+// TASK LOADING
+function applyTask(n) {
+  if (n === 1) {
+    selectCat('oer', 'nife');
+    selectCat('her', 'pt');
+    document.getElementById('sl-j').value = 100;
+    document.getElementById('sl-R').value = 0.5;
+    document.getElementById('sl-T').value = 298;
+  } else if (n === 2) {
+    selectCat('oer', 'iro2');
+    selectCat('her', 'nimo');
+    document.getElementById('sl-j').value = 100;
+    document.getElementById('sl-R').value = 0.5;
+    document.getElementById('sl-T').value = 298;
+  } else if (n === 3) {
+    selectCat('oer', 'nife');
+    selectCat('her', 'pt');
+    document.getElementById('sl-j').value = 400;
+    document.getElementById('sl-R').value = 0.8;
+    document.getElementById('sl-T').value = 333;
+  }
+  update();
+}
+
+// EVENT BINDING
+['b-oer','log-oer','b-her','log-her','sl-j','sl-R','sl-T'].forEach(id => {
+  document.getElementById(id).addEventListener('input', update);
+});
+
+window.addEventListener('load', () => {
+  update();
+  window.addEventListener('resize', () => setTimeout(update, 80));
+});
+</script>
+</body>
+</html>
