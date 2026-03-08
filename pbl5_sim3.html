@@ -1,0 +1,2498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电池能量密度提升探索系统 | BATTERY ENERGY DENSITY LAB</title>
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-primary: #020b18;
+  --bg-secondary: #04111f;
+  --bg-panel: rgba(4, 22, 40, 0.85);
+  --bg-card: rgba(6, 28, 52, 0.7);
+  --cyan: #00e5ff;
+  --cyan-dim: rgba(0, 229, 255, 0.15);
+  --cyan-glow: rgba(0, 229, 255, 0.4);
+  --green: #00ff9d;
+  --green-dim: rgba(0, 255, 157, 0.12);
+  --amber: #ffb800;
+  --red: #ff4757;
+  --purple: #b847ff;
+  --text-primary: #e0f4ff;
+  --text-secondary: #6b9ec7;
+  --text-dim: #3a6080;
+  --border: rgba(0, 229, 255, 0.18);
+  --border-bright: rgba(0, 229, 255, 0.5);
+  --font-mono: 'Courier New', 'Lucida Console', monospace;
+  --font-hud: 'Arial Narrow', 'Arial', sans-serif;
+}
+
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-hud);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(0,80,140,0.25) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 100%, rgba(0,60,100,0.15) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+#app {
+  position: relative; z-index: 1;
+  width: 100%; height: 100vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+/* ===== HEADER ===== */
+#header {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(2, 11, 24, 0.9);
+  backdrop-filter: blur(10px);
+  position: relative;
+}
+#header::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0.5;
+}
+.header-left { display: flex; align-items: center; gap: 16px; }
+.sys-badge {
+  font-size: 10px; letter-spacing: 0.2em; color: var(--cyan);
+  border: 1px solid var(--cyan); padding: 3px 8px;
+  text-transform: uppercase; font-family: var(--font-mono);
+}
+.sys-title { font-size: 13px; letter-spacing: 0.15em; color: var(--text-primary); text-transform: uppercase; }
+.sys-subtitle { font-size: 10px; color: var(--text-secondary); letter-spacing: 0.1em; }
+
+#progress-bar-wrap { flex: 1; max-width: 400px; margin: 0 24px; }
+.prog-label { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; letter-spacing: 0.1em; }
+.prog-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: visible; position: relative; }
+.prog-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--cyan), var(--green)); transition: width 0.6s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 0 8px var(--cyan-glow); }
+.prog-dots { display: flex; justify-content: space-between; margin-top: 6px; }
+.prog-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--text-dim); background: transparent; transition: all 0.4s; }
+.prog-dot.active { border-color: var(--cyan); background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.prog-dot.done { border-color: var(--green); background: var(--green); box-shadow: 0 0 6px var(--green); }
+.prog-dot-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); letter-spacing: 0.05em; margin-top: 3px; }
+
+.header-right { display: flex; gap: 12px; align-items: center; }
+.hud-metric { text-align: center; padding: 4px 10px; border: 1px solid var(--border); background: var(--bg-card); }
+.hud-metric-label { font-size: 9px; color: var(--text-secondary); letter-spacing: 0.1em; }
+.hud-metric-val { font-size: 14px; color: var(--cyan); font-family: var(--font-mono); font-weight: bold; }
+
+/* ===== STAGE TABS ===== */
+#stage-indicator {
+  flex-shrink: 0; display: flex; align-items: center; gap: 0;
+  padding: 0 24px; height: 36px; border-bottom: 1px solid var(--border);
+  background: rgba(2,8,18,0.7);
+}
+.stage-tab {
+  padding: 0 20px; height: 100%; display: flex; align-items: center; gap: 8px;
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-dim); border-right: 1px solid var(--border);
+  cursor: default; transition: all 0.3s; position: relative;
+}
+.stage-tab .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); transition: all 0.3s; }
+.stage-tab.active { color: var(--cyan); }
+.stage-tab.active .dot { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.stage-tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cyan), transparent); }
+.stage-tab.done { color: var(--green); }
+.stage-tab.done .dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.stage-spacer { flex: 1; }
+.stage-mission { font-size: 10px; color: var(--text-secondary); font-family: var(--font-mono); letter-spacing: 0.08em; }
+
+/* ===== CONTENT ===== */
+#content { flex: 1; overflow: hidden; position: relative; }
+.page { position: absolute; inset: 0; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.45s ease; }
+.page.active { opacity: 1; pointer-events: all; }
+
+/* ===== STAGE LAYOUT ===== */
+.stage-layout { flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 12px 16px; overflow: hidden; }
+.stage-layout.two-col { grid-template-columns: 1fr 1fr; }
+
+/* ===== PANELS ===== */
+.panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 2px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--cyan-glow), transparent); }
+.panel-header { padding: 8px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: rgba(0,20,40,0.5); flex-shrink: 0; }
+.panel-title { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--cyan); display: flex; align-items: center; gap: 6px; }
+.panel-title .icon { font-size: 12px; }
+.panel-badge { font-size: 9px; padding: 2px 6px; border: 1px solid; border-radius: 1px; font-family: var(--font-mono); letter-spacing: 0.1em; }
+.panel-badge.live { border-color: var(--green); color: var(--green); animation: pulse-badge 2s infinite; }
+.panel-badge.warn { border-color: var(--amber); color: var(--amber); }
+.panel-badge.alert { border-color: var(--red); color: var(--red); }
+@keyframes pulse-badge { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+.panel-body { flex: 1; padding: 12px 14px; overflow-y: auto; overflow-x: hidden; }
+.panel-body::-webkit-scrollbar { width: 3px; }
+.panel-body::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* ===== SLIDERS ===== */
+.param-row { margin-bottom: 14px; }
+.param-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.param-name { font-size: 11px; color: var(--text-secondary); letter-spacing: 0.05em; }
+.param-val { font-family: var(--font-mono); font-size: 13px; color: var(--cyan); min-width: 60px; text-align: right; }
+.param-range { font-size: 9px; color: var(--text-dim); display: flex; justify-content: space-between; margin-top: 3px; }
+
+input[type=range] { -webkit-appearance: none; width: 100%; height: 20px; background: transparent; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 2px; background: linear-gradient(90deg, var(--cyan) var(--fill, 50%), rgba(255,255,255,0.08) var(--fill, 50%)); border-radius: 1px; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--bg-primary); border: 2px solid var(--cyan); margin-top: -6px; box-shadow: 0 0 6px var(--cyan-glow); transition: box-shadow 0.2s; }
+input[type=range]:hover::-webkit-slider-thumb { box-shadow: 0 0 12px var(--cyan); }
+input[type=range].green-track::-webkit-slider-runnable-track { background: linear-gradient(90deg, var(--green) var(--fill, 50%), rgba(255,255,255,0.08) var(--fill, 50%)); }
+input[type=range].green-track::-webkit-slider-thumb { border-color: var(--green); }
+input[type=range].amber-track::-webkit-slider-runnable-track { background: linear-gradient(90deg, var(--amber) var(--fill, 50%), rgba(255,255,255,0.08) var(--fill, 50%)); }
+input[type=range].amber-track::-webkit-slider-thumb { border-color: var(--amber); }
+
+/* ===== FORMULA BOX ===== */
+.formula-box { background: rgba(0,229,255,0.05); border: 1px solid var(--border); border-left: 3px solid var(--cyan); padding: 10px 14px; margin-bottom: 14px; font-family: var(--font-mono); }
+.formula-title { font-size: 9px; color: var(--text-dim); letter-spacing: 0.1em; margin-bottom: 6px; }
+.formula-eq { font-size: 15px; color: var(--text-primary); text-align: center; padding: 4px 0; }
+.formula-eq sup, .formula-eq sub { font-size: 0.6em; }
+.formula-eq .frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 3px; }
+.formula-eq .frac .num { border-bottom: 1px solid var(--text-primary); padding-bottom: 2px; font-size: 0.85em; }
+.formula-eq .frac .den { padding-top: 2px; font-size: 0.85em; }
+.formula-eq .cyan { color: var(--cyan); }
+.formula-eq .green { color: var(--green); }
+
+/* ===== METRICS ===== */
+.metric-display { background: var(--bg-card); border: 1px solid var(--border); padding: 10px 14px; margin-bottom: 10px; position: relative; }
+.metric-display::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--cyan); }
+.metric-display.green::before { background: var(--green); }
+.metric-display.amber::before { background: var(--amber); }
+.metric-display.red::before { background: var(--red); }
+.metric-label { font-size: 10px; color: var(--text-secondary); letter-spacing: 0.1em; margin-bottom: 4px; }
+.metric-value { font-family: var(--font-mono); font-size: 22px; color: var(--cyan); line-height: 1; }
+.metric-value.green { color: var(--green); }
+.metric-value.amber { color: var(--amber); }
+.metric-value.red { color: var(--red); }
+.metric-unit { font-size: 11px; color: var(--text-secondary); margin-left: 4px; }
+.metric-delta { font-size: 11px; font-family: var(--font-mono); margin-top: 4px; }
+.metric-delta.up { color: var(--green); }
+.metric-delta.down { color: var(--red); }
+
+/* ===== RISK BOXES ===== */
+.risk-box { border: 1px solid; padding: 8px 12px; margin-bottom: 8px; font-size: 11px; display: flex; align-items: flex-start; gap: 8px; transition: all 0.3s; }
+.risk-box .risk-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.risk-box .risk-text { line-height: 1.4; }
+.risk-box .risk-title { font-weight: bold; margin-bottom: 2px; letter-spacing: 0.05em; }
+.risk-box.safe { border-color: var(--green); color: var(--green); background: rgba(0,255,157,0.04); }
+.risk-box.warn { border-color: var(--amber); color: var(--amber); background: rgba(255,184,0,0.05); }
+.risk-box.danger { border-color: var(--red); color: var(--red); background: rgba(255,71,87,0.06); }
+.risk-box.hidden { display: none !important; }
+
+/* ===== BAR TRACKS ===== */
+.bar-track { height: 6px; background: rgba(255,255,255,0.06); border-radius: 1px; overflow: hidden; margin-top: 4px; }
+.bar-fill { height: 100%; border-radius: 1px; transition: width 0.4s ease, background 0.4s; }
+.bar-fill.cyan { background: var(--cyan); box-shadow: 0 0 6px var(--cyan-glow); }
+.bar-fill.green { background: var(--green); box-shadow: 0 0 6px rgba(0,255,157,0.4); }
+.bar-fill.amber { background: var(--amber); }
+.bar-fill.red { background: var(--red); }
+
+/* ===== SECTION TITLES ===== */
+.section-title { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.section-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+
+/* ===== BUTTONS ===== */
+.complete-zone { padding: 10px 14px; border-top: 1px solid var(--border); background: rgba(0,10,20,0.5); flex-shrink: 0; }
+.complete-status { font-size: 10px; color: var(--text-dim); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.complete-status .check { color: var(--green); font-size: 12px; }
+.complete-status .cross { color: var(--red); font-size: 12px; }
+
+.btn-advance { width: 100%; padding: 10px; background: transparent; border: 1px solid var(--text-dim); color: var(--text-dim); font-family: var(--font-hud); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; cursor: not-allowed; transition: all 0.3s; position: relative; overflow: hidden; }
+.btn-advance.ready { border-color: var(--cyan); color: var(--cyan); cursor: pointer; box-shadow: 0 0 12px rgba(0,229,255,0.2), inset 0 0 12px rgba(0,229,255,0.05); }
+.btn-advance.ready::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(0,229,255,0.08), transparent); transform: translateX(-100%); animation: btn-sweep 2s infinite; }
+@keyframes btn-sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+.btn-advance.ready:hover { background: rgba(0,229,255,0.1); box-shadow: 0 0 20px rgba(0,229,255,0.35), inset 0 0 20px rgba(0,229,255,0.08); }
+.btn-advance.green-ready { border-color: var(--green); color: var(--green); cursor: pointer; box-shadow: 0 0 12px rgba(0,255,157,0.2), inset 0 0 12px rgba(0,255,157,0.05); }
+.btn-advance.green-ready::before { background: linear-gradient(90deg, transparent, rgba(0,255,157,0.08), transparent); animation: btn-sweep 2s infinite; }
+.btn-advance.green-ready:hover { background: rgba(0,255,157,0.1); box-shadow: 0 0 20px rgba(0,255,157,0.35); }
+.btn-advance.purple-ready { border-color: var(--purple); color: var(--purple); cursor: pointer; box-shadow: 0 0 12px rgba(184,71,255,0.2); }
+
+canvas { display: block; }
+.hud-label { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 2px; }
+
+/* ===== OBJECTIVES ===== */
+.objective-box { background: rgba(0,229,255,0.05); border: 1px solid var(--border); padding: 8px 12px; margin-bottom: 12px; font-size: 11px; }
+.objective-box .obj-title { font-size: 9px; letter-spacing: 0.15em; color: var(--cyan); margin-bottom: 5px; }
+.obj-item { display: flex; align-items: center; gap: 8px; padding: 3px 0; color: var(--text-secondary); }
+.obj-item .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-dim); flex-shrink: 0; }
+.obj-item.met .dot { background: var(--green); box-shadow: 0 0 4px var(--green); }
+.obj-item.met { color: var(--green); }
+.obj-item.unmet .dot { background: var(--text-dim); }
+
+/* ===== QUIZ PAGE ===== */
+.quiz-layout { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px 16px; overflow: hidden; }
+.quiz-panel { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.quiz-panel::-webkit-scrollbar { width: 3px; }
+.quiz-panel::-webkit-scrollbar-thumb { background: var(--border); }
+
+.q-card { background: var(--bg-panel); border: 1px solid var(--border); padding: 14px; transition: border-color 0.3s; }
+.q-num { font-size: 10px; letter-spacing: 0.15em; color: var(--cyan); margin-bottom: 8px; font-family: var(--font-mono); }
+.q-text { font-size: 12px; line-height: 1.5; color: var(--text-primary); margin-bottom: 12px; }
+.q-options { display: flex; flex-direction: column; gap: 6px; }
+.q-opt { padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border); font-size: 11px; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+.q-opt:hover { border-color: var(--cyan); color: var(--text-primary); background: var(--cyan-dim); }
+.q-opt.selected { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+.q-opt.correct { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+.q-opt.wrong { border-color: var(--red); color: var(--red); background: rgba(255,71,87,0.08); }
+.q-opt .opt-key { width: 18px; height: 18px; border-radius: 50%; border: 1px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; font-family: var(--font-mono); }
+
+.radar-panel { display: flex; flex-direction: column; align-items: center; padding: 16px; }
+.radar-score-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 12px; }
+.radar-score-item { text-align: center; padding: 6px 10px; border: 1px solid var(--border); background: var(--bg-card); min-width: 80px; }
+.rsi-label { font-size: 9px; color: var(--text-secondary); margin-bottom: 3px; }
+.rsi-val { font-family: var(--font-mono); font-size: 14px; color: var(--cyan); }
+
+.submit-quiz-btn { padding: 10px 24px; background: transparent; border: 1px solid var(--purple); color: var(--purple); font-family: var(--font-hud); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; transition: all 0.3s; margin-top: 10px; }
+.submit-quiz-btn:hover { background: rgba(184,71,255,0.1); box-shadow: 0 0 16px rgba(184,71,255,0.3); }
+.submit-quiz-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.overall-score-box { margin-top: 12px; text-align: center; padding: 12px; border: 1px solid var(--border); background: var(--bg-card); }
+.oss-label { font-size: 10px; color: var(--text-secondary); margin-bottom: 6px; }
+.oss-val { font-family: var(--font-mono); font-size: 32px; color: var(--cyan); }
+
+/* ===== CORNER DECORATIONS ===== */
+.corner-tl, .corner-tr, .corner-bl, .corner-br { position: absolute; width: 12px; height: 12px; pointer-events: none; z-index: 10; }
+.corner-tl { top: 0; left: 0; border-top: 1px solid var(--cyan); border-left: 1px solid var(--cyan); }
+.corner-tr { top: 0; right: 0; border-top: 1px solid var(--cyan); border-right: 1px solid var(--cyan); }
+.corner-bl { bottom: 0; left: 0; border-bottom: 1px solid var(--cyan); border-left: 1px solid var(--cyan); }
+.corner-br { bottom: 0; right: 0; border-bottom: 1px solid var(--cyan); border-right: 1px solid var(--cyan); }
+.panel { position: relative; }
+
+/* ===== TICKER ===== */
+.data-ticker { position: absolute; bottom: 0; left: 0; right: 0; height: 22px; background: rgba(0,10,20,0.8); border-top: 1px solid var(--border); overflow: hidden; display: flex; align-items: center; }
+.ticker-inner { display: flex; gap: 40px; animation: ticker-scroll 30s linear infinite; white-space: nowrap; font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; }
+@keyframes ticker-scroll { 0% { transform: translateX(100vw); } 100% { transform: translateX(-200%); } }
+.ticker-item { display: flex; gap: 8px; }
+.ticker-item .tk { color: var(--cyan); }
+.ticker-item .tv { color: var(--text-secondary); }
+
+/* ===== SCAN LINE ===== */
+.scan-line { position: fixed; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cyan-glow), transparent); animation: scan 8s linear infinite; z-index: 9999; pointer-events: none; opacity: 0.3; }
+@keyframes scan { 0% { top: 0; } 100% { top: 100vh; } }
+
+/* ===== STUDENT INFO PAGE ===== */
+#page-0 { background: var(--bg-primary); display: flex; align-items: center; justify-content: center; }
+.student-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  padding: 40px 50px;
+  max-width: 600px; width: 90%;
+  position: relative;
+}
+.student-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cyan), transparent); }
+.student-card-title {
+  text-align: center;
+  font-size: 18px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--cyan); margin-bottom: 8px;
+}
+.student-card-subtitle {
+  text-align: center; font-size: 11px; color: var(--text-secondary);
+  letter-spacing: 0.1em; margin-bottom: 30px;
+}
+.form-group { margin-bottom: 20px; }
+.form-label { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; display: block; }
+.form-input {
+  width: 100%; padding: 10px 14px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-primary); font-size: 14px; font-family: var(--font-hud);
+  outline: none; transition: border-color 0.3s;
+}
+.form-input:focus { border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,229,255,0.15); }
+.form-input::placeholder { color: var(--text-dim); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.start-btn {
+  width: 100%; padding: 14px;
+  background: transparent; border: 1px solid var(--cyan);
+  color: var(--cyan); font-family: var(--font-hud);
+  font-size: 13px; letter-spacing: 0.25em; text-transform: uppercase;
+  cursor: pointer; transition: all 0.3s; margin-top: 10px;
+  position: relative; overflow: hidden;
+}
+.start-btn::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(0,229,255,0.08), transparent); transform: translateX(-100%); animation: btn-sweep 2s infinite; }
+.start-btn:hover { background: rgba(0,229,255,0.1); box-shadow: 0 0 20px rgba(0,229,255,0.3); }
+.start-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.student-info-display {
+  display: flex; gap: 16px; align-items: center;
+  font-size: 11px; color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+.student-info-display span { color: var(--cyan); }
+
+/* ===== PRINT PAGE ===== */
+#page-5 {
+  background: var(--bg-primary);
+}
+.print-layout {
+  flex: 1; display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; padding: 12px 16px; overflow: auto;
+  min-height: 0;
+}
+.print-header-card {
+  background: var(--bg-panel); border: 1px solid var(--border); padding: 5px;
+  position: relative;
+}
+.print-header-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cyan), transparent); }
+.print-student-info { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 5px; }
+.print-info-item { }
+.print-info-label { font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 3px; }
+.print-info-val { font-size: 14px; color: var(--text-primary); font-family: var(--font-mono); }
+.print-scores-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.print-score-cell { text-align: center; padding: 10px 6px; border: 1px solid var(--border); background: var(--bg-card); }
+.psc-label { font-size: 9px; color: var(--text-dim); margin-bottom: 4px; line-height: 1.3; }
+.psc-val { font-family: var(--font-mono); font-size: 18px; color: var(--cyan); }
+.print-radar-wrap { display: flex; justify-content: center; align-items: center; }
+.suggestion-box { background: var(--bg-card); border: 1px solid var(--border); padding: 14px; font-size: 11px; line-height: 1.7; color: var(--text-secondary); }
+.suggestion-box .sug-title { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--cyan); margin-bottom: 10px; }
+.sug-item { padding: 5px 0; display: flex; gap: 8px; }
+.sug-item::before { content: '›'; color: var(--cyan); flex-shrink: 0; }
+.results-summary { background: var(--bg-card); border: 1px solid var(--border); padding: 14px; }
+.results-summary-title { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--green); margin-bottom: 12px; }
+.result-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(0,229,255,0.06); font-size: 11px; }
+.result-row:last-child { border-bottom: none; }
+.result-row .r-label { color: var(--text-secondary); }
+.result-row .r-val { font-family: var(--font-mono); color: var(--cyan); }
+
+.print-actions { display: flex; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--border); background: rgba(0,10,20,0.5); flex-shrink: 0; }
+.print-btn {
+  padding: 10px 24px; background: transparent; border: 1px solid var(--green); color: var(--green);
+  font-family: var(--font-hud); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase;
+  cursor: pointer; transition: all 0.3s;
+}
+.print-btn:hover { background: rgba(0,255,157,0.1); box-shadow: 0 0 16px rgba(0,255,157,0.3); }
+.restart-btn {
+  padding: 10px 24px; background: transparent; border: 1px solid var(--text-dim); color: var(--text-dim);
+  font-family: var(--font-hud); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase;
+  cursor: pointer; transition: all 0.3s;
+}
+.restart-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+.overall-badge {
+  padding: 10px 20px; border: 1px solid var(--purple); background: rgba(184,71,255,0.08);
+  display: flex; align-items: center; gap: 12px;
+}
+.ob-label { font-size: 10px; color: var(--purple); letter-spacing: 0.1em; }
+.ob-val { font-family: var(--font-mono); font-size: 22px; color: var(--purple); }
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  /* ---- Reset layout for print ---- */
+  *, *::before, *::after { box-shadow: none !important; text-shadow: none !important; animation: none !important; transition: none !important; }
+  body { background: white !important; color: #111 !important; overflow: visible !important; height: auto !important; font-family: 'Arial Narrow', Arial, sans-serif !important; }
+  body::before, body::after, .scan-line, #header, #stage-indicator, .print-actions, .data-ticker { display: none !important; }
+
+  /* Make app and content flow normally */
+  #app { height: auto !important; overflow: visible !important; display: block !important; }
+  #content { overflow: visible !important; height: auto !important; position: static !important; display: block !important; }
+
+  /* Hide ALL pages except page-5 */
+  .page { display: none !important; }
+  #page-5 {
+    display: block !important;
+    position: static !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
+    background: white !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Print layout: 2-column grid */
+  .print-layout {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+    padding: 8px !important;
+    background: white !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+  .print-actions { display: none !important; }
+
+  /* Panels become simple boxes */
+  .panel, .print-header-card, .suggestion-box, .results-summary {
+    background: #f7f9fc !important;
+    border: 1px solid #bcd !important;
+    color: #111 !important;
+    break-inside: avoid !important;
+  }
+  .panel::before { display: none !important; }
+  .corner-tl, .corner-tr, .corner-bl, .corner-br { display: none !important; }
+
+  /* Color overrides */
+  .print-info-val, .psc-val, .r-val, .ob-val { color: #005a8c !important; }
+  .panel-title, .print-card-title { color: #003d6b !important; }
+  .print-info-label, .psc-label, .r-label, .rsi-label { color: #555 !important; }
+  .print-score-cell { background: #edf3fa !important; border: 1px solid #bcd !important; }
+  .result-row { border-bottom-color: #dde !important; }
+  .ob-label { color: #6633cc !important; }
+  .overall-badge { background: #f0eaff !important; border-color: #9966cc !important; }
+  #suggestions-content, .sug-item { color: #333 !important; }
+  .sug-item::before { color: #005a8c !important; }
+
+  /* Radar canvas: keep visible, no filter */
+  canvas { display: block !important; max-width: 100% !important; }
+
+  /* Page break control */
+  .print-layout > div { break-inside: avoid !important; }
+  @page { margin: 15mm 12mm; size: A4 portrait; }
+}
+</style>
+</head>
+<body>
+<div class="scan-line"></div>
+<div id="app">
+  <!-- HEADER -->
+  <div id="header">
+    <div class="header-left">
+      <div class="sys-badge">SYS-LAB</div>
+      <div>
+        <div class="sys-title">电池能量密度工程探索系统</div>
+        <div class="sys-subtitle">BATTERY ENERGY DENSITY ENGINEERING SIMULATION v2.1</div>
+      </div>
+    </div>
+    <div id="progress-bar-wrap">
+      <div class="prog-label">
+        <span>MISSION PROGRESS</span>
+        <span id="prog-pct">0%</span>
+      </div>
+      <div class="prog-track">
+        <div class="prog-fill" id="prog-fill" style="width:0%"></div>
+      </div>
+      <div class="prog-dots">
+        <div class="prog-dot active" id="pdot-0" title="Student Info"></div>
+        <div class="prog-dot" id="pdot-1" title="Stage 1"></div>
+        <div class="prog-dot" id="pdot-2" title="Stage 2"></div>
+        <div class="prog-dot" id="pdot-3" title="Stage 3"></div>
+        <div class="prog-dot" id="pdot-q" title="Assessment"></div>
+      </div>
+      <div class="prog-dot-labels">
+        <span>INFO</span><span>S1</span><span>S2</span><span>S3</span><span>EVAL</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div id="student-header-info" class="student-info-display" style="display:none">
+        <span id="sh-name">—</span>
+        <span id="sh-id" style="color:var(--text-dim)">—</span>
+      </div>
+      <div class="hud-metric">
+        <div class="hud-metric-label">STAGE</div>
+        <div class="hud-metric-val" id="hud-stage">00</div>
+      </div>
+      <div class="hud-metric">
+        <div class="hud-metric-label">SCORE</div>
+        <div class="hud-metric-val" id="hud-score">---</div>
+      </div>
+      <div class="hud-metric">
+        <div class="hud-metric-label">STATUS</div>
+        <div class="hud-metric-val" id="hud-status" style="color:var(--amber)">INIT</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAGE TABS -->
+  <div id="stage-indicator">
+    <div class="stage-tab active" id="stab-0">
+      <div class="dot"></div>学生信息登记
+    </div>
+    <div class="stage-tab" id="stab-1">
+      <div class="dot"></div>STAGE 1 — 自由能→电压
+    </div>
+    <div class="stage-tab" id="stab-2">
+      <div class="dot"></div>STAGE 2 — 比容量
+    </div>
+    <div class="stage-tab" id="stab-3">
+      <div class="dot"></div>STAGE 3 — 能量密度
+    </div>
+    <div class="stage-tab" id="stab-q">
+      <div class="dot"></div>评测&成果
+    </div>
+    <div class="stage-spacer"></div>
+    <div class="stage-mission" id="mission-text">请输入学生信息以开始实验</div>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+
+    <!-- PAGE 0: STUDENT INFO -->
+    <div class="page active" id="page-0">
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px">
+        <div class="student-card">
+          <div class="corner-tl"></div><div class="corner-tr"></div>
+          <div class="corner-bl"></div><div class="corner-br"></div>
+          <div class="student-card-title">&#x26A1; 电池能量密度探索系统</div>
+          <div class="student-card-subtitle">BATTERY ENERGY DENSITY ENGINEERING LAB — 学生信息登记</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="input-name">&#x1F393; 学生姓名</label>
+              <input class="form-input" id="input-name" type="text" placeholder="请输入姓名" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="input-id">&#x1F4CB; 学号</label>
+              <input class="form-input" id="input-id" type="text" placeholder="请输入学号" autocomplete="off">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="input-class">&#x1F3EB; 班级</label>
+            <input class="form-input" id="input-class" type="text" placeholder="请输入班级（例如：化工2301）" autocomplete="off">
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border);padding:14px;margin-bottom:20px;font-size:11px;color:var(--text-secondary);line-height:1.7">
+            <div style="color:var(--cyan);font-size:10px;letter-spacing:0.15em;margin-bottom:8px">&#x1F4CB; 实验说明</div>
+            本系统包含 <span style="color:var(--cyan)">3 个探索关卡</span> + <span style="color:var(--purple)">1 个综合评测</span>：<br>
+            &#x25B6; 第一关：调控吉布斯自由能，提升电压 &#x2265;10%<br>
+            &#x25B6; 第二关：优化比容量参数，提升容量 &#x2265;15%<br>
+            &#x25B6; 第三关：系统集成，体积能量密度提升 &#x2265;30%<br>
+            &#x25B6; 评测：作答3道综合题，生成能力雷达图与学习报告
+          </div>
+          <button class="start-btn" id="start-btn" onclick="startExperiment()" disabled>
+            &#x25B6; 开始实验 — START EXPERIMENT
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 1: STAGE 1 -->
+    <div class="page" id="page-1">
+      <div class="stage-layout">
+
+        <!-- LEFT: Controls + Canvas -->
+        <div class="panel">
+          <div class="corner-tl"></div><div class="corner-tr"></div>
+          <div class="corner-bl"></div><div class="corner-br"></div>
+          <div class="panel-header">
+            <div class="panel-title"><span class="icon">&#x26A1;</span>自由能曲线调控</div>
+            <div class="panel-badge live">LIVE</div>
+          </div>
+          <div class="panel-body">
+            <div class="formula-box">
+              <div class="formula-title">NERNST / THERMODYNAMIC EQUATION</div>
+              <div class="formula-eq">
+                <span class="cyan">E</span> = &minus;
+                <span class="frac">
+                  <span class="num">&Delta;G</span>
+                  <span class="den">nF</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="section-title">参数调控面板</div>
+
+            <div class="param-row">
+              <div class="param-label">
+                <span class="param-name">&Delta;G 基准值（反应驱动力）</span>
+                <span class="param-val" id="s1-dg-val">-240 kJ</span>
+              </div>
+              <input type="range" id="s1-dg" min="-320" max="-160" value="-240" step="2">
+              <div class="param-range"><span>-320 kJ（强驱动）</span><span>-160 kJ（弱驱动）</span></div>
+            </div>
+
+            <div class="param-row">
+              <div class="param-label">
+                <span class="param-name">熵项系数（TΔS 极化损失）</span>
+                <span class="param-val" id="s1-ent-val">0.50</span>
+              </div>
+              <input type="range" class="green-track" id="s1-ent" min="0.1" max="1.0" value="0.5" step="0.01">
+              <div class="param-range"><span>0.10（低损耗）</span><span>1.00（高损耗）</span></div>
+            </div>
+
+            <div class="param-row">
+              <div class="param-label">
+                <span class="param-name">结构稳定性指数</span>
+                <span class="param-val" id="s1-stab-val">0.80</span>
+              </div>
+              <input type="range" class="amber-track" id="s1-stab" min="0.3" max="1.0" value="0.8" step="0.01">
+              <div class="param-range"><span>0.30（不稳定）</span><span>1.00（高稳定）</span></div>
+            </div>
+
+            <div class="section-title" style="margin-top:8px">自由能曲线 (Gibbs Energy Landscape)</div>
+            <canvas id="canvas-s1" width="320" height="160" style="width:100%;height:auto"></canvas>
+          </div>
+        </div>
+
+        <!-- MIDDLE: Voltage Metrics -->
+        <div class="panel">
+          <div class="corner-tl"></div><div class="corner-tr"></div>
+          <div class="corner-bl"></div><div class="corner-br"></div>
+          <div class="panel-header">
+            <div class="panel-title"><span class="icon">&#x1F4CA;</span>电压输出分析</div>
+            <div class="panel-badge live">REAL-TIME</div>
+          </div>
+          <div class="panel-body">
+            <div class="section-title">理论电压</div>
+            <div class="metric-display">
+              <div class="metric-label">IDEAL VOLTAGE (理论电压)</div>
+              <div><span class="metric-value" id="s1-e-ideal">3.72</span><span class="metric-unit">V</span></div>
+              <div class="metric-delta" id="s1-e-ideal-delta" style="color:var(--text-secondary)">基准值</div>
+            </div>
+
+            <div class="section-title" style="margin-top:12px">实际电压（含极化损失）</div>
+            <div class="metric-display green">
+              <div class="metric-label">ACTUAL VOLTAGE (实际电压)</div>
+              <div><span class="metric-value green" id="s1-e-actual">3.46</span><span class="metric-unit">V</span></div>
+              <div class="metric-delta" id="s1-e-actual-delta" style="color:var(--text-secondary)">vs 基准 0.00 V</div>
+            </div>
+
+            <div class="section-title" style="margin-top:12px">提升幅度追踪</div>
+            <div class="hud-label">电压提升率（需 ≥ 10%）</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+              <div class="bar-track" style="flex:1">
+                <div class="bar-fill cyan" id="s1-volt-bar" style="width:0%"></div>
+              </div>
+              <span id="s1-volt-pct" style="font-family:var(--font-mono);font-size:12px;color:var(--cyan);min-width:45px">0.0%</span>
+            </div>
+
+            <div style="margin-top:12px">
+              <div class="hud-label">极化系数（来自熵项）</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+                <div class="bar-track" style="flex:1">
+                  <div class="bar-fill amber" id="s1-polar-bar" style="width:50%"></div>
+                </div>
+                <span id="s1-polar-val" style="font-family:var(--font-mono);font-size:12px;color:var(--amber);min-width:45px">0.50</span>
+              </div>
+            </div>
+
+            <div style="margin-top:14px">
+              <div class="hud-label">n = 2 电子转移数（固定）</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:3px">F = 96485 C/mol | 摩尔常数固定</div>
+            </div>
+
+            <div class="objective-box" style="margin-top:12px">
+              <div class="obj-title">&#x1F3AF; STAGE 1 目标</div>
+              <div class="obj-item unmet" id="s1-obj1">
+                <div class="dot"></div>实际电压提升 &ge; 10%
+              </div>
+              <div class="obj-item unmet" id="s1-obj2">
+                <div class="dot"></div>综合风险指数 &lt; 65%
+              </div>
+            </div>
+          </div>
+          <div class="complete-zone">
+            <div class="complete-status" id="s1-complete-status">
+              <span class="cross">&#x2717;</span> 条件未满足 &mdash; 请调节左侧参数
+            </div>
+            <button class="btn-advance" id="s1-btn" onclick="advanceStage(2)" disabled>
+              &#x2714; 第一阶段完成 &rarr; 进入第二关
+            </button>
+          </div>
+        </div>
+
+        <!-- RIGHT: Risk Panel -->
+        <div class="panel">
+          <div class="corner-tl"></div><div class="corner-tr"></div>
+          <div class="corner-bl"></div><div class="corner-br"></div>
+          <div class="panel-header">
+            <div class="panel-title"><span class="icon">&#x26A0;</span>结构风险监控</div>
+            <div class="panel-badge" id="s1-risk-badge" style="border-color:var(--green);color:var(--green)">SAFE</div>
+          </div>
+          <div class="panel-body">
+            <div class="risk-box safe" id="s1-risk-safe">
+              <div class="risk-icon">&#x2713;</div>
+              <div class="risk-text">
+                <div class="risk-title">结构稳定性正常</div>
+                当前参数组合在安全工程窗口内，材料晶格稳定。
+              </div>
+            </div>
+            <div class="risk-box warn hidden" id="s1-risk-warn">
+              <div class="risk-icon">&#x26A0;</div>
+              <div class="risk-text">
+                <div class="risk-title">结构稳定性风险上升</div>
+                &Delta;G 过高将导致过渡态不稳定，循环性能可能下降。
+              </div>
+            </div>
+            <div class="risk-box danger hidden" id="s1-risk-danger">
+              <div class="risk-icon">&#x26D4;</div>
+              <div class="risk-text">
+                <div class="risk-title">高风险区警告</div>
+                当前&Delta;G已进入高风险区，晶体结构坍塌概率显著提升！请降低驱动力或提高结构稳定性指数。
+              </div>
+            </div>
+
+            <div class="section-title" style="margin-top:14px">风险维度</div>
+
+            <div style="margin-bottom:12px">
+              <div class="hud-label">结构稳定性指数</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                <div class="bar-track" style="flex:1">
+                  <div class="bar-fill green" id="s1-stab-bar" style="width:80%"></div>
+                </div>
+                <span id="s1-stab-disp" style="font-family:var(--font-mono);font-size:12px;color:var(--green)">80%</span>
+              </div>
+            </div>
+
+            <div style="margin-bottom:12px">
+              <div class="hud-label">&Delta;G 风险等级</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                <div class="bar-track" style="flex:1">
+                  <div class="bar-fill cyan" id="s1-dg-risk-bar" style="width:40%"></div>
+                </div>
+                <span id="s1-dg-risk-val" style="font-family:var(--font-mono);font-size:12px;color:var(--cyan)">LOW</span>
+              </div>
+            </div>
+
+            <div style="margin-bottom:12px">
+              <div class="hud-label">综合风险指数（需 &lt; 65%）</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                <div class="bar-track" style="flex:1">
+                  <div class="bar-fill" id="s1-combo-risk-bar" style="width:20%;background:var(--green)"></div>
+                </div>
+                <span id="s1-combo-risk-val" style="font-family:var(--font-mono);font-size:12px;color:var(--green)">20%</span>
+              </div>
+            </div>
+
+            <div class="section-title" style="margin-top:6px">工程策略提示</div>
+            <div style="font-size:11px;color:var(--text-secondary);line-height:1.7;background:var(--bg-card);padding:10px;border:1px solid var(--border)">
+              &#x1F4A1; 增大 |&Delta;G| 可提升理论电压，但加剧结构相变风险。<br>
+              &#x1F4A1; 增大熵项系数会加大极化损失，降低实际输出电压。<br>
+              &#x1F4A1; 最优策略：<span style="color:var(--cyan)">增大|&Delta;G| + 保持高稳定指数 + 降低熵项</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="data-ticker">
+        <div class="ticker-inner">
+          <div class="ticker-item"><span class="tk">E-IDEAL</span><span class="tv" id="tk1-1">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">E-ACTUAL</span><span class="tv" id="tk1-2">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">DELTA-G</span><span class="tv" id="tk1-3">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">ENTROPY</span><span class="tv" id="tk1-4">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">STABILITY</span><span class="tv" id="tk1-5">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">RISK-INDEX</span><span class="tv" id="tk1-6">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">NERNST-n</span><span class="tv">2e&#8315;</span></div>
+          <div class="ticker-item"><span class="tk">FARADAY</span><span class="tv">96485 C/mol</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 2: STAGE 2 -->
+    <div class="page" id="page-2">
+      <div class="stage-layout">
+
+        <!-- LEFT: Controls -->
+        <div class="panel">
+          <div class="corner-tl"></div><div class="corner-tr"></div>
+          <div class="corner-bl"></div><div class="corner-br"></div>
+          <div class="panel-header">
+            <div class="panel-title"><span class="icon">&#x2697;</span>比容量参数调控</div>
+            <div class="panel-badge live">LIVE</div>
+          </div>
+          <div class="panel-body">
+            <div class="formula-box">
+              <div class="formula-title">SPECIFIC CAPACITY EQUATION</div>
+              <div class="formula-eq">
+                <span class="green">Q</span> =
+                <span class="frac">
+                  <span class="num">nF</span>
+                  <span class="den">3.6 &times; M</span>
+                </span>
+                <span style="font-size:11px;color:var(--text-dim)"> &times; &eta; (mAh/g)</span>
+              </div>
+            </div>
+
+            <div class="section-title">可调参数</div>
+
+            <div class="param-row">
+              <div class="param-label">
+                <span class="param-name">可嵌锂数 n（每分子）</span>
+                <span class="param-val" id="s2-n-val">1.0</span>
+              </div>
+              <input type="range" id="s2-n" min="0.5" max="3.0" value="1.0" step="0.1">
+              <div class="param-range"><span>0.5 mol/mol</span><span>3.0 mol/mol</span></div>
+            </div>
+
+            <div class="param-row">
+              <div class="param-label">
+                <span class="param-name">摩尔质量 M</span>
+                <span class="param-val" id="s2-m-val">180 g/mol</span>
+              </div>
+              <input type="range" class="green-track" id="s2-m" min="80" max="280" value="180" step="2">
+              <div class="param-range"><span>80 g/mol（轻）</span><span>280 g/mol（重）</span></div>
+            </div>
+
+            <div class="param-row">
+              <div class="param-label">
+                <span class="param-name">利用率系数 &eta;</span>
+                <span class="param-val" id="s2-eta-val">0.85</span>
+              </div>
+              <input type="range" class="amber-track" id="s2-eta" min="0.5" max="0.98" value="0.85" step="0.01">
+              <div class="param-range"><span>0.50（低利用）</span><span>0.98（高利用）</span></div>
+            </div>
+
+            <div class="section-title" style="margin-top:8px">结构稳定性约束</div>
+            <div style="margin-bottom:10px">
+              <div class="hud-label">结构稳定性（随 n 增加而下降）</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                <div class="bar-track" style="flex:1">
+                  <div class="bar-fill green" id="s2-struct-bar" style="width:85%"></div>
+                </div>
+                <span id="s2-struct-val" style="font-family:var(--font-mono);font-size:12px;color:var(--green)">85%</span>
+              </div>
+            </div>
+            <div>
+              <div class="hud-label">循环寿命指数（随 n 增加而下降）</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                <div class="bar-track" style="flex:1">
+                  <div class="bar-fill cyan" id="s2-cycle-bar" style="width:80%"></div>
+                </div>
+                <span id="s2-cycle-val" style="font-family:var(--font-mono);font-size:12px;color:var(--cyan)">80%</span>
+              </div>
+            </div>
+
+            <div style="margin-top:12px;font-size:11px;color:var(--text-secondary);line-height:1.6;background:var(--bg-card);border:1px solid var(--border);padding:10px">
+              &#x1F4CC; <span style="color:var(--cyan)">降低 M</span> 可提升 Q（同分子量中更多活性位点）<br>
+              &#x1F4CC; <span style="color:var(--green)">提高 &eta;</span> 提高利用率，但受微结构限制<br>
+              &#x1F4CC; n 增加导致结构膨胀收缩循环损伤
+            </div>
+          </div>
+        </div>
+
+        <!-- MIDDLE: Capacity + Trend Chart -->
+        <div class="panel">
+          <div class="corner-tl"></div><div class="corner-tr"></div>
+          <div class="corner-bl"></div><div class="corner-br"></div>
+          <div class="panel-header">
+            <div class="panel-title"><span class="icon">&#x1F4C8;</span>容量输出分析</div>
+            <div class="panel-badge live">COMPUTING</div>
+          </div>
+          <div class="panel-body">
+            <div class="section-title">理论容量</div>
+            <div class="metric-display">
+              <div class="metric-label">THEORETICAL CAPACITY (理论容量)</div>
+              <div><span class="metric-value" id="s2-q-theory">148.1</span><span class="metric-unit">mAh/g</span></div>
+            </div>
+
+            <div class="section-title" style="margin-top:10px">实际容量</div>
+            <div class="metric-display green">
+              <div class="metric-label">ACTUAL CAPACITY (实际容量)</div>
+              <div><span class="metric-value green" id="s2-q-actual">125.9</span><span class="metric-unit">mAh/g</span></div>
+              <div class="metric-delta" id="s2-q-delta" style="color:var(--text-secondary)">vs 基准 0.0%</div>
+            </div>
+
+            <div class="section-title" style="margin-top:10px">容量趋势图（n 的影响）</div>
+            <canvas id="canvas-s2" width="310" height="150" style="width:100%;height:auto"></canvas>
+
+            <div class="objective-box" style="margin-top:10px">
+              <div class="obj-title">&#x1F3AF; STAGE 2 目标</div>
+              <div class="obj-item unmet" id="s2-obj1">
+                <div class="dot"></div>容量提升 &ge; 15%
+              </div>
+              <div class="obj-item unmet" id="s2-obj2">
+                <div class="dot"></div>结构稳定性指数 &ge; 60%
+              </div>
+            </div>
+          </div>
+          <div class="complete-zone">
+            <div class="complete-status" id="s2-complete-status">
+              <span class="cross">&#x2717;</span> 条件未满足 &mdash; 请调节左侧参数
+            </div>
+            <button class="btn-advance" id="s2-btn" onclick="advanceStage(3)" disabled>
+              &#x2714; 第二阶段完成 &rarr; 进入第三关
+            </button>
+          </div>
+        </div>
+
+        <!-- RIGHT: Energy Density Impact -->
+        <div class="panel">
+          <div class="corner-tl"></div><div class="corner-tr"></div>
+          <div class="corner-bl"></div><div class="corner-br"></div>
+          <div class="panel-header">
+            <div class="panel-title"><span class="icon">&#x1F50B;</span>质量比能量密度影响</div>
+            <div class="panel-badge live">ANALYTICS</div>
+          </div>
+          <div class="panel-body">
+            <div class="section-title">质量比能量密度估算</div>
+            <div class="metric-display">
+              <div class="metric-label">Eg = E &times; Q（质量比能量密度）</div>
+              <div><span class="metric-value" id="s2-eg">435.2</span><span class="metric-unit">Wh/kg</span></div>
+              <div class="metric-delta" id="s2-eg-delta" style="color:var(--text-secondary)">vs 基准</div>
+            </div>
+
+            <div class="section-title" style="margin-top:12px">n 对能量密度的权衡</div>
+            <div style="font-size:11px;color:var(--text-secondary);line-height:1.6;background:var(--bg-card);border:1px solid var(--border);padding:10px;margin-bottom:12px">
+              <table style="width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:10px">
+                <tr style="color:var(--cyan);border-bottom:1px solid var(--border)">
+                  <td style="padding:3px">n值</td>
+                  <td style="padding:3px">Q理论</td>
+                  <td style="padding:3px">稳定性</td>
+                  <td style="padding:3px">评估</td>
+                </tr>
+                <tr><td style="padding:3px;color:var(--text-dim)">0.5</td><td style="padding:3px">74</td><td style="padding:3px;color:var(--green)">98%</td><td style="padding:3px;color:var(--green)">保守</td></tr>
+                <tr><td style="padding:3px;color:var(--text-dim)">1.0</td><td style="padding:3px">148</td><td style="padding:3px;color:var(--green)">85%</td><td style="padding:3px;color:var(--cyan)">平衡</td></tr>
+                <tr><td style="padding:3px;color:var(--text-dim)">2.0</td><td style="padding:3px">296</td><td style="padding:3px;color:var(--amber)">62%</td><td style="padding:3px;color:var(--amber)">激进</td></tr>
+                <tr><td style="padding:3px;color:var(--text-dim)">3.0</td><td style="padding:3px">444</td><td style="padding:3px;color:var(--red)">35%</td><td style="padding:3px;color:var(--red)">危险</td></tr>
+              </table>
+            </div>
+
+            <div class="section-title">风险约束提示</div>
+            <div class="risk-box warn hidden" id="s2-warn-n">
+              <div class="risk-icon">&#x26A0;</div>
+              <div class="risk-text">
+                <div class="risk-title">高 n 值风险</div>
+                过多 Li 嵌入造成晶格应变积累，导致容量快速衰减
+              </div>
+            </div>
+            <div class="risk-box safe" id="s2-safe-n">
+              <div class="risk-icon">&#x2713;</div>
+              <div class="risk-text">
+                <div class="risk-title">参数在安全范围</div>
+                当前 n 值对结构破坏在可接受范围内
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="data-ticker">
+        <div class="ticker-inner">
+          <div class="ticker-item"><span class="tk">Q-THEORY</span><span class="tv" id="tk2-1">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">Q-ACTUAL</span><span class="tv" id="tk2-2">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">n-Li</span><span class="tv" id="tk2-3">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">M-MOL</span><span class="tv" id="tk2-4">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">UTIL</span><span class="tv" id="tk2-5">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">STABILITY</span><span class="tv" id="tk2-6">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">Eg</span><span class="tv" id="tk2-7">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">F=96485 C/mol | 3.6=1hr/1000s</span><span class="tv"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 3: STAGE 3 -->
+    <div class="page" id="page-3">
+      <div class="stage-layout">
+
+        <!-- LEFT -->
+        <div class="panel">
+          <div class="corner-tl"></div><div class="corner-tr"></div>
+          <div class="corner-bl"></div><div class="corner-br"></div>
+          <div class="panel-header">
+            <div class="panel-title"><span class="icon">&#x1F3D7;</span>系统级工程参数</div>
+            <div class="panel-badge live">LIVE</div>
+          </div>
+          <div class="panel-body">
+            <div class="formula-box">
+              <div class="formula-title">SYSTEM ENERGY DENSITY EQUATIONS</div>
+              <div class="formula-eq" style="font-size:12px">
+                <span class="cyan">E<sub>g</sub></span> = E &times; Q &times; (1 &minus; f<sub>inactive</sub>)
+              </div>
+              <div style="height:4px"></div>
+              <div class="formula-eq" style="font-size:12px">
+                <span class="green">E<sub>v</sub></span> = E<sub>g</sub> &times; &rho;<sub>tap</sub>
+              </div>
+            </div>
+
+            <div class="section-title">参数调控</div>
+
+            <div class="param-row">
+              <div class="param-label">
+                <span class="param-name">填实密度 &rho;_tap (g/cm&sup3;)</span>
+                <span class="param-val" id="s3-rho-val">1.80 g/cm&sup3;</span>
+              </div>
+              <input type="range" id="s3-rho" min="0.8" max="3.2" value="1.8" step="0.05">
+              <div class="param-range"><span>0.80（疏松）</span><span>3.20（致密）</span></div>
+            </div>
+
+            <div class="param-row">
+              <div class="param-label">
+                <span class="param-name">非活性物质比例 f_inactive</span>
+                <span class="param-val" id="s3-fi-val">20.0%</span>
+              </div>
+              <input type="range" class="green-track" id="s3-fi" min="5" max="45" value="20" step="1">
+              <div class="param-range"><span>5%（最少）</span><span>45%（最多）</span></div>
+            </div>
+
+            <div class="section-title" style="margin-top:6px">工程约束</div>
+            <div style="margin-bottom:10px">
+              <div class="hud-label">扩散限制（&rho;_tap 越高越严）</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                <div class="bar-track" style="flex:1">
+                  <div class="bar-fill amber" id="s3-diff-bar" style="width:35%"></div>
+                </div>
+                <span id="s3-diff-val" style="font-family:var(--font-mono);font-size:12px;color:var(--amber)">35%</span>
+              </div>
+            </div>
+            <div style="margin-bottom:10px">
+              <div class="hud-label">机械强度（f 越低越弱）</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                <div class="bar-track" style="flex:1">
+                  <div class="bar-fill cyan" id="s3-mech-bar" style="width:70%"></div>
+                </div>
+                <span id="s3-mech-val" style="font-family:var(--font-mono);font-size:12px;color:var(--cyan)">70%</span>
+              </div>
+            </div>
+
+            <div style="font-size:11px;color:var(--text-secondary);line-height:1.6;background:var(--bg-card);border:1px solid var(--border);padding:10px">
+              &#x1F4A1; <span style="color:var(--cyan)">&rho;_tap&uarr;</span> → 体积能量密度&uarr; 但扩散受阻<br>
+              &#x1F4A1; <span style="color:var(--green)">f_inactive&darr;</span> → Eg&uarr; 但机械强度&darr;<br>
+              &#x1F4A1; 安全 + 能量密度 = 工程博弈
+            </div>
+          </div>
+        </div>
+
+        <!-- MIDDLE: Energy Density Metrics -->
+        <div class="panel">
+          <div class="corner-tl"></div><div class="corner-tr"></div>
+          <div class="corner-bl"></div><div class="corner-br"></div>
+          <div class="panel-header">
+            <div class="panel-title"><span class="icon">&#x26A1;</span>能量密度实时计算</div>
+            <div class="panel-badge live">COMPUTING</div>
+          </div>
+          <div class="panel-body">
+            <div class="section-title">质量比能量密度</div>
+            <div class="metric-display">
+              <div class="metric-label">GRAVIMETRIC ENERGY DENSITY — Eg</div>
+              <div><span class="metric-value" id="s3-eg">&mdash;</span><span class="metric-unit">Wh/kg</span></div>
+              <div class="metric-delta" id="s3-eg-delta" style="color:var(--text-secondary)">来自前两关参数</div>
+            </div>
+
+            <div class="section-title" style="margin-top:10px">体积比能量密度</div>
+            <div class="metric-display green">
+              <div class="metric-label">VOLUMETRIC ENERGY DENSITY — Ev</div>
+              <div><span class="metric-value green" id="s3-ev">&mdash;</span><span class="metric-unit">Wh/L</span></div>
+              <div class="metric-delta" id="s3-ev-delta" style="color:var(--text-secondary)">vs 基准 0.0%</div>
+            </div>
+
+            <div class="section-title" style="margin-top:10px">与目标对比（+30%）</div>
+            <div class="hud-label">体积能量密度提升率（需达到 +30%）</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+              <div class="bar-track" style="flex:1">
+                <div class="bar-fill" id="s3-ev-bar" style="width:0%;background:var(--green)"></div>
+              </div>
+              <span id="s3-ev-pct" style="font-family:var(--font-mono);font-size:12px;color:var(--green);min-width:50px">0.0%</span>
+            </div>
+            <div style="font-size:9px;color:var(--text-dim);margin-top:3px">目标线: +30.0%</div>
+
+            <div class="objective-box" style="margin-top:12px">
+              <div class="obj-title">&#x1F3AF; STAGE 3 目标</div>
+              <div class="obj-item unmet" id="s3-obj1">
+                <div class="dot"></div>体积能量密度提升 &ge; 30%
+              </div>
+              <div class="obj-item unmet" id="s3-obj2">
+                <div class="dot"></div>安全指数 &ge; 70%
+              </div>
+            </div>
+          </div>
+          <div class="complete-zone">
+            <div class="complete-status" id="s3-complete-status">
+              <span class="cross">&#x2717;</span> 条件未满足 &mdash; 请调节左侧参数
+            </div>
+            <button class="btn-advance purple-ready" id="s3-btn" onclick="advanceStage(4)" disabled>
+              &#x2714; 第三阶段完成 &rarr; 进入综合评测
+            </button>
+          </div>
+        </div>
+
+        <!-- RIGHT: Safety & Cost -->
+        <div class="panel">
+          <div class="corner-tl"></div><div class="corner-tr"></div>
+          <div class="corner-bl"></div><div class="corner-br"></div>
+          <div class="panel-header">
+            <div class="panel-title"><span class="icon">&#x1F6E1;</span>安全 &middot; 成本综合评估</div>
+            <div class="panel-badge" id="s3-safety-badge" style="border-color:var(--green);color:var(--green)">SAFE</div>
+          </div>
+          <div class="panel-body">
+            <div class="section-title">安全指数（需 &ge; 70%）</div>
+            <div class="metric-display" id="s3-safety-box">
+              <div class="metric-label">SAFETY INDEX（安全指数）</div>
+              <div><span class="metric-value" id="s3-safety">85</span><span class="metric-unit">%</span></div>
+              <div class="metric-delta up" id="s3-safety-level">EXCELLENT</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;margin-bottom:14px">
+              <div class="bar-track" style="flex:1">
+                <div class="bar-fill green" id="s3-safety-bar" style="width:85%"></div>
+              </div>
+            </div>
+
+            <div class="section-title">成本指数（相对）</div>
+            <div class="metric-display amber">
+              <div class="metric-label">COST INDEX（成本指数）</div>
+              <div><span class="metric-value amber" id="s3-cost">62</span><span class="metric-unit">%</span></div>
+              <div class="metric-delta" id="s3-cost-level" style="color:var(--amber)">MODERATE</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;margin-bottom:14px">
+              <div class="bar-track" style="flex:1">
+                <div class="bar-fill amber" id="s3-cost-bar" style="width:62%"></div>
+              </div>
+            </div>
+
+            <div class="risk-box danger hidden" id="s3-risk-danger">
+              <div class="risk-icon">&#x26D4;</div>
+              <div class="risk-text">
+                <div class="risk-title">安全风险过高</div>
+                高填实密度 + 低非活性比例 &rarr; 热失控风险&uarr;
+              </div>
+            </div>
+            <div class="risk-box warn hidden" id="s3-risk-warn">
+              <div class="risk-icon">&#x26A0;</div>
+              <div class="risk-text">
+                <div class="risk-title">安全余量较低</div>
+                建议提高非活性比例或降低填实密度
+              </div>
+            </div>
+            <div class="risk-box safe" id="s3-risk-safe">
+              <div class="risk-icon">&#x2713;</div>
+              <div class="risk-text">
+                <div class="risk-title">系统安全</div>
+                当前参数组合满足工程安全要求
+              </div>
+            </div>
+
+            <div class="section-title" style="margin-top:10px">综合性能雷达（预览）</div>
+            <canvas id="canvas-s3" width="260" height="140" style="width:100%;height:auto"></canvas>
+          </div>
+        </div>
+
+      </div>
+      <div class="data-ticker">
+        <div class="ticker-inner">
+          <div class="ticker-item"><span class="tk">rho-TAP</span><span class="tv" id="tk3-1">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">f-INACTIVE</span><span class="tv" id="tk3-2">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">Eg</span><span class="tv" id="tk3-3">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">Ev</span><span class="tv" id="tk3-4">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">SAFETY</span><span class="tv" id="tk3-5">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">COST</span><span class="tv" id="tk3-6">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">DIFFUSION-LIMIT</span><span class="tv" id="tk3-7">&mdash;</span></div>
+          <div class="ticker-item"><span class="tk">Ev=Eg x rho_tap | System Integration Active</span><span class="tv"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 4: ASSESSMENT -->
+    <div class="page" id="page-4">
+      <div class="quiz-layout">
+        <div class="quiz-panel">
+          <div style="font-size:11px;letter-spacing:0.15em;color:var(--purple);text-transform:uppercase;margin-bottom:6px">
+            &#x1F393; 综合评测模块 &mdash; POST-ASSESSMENT
+          </div>
+
+          <!-- Q1 -->
+          <div class="q-card">
+            <div class="q-num">QUESTION 01 / 03 &mdash; 热力学理解</div>
+            <div class="q-text">提高电池电压的本质来源是什么？</div>
+            <div class="q-options">
+              <div class="q-opt" id="q1-a" onclick="selectAnswer(1,'a')"><div class="opt-key">A</div>增加电极材料的质量</div>
+              <div class="q-opt" id="q1-b" onclick="selectAnswer(1,'b')"><div class="opt-key">B</div>增大反应的吉布斯自由能变化 |&Delta;G|（增加反应驱动力）</div>
+              <div class="q-opt" id="q1-c" onclick="selectAnswer(1,'c')"><div class="opt-key">C</div>提高电解液浓度</div>
+              <div class="q-opt" id="q1-d" onclick="selectAnswer(1,'d')"><div class="opt-key">D</div>增大电池尺寸</div>
+            </div>
+          </div>
+
+          <!-- Q2 -->
+          <div class="q-card">
+            <div class="q-num">QUESTION 02 / 03 &mdash; 电化学建模</div>
+            <div class="q-text">比容量提升受到哪些主要因素限制？（选出最全面的答案）</div>
+            <div class="q-options">
+              <div class="q-opt" id="q2-a" onclick="selectAnswer(2,'a')"><div class="opt-key">A</div>仅受制于温度条件</div>
+              <div class="q-opt" id="q2-b" onclick="selectAnswer(2,'b')"><div class="opt-key">B</div>可嵌入锂离子数 n 越大，容量越高，但结构稳定性和循环寿命下降</div>
+              <div class="q-opt" id="q2-c" onclick="selectAnswer(2,'c')"><div class="opt-key">C</div>只受摩尔质量 M 影响，与其他无关</div>
+              <div class="q-opt" id="q2-d" onclick="selectAnswer(2,'d')"><div class="opt-key">D</div>受外部环境湿度影响最大</div>
+            </div>
+          </div>
+
+          <!-- Q3 -->
+          <div class="q-card">
+            <div class="q-num">QUESTION 03 / 03 &mdash; 系统工程</div>
+            <div class="q-text">为什么体积能量密度不等于质量能量密度？</div>
+            <div class="q-options">
+              <div class="q-opt" id="q3-a" onclick="selectAnswer(3,'a')"><div class="opt-key">A</div>两者相同，只是单位不同</div>
+              <div class="q-opt" id="q3-b" onclick="selectAnswer(3,'b')"><div class="opt-key">B</div>体积能量密度 Ev = Eg &times; &rho;_tap，取决于材料填实密度，同等质量性能的材料若密度不同，体积性能差异显著</div>
+              <div class="q-opt" id="q3-c" onclick="selectAnswer(3,'c')"><div class="opt-key">C</div>仅因为测量方法不同导致误差</div>
+              <div class="q-opt" id="q3-d" onclick="selectAnswer(3,'d')"><div class="opt-key">D</div>体积能量密度不考虑化学反应因素</div>
+            </div>
+          </div>
+
+          <button class="submit-quiz-btn" id="quiz-submit" onclick="submitQuiz()" disabled>
+            &#x25B6; 提交评测 &mdash; SUBMIT ASSESSMENT
+          </button>
+
+          <div id="quiz-done-btn" style="display:none;margin-top:8px">
+            <button class="btn-advance purple-ready" onclick="goToReport()" style="width:100%">
+              &#x1F4CA; 查看成果报告 &amp; 打印 &rarr;
+            </button>
+          </div>
+        </div>
+
+        <!-- RADAR PANEL -->
+        <div class="radar-panel panel">
+          <div class="corner-tl"></div><div class="corner-tr"></div>
+          <div class="corner-bl"></div><div class="corner-br"></div>
+          <div style="width:100%;padding:14px 14px 0">
+            <div class="panel-title" style="margin-bottom:8px"><span class="icon">&#x1F578;</span>能力评估雷达图</div>
+            <div style="font-size:10px;color:var(--text-dim);margin-bottom:12px">基于参数探索行为 + 答题综合评估</div>
+          </div>
+          <canvas id="canvas-radar" width="400" height="300"></canvas>
+
+          <div class="radar-score-row" id="radar-scores">
+            <div class="radar-score-item"><div class="rsi-label">热力学理解</div><div class="rsi-val" id="rs-1">&mdash;</div></div>
+            <div class="radar-score-item"><div class="rsi-label">电化学建模</div><div class="rsi-val" id="rs-2">&mdash;</div></div>
+            <div class="radar-score-item"><div class="rsi-label">系统工程</div><div class="rsi-val" id="rs-3">&mdash;</div></div>
+            <div class="radar-score-item"><div class="rsi-label">风险控制</div><div class="rsi-val" id="rs-4">&mdash;</div></div>
+            <div class="radar-score-item"><div class="rsi-label">产业决策</div><div class="rsi-val" id="rs-5">&mdash;</div></div>
+          </div>
+
+          <div class="overall-score-box" style="width:100%;margin-top:12px">
+            <div class="oss-label">综合评分 OVERALL SCORE</div>
+            <div class="oss-val" id="overall-score">等待评测</div>
+          </div>
+          <div id="score-comment" style="font-size:11px;color:var(--text-secondary);text-align:center;margin-top:8px;padding:0 14px;line-height:1.5;display:none"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 5: PRINT REPORT -->
+    <div class="page" id="page-5">
+      <div class="print-layout">
+        <!-- LEFT COLUMN -->
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <!-- Student info + overall score -->
+          <div class="print-header-card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+              <div>
+                <div style="font-size:16px;letter-spacing:0.2em;color:var(--cyan);margin-bottom:4px">&#x26A1; 实验成果报告</div>
+                <div style="font-size:10px;color:var(--text-dim);letter-spacing:0.1em">BATTERY ENERGY DENSITY LAB — STUDENT REPORT</div>
+              </div>
+              <div class="overall-badge">
+                <div>
+                  <div class="ob-label">综合评分</div>
+                  <div class="ob-val" id="pr-overall">—</div>
+                </div>
+              </div>
+            </div>
+            <div class="print-student-info">
+              <div class="print-info-item"><div class="print-info-label">学生姓名</div><div class="print-info-val" id="pr-name">—</div></div>
+              <div class="print-info-item"><div class="print-info-label">学号</div><div class="print-info-val" id="pr-id">—</div></div>
+              <div class="print-info-item"><div class="print-info-label">班级</div><div class="print-info-val" id="pr-class">—</div></div>
+              <div class="print-info-item"><div class="print-info-label">实验日期</div><div class="print-info-val" id="pr-date">—</div></div>
+            </div>
+          </div>
+
+          <!-- Scores grid -->
+          <div class="panel" style="padding:14px">
+            <div class="panel-header" style="margin:-14px -14px 12px">
+              <div class="panel-title">&#x1F3AF; 各维度能力评分</div>
+            </div>
+            <div class="print-scores-grid">
+              <div class="print-score-cell"><div class="psc-label">热力学理解</div><div class="psc-val" id="pr-s1">—</div></div>
+              <div class="print-score-cell"><div class="psc-label">电化学建模</div><div class="psc-val" id="pr-s2">—</div></div>
+              <div class="print-score-cell"><div class="psc-label">系统工程思维</div><div class="psc-val" id="pr-s3">—</div></div>
+              <div class="print-score-cell"><div class="psc-label">风险控制意识</div><div class="psc-val" id="pr-s4">—</div></div>
+              <div class="print-score-cell"><div class="psc-label">产业决策能力</div><div class="psc-val" id="pr-s5">—</div></div>
+            </div>
+          </div>
+
+          <!-- Experiment results summary -->
+          <div class="results-summary panel" style="padding:14px">
+            <div class="panel-header" style="margin:-14px -14px 12px">
+              <div class="panel-title">&#x1F4CB; 实验参数成果</div>
+            </div>
+            <div class="result-row"><span class="r-label">最终实际电压</span><span class="r-val" id="pr-volt">—</span></div>
+            <div class="result-row"><span class="r-label">电压提升率</span><span class="r-val" id="pr-volt-pct">—</span></div>
+            <div class="result-row"><span class="r-label">实际比容量</span><span class="r-val" id="pr-cap">—</span></div>
+            <div class="result-row"><span class="r-label">容量提升率</span><span class="r-val" id="pr-cap-pct">—</span></div>
+            <div class="result-row"><span class="r-label">质量能量密度 Eg</span><span class="r-val" id="pr-eg">—</span></div>
+            <div class="result-row"><span class="r-label">体积能量密度 Ev</span><span class="r-val" id="pr-ev">—</span></div>
+            <div class="result-row"><span class="r-label">体积能量密度提升率</span><span class="r-val" id="pr-ev-pct">—</span></div>
+            <div class="result-row"><span class="r-label">最终安全指数</span><span class="r-val" id="pr-safety">—</span></div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <!-- Radar chart -->
+          <div class="panel" style="padding:14px;align-items:center">
+            <div class="panel-header" style="margin:-14px -14px 12px;width:calc(100% + 28px)">
+              <div class="panel-title">&#x1F578; 能力雷达图</div>
+            </div>
+            <canvas id="canvas-radar-print" width="400" height="300" style="max-width:100%"></canvas>
+          </div>
+
+          <!-- Learning suggestions -->
+          <div class="suggestion-box panel" style="padding:14px">
+            <div class="panel-header" style="margin:-14px -14px 12px">
+              <div class="panel-title">&#x1F4DA; 个性化学习建议</div>
+            </div>
+            <div id="suggestions-content" style="font-size:11px;color:var(--text-secondary);line-height:1.7;margin-top:4px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="print-actions">
+        <button class="print-btn" onclick="fillReportData(); setTimeout(()=>window.print(),100)">&#x1F5A8; 打印报告 — PRINT REPORT</button>
+        <button class="restart-btn" onclick="restartSim()">&#x21BA; 重新实验 — RESTART</button>
+        <button class="restart-btn" onclick="advanceStage(4)" style="border-color:var(--purple);color:var(--purple)">&#x25C0; 返回评测</button>
+      </div>
+    </div>
+
+  </div><!-- end #content -->
+</div><!-- end #app -->
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const STATE = {
+  currentStage: 0,
+  student: { name: '', id: '', cls: '' },
+  s1: { dg: -240, entropy: 0.5, stability: 0.8 },
+  s2: { n: 1.0, M: 180, eta: 0.85 },
+  s3: { rho: 1.8, fi: 20 },
+  quiz: { answers: {}, correct: { 1:'b', 2:'b', 3:'b' } },
+  behavior: {
+    s1Adjustments: 0, s1FoundOptimal: false, riskExplored: false,
+    s2Adjustments: 0, s2FoundBalance: false, s2LowStab: false,
+    s3Adjustments: 0, s3HighRho: false, s3LowFi: false
+  },
+  scores: { thermo: 0, electro: 0, system: 0, risk: 0, industry: 0 }
+};
+
+const BASE = {
+  E_ideal_base: null, E_actual_base: null,
+  Q_theory_base: null, Q_actual_base: null,
+  Eg_base: null, Ev_base_val: null
+};
+
+const F = 96485;
+let quizSubmitted = false;
+
+// ============================================================
+// STUDENT INFO
+// ============================================================
+function checkStartReady() {
+  const name = document.getElementById('input-name').value.trim();
+  const id = document.getElementById('input-id').value.trim();
+  const cls = document.getElementById('input-class').value.trim();
+  document.getElementById('start-btn').disabled = !(name && id && cls);
+}
+
+['input-name','input-id','input-class'].forEach(id => {
+  document.getElementById(id).addEventListener('input', checkStartReady);
+  document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') { document.getElementById('start-btn').click(); } });
+});
+
+function startExperiment() {
+  const name = document.getElementById('input-name').value.trim();
+  const id = document.getElementById('input-id').value.trim();
+  const cls = document.getElementById('input-class').value.trim();
+  if (!name || !id || !cls) return;
+
+  STATE.student = { name, id, cls };
+
+  // Show in header
+  document.getElementById('sh-name').textContent = name;
+  document.getElementById('sh-id').textContent = id;
+  document.getElementById('student-header-info').style.display = 'flex';
+
+  advanceStage(1);
+}
+
+// ============================================================
+// SLIDER FILL UTIL
+// ============================================================
+function updateSliderFill(id, min, max, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const pct = ((val - min) / (max - min)) * 100;
+  el.style.setProperty('--fill', pct + '%');
+}
+
+function updateObjective(id, met) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'obj-item ' + (met ? 'met' : 'unmet');
+}
+
+// ============================================================
+// STAGE 1 LOGIC
+// ============================================================
+function initS1() {
+  const dg = parseFloat(document.getElementById('s1-dg').value);
+  const ent = parseFloat(document.getElementById('s1-ent').value);
+  const stab = parseFloat(document.getElementById('s1-stab').value);
+  STATE.s1 = { dg, entropy: ent, stability: stab };
+
+  const n = 2;
+  const E_ideal = Math.abs(dg * 1000) / (n * F);
+  const E_actual = E_ideal * (1 - 0.25 * ent);
+
+  STATE.s1.E_ideal = E_ideal;
+  STATE.s1.E_actual = E_actual;
+
+  if (!BASE.E_ideal_base) { BASE.E_ideal_base = E_ideal; BASE.E_actual_base = E_actual; }
+
+  document.getElementById('s1-dg-val').textContent = dg.toFixed(0) + ' kJ';
+  document.getElementById('s1-ent-val').textContent = ent.toFixed(2);
+  document.getElementById('s1-stab-val').textContent = stab.toFixed(2);
+  document.getElementById('s1-e-ideal').textContent = E_ideal.toFixed(3);
+  document.getElementById('s1-e-actual').textContent = E_actual.toFixed(3);
+
+  const voltPct = ((E_actual - BASE.E_actual_base) / BASE.E_actual_base) * 100;
+  const vpEl = document.getElementById('s1-volt-pct');
+  vpEl.textContent = voltPct.toFixed(1) + '%';
+  vpEl.style.color = voltPct >= 10 ? 'var(--green)' : 'var(--cyan)';
+
+  const voltBarPct = Math.max(0, Math.min(100, (voltPct / 20) * 100));
+  const vBar = document.getElementById('s1-volt-bar');
+  vBar.style.width = voltBarPct + '%';
+  vBar.style.background = voltPct >= 10 ? 'var(--green)' : 'var(--cyan)';
+
+  document.getElementById('s1-polar-bar').style.width = (ent * 100) + '%';
+  document.getElementById('s1-polar-val').textContent = ent.toFixed(2);
+
+  const deltaE = E_actual - BASE.E_actual_base;
+  const deltaEl = document.getElementById('s1-e-actual-delta');
+  if (deltaEl) {
+    if (deltaE > 0.001) { deltaEl.textContent = '▲ +' + deltaE.toFixed(3) + ' V vs 基准'; deltaEl.className = 'metric-delta up'; }
+    else if (deltaE < -0.001) { deltaEl.textContent = '▼ ' + deltaE.toFixed(3) + ' V vs 基准'; deltaEl.className = 'metric-delta down'; }
+    else { deltaEl.textContent = '— 基准值'; deltaEl.className = 'metric-delta'; deltaEl.style.color = 'var(--text-secondary)'; }
+  }
+
+  document.getElementById('s1-stab-bar').style.width = (stab * 100) + '%';
+  document.getElementById('s1-stab-disp').textContent = (stab * 100).toFixed(0) + '%';
+
+  const dgRisk = (Math.abs(dg) - 160) / 160;
+  const dgRiskBar = document.getElementById('s1-dg-risk-bar');
+  dgRiskBar.style.width = (dgRisk * 100) + '%';
+  dgRiskBar.style.background = dgRisk > 0.7 ? 'var(--red)' : dgRisk > 0.4 ? 'var(--amber)' : 'var(--cyan)';
+  document.getElementById('s1-dg-risk-val').textContent = dgRisk > 0.7 ? 'HIGH' : dgRisk > 0.4 ? 'MED' : 'LOW';
+
+  const comboRisk = (dgRisk * 0.6 + (1 - stab) * 0.4) * 100;
+  const crBar = document.getElementById('s1-combo-risk-bar');
+  crBar.style.width = Math.min(100, comboRisk) + '%';
+  crBar.style.background = comboRisk > 65 ? 'var(--red)' : comboRisk > 40 ? 'var(--amber)' : 'var(--green)';
+  const crVal = document.getElementById('s1-combo-risk-val');
+  crVal.textContent = comboRisk.toFixed(0) + '%';
+  crVal.style.color = comboRisk > 65 ? 'var(--red)' : comboRisk > 40 ? 'var(--amber)' : 'var(--green)';
+
+  const stabRisk = stab < 0.5;
+  const dgHighRisk = Math.abs(dg) > 280;
+  const dgMedRisk = Math.abs(dg) > 240;
+
+  setRiskBox('s1-risk-safe', !stabRisk && !dgHighRisk && !dgMedRisk);
+  setRiskBox('s1-risk-warn', dgMedRisk && !dgHighRisk && !stabRisk);
+  setRiskBox('s1-risk-danger', dgHighRisk || stabRisk);
+
+  const badge = document.getElementById('s1-risk-badge');
+  if (dgHighRisk || stabRisk) { badge.textContent = 'DANGER'; badge.style.borderColor = 'var(--red)'; badge.style.color = 'var(--red)'; }
+  else if (dgMedRisk) { badge.textContent = 'WARN'; badge.style.borderColor = 'var(--amber)'; badge.style.color = 'var(--amber)'; }
+  else { badge.textContent = 'SAFE'; badge.style.borderColor = 'var(--green)'; badge.style.color = 'var(--green)'; }
+
+  STATE.behavior.s1Adjustments++;
+  if (dgHighRisk || stabRisk) STATE.behavior.riskExplored = true;
+
+  const obj1Met = voltPct >= 10;
+  const obj2Met = comboRisk < 65;
+  updateObjective('s1-obj1', obj1Met);
+  updateObjective('s1-obj2', obj2Met);
+
+  const btn = document.getElementById('s1-btn');
+  const status = document.getElementById('s1-complete-status');
+  if (obj1Met && obj2Met) {
+    btn.disabled = false; btn.className = 'btn-advance ready';
+    status.innerHTML = '<span class="check">&#x2714;</span> 目标达成！点击进入第二关';
+    STATE.behavior.s1FoundOptimal = true;
+  } else {
+    btn.disabled = true; btn.className = 'btn-advance';
+    const missing = [];
+    if (!obj1Met) missing.push('电压提升<10%');
+    if (!obj2Met) missing.push('风险过高');
+    status.innerHTML = '<span class="cross">&#x2717;</span> 未满足: ' + missing.join('，');
+  }
+
+  const tk = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+  tk('tk1-1', E_ideal.toFixed(3)+'V');
+  tk('tk1-2', E_actual.toFixed(3)+'V');
+  tk('tk1-3', dg+'kJ');
+  tk('tk1-4', ent.toFixed(2));
+  tk('tk1-5', (stab*100).toFixed(0)+'%');
+  tk('tk1-6', comboRisk.toFixed(0)+'%');
+
+  drawS1Canvas(dg, ent, stab, E_ideal, E_actual);
+  updateSliderFill('s1-dg', -320, -160, dg);
+  updateSliderFill('s1-ent', 0.1, 1.0, ent);
+  updateSliderFill('s1-stab', 0.3, 1.0, stab);
+}
+
+function setRiskBox(id, show) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (show) el.classList.remove('hidden');
+  else el.classList.add('hidden');
+}
+
+// ============================================================
+// CANVAS S1
+// ============================================================
+function drawS1Canvas(dg, ent, stab, eIdeal, eActual) {
+  const canvas = document.getElementById('canvas-s1');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(0,10,25,0.8)'; ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = 'rgba(0,229,255,0.06)'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 8; i++) {
+    ctx.beginPath(); ctx.moveTo(i*W/8, 0); ctx.lineTo(i*W/8, H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i*H/8); ctx.lineTo(W, i*H/8); ctx.stroke();
+  }
+
+  const PAD = { l:30, r:10, t:15, b:30 };
+  const gW = W - PAD.l - PAD.r, gH = H - PAD.t - PAD.b;
+  ctx.strokeStyle = 'rgba(0,229,255,0.3)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD.l, PAD.t); ctx.lineTo(PAD.l, PAD.t+gH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PAD.l, PAD.t+gH*0.5); ctx.lineTo(PAD.l+gW, PAD.t+gH*0.5); ctx.stroke();
+
+  ctx.fillStyle = 'rgba(0,229,255,0.4)'; ctx.font = '9px Courier New';
+  ctx.fillText('G', 2, PAD.t+5);
+  ctx.fillText('Rxn', W-25, PAD.t+gH*0.5+12);
+
+  const normDg = (Math.abs(dg) - 160) / 160;
+  const wellDepth = 0.3 + normDg * 0.45;
+  const asymmetry = 0.15 + normDg * 0.25;
+  const pts = 200;
+  ctx.beginPath();
+  for (let i = 0; i <= pts; i++) {
+    const x01 = i / pts;
+    const x = x01 * 2 - 1;
+    let y = (x*x - 1)*(x*x - 1) * 0.8;
+    y += asymmetry * x;
+    y += ent * 0.1 * Math.sin(x * Math.PI * 3);
+    const cx2 = PAD.l + x01 * gW;
+    const cy = PAD.t + gH*0.1 + y * gH * 0.55;
+    if (i === 0) ctx.moveTo(cx2, cy); else ctx.lineTo(cx2, cy);
+  }
+  ctx.strokeStyle = eIdeal > (BASE.E_ideal_base||3.72) * 1.05 ? '#00ff9d' : '#00e5ff';
+  ctx.lineWidth = 2; ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 6; ctx.stroke(); ctx.shadowBlur = 0;
+
+  const reactX = PAD.l + gW * 0.15, prodX = PAD.l + gW * 0.85;
+  const reactY = PAD.t + gH * 0.35, prodY = PAD.t + gH * 0.35 + wellDepth * gH * 0.4;
+  ctx.fillStyle = '#00e5ff'; ctx.beginPath(); ctx.arc(reactX, reactY, 4, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#00ff9d'; ctx.beginPath(); ctx.arc(prodX, prodY, 4, 0, Math.PI*2); ctx.fill();
+
+  ctx.strokeStyle = 'rgba(255,184,0,0.7)'; ctx.lineWidth = 1.5; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(prodX+8, reactY); ctx.lineTo(prodX+8, prodY); ctx.stroke();
+  ctx.setLineDash([]); ctx.fillStyle = '#ffb800'; ctx.font = '8px Courier New';
+  ctx.fillText('dG='+dg.toFixed(0), prodX-16, (reactY+prodY)/2);
+
+  ctx.fillStyle = 'rgba(0,229,255,0.5)'; ctx.font = '9px Courier New';
+  ctx.fillText('E='+eActual.toFixed(2)+'V', PAD.l+2, H-5);
+}
+
+// ============================================================
+// STAGE 2 LOGIC
+// ============================================================
+function initS2() {
+  const n = parseFloat(document.getElementById('s2-n').value);
+  const M = parseFloat(document.getElementById('s2-m').value);
+  const eta = parseFloat(document.getElementById('s2-eta').value);
+  STATE.s2 = { n, M, eta };
+
+  const Q_theory = (n * F) / (3.6 * M);
+  const Q_actual = Q_theory * eta;
+
+  if (!BASE.Q_theory_base) { BASE.Q_theory_base = (1 * F) / (3.6 * 180); BASE.Q_actual_base = BASE.Q_theory_base * 0.85; }
+
+  const qPct = ((Q_actual - BASE.Q_actual_base) / BASE.Q_actual_base) * 100;
+  const structStab = Math.max(0, 100 - (n - 0.5) * 35);
+  const cycleLife = Math.max(0, 100 - (n - 0.5) * 25);
+
+  document.getElementById('s2-n-val').textContent = n.toFixed(1);
+  document.getElementById('s2-m-val').textContent = M.toFixed(0) + ' g/mol';
+  document.getElementById('s2-eta-val').textContent = eta.toFixed(2);
+  document.getElementById('s2-q-theory').textContent = Q_theory.toFixed(1);
+  document.getElementById('s2-q-actual').textContent = Q_actual.toFixed(1);
+
+  const deltaEl = document.getElementById('s2-q-delta');
+  if (qPct > 0.1) { deltaEl.textContent = '▲ +' + qPct.toFixed(1) + '% vs 基准'; deltaEl.className = 'metric-delta up'; }
+  else if (qPct < -0.1) { deltaEl.textContent = '▼ ' + qPct.toFixed(1) + '% vs 基准'; deltaEl.className = 'metric-delta down'; }
+  else { deltaEl.textContent = '— 基准值'; deltaEl.style.color = 'var(--text-secondary)'; }
+
+  const ssBar = document.getElementById('s2-struct-bar');
+  ssBar.style.width = structStab + '%';
+  ssBar.style.background = structStab > 70 ? 'var(--green)' : structStab > 50 ? 'var(--amber)' : 'var(--red)';
+  document.getElementById('s2-struct-val').textContent = structStab.toFixed(0) + '%';
+  document.getElementById('s2-struct-val').style.color = structStab > 70 ? 'var(--green)' : structStab > 50 ? 'var(--amber)' : 'var(--red)';
+
+  document.getElementById('s2-cycle-bar').style.width = cycleLife + '%';
+  document.getElementById('s2-cycle-val').textContent = cycleLife.toFixed(0) + '%';
+
+  const eVolt = STATE.s1.E_actual || BASE.E_actual_base || 3.46;
+  const Eg = eVolt * Q_actual;
+  document.getElementById('s2-eg').textContent = Eg.toFixed(1);
+
+  if (!BASE.Eg_base) BASE.Eg_base = (BASE.E_actual_base || 3.46) * (BASE.Q_actual_base || 125.9);
+  const egPct = ((Eg - BASE.Eg_base) / BASE.Eg_base) * 100;
+  const egDelta = document.getElementById('s2-eg-delta');
+  if (egPct > 0.1) { egDelta.textContent = '▲ +' + egPct.toFixed(1) + '% vs 基准'; egDelta.className = 'metric-delta up'; }
+  else { egDelta.textContent = egPct.toFixed(1) + '% vs 基准'; egDelta.style.color = 'var(--text-secondary)'; }
+
+  if (n > 2.0) {
+    setRiskBox('s2-warn-n', true); setRiskBox('s2-safe-n', false);
+    STATE.behavior.s2LowStab = true;
+  } else {
+    setRiskBox('s2-warn-n', false); setRiskBox('s2-safe-n', true);
+  }
+
+  const obj1Met = qPct >= 15;
+  const obj2Met = structStab >= 60;
+  updateObjective('s2-obj1', obj1Met);
+  updateObjective('s2-obj2', obj2Met);
+
+  const btn = document.getElementById('s2-btn');
+  const status = document.getElementById('s2-complete-status');
+  if (obj1Met && obj2Met) {
+    btn.disabled = false; btn.className = 'btn-advance green-ready';
+    status.innerHTML = '<span class="check">&#x2714;</span> 目标达成！点击进入第三关';
+    STATE.behavior.s2FoundBalance = true;
+  } else {
+    btn.disabled = true; btn.className = 'btn-advance';
+    const missing = [];
+    if (!obj1Met) missing.push('容量提升<15%');
+    if (!obj2Met) missing.push('稳定性<60%');
+    status.innerHTML = '<span class="cross">&#x2717;</span> 未满足: ' + missing.join('，');
+  }
+
+  const tk = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+  tk('tk2-1', Q_theory.toFixed(1)+'mAh/g');
+  tk('tk2-2', Q_actual.toFixed(1)+'mAh/g');
+  tk('tk2-3', n.toFixed(1));
+  tk('tk2-4', M.toFixed(0)+'g/mol');
+  tk('tk2-5', eta.toFixed(2));
+  tk('tk2-6', structStab.toFixed(0)+'%');
+  tk('tk2-7', Eg.toFixed(0)+'Wh/kg');
+
+  STATE.behavior.s2Adjustments++;
+  updateSliderFill('s2-n', 0.5, 3.0, n);
+  updateSliderFill('s2-m', 80, 280, M);
+  updateSliderFill('s2-eta', 0.5, 0.98, eta);
+  drawS2Canvas(n, M, eta, Q_theory, Q_actual);
+}
+
+function drawS2Canvas(n, M, eta, Qth, Qact) {
+  const canvas = document.getElementById('canvas-s2');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(0,10,25,0.8)'; ctx.fillRect(0, 0, W, H);
+
+  const PAD = { l:38, r:12, t:12, b:28 };
+  const gW = W - PAD.l - PAD.r, gH = H - PAD.t - PAD.b;
+  ctx.strokeStyle = 'rgba(0,229,255,0.06)'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = PAD.t + i * gH / 5;
+    ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(PAD.l+gW, y); ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(0,229,255,0.3)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD.l, PAD.t); ctx.lineTo(PAD.l, PAD.t+gH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PAD.l, PAD.t+gH); ctx.lineTo(PAD.l+gW, PAD.t+gH); ctx.stroke();
+
+  const nMin = 0.5, nMax = 3.0;
+  const QMax = (nMax * F) / (3.6 * M) * 1.1;
+  function toC(nv, qv) {
+    return { x: PAD.l + (nv-nMin)/(nMax-nMin)*gW, y: PAD.t + (1-qv/QMax)*gH };
+  }
+
+  ctx.beginPath();
+  for (let i = 0; i <= 50; i++) {
+    const nv = nMin + i/50*(nMax-nMin);
+    const q = (nv*F)/(3.6*M);
+    const p = toC(nv, q);
+    if (i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
+  }
+  ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 1.5; ctx.shadowColor='#00e5ff'; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+
+  ctx.beginPath();
+  for (let i = 0; i <= 50; i++) {
+    const nv = nMin + i/50*(nMax-nMin);
+    const stab = Math.max(0.05, 1-(nv-0.5)*0.35);
+    const etaAdj = eta * Math.min(1, stab+0.1);
+    const q = (nv*F)/(3.6*M)*etaAdj;
+    const p = toC(nv, q);
+    if (i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
+  }
+  ctx.strokeStyle = '#00ff9d'; ctx.lineWidth = 1.5; ctx.setLineDash([5,3]); ctx.shadowColor='#00ff9d'; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0; ctx.setLineDash([]);
+
+  const curP = toC(n, Qact);
+  ctx.fillStyle = '#00ff9d'; ctx.beginPath(); ctx.arc(curP.x, curP.y, 5, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,255,157,0.5)'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(curP.x, curP.y, 9, 0, Math.PI*2); ctx.stroke();
+
+  ctx.fillStyle = 'rgba(0,229,255,0.5)'; ctx.font='9px Courier New';
+  ctx.fillText('Q(mAh/g)', 0, PAD.t+8);
+  ctx.fillText('n ->', PAD.l+gW-20, H-2);
+  ctx.fillStyle = 'rgba(0,255,157,0.7)';
+  ctx.fillText('n='+n.toFixed(1)+' Q='+Qact.toFixed(0), Math.min(curP.x+6, W-80), Math.max(curP.y-4, 16));
+}
+
+// ============================================================
+// STAGE 3 LOGIC
+// ============================================================
+function initS3() {
+  const rho = parseFloat(document.getElementById('s3-rho').value);
+  const fi = parseFloat(document.getElementById('s3-fi').value) / 100;
+  STATE.s3 = { rho, fi };
+
+  const E_v = STATE.s1.E_actual || BASE.E_actual_base || 3.46;
+  const Q_a = (STATE.s2.n * F) / (3.6 * STATE.s2.M) * STATE.s2.eta;
+  const Eg = E_v * Q_a * (1 - fi);
+  const Ev = Eg * rho;
+
+  if (!BASE.Ev_base_val) {
+    const baseQ = BASE.Q_actual_base || 125.9;
+    const baseE = BASE.E_actual_base || 3.46;
+    BASE.Ev_base_val = baseE * baseQ * 0.8 * 1.8;
+  }
+
+  const evPct = ((Ev - BASE.Ev_base_val) / BASE.Ev_base_val) * 100;
+  const diffLimit = Math.min(100, ((rho - 0.8) / 2.4) * 100);
+  const mechStrength = Math.min(100, 30 + fi * 100);
+  const safetyBase = 90;
+  const rhoPenalty = Math.max(0, (rho - 2.2) * 20);
+  const fiBonus = fi * 40;
+  const safety = Math.min(100, Math.max(0, safetyBase - rhoPenalty + fiBonus - diffLimit * 0.2));
+  const cost = Math.min(100, 40 + (rho / 3.2) * 35 + (1 - fi) * 25);
+
+  document.getElementById('s3-rho-val').textContent = rho.toFixed(2) + ' g/cm\u00B3';
+  document.getElementById('s3-fi-val').textContent = (fi * 100).toFixed(1) + '%';
+  document.getElementById('s3-eg').textContent = Eg.toFixed(1);
+  document.getElementById('s3-ev').textContent = Ev.toFixed(1);
+
+  const evPctEl = document.getElementById('s3-ev-pct');
+  evPctEl.textContent = (evPct > 0 ? '+' : '') + evPct.toFixed(1) + '%';
+  evPctEl.style.color = evPct >= 30 ? 'var(--green)' : evPct >= 15 ? 'var(--amber)' : 'var(--cyan)';
+
+  const evBarPct = Math.max(0, Math.min(100, (evPct / 50) * 100));
+  const evBar = document.getElementById('s3-ev-bar');
+  evBar.style.width = evBarPct + '%';
+  evBar.style.background = evPct >= 30 ? 'var(--green)' : evPct >= 15 ? 'var(--amber)' : 'var(--cyan)';
+
+  const evDelta = document.getElementById('s3-ev-delta');
+  evDelta.textContent = (evPct > 0 ? '▲ +' : '▼ ') + evPct.toFixed(1) + '% vs 基准';
+  evDelta.className = 'metric-delta ' + (evPct > 0 ? 'up' : 'down');
+
+  const diffBar = document.getElementById('s3-diff-bar');
+  diffBar.style.width = diffLimit + '%';
+  diffBar.style.background = diffLimit > 70 ? 'var(--red)' : diffLimit > 40 ? 'var(--amber)' : 'var(--green)';
+  document.getElementById('s3-diff-val').textContent = diffLimit.toFixed(0) + '%';
+
+  document.getElementById('s3-mech-bar').style.width = mechStrength + '%';
+  document.getElementById('s3-mech-val').textContent = mechStrength.toFixed(0) + '%';
+
+  const safetyEl = document.getElementById('s3-safety');
+  safetyEl.textContent = safety.toFixed(0);
+  safetyEl.className = 'metric-value ' + (safety >= 70 ? 'green' : safety >= 50 ? 'amber' : 'red');
+  const safetyBar = document.getElementById('s3-safety-bar');
+  safetyBar.style.width = safety + '%';
+  safetyBar.style.background = safety >= 70 ? 'var(--green)' : safety >= 50 ? 'var(--amber)' : 'var(--red)';
+  const safetyLevel = document.getElementById('s3-safety-level');
+  safetyLevel.textContent = safety >= 85 ? 'EXCELLENT' : safety >= 70 ? 'ACCEPTABLE' : safety >= 50 ? 'MARGINAL' : 'CRITICAL';
+  safetyLevel.className = 'metric-delta ' + (safety >= 70 ? 'up' : 'down');
+
+  document.getElementById('s3-cost').textContent = cost.toFixed(0);
+  document.getElementById('s3-cost-bar').style.width = cost + '%';
+
+  const badge = document.getElementById('s3-safety-badge');
+  if (safety < 50) {
+    setRiskBox('s3-risk-danger', true); setRiskBox('s3-risk-warn', false); setRiskBox('s3-risk-safe', false);
+    badge.textContent = 'DANGER'; badge.style.borderColor = 'var(--red)'; badge.style.color = 'var(--red)';
+  } else if (safety < 70) {
+    setRiskBox('s3-risk-danger', false); setRiskBox('s3-risk-warn', true); setRiskBox('s3-risk-safe', false);
+    badge.textContent = 'WARN'; badge.style.borderColor = 'var(--amber)'; badge.style.color = 'var(--amber)';
+  } else {
+    setRiskBox('s3-risk-danger', false); setRiskBox('s3-risk-warn', false); setRiskBox('s3-risk-safe', true);
+    badge.textContent = 'SAFE'; badge.style.borderColor = 'var(--green)'; badge.style.color = 'var(--green)';
+  }
+
+  const obj1Met = evPct >= 30;
+  const obj2Met = safety >= 70;
+  updateObjective('s3-obj1', obj1Met);
+  updateObjective('s3-obj2', obj2Met);
+
+  const btn = document.getElementById('s3-btn');
+  const status = document.getElementById('s3-complete-status');
+  if (obj1Met && obj2Met) {
+    btn.disabled = false; btn.className = 'btn-advance purple-ready';
+    status.innerHTML = '<span class="check">&#x2714;</span> 目标达成！点击进入综合评测';
+  } else {
+    btn.disabled = true; btn.className = 'btn-advance';
+    const missing = [];
+    if (!obj1Met) missing.push('Ev提升<30%');
+    if (!obj2Met) missing.push('安全指数<70%');
+    status.innerHTML = '<span class="cross">&#x2717;</span> 未满足: ' + missing.join('，');
+  }
+
+  const tk = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+  tk('tk3-1', rho.toFixed(2)+'g/cm3');
+  tk('tk3-2', (fi*100).toFixed(0)+'%');
+  tk('tk3-3', Eg.toFixed(0)+'Wh/kg');
+  tk('tk3-4', Ev.toFixed(0)+'Wh/L');
+  tk('tk3-5', safety.toFixed(0)+'%');
+  tk('tk3-6', cost.toFixed(0)+'%');
+  tk('tk3-7', diffLimit.toFixed(0)+'%');
+
+  STATE.behavior.s3Adjustments++;
+  if (rho > 2.5) STATE.behavior.s3HighRho = true;
+  if (fi < 0.1) STATE.behavior.s3LowFi = true;
+
+  updateSliderFill('s3-rho', 0.8, 3.2, rho);
+  updateSliderFill('s3-fi', 5, 45, fi * 100);
+  drawS3PreviewCanvas(safety, cost, evPct, diffLimit, mechStrength);
+
+  // Store for report
+  STATE.s3Result = { Eg, Ev, evPct, safety, cost };
+}
+
+function drawS3PreviewCanvas(safety, cost, evPct, diff, mech) {
+  const canvas = document.getElementById('canvas-s3');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(0,10,25,0.5)'; ctx.fillRect(0, 0, W, H);
+
+  const cx = W/2, cy = H/2, R = Math.min(W,H)*0.38, dims = 5;
+  const vals = [
+    Math.min(100,Math.max(0,safety))/100,
+    Math.min(100,Math.max(0,100-cost))/100,
+    Math.min(100,Math.max(0,50+evPct))/100,
+    Math.min(100,Math.max(0,100-diff))/100,
+    Math.min(100,Math.max(0,mech))/100
+  ];
+  const labels = ['\u5b89\u5168','\u6210\u672c','\u80fd\u91cf','\u6269\u6563','\u5f3a\u5ea6'];
+  drawRadarShape(ctx, cx, cy, R, dims, vals, labels, '#00ff9d', 4);
+}
+
+function drawRadarShape(ctx, cx, cy, R, dims, vals, labels, color, gridRings) {
+  for (let r = 1; r <= gridRings; r++) {
+    ctx.strokeStyle = 'rgba(0,229,255,0.08)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i <= dims; i++) {
+      const a = (i/dims)*Math.PI*2 - Math.PI/2;
+      const x = cx + Math.cos(a)*R*r/gridRings, y = cy + Math.sin(a)*R*r/gridRings;
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  for (let i = 0; i < dims; i++) {
+    const a = (i/dims)*Math.PI*2 - Math.PI/2;
+    ctx.strokeStyle = 'rgba(0,229,255,0.12)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(a)*R, cy+Math.sin(a)*R); ctx.stroke();
+    if (labels) {
+      ctx.fillStyle = 'rgba(0,229,255,0.5)'; ctx.font='8px Courier New'; ctx.textAlign='center';
+      ctx.fillText(labels[i], cx+Math.cos(a)*(R+14), cy+Math.sin(a)*(R+14)+3);
+    }
+  }
+  ctx.textAlign='left';
+
+  ctx.beginPath();
+  for (let i = 0; i <= dims; i++) {
+    const idx = i%dims, a = (idx/dims)*Math.PI*2-Math.PI/2;
+    const x = cx+Math.cos(a)*R*vals[idx], y = cy+Math.sin(a)*R*vals[idx];
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.fillStyle = color === '#00ff9d' ? 'rgba(0,255,157,0.1)' : 'rgba(0,229,255,0.12)'; ctx.fill();
+  ctx.strokeStyle = color; ctx.lineWidth=1.5; ctx.shadowColor=color; ctx.shadowBlur=6; ctx.stroke(); ctx.shadowBlur=0;
+
+  for (let i = 0; i < dims; i++) {
+    const a = (i/dims)*Math.PI*2-Math.PI/2;
+    const x = cx+Math.cos(a)*R*vals[i], y = cy+Math.sin(a)*R*vals[i];
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+  }
+}
+
+// ============================================================
+// QUIZ LOGIC
+// ============================================================
+function selectAnswer(qNum, opt) {
+  if (quizSubmitted) return;
+  STATE.quiz.answers[qNum] = opt;
+  ['a','b','c','d'].forEach(o => {
+    const el = document.getElementById('q'+qNum+'-'+o);
+    if (el) el.className = 'q-opt' + (o===opt ? ' selected' : '');
+  });
+  const allAnswered = [1,2,3].every(n => STATE.quiz.answers[n]);
+  document.getElementById('quiz-submit').disabled = !allAnswered;
+}
+
+function submitQuiz() {
+  if (quizSubmitted) return;
+  quizSubmitted = true;
+  document.getElementById('quiz-submit').disabled = true;
+
+  let correct = 0;
+  [1,2,3].forEach(n => {
+    const ans = STATE.quiz.answers[n];
+    const right = STATE.quiz.correct[n];
+    ['a','b','c','d'].forEach(o => {
+      const el = document.getElementById('q'+n+'-'+o);
+      if (!el) return;
+      if (o === right) el.className = 'q-opt correct';
+      else if (o === ans && o !== right) el.className = 'q-opt wrong';
+    });
+    if (ans === right) correct++;
+  });
+
+  computeRadarScores(correct);
+  drawRadarCanvas();
+  updateRadarScoreDisplay();
+
+  const total = Object.values(STATE.scores).reduce((a,b)=>a+b,0) / 5;
+  document.getElementById('overall-score').textContent = total.toFixed(0) + ' / 100';
+  document.getElementById('overall-score').style.color = total >= 80 ? 'var(--green)' : total >= 60 ? 'var(--cyan)' : 'var(--amber)';
+
+  const comment = document.getElementById('score-comment');
+  comment.style.display = 'block';
+  if (total >= 85) comment.innerHTML = '&#x1F3C6; 优秀！您展现了出色的电池工程系统思维，对热力学、电化学建模与工程约束均有深刻理解。';
+  else if (total >= 70) comment.innerHTML = '&#x2705; 良好！基本掌握了能量密度的多维优化逻辑，建议进一步练习系统工程权衡思维。';
+  else if (total >= 55) comment.innerHTML = '&#x1F4D8; 基础扎实，但对风险控制与产业决策的理解尚需加深，建议回顾各关卡的参数约束。';
+  else comment.innerHTML = '&#x1F504; 建议重新探索各关卡，深入理解电压、容量、能量密度之间的系统性关系。';
+
+  updateHUDScore(total);
+  document.getElementById('quiz-done-btn').style.display = 'block';
+}
+
+function computeRadarScores(quizCorrect) {
+  const b = STATE.behavior;
+  let thermo = 40;
+  if (STATE.quiz.answers[1] === 'b') thermo += 40;
+  if (b.s1FoundOptimal) thermo += 15;
+  if (b.s1Adjustments > 8) thermo += 5;
+  STATE.scores.thermo = Math.min(100, thermo);
+
+  let electro = 35;
+  if (STATE.quiz.answers[2] === 'b') electro += 40;
+  if (b.s2FoundBalance) electro += 15;
+  if (b.s2Adjustments > 6) electro += 10;
+  STATE.scores.electro = Math.min(100, electro);
+
+  let system = 30;
+  if (STATE.quiz.answers[3] === 'b') system += 40;
+  if (b.s3Adjustments > 6) system += 20;
+  if (b.s3HighRho) system += 5;
+  if (b.s3LowFi) system += 5;
+  STATE.scores.system = Math.min(100, system);
+
+  let risk = 30;
+  if (b.riskExplored) risk += 25;
+  if (b.s2LowStab) risk += 15;
+  if (b.s1Adjustments > 5) risk += 15;
+  if (quizCorrect >= 2) risk += 15;
+  STATE.scores.risk = Math.min(100, risk);
+
+  let industry = 25;
+  if (b.s1FoundOptimal && b.s2FoundBalance) industry += 30;
+  if (b.s3Adjustments > 5) industry += 15;
+  if (quizCorrect === 3) industry += 20;
+  else if (quizCorrect === 2) industry += 10;
+  if (b.s3HighRho && b.s3LowFi) industry += 10;
+  STATE.scores.industry = Math.min(100, industry);
+}
+
+function drawRadarCanvas() {
+  const canvas = document.getElementById('canvas-radar');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(0,10,25,0.6)'; ctx.fillRect(0, 0, W, H);
+
+  const cx = W/2, cy = H/2+5, R = Math.min(W,H)*0.38, dims = 5;
+  const labels = ['\u70ed\u529b\u5b66\u7406\u89e3','\u7535\u5316\u5b66\u5efa\u6a21','\u7cfb\u7edf\u5de5\u7a0b\u601d\u7ef4','\u98ce\u9669\u63a7\u5236\u610f\u8bc6','\u4ea7\u4e1a\u51b3\u7b56\u80fd\u529b'];
+  const vals = [STATE.scores.thermo/100, STATE.scores.electro/100, STATE.scores.system/100, STATE.scores.risk/100, STATE.scores.industry/100];
+  const colors = ['#00e5ff','#00ff9d','#b847ff','#ffb800','#ff6b6b'];
+
+  for (let r = 1; r <= 5; r++) {
+    ctx.strokeStyle = 'rgba(0,229,255,0.06)'; ctx.lineWidth=1;
+    ctx.beginPath();
+    for (let i = 0; i <= dims; i++) {
+      const a = (i/dims)*Math.PI*2-Math.PI/2;
+      const x = cx+Math.cos(a)*R*r/5, y = cy+Math.sin(a)*R*r/5;
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(0,229,255,0.2)'; ctx.font='8px Courier New';
+    ctx.fillText((r*20)+'%', cx+3, cy-R*r/5-1);
+  }
+
+  for (let i = 0; i < dims; i++) {
+    const a = (i/dims)*Math.PI*2-Math.PI/2;
+    ctx.strokeStyle = 'rgba(0,229,255,0.15)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(a)*R, cy+Math.sin(a)*R); ctx.stroke();
+  }
+
+  ctx.beginPath();
+  for (let i = 0; i <= dims; i++) {
+    const idx = i%dims, a = (idx/dims)*Math.PI*2-Math.PI/2;
+    const x = cx+Math.cos(a)*R*vals[idx], y = cy+Math.sin(a)*R*vals[idx];
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  const grad = ctx.createLinearGradient(cx-R,cy-R,cx+R,cy+R);
+  grad.addColorStop(0,'rgba(0,229,255,0.18)'); grad.addColorStop(1,'rgba(184,71,255,0.18)');
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.strokeStyle = '#00e5ff'; ctx.lineWidth=2; ctx.shadowColor='#00e5ff'; ctx.shadowBlur=8; ctx.stroke(); ctx.shadowBlur=0;
+
+  for (let i = 0; i < dims; i++) {
+    const a = (i/dims)*Math.PI*2-Math.PI/2;
+    const x = cx+Math.cos(a)*R*vals[i], y = cy+Math.sin(a)*R*vals[i];
+    ctx.fillStyle = colors[i]; ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(x,y,7,0,Math.PI*2); ctx.stroke();
+  }
+  for (let i = 0; i < dims; i++) {
+    const a = (i/dims)*Math.PI*2-Math.PI/2;
+    ctx.fillStyle = colors[i]; ctx.font='10px Arial Narrow, Arial'; ctx.textAlign='center';
+    ctx.fillText(labels[i], cx+Math.cos(a)*(R+22), cy+Math.sin(a)*(R+22)+3);
+  }
+  ctx.textAlign='left';
+}
+
+function updateRadarScoreDisplay() {
+  const keys = ['thermo','electro','system','risk','industry'];
+  keys.forEach((k, i) => {
+    const el = document.getElementById('rs-'+(i+1));
+    if (el) { const v = STATE.scores[k]; el.textContent = v.toFixed(0); el.style.color = v>=80?'var(--green)':v>=60?'var(--cyan)':'var(--amber)'; }
+  });
+}
+
+function initQuizPage() {
+  const canvas = document.getElementById('canvas-radar');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(0,10,25,0.6)'; ctx.fillRect(0, 0, W, H);
+  const cx = W/2, cy = H/2+5, R = Math.min(W,H)*0.38, dims=5;
+  for (let r = 1; r <= 5; r++) {
+    ctx.strokeStyle = 'rgba(0,229,255,0.06)'; ctx.lineWidth=1;
+    ctx.beginPath();
+    for (let i = 0; i <= dims; i++) {
+      const a = (i/dims)*Math.PI*2-Math.PI/2;
+      const x = cx+Math.cos(a)*R*r/5, y = cy+Math.sin(a)*R*r/5;
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  for (let i = 0; i < dims; i++) {
+    const a = (i/dims)*Math.PI*2-Math.PI/2;
+    ctx.strokeStyle='rgba(0,229,255,0.12)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R); ctx.stroke();
+  }
+  const labels = ['\u70ed\u529b\u5b66\u7406\u89e3','\u7535\u5316\u5b66\u5efa\u6a21','\u7cfb\u7edf\u5de5\u7a0b\u601d\u7ef4','\u98ce\u9669\u63a7\u5236\u610f\u8bc6','\u4ea7\u4e1a\u51b3\u7b56\u80fd\u529b'];
+  ctx.fillStyle='rgba(0,229,255,0.35)'; ctx.font='10px Arial Narrow, Arial'; ctx.textAlign='center';
+  for (let i = 0; i < dims; i++) {
+    const a = (i/dims)*Math.PI*2-Math.PI/2;
+    ctx.fillText(labels[i], cx+Math.cos(a)*(R+22), cy+Math.sin(a)*(R+22)+3);
+  }
+  ctx.textAlign='left';
+  ctx.fillStyle='rgba(0,229,255,0.15)'; ctx.font='11px Courier New'; ctx.textAlign='center';
+  ctx.fillText('\u5b8c\u6210\u7b54\u9898\u540e\u751f\u6210\u80fd\u529b\u96f7\u8fbe', W/2, H/2+20);
+  ctx.textAlign='left';
+}
+
+// ============================================================
+// PRINT REPORT
+// ============================================================
+function goToReport() {
+  // Fill all report data (shared with beforeprint handler)
+  fillReportData();
+
+  // Navigate to print page
+  const fromPage = document.getElementById('page-4');
+  const toPage   = document.getElementById('page-5');
+  if (fromPage) fromPage.classList.remove('active');
+  setTimeout(() => { if (toPage) toPage.classList.add('active'); }, 50);
+
+  updateStageTabs(4, 5);
+  updateProgress(5);
+  STATE.currentStage = 5;
+  updateHUD(5);
+}
+
+function drawRadarCanvasPrint() {
+  const canvas = document.getElementById('canvas-radar-print');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  //  background for print
+ctx.fillStyle = 'rgba(0,10,25,0.6)';
+  ctx.fillRect(0, 0, W, H);
+
+  const cx = W/2, cy = H/2+5, R = Math.min(W,H)*0.38, dims = 5;
+  const labels = ['\u70ed\u529b\u5b66\u7406\u89e3','\u7535\u5316\u5b66\u5efa\u6a21','\u7cfb\u7edf\u5de5\u7a0b\u601d\u7ef4','\u98ce\u9669\u63a7\u5236\u610f\u8bc6','\u4ea7\u4e1a\u51b3\u7b56\u80fd\u529b'];
+  const vals = [STATE.scores.thermo/100, STATE.scores.electro/100, STATE.scores.system/100, STATE.scores.risk/100, STATE.scores.industry/100];
+  // Print-safe colors (darker, visible on white)
+  const colors = ['#0077aa', '#007755', '#6633cc', '#cc7700', '#cc2244'];
+
+  // Grid rings
+  for (let r = 1; r <= 5; r++) {
+    ctx.strokeStyle = 'rgba(0,60,120,0.15)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i <= dims; i++) {
+      const a = (i/dims)*Math.PI*2-Math.PI/2;
+      if (i===0) ctx.moveTo(cx+Math.cos(a)*R*r/5, cy+Math.sin(a)*R*r/5);
+      else ctx.lineTo(cx+Math.cos(a)*R*r/5, cy+Math.sin(a)*R*r/5);
+    }
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(0,50,100,0.4)'; ctx.font='8px Arial'; ctx.textAlign='left';
+    ctx.fillText((r*20)+'%', cx+3, cy-R*r/5-1);
+  }
+  // Axis lines
+  for (let i = 0; i < dims; i++) {
+    const a = (i/dims)*Math.PI*2-Math.PI/2;
+    ctx.strokeStyle='rgba(0,60,120,0.25)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R); ctx.stroke();
+  }
+  // Data polygon
+  ctx.beginPath();
+  for (let i = 0; i <= dims; i++) {
+    const idx = i%dims, a = (idx/dims)*Math.PI*2-Math.PI/2;
+    const x = cx+Math.cos(a)*R*vals[idx], y = cy+Math.sin(a)*R*vals[idx];
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.fillStyle = 'rgba(0,100,200,0.12)'; ctx.fill();
+  ctx.strokeStyle='#0055aa'; ctx.lineWidth=2; ctx.stroke();
+
+  // Dots
+  for (let i = 0; i < dims; i++) {
+    const a = (i/dims)*Math.PI*2-Math.PI/2;
+    const x = cx+Math.cos(a)*R*vals[i], y = cy+Math.sin(a)*R*vals[i];
+    ctx.fillStyle=colors[i]; ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.stroke();
+  }
+  // Labels
+  for (let i = 0; i < dims; i++) {
+    const a = (i/dims)*Math.PI*2-Math.PI/2;
+    ctx.fillStyle=colors[i]; ctx.font='10px Arial Narrow, Arial'; ctx.textAlign='center';
+    ctx.fillText(labels[i], cx+Math.cos(a)*(R+24), cy+Math.sin(a)*(R+24)+3);
+  }
+  ctx.textAlign='left';
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function advanceStage(toStage) {
+  if (toStage === 3) {
+    const E_v = STATE.s1.E_actual || 3.46;
+    const Q_a = (STATE.s2.n * F) / (3.6 * STATE.s2.M) * STATE.s2.eta;
+    BASE.Ev_base_val = (BASE.E_actual_base||3.46) * (BASE.Q_actual_base||125.9) * 0.8 * 1.8;
+  }
+
+  const from = STATE.currentStage;
+  STATE.currentStage = toStage;
+
+  const stageToPageId = { 0:'page-0', 1:'page-1', 2:'page-2', 3:'page-3', 4:'page-4', 5:'page-5' };
+  const fromPage = document.getElementById(stageToPageId[from]);
+  const toPage = document.getElementById(stageToPageId[toStage]);
+  if (!fromPage || !toPage) return;
+
+  fromPage.classList.remove('active');
+  setTimeout(() => { toPage.classList.add('active'); }, 50);
+
+  updateStageTabs(from, toStage);
+  updateProgress(toStage);
+  updateHUD(toStage);
+
+  setTimeout(() => {
+    if (toStage === 1) initS1();
+    if (toStage === 2) initS2();
+    if (toStage === 3) { initS3(); }
+    if (toStage === 4) initQuizPage();
+  }, 100);
+}
+
+function updateStageTabs(from, to) {
+  const map = { 0:'stab-0', 1:'stab-1', 2:'stab-2', 3:'stab-3', 4:'stab-q', 5:'stab-q' };
+  if (map[from]) { const el = document.getElementById(map[from]); if (el) el.className = 'stage-tab done'; }
+  if (map[to]) { const el = document.getElementById(map[to]); if (el) el.className = 'stage-tab active'; }
+
+  const missions = {
+    0: '\u8bf7\u8f93\u5165\u5b66\u751f\u4fe1\u606f\u4ee5\u5f00\u59cb\u5b9e\u9a8c',
+    1: 'MISSION: \u63d0\u5347\u7535\u538b\u226510% \u4e14\u63a7\u5236\u7ed3\u6784\u98ce\u9669',
+    2: 'MISSION: \u63d0\u5347\u5bb9\u91cf\u226515% \u4e14\u7a33\u5b9a\u6027\u226560%',
+    3: 'MISSION: \u4f53\u79ef\u80fd\u91cf\u5bc6\u5ea6\u63d0\u5347\u226530% \u4e14\u5b89\u5168\u6307\u6570\u226570%',
+    4: 'ASSESSMENT: \u7efc\u5408\u80fd\u529b\u8bc4\u6d4b',
+    5: 'REPORT: \u5b66\u4e60\u6210\u679c\u62a5\u544a\u4e0e\u6253\u5370'
+  };
+  const mEl = document.getElementById('mission-text');
+  if (mEl && missions[to]) mEl.textContent = missions[to];
+}
+
+function updateProgress(stage) {
+  const pcts = { 0: 0, 1: 20, 2: 40, 3: 60, 4: 80, 5: 100 };
+  const fill = document.getElementById('prog-fill');
+  const pctEl = document.getElementById('prog-pct');
+  const p = pcts[stage] !== undefined ? pcts[stage] : 0;
+  if (fill) fill.style.width = p + '%';
+  if (pctEl) pctEl.textContent = p + '%';
+
+  const dotMap = ['0','1','2','3','q'];
+  dotMap.forEach((k, i) => {
+    const dot = document.getElementById('pdot-' + k);
+    if (!dot) return;
+    if (i < stage) dot.className = 'prog-dot done';
+    else if (i === stage) dot.className = 'prog-dot active';
+    else dot.className = 'prog-dot';
+  });
+}
+
+function updateHUD(stage) {
+  const stageEl = document.getElementById('hud-stage');
+  if (stageEl) stageEl.textContent = ('0' + stage).slice(-2);
+  const statusEl = document.getElementById('hud-status');
+  if (statusEl) {
+    if (stage === 0) { statusEl.textContent = 'INIT'; statusEl.style.color = 'var(--amber)'; }
+    else if (stage === 4) { statusEl.textContent = 'EVAL'; statusEl.style.color = 'var(--purple)'; }
+    else if (stage === 5) { statusEl.textContent = 'DONE'; statusEl.style.color = 'var(--green)'; }
+    else { statusEl.textContent = 'ACT'; statusEl.style.color = 'var(--amber)'; }
+  }
+}
+
+function updateHUDScore(score) {
+  const el = document.getElementById('hud-score');
+  if (el) { el.textContent = score.toFixed(0); el.style.color = score>=80?'var(--green)':score>=60?'var(--cyan)':'var(--amber)'; }
+}
+
+// ============================================================
+// RESTART
+// ============================================================
+function restartSim() {
+  quizSubmitted = false;
+  STATE.currentStage = 0;
+  STATE.student = { name:'', id:'', cls:'' };
+  STATE.quiz.answers = {};
+  STATE.behavior = { s1Adjustments:0, s1FoundOptimal:false, riskExplored:false, s2Adjustments:0, s2FoundBalance:false, s2LowStab:false, s3Adjustments:0, s3HighRho:false, s3LowFi:false };
+  STATE.scores = { thermo:0, electro:0, system:0, risk:0, industry:0 };
+  BASE.E_ideal_base=null; BASE.E_actual_base=null; BASE.Q_theory_base=null; BASE.Q_actual_base=null; BASE.Eg_base=null; BASE.Ev_base_val=null;
+
+  [1,2,3].forEach(n => ['a','b','c','d'].forEach(o => { const el=document.getElementById('q'+n+'-'+o); if(el) el.className='q-opt'; }));
+  document.getElementById('quiz-submit').disabled = true;
+  document.getElementById('quiz-done-btn').style.display = 'none';
+  document.getElementById('overall-score').textContent = '等待评测';
+  document.getElementById('overall-score').style.color = 'var(--cyan)';
+  document.getElementById('score-comment').style.display = 'none';
+  ['1','2','3','4','5'].forEach(i => { const el=document.getElementById('rs-'+i); if(el) el.textContent='—'; });
+
+  document.getElementById('input-name').value = '';
+  document.getElementById('input-id').value = '';
+  document.getElementById('input-class').value = '';
+  document.getElementById('start-btn').disabled = true;
+  document.getElementById('student-header-info').style.display = 'none';
+
+  ['stab-0','stab-1','stab-2','stab-3','stab-q'].forEach((id, i) => {
+    const el=document.getElementById(id); if(el) el.className='stage-tab'+(i===0?' active':'');
+  });
+
+  document.getElementById('hud-score').textContent = '---';
+  document.getElementById('hud-stage').textContent = '00';
+  document.getElementById('hud-status').textContent = 'INIT';
+  document.getElementById('hud-status').style.color = 'var(--amber)';
+  document.getElementById('mission-text').textContent = '\u8bf7\u8f93\u5165\u5b66\u751f\u4fe1\u606f\u4ee5\u5f00\u59cb\u5b9e\u9a8c';
+
+  document.getElementById('s1-dg').value = -240;
+  document.getElementById('s1-ent').value = 0.5;
+  document.getElementById('s1-stab').value = 0.8;
+  document.getElementById('s2-n').value = 1.0;
+  document.getElementById('s2-m').value = 180;
+  document.getElementById('s2-eta').value = 0.85;
+  document.getElementById('s3-rho').value = 1.8;
+  document.getElementById('s3-fi').value = 20;
+
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-0').classList.add('active');
+  updateProgress(0);
+}
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+document.getElementById('s1-dg').addEventListener('input', initS1);
+document.getElementById('s1-ent').addEventListener('input', initS1);
+document.getElementById('s1-stab').addEventListener('input', initS1);
+document.getElementById('s2-n').addEventListener('input', initS2);
+document.getElementById('s2-m').addEventListener('input', initS2);
+document.getElementById('s2-eta').addEventListener('input', initS2);
+document.getElementById('s3-rho').addEventListener('input', initS3);
+document.getElementById('s3-fi').addEventListener('input', initS3);
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+  const dgDefault = -240, entDefault = 0.5;
+  const n_default = 2;
+  const E_ideal_init = Math.abs(dgDefault * 1000) / (n_default * F);
+  const E_actual_init = E_ideal_init * (1 - 0.25 * entDefault);
+  BASE.E_ideal_base = E_ideal_init;
+  BASE.E_actual_base = E_actual_init;
+  const Q_init = (1 * F) / (3.6 * 180);
+  BASE.Q_theory_base = Q_init;
+  BASE.Q_actual_base = Q_init * 0.85;
+  BASE.Eg_base = E_actual_init * BASE.Q_actual_base;
+  BASE.Ev_base_val = E_actual_init * BASE.Q_actual_base * 0.8 * 1.8;
+
+  updateProgress(0);
+  updateHUD(0);
+});
+
+window.addEventListener('resize', () => {
+  const s = STATE.currentStage;
+  if (s === 1) initS1();
+  if (s === 2) initS2();
+  if (s === 3) initS3();
+});
+
+// ============================================================
+// BEFOREPRINT: auto-fill report data whenever Ctrl+P is used
+// This fixes the "blank print when using Ctrl+P" bug.
+// ============================================================
+function fillReportData() {
+// 学生信息
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  
+  // 安全获取学生信息
+  let studentName = STATE.student.name;
+  if (!studentName) {
+    const inputName = document.getElementById('input-name');
+    studentName = inputName ? inputName.value.trim() : '';
+  }
+  setTxt('pr-name', studentName || '（未填写）');
+
+  let studentId = STATE.student.id;
+  if (!studentId) {
+    const inputId = document.getElementById('input-id');
+    studentId = inputId ? inputId.value.trim() : '';
+  }
+  setTxt('pr-id', studentId || '（未填写）');
+
+  let studentClass = STATE.student.cls;
+  if (!studentClass) {
+    const inputClass = document.getElementById('input-class');
+    studentClass = inputClass ? inputClass.value.trim() : '';
+  }
+  setTxt('pr-class', studentClass || '（未填写）');
+
+  setTxt('pr-date', new Date().toLocaleDateString('zh-CN'));
+
+  // Overall score
+  const total = Object.values(STATE.scores).reduce((a,b)=>a+b,0) / 5;
+  const overallEl = document.getElementById('pr-overall');
+  if (overallEl) {
+    overallEl.textContent = (quizSubmitted ? total.toFixed(0) : '—') + (quizSubmitted ? '/100' : '');
+    overallEl.style.color = total >= 80 ? '#00a860' : total >= 60 ? '#0077aa' : '#cc6600';
+  }
+
+  // Dimension scores
+  const keys = ['thermo','electro','system','risk','industry'];
+  keys.forEach((k, i) => {
+    const el = document.getElementById('pr-s'+(i+1));
+    if (el) {
+      const v = STATE.scores[k];
+      el.textContent = quizSubmitted ? v.toFixed(0) : '—';
+      el.style.color = v>=80?'#00a860':v>=60?'#0077aa':'#cc6600';
+    }
+  });
+
+  // Experiment results
+  const E_actual = STATE.s1.E_actual || BASE.E_actual_base || 3.46;
+  const E_base   = BASE.E_actual_base || 3.46;
+  const voltPct  = ((E_actual - E_base) / E_base) * 100;
+
+  const n   = STATE.s2.n   || 1.0;
+  const M   = STATE.s2.M   || 180;
+  const eta = STATE.s2.eta || 0.85;
+  const Q_a = (n * F) / (3.6 * M) * eta;
+  const Q_base = BASE.Q_actual_base || 125.9;
+  const qPct = ((Q_a - Q_base) / Q_base) * 100;
+
+  const fi  = (STATE.s3 && STATE.s3.fi  !== undefined) ? STATE.s3.fi  : 0.20;
+  const rho = (STATE.s3 && STATE.s3.rho !== undefined) ? STATE.s3.rho : 1.8;
+  const Eg  = E_actual * Q_a * (1 - fi);
+  const Ev  = Eg * rho;
+  const Ev_base = BASE.Ev_base_val || (E_base * Q_base * 0.8 * 1.8);
+  const evPct = ((Ev - Ev_base) / Ev_base) * 100;
+
+  // Safety from DOM (already computed by initS3)
+  const safetyTxt = (document.getElementById('s3-safety') || {}).textContent || '—';
+
+  setTxt('pr-volt',    E_actual.toFixed(3) + ' V');
+  setTxt('pr-volt-pct', (voltPct > 0 ? '+' : '') + voltPct.toFixed(1) + '%');
+  setTxt('pr-cap',     Q_a.toFixed(1) + ' mAh/g');
+  setTxt('pr-cap-pct', (qPct > 0 ? '+' : '') + qPct.toFixed(1) + '%');
+  setTxt('pr-eg',      Eg.toFixed(1) + ' Wh/kg');
+  setTxt('pr-ev',      Ev.toFixed(1) + ' Wh/L');
+  setTxt('pr-ev-pct',  (evPct > 0 ? '+' : '') + evPct.toFixed(1) + '%');
+  setTxt('pr-safety',  safetyTxt + '%');
+
+  // Suggestions
+  if (quizSubmitted) {
+    const sc = STATE.scores;
+    const sugs = [];
+    if (sc.thermo  < 70) sugs.push('热力学理解有待加强：重点复习吉布斯自由能与电压的定量关系（E = -ΔG/nF），理解极化损失对实际电压的影响。');
+    if (sc.electro < 70) sugs.push('电化学建模能力待提升：深入学习比容量计算公式 Q = nF/(3.6M)，掌握 n、M、η 三参数的协同优化方法。');
+    if (sc.system  < 70) sugs.push('系统工程思维需加强：理解质量能量密度与体积能量密度的区别，掌握 Ev = Eg × ρ_tap 的物理意义。');
+    if (sc.risk    < 70) sugs.push('风险控制意识待培养：实验中需更积极探索高风险参数区域，了解结构失效边界，提高工程判断能力。');
+    if (sc.industry< 70) sugs.push('产业决策能力待提升：建议学习电池材料工程化路线，理解成本-性能-安全三角权衡在产业中的实际应用。');
+    if (sugs.length === 0) sugs.push('综合表现优秀！建议进一步探索新型电极材料（如固态电解质、硅碳负极），参与实验室实践项目深化工程经验。');
+    const sugEl = document.getElementById('suggestions-content');
+    if (sugEl) sugEl.innerHTML = sugs.map(s => `<div class="sug-item">${s}</div>`).join('');
+  } else {
+    const sugEl = document.getElementById('suggestions-content');
+    if (sugEl) sugEl.innerHTML = '<div class="sug-item">请先完成所有关卡和评测，再打印成果报告。</div>';
+  }
+
+  // Redraw print radar (always fresh)
+  drawRadarCanvasPrint();
+}
+
+// Hook into browser print events (Ctrl+P / browser menu print)
+window.addEventListener('beforeprint', () => {
+  // Always fill report data before printing
+  fillReportData();
+
+  // Make page-5 temporarily visible for print even if not active
+  const p5 = document.getElementById('page-5');
+  if (p5) {
+    p5.style.display = 'block';
+    p5.style.position = 'static';
+    p5.style.opacity = '1';
+  }
+});
+
+window.addEventListener('afterprint', () => {
+  // Restore page-5 to its normal state after printing
+  const p5 = document.getElementById('page-5');
+  if (!p5) return;
+  if (STATE.currentStage === 5) {
+    // Stay visible if user is on report page
+    p5.style.display = '';
+    p5.style.position = '';
+    p5.style.opacity = '';
+  } else {
+    // Hide again if user hasn't navigated here yet
+    p5.style.display = '';
+    p5.style.position = '';
+    p5.style.opacity = '';
+  }
+});
+</script>
+</body>
+</html>
