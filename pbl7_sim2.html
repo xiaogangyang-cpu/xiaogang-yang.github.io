@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表面电荷调控与粒子稳定性模拟器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#020617',
+                        teal: { 400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488' }
+                    },
+                    fontFamily: {
+                        title: ['Montserrat', 'sans-serif'],
+                        body: ['Roboto', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        body { background-color: #020617; color: #f8fafc; font-family: 'Roboto', sans-serif; overflow-x: hidden; }
+        h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
+        
+        /* 未来科技背景纹理 */
+        .tech-bg {
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(13, 148, 136, 0.08), transparent 25%),
+                linear-gradient(rgba(2, 6, 23, 0.9) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(2, 6, 23, 0.9) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            background-color: #020617;
+        }
+
+        /* 动画与过渡 */
+        .fade-in { animation: fadeIn 0.8s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .btn-glow:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(13, 148, 136, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        /* 公式高亮与 Tooltip */
+        .formula-hl { background: rgba(13, 148, 136, 0.15); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(13, 148, 136, 0.4); cursor: help; position: relative; }
+        .formula-hl .tooltip {
+            visibility: hidden; width: max-content; max-width: 250px; background-color: #1e293b; color: #f8fafc;
+            text-align: left; border-radius: 6px; padding: 8px; position: absolute; z-index: 10;
+            bottom: 125%; left: 50%; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s;
+            font-size: 0.875rem; border: 1px solid #0d9488; font-family: 'Roboto', sans-serif;
+        }
+        .formula-hl:hover .tooltip { visibility: visible; opacity: 1; }
+
+        /* 模态框 */
+        .modal { display: none; position: fixed; z-index: 50; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(2, 6, 23, 0.85); backdrop-filter: blur(4px); }
+        .modal-content { background: linear-gradient(145deg, #0f172a, #020617); border: 1px solid #0d9488; border-radius: 12px; }
+    </style>
+</head>
+<body class="tech-bg min-h-screen p-4 md:p-8">
+
+    <header class="fade-in max-w-7xl mx-auto mb-10">
+        <div class="bg-slate-900/60 border border-teal-600/30 rounded-xl p-6 shadow-lg shadow-teal-900/20">
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+                <i class="fa-solid fa-lightbulb text-yellow-400 mr-3 text-2xl"></i> 核心理论
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-slate-300">
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-teal-400 font-bold"><i class="fa-solid fa-play fa-rotate-270 text-yellow-400 mr-2 text-xs"></i> 1. DLVO理论</h3>
+                        <p class="text-sm mt-1">胶体稳定性由范德华吸引力与双电层静电排斥力共同决定：</p>
+                        <p class="mt-2 text-center text-lg formula-hl block w-fit mx-auto">
+                            $V_{total} = V_{vdW} + V_{EDL}$
+                            <span class="tooltip">体系总势能是吸引力与排斥力的叠加，存在势垒则体系稳定。</span>
+                        </p>
+                    </div>
+                    <div>
+                        <h3 class="text-teal-400 font-bold"><i class="fa-solid fa-play fa-rotate-270 text-yellow-400 mr-2 text-xs"></i> 2. Zeta 电位</h3>
+                        <p class="text-sm mt-1">表征颗粒表面电荷状态。经验判据：</p>
+                        <p class="mt-2 formula-hl block w-fit mx-auto text-yellow-300 font-bold">
+                            $|Zeta| > 30 \text{ mV}$
+                            <span class="tooltip">绝对值大于30mV通常认为静电排斥足以抵抗范德华引力，体系稳定。</span>
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-teal-400 font-bold"><i class="fa-solid fa-play fa-rotate-270 text-yellow-400 mr-2 text-xs"></i> 3. pH 与盐浓度影响</h3>
+                    <ul class="text-sm mt-2 space-y-2 list-disc list-inside">
+                        <li>pH 改变颗粒表面电荷分布</li>
+                        <li>盐浓度改变双电层厚度</li>
+                    </ul>
+                    <p class="text-sm mt-3 text-slate-400">Debye 长度：</p>
+                    <p class="mt-1 formula-hl block w-fit mx-auto text-teal-300">
+                        $\kappa^{-1} \propto \frac{1}{\sqrt{I}}$
+                        <span class="tooltip">I 为离子强度。盐浓度越高，双电层越薄（压缩效应），排斥力衰减越快。</span>
+                    </p>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-teal-400 font-bold"><i class="fa-solid fa-play fa-rotate-270 text-yellow-400 mr-2 text-xs"></i> 4. 分散稳定机制</h3>
+                        <p class="text-sm mt-1"><b>静电稳定：</b> 同种电荷相斥。<br><b>空间位阻稳定：</b> 聚合物形成吸附层防止团聚。</p>
+                    </div>
+                    <div>
+                        <h3 class="text-teal-400 font-bold"><i class="fa-solid fa-play fa-rotate-270 text-yellow-400 mr-2 text-xs"></i> 5. 流变性质</h3>
+                        <p class="text-sm mt-1">剪切稀化：$\eta \downarrow$ 随剪切速率 $\uparrow$。触变性直接影响沉降与涂布工艺。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="fade-in max-w-4xl mx-auto text-center mb-12">
+        <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-teal-500/50 rounded-2xl p-10 shadow-2xl relative overflow-hidden">
+            <i class="fa-solid fa-atom absolute -right-10 -bottom-10 text-9xl text-teal-500/10"></i>
+            
+            <div class="flex justify-center items-center mb-4">
+                <i class="fa-solid fa-network-wired text-3xl text-teal-400 mr-4"></i>
+                <h1 class="text-3xl md:text-4xl font-bold text-white tracking-wider">表面电荷调控与粒子稳定性模拟器</h1>
+            </div>
+            <span class="bg-teal-600/20 text-teal-400 border border-teal-500/50 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-8 inline-block">基础 (Basic)</span>
+            
+            <div class="flex flex-col sm:flex-row justify-center gap-6 mt-6">
+                <button onclick="openModal('simulatorModal')" class="btn-glow bg-teal-600 hover:bg-teal-500 text-white px-8 py-3 rounded-lg font-bold flex items-center justify-center transition-all">
+                    <i class="fa-solid fa-play mr-2"></i> 启动模拟器
+                </button>
+                <button onclick="openModal('theoryModal')" class="btn-glow bg-transparent border border-teal-500 text-teal-400 hover:bg-teal-900/50 px-8 py-3 rounded-lg font-bold flex items-center justify-center transition-all">
+                    <i class="fa-solid fa-book mr-2"></i> 理论背景
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <div id="simulatorModal" class="modal">
+        <div class="modal-content w-11/12 max-w-7xl mx-auto mt-10 p-6 shadow-teal-500/20 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-4 mb-6">
+                <h2 class="text-2xl font-bold text-teal-400"><i class="fa-solid fa-flask mr-2"></i> 交互模拟控制台</h2>
+                <button onclick="closeModal('simulatorModal')" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="bg-slate-800/50 p-5 rounded-xl border border-slate-700">
+                    <h3 class="text-lg font-bold text-white mb-4 border-l-4 border-teal-500 pl-2">环境与颗粒参数</h3>
+                    
+                    <div class="space-y-4 text-sm">
+                        <div>
+                            <label class="block text-slate-300 mb-1">溶液 pH (2 - 12) <span id="val_ph" class="text-teal-400 float-right">7</span></label>
+                            <input type="range" id="in_ph" min="2" max="12" step="0.1" value="7" class="w-full accent-teal-500" oninput="updateSim()">
+                        </div>
+                        <div>
+                            <label class="block text-slate-300 mb-1">盐浓度 (mol/L) <span id="val_salt" class="text-teal-400 float-right">0.01</span></label>
+                            <input type="range" id="in_salt" min="0" max="1" step="0.01" value="0.01" class="w-full accent-teal-500" oninput="updateSim()">
+                        </div>
+                        <div>
+                            <label class="block text-slate-300 mb-1">温度 (K)</label>
+                            <input type="number" id="in_temp" value="298" class="w-full bg-slate-900 border border-slate-600 rounded p-1 text-white focus:border-teal-500" onchange="updateSim()">
+                        </div>
+                        
+                        <hr class="border-slate-700 my-4">
+                        
+                        <div>
+                            <label class="block text-slate-300 mb-1">粒径 (nm, 10-1000)</label>
+                            <input type="number" id="in_size" value="100" min="10" max="1000" class="w-full bg-slate-900 border border-slate-600 rounded p-1 text-white" onchange="updateSim()">
+                        </div>
+                        <div>
+                            <label class="block text-slate-300 mb-1">Hamaker常数 (J)</label>
+                            <input type="text" id="in_hamaker" value="1e-20" class="w-full bg-slate-900 border border-slate-600 rounded p-1 text-white" onchange="updateSim()">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-slate-300 mb-1">添加分散剂 (空间位阻)</label>
+                            <select id="in_dispersant" class="w-full bg-slate-900 border border-slate-600 rounded p-1 text-white" onchange="updateSim()">
+                                <option value="none">无</option>
+                                <option value="paa">聚丙烯酸 (PAA)</option>
+                                <option value="peg">PEG</option>
+                                <option value="cmc">CMC</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-300 mb-1">聚合物层厚度 (nm)</label>
+                            <input type="number" id="in_steric" value="0" min="0" class="w-full bg-slate-900 border border-slate-600 rounded p-1 text-white" onchange="updateSim()">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 bg-slate-900 p-4 rounded-lg border border-yellow-600/50 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-yellow-600/20 text-yellow-500 text-xs px-2 py-1 rounded-bl-lg"><i class="fa-solid fa-gamepad"></i> 教学判断</div>
+                        <h4 class="font-bold text-white mb-2">体系状态判断测试</h4>
+                        <button onclick="generateGame()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1 rounded mb-3">生成随机工况</button>
+                        <div id="game_condition" class="text-sm text-teal-300 mb-3 hidden">
+                            当前工况：pH = <span id="game_ph"></span>, 盐浓度 = <span id="game_salt"></span> mol/L
+                        </div>
+                        <div id="game_buttons" class="flex gap-2 hidden">
+                            <button onclick="checkGame('stable')" class="flex-1 bg-green-600/80 hover:bg-green-500 text-white text-xs py-2 rounded">稳定</button>
+                            <button onclick="checkGame('semi')" class="flex-1 bg-yellow-600/80 hover:bg-yellow-500 text-white text-xs py-2 rounded">亚稳定</button>
+                            <button onclick="checkGame('floc')" class="flex-1 bg-red-600/80 hover:bg-red-500 text-white text-xs py-2 rounded">易絮凝</button>
+                        </div>
+                        <div id="game_feedback" class="mt-3 text-sm hidden p-2 rounded bg-slate-800"></div>
+                    </div>
+                </div>
+
+                <div class="col-span-1 lg:col-span-2 space-y-6">
+                    <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 h-64 relative">
+                        <canvas id="dlvoChart"></canvas>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 h-64">
+                        <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 relative">
+                            <canvas id="zetaChart"></canvas>
+                        </div>
+                        <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 relative">
+                            <canvas id="phaseChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="theoryModal" class="modal">
+        <div class="modal-content w-11/12 max-w-4xl mx-auto mt-10 p-8 shadow-teal-500/20 shadow-2xl max-h-[90vh] overflow-y-auto text-slate-300">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-4 mb-6">
+                <h2 class="text-2xl font-bold text-teal-400"><i class="fa-solid fa-book-open mr-2"></i> 理论背景详述</h2>
+                <button onclick="closeModal('theoryModal')" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <div class="space-y-6 text-sm leading-relaxed">
+                <section>
+                    <h3 class="text-lg font-bold text-white mb-2">1. 电双层结构 (Electrical Double Layer)</h3>
+                    <p>当颗粒分散在极性溶剂（如水）中时，表面会带电。为了保持电中性，溶液中的反离子会向颗粒表面聚集，形成 Gouy-Chapman-Stern 双电层模型。</p>
+                    <div class="my-4 text-center text-slate-500 italic border border-slate-700 py-4 bg-slate-900 rounded">
+                        
+                    </div>
+                    <p>滑动面处的电位即为 <b>Zeta 电位 ($\zeta$)</b>，它是衡量分散系稳定性的关键实验参数。</p>
+                </section>
+
+                <section>
+                    <h3 class="text-lg font-bold text-white mb-2">2. Debye 长度与电解质效应</h3>
+                    <p>双电层的厚度可用 Debye 长度 ($\kappa^{-1}$) 表征：</p>
+                    <p class="text-center my-2 text-teal-300">$\kappa = \sqrt{ \frac{2e^2 N_A I}{\epsilon_r \epsilon_0 k_B T} }$</p>
+                    <p>加入盐（提高离子强度 $I$）会导致双电层被压缩，排斥力减弱，颗粒容易发生絮凝。</p>
+                </section>
+
+                <section>
+                    <h3 class="text-lg font-bold text-white mb-2">3. DLVO 理论推导</h3>
+                    <p>经典 DLVO 理论指出，颗粒间的总相互作用能是范德华引力与静电排斥力的加和：</p>
+                    <div class="my-4 text-center text-slate-500 italic border border-slate-700 py-4 bg-slate-900 rounded">
+                        
+                    </div>
+                    <ul class="list-disc list-inside ml-4 mt-2">
+                        <li><b>范德华势能：</b> $V_{vdW} = - \frac{A}{6} \left( \frac{2a^2}{h(4a+h)} + ... \right) \approx -\frac{Aa}{12h}$ </li>
+                        <li><b>静电排斥能：</b> $V_{EDL} = 2\pi\epsilon_r\epsilon_0 a \zeta^2 \ln(1 + \exp(-\kappa h))$</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3 class="text-lg font-bold text-white mb-2">4. 实际工程案例</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                        <div class="bg-slate-800 p-3 rounded border border-slate-700">
+                            <h4 class="text-teal-400 font-bold">🔋 电池浆料分散</h4>
+                            <p class="text-xs mt-1">控制活性物质、导电剂在 NMP 或水中的分散，需使用高分子分散剂（如 PVDF/CMC）提供空间位阻与静电稳定。</p>
+                        </div>
+                        <div class="bg-slate-800 p-3 rounded border border-slate-700">
+                            <h4 class="text-teal-400 font-bold">🏺 陶瓷悬浮液稳定</h4>
+                            <p class="text-xs mt-1">通过调节 pH 远离等电点（IEP），使氧化铝或氧化锆表面带高电荷，降低浆料粘度以利于注模成型。</p>
+                        </div>
+                        <div class="bg-slate-800 p-3 rounded border border-slate-700">
+                            <h4 class="text-teal-400 font-bold">🔬 纳米颗粒分散</h4>
+                            <p class="text-xs mt-1">金属纳米颗粒合成后极易团聚，常通过修饰 PEG 等聚合物配体提供空间位阻，保证长效储存。</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ---------------------------------------------------------
+           模块 1: theory.js (UI交互与模态框控制)
+        --------------------------------------------------------- */
+        function openModal(id) {
+            document.getElementById(id).style.display = "block";
+            if(id === 'simulatorModal') setTimeout(updateSim, 100); // 确保图表正确渲染
+        }
+        function closeModal(id) { document.getElementById(id).style.display = "none"; }
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) event.target.style.display = "none";
+        }
+
+        /* ---------------------------------------------------------
+           模块 2: dlvo_model.js (物理化学计算模型)
+        --------------------------------------------------------- */
+        const CONST = {
+            e: 1.602e-19,      // 基本电荷
+            Na: 6.022e23,      // 阿伏伽德罗常数
+            kb: 1.38e-23,      // 玻尔兹曼常数
+            eps0: 8.854e-12,   // 真空介电常数
+            eps_r: 78.5,       // 水的相对介电常数
+            IEP: 6.0           // 假设等电点
+        };
+
+        function calculateParams(inputs) {
+            // 校验
+            if(inputs.ph < 2 || inputs.ph > 12) { alert("pH必须在2-12之间"); return null; }
+            if(inputs.salt < 0) { alert("盐浓度不能为负"); return null; }
+            if(inputs.size <= 0) { alert("粒径必须大于0"); return null; }
+
+            // 1. Zeta电位简化模型: 远离IEP时电位升高
+            let zeta_mV = -20 * (inputs.ph - CONST.IEP); 
+            // 限制最大 Zeta
+            if(zeta_mV > 100) zeta_mV = 100;
+            if(zeta_mV < -100) zeta_mV = -100;
+            let zeta_V = zeta_mV / 1000;
+
+            // 2. Debye 长度 kappa (1/m)
+            // I 约为盐浓度 (1:1型电解质) * 1000 (转为 mol/m3)
+            let I_m3 = inputs.salt * 1000;
+            let kappa = Math.sqrt((2 * CONST.e * CONST.e * CONST.Na * I_m3) / (CONST.eps_r * CONST.eps0 * CONST.kb * inputs.temp));
+            if(inputs.salt === 0) kappa = 1e6; // 纯水近似
+            
+            return { zeta_mV, zeta_V, kappa };
+        }
+
+        function calcDLVO(h_nm, inputs, phys) {
+            let h = h_nm * 1e-9;
+            let a = (inputs.size / 2) * 1e-9; // 半径
+            let A = inputs.hamaker;
+            let kT = CONST.kb * inputs.temp;
+
+            // 范德华力
+            let V_vdw = - (A * a) / (12 * h);
+            
+            // 静电力
+            let V_edl = 2 * Math.PI * CONST.eps_r * CONST.eps0 * a * Math.pow(phys.zeta_V, 2) * Math.exp(-phys.kappa * h);
+
+            // 空间位阻 (简化的方势阱模型)
+            let V_steric = 0;
+            let steric_layer = inputs.steric * 1e-9;
+            if (inputs.dispersant !== 'none' && h < 2 * steric_layer) {
+                V_steric = 50 * kT; // 强烈的短程排斥
+            }
+
+            let V_tot = V_vdw + V_edl + V_steric;
+
+            return {
+                vdw: V_vdw / kT,   // 转化为 kT 单位
+                edl: V_edl / kT,
+                tot: V_tot / kT
+            };
+        }
+
+        function getStabilityState(zeta, salt) {
+            let absZ = Math.abs(zeta);
+            if(absZ > 30 && salt < 0.1) return 'stable';
+            if((absZ >= 10 && absZ <= 30) || (absZ > 30 && salt >= 0.1 && salt <= 0.3)) return 'semi';
+            return 'floc';
+        }
+
+        /* ---------------------------------------------------------
+           模块 3: charts.js (图表渲染逻辑)
+        --------------------------------------------------------- */
+        let charts = {};
+
+        function initCharts() {
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.font.family = 'Roboto';
+            
+            // 图1: DLVO 曲线
+            let ctx1 = document.getElementById('dlvoChart').getContext('2d');
+            charts.dlvo = new Chart(ctx1, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { title: { display: true, text: 'DLVO 势能曲线 (V/kT vs 距离 nm)', color: '#f8fafc' } },
+                    scales: { y: { suggestedMin: -50, suggestedMax: 50 }, x: { title: {display: true, text: '距离 h (nm)'} } },
+                    animation: { duration: 400 }
+                }
+            });
+
+            // 图2: Zeta vs pH
+            let ctx2 = document.getElementById('zetaChart').getContext('2d');
+            charts.zeta = new Chart(ctx2, {
+                type: 'line',
+                data: { labels: [2,4,6,8,10,12], datasets: [] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { title: { display: true, text: 'Zeta电位与pH关系', color: '#f8fafc' } },
+                    scales: { y: { title: {display: true, text: 'Zeta (mV)'} } }
+                }
+            });
+
+            // 图3: 稳定性相图 (伪热力图/散点图边界)
+            let ctx3 = document.getElementById('phaseChart').getContext('2d');
+            charts.phase = new Chart(ctx3, {
+                type: 'scatter',
+                data: { datasets: [] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { title: { display: true, text: '稳定性区域 (pH vs 盐浓度)', color: '#f8fafc' }, legend: {display: false} },
+                    scales: { x: { min: 2, max: 12, title: {display: true, text: 'pH'} }, y: { min: 0, max: 1, title: {display: true, text: '盐浓度 (mol/L)'} } }
+                }
+            });
+            drawPhaseDiagram();
+        }
+
+        function drawPhaseDiagram() {
+            // 用散点填色代表区域 (简化版)
+            let stable = [], semi = [], floc = [];
+            for(let p=2; p<=12; p+=0.5) {
+                for(let s=0; s<=1; s+=0.05) {
+                    let z = -20 * (p - CONST.IEP);
+                    let state = getStabilityState(z, s);
+                    if(state==='stable') stable.push({x:p, y:s});
+                    else if(state==='semi') semi.push({x:p, y:s});
+                    else floc.push({x:p, y:s});
+                }
+            }
+            charts.phase.data.datasets = [
+                { label: '稳定', data: stable, backgroundColor: 'rgba(16, 185, 129, 0.5)', pointRadius: 4 },
+                { label: '亚稳', data: semi, backgroundColor: 'rgba(234, 179, 8, 0.5)', pointRadius: 4 },
+                { label: '絮凝', data: floc, backgroundColor: 'rgba(239, 68, 68, 0.5)', pointRadius: 4 }
+            ];
+            charts.phase.update();
+        }
+
+        function updateCharts(inputs, phys) {
+            // 更新 DLVO 曲线
+            let h_arr = [], vdw_arr = [], edl_arr = [], tot_arr = [];
+            for(let h=1; h<=20; h+=0.5) {
+                h_arr.push(h);
+                let res = calcDLVO(h, inputs, phys);
+                vdw_arr.push(res.vdw);
+                edl_arr.push(res.edl);
+                tot_arr.push(res.tot);
+            }
+            charts.dlvo.data.labels = h_arr;
+            charts.dlvo.data.datasets = [
+                { label: '总势能', data: tot_arr, borderColor: '#0d9488', borderWidth: 3, tension: 0.3, pointRadius: 0 },
+                { label: '范德华吸引', data: vdw_arr, borderColor: '#ef4444', borderDash: [5,5], borderWidth: 1, pointRadius: 0 },
+                { label: '双电层排斥', data: edl_arr, borderColor: '#3b82f6', borderDash: [5,5], borderWidth: 1, pointRadius: 0 }
+            ];
+            charts.dlvo.update();
+
+            // 更新 Zeta
+            let z_arr = [];
+            for(let p of [2,4,6,8,10,12]) {
+                let z = -20 * (p - CONST.IEP);
+                if(z>100) z=100; if(z<-100) z=-100;
+                z_arr.push(z);
+            }
+            charts.zeta.data.datasets = [
+                { label: '理论Zeta', data: z_arr, borderColor: '#8b5cf6', tension: 0.2 },
+                { label: '当前工况', data: [{x: inputs.ph, y: phys.zeta_mV}], backgroundColor: '#0ea5e9', pointRadius: 6, type: 'scatter' }
+            ];
+            // 稳定区底色
+            charts.zeta.options.plugins.annotation = { /* 略过复杂插件，仅视觉示意 */ };
+            charts.zeta.update();
+        }
+
+        /* ---------------------------------------------------------
+           模块 4: simulator.js (主控逻辑与教学游戏)
+        --------------------------------------------------------- */
+        window.onload = () => { initCharts(); };
+
+        function updateSim() {
+            // 获取输入
+            let inputs = {
+                ph: parseFloat(document.getElementById('in_ph').value),
+                salt: parseFloat(document.getElementById('in_salt').value),
+                temp: parseFloat(document.getElementById('in_temp').value),
+                size: parseFloat(document.getElementById('in_size').value),
+                hamaker: parseFloat(document.getElementById('in_hamaker').value),
+                dispersant: document.getElementById('in_dispersant').value,
+                steric: parseFloat(document.getElementById('in_steric').value)
+            };
+
+            // 更新UI数字
+            document.getElementById('val_ph').innerText = inputs.ph.toFixed(1);
+            document.getElementById('val_salt').innerText = inputs.salt.toFixed(2);
+            if(inputs.dispersant !== 'none' && inputs.steric === 0) {
+                document.getElementById('in_steric').value = 5; 
+                inputs.steric = 5;
+            }
+
+            // 计算与更新图表
+            let phys = calculateParams(inputs);
+            if(phys) updateCharts(inputs, phys);
+        }
+
+        // --- 教学游戏逻辑 ---
+        let currentGameState = null;
+
+        function generateGame() {
+            let rand_ph = (Math.random() * 10 + 2).toFixed(1); // 2-12
+            let rand_salt = (Math.random() * 0.8).toFixed(2);  // 0-0.8
+            
+            document.getElementById('game_ph').innerText = rand_ph;
+            document.getElementById('game_salt').innerText = rand_salt;
+            
+            document.getElementById('game_condition').classList.remove('hidden');
+            document.getElementById('game_buttons').classList.remove('hidden');
+            document.getElementById('game_feedback').classList.add('hidden');
+
+            let z = -20 * (rand_ph - CONST.IEP);
+            currentGameState = getStabilityState(z, parseFloat(rand_salt));
+        }
+
+        function checkGame(guess) {
+            let fb = document.getElementById('game_feedback');
+            fb.classList.remove('hidden');
+            
+            let isCorrect = guess === currentGameState;
+            let ph = parseFloat(document.getElementById('game_ph').innerText);
+            let salt = parseFloat(document.getElementById('game_salt').innerText);
+            let z = -20 * (ph - CONST.IEP);
+
+            let reason = `当前Zeta电位约为 ${z.toFixed(0)} mV。`;
+            if (salt > 0.3) reason += `盐浓度较高，双电层严重压缩，排斥减弱。`;
+            else if (Math.abs(z) < 10) reason += `在等电点附近，表面电荷极低，静电排斥消失。`;
+            else reason += `静电排斥占据主导地位。`;
+
+            if(isCorrect) {
+                fb.innerHTML = `<span class="text-green-400"><i class="fa-solid fa-check"></i> 正确！</span><br><span class="text-slate-300 text-xs">${reason}</span>`;
+            } else {
+                fb.innerHTML = `<span class="text-red-400"><i class="fa-solid fa-xmark"></i> 错误！</span><br><span class="text-slate-300 text-xs">原因：${reason}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
