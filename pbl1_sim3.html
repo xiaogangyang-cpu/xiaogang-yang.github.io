@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>无主动散热电池热管理决策模拟器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:     #040c18;
+  --bg2:    #071422;
+  --panel:  #0b1a2e;
+  --panel2: #0d2040;
+  --border: #1a3a5c;
+  --border2:#12304e;
+  --teal:   #00d4c8;
+  --blue:   #3b9eff;
+  --gold:   #ffc947;
+  --orange: #ff8c42;
+  --red:    #ff3b3b;
+  --green:  #39e07a;
+  --text:   #cce0f5;
+  --muted:  #4a7090;
+  --dim:    #1e3a52;
+}
+html, body { height: 100%; background: var(--bg); font-family: 'Share Tech Mono', monospace; color: var(--text); overflow: hidden; }
+::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: var(--dim); }
+
+/* ── Animations ── */
+@keyframes scanline  { 0%{top:-5%} 100%{top:105%} }
+@keyframes blink     { 0%,100%{opacity:1} 50%{opacity:0.2} }
+@keyframes fade-in   { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pulse-red { 0%,100%{background:var(--bg)} 50%{background:#3a0000} }
+@keyframes glow-red  { 0%,100%{box-shadow:0 0 0 transparent} 50%{box-shadow:0 0 30px #ff3b3b88} }
+@keyframes pcm-wave  { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+@keyframes heat-flow { 0%{stroke-dashoffset:40;opacity:0.2} 50%{opacity:1} 100%{stroke-dashoffset:0;opacity:0.2} }
+@keyframes float-up  { 0%{transform:translateY(0);opacity:0.8} 100%{transform:translateY(-40px);opacity:0} }
+@keyframes spin      { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes slide-in  { from{transform:translateX(-12px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+/* ── Scanline overlay ── */
+#overlay { position:fixed;inset:0;pointer-events:none;z-index:999;overflow:hidden; }
+#scan-beam { position:absolute;left:0;right:0;height:2px;
+  background:linear-gradient(transparent,rgba(0,212,200,0.12),transparent);
+  animation:scanline 6s linear infinite; }
+#crt { position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px); }
+
+/* ── App shell ── */
+#app { display:flex;flex-direction:column;height:100vh; }
+
+/* ── Header ── */
+#hdr {
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(90deg,#071422,#0d2040,#071422);
+  border-bottom:1px solid var(--border);
+  padding:9px 22px;flex-shrink:0;
+}
+.hdr-l { display:flex;align-items:center;gap:12px; }
+.dot { width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);animation:blink 2.5s infinite; }
+.brand { font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:var(--teal);letter-spacing:3px;text-shadow:0 0 10px rgba(0,212,200,0.4); }
+.brand-cn { font-size:11px;color:var(--muted);letter-spacing:2px; }
+.hdr-r { display:flex;align-items:center;gap:16px; }
+.sys-st { font-size:11px;color:var(--teal);animation:blink 3s infinite; }
+#btn-reset {
+  background:transparent;border:1px solid var(--border);color:var(--muted);
+  padding:4px 14px;cursor:pointer;font-family:inherit;font-size:11px;letter-spacing:1px;transition:all .2s;
+}
+#btn-reset:hover { border-color:var(--teal);color:var(--teal); }
+#btn-mute {
+  background:transparent;border:1px solid var(--border);color:var(--muted);
+  padding:4px 12px;cursor:pointer;font-family:inherit;font-size:11px;letter-spacing:1px;transition:all .2s;
+}
+#btn-mute:hover { border-color:var(--gold);color:var(--gold); }
+#btn-mute.muted { border-color:#444;color:#333; }
+/* Alarm indicator */
+@keyframes alarm-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.15)} }
+#alarm-indicator {
+  display:none;align-items:center;gap:6px;padding:4px 12px;
+  border:1px solid var(--red);background:rgba(255,59,59,0.1);
+  font-size:11px;color:var(--red);letter-spacing:1px;
+  animation:alarm-pulse 0.8s infinite;
+}
+#alarm-indicator.warn-level { border-color:var(--gold);background:rgba(255,201,71,0.1);color:var(--gold); }
+#alarm-indicator.show { display:flex; }
+
+/* ── Main grid ── */
+#main {
+  flex:1;display:grid;grid-template-columns:300px 1fr 340px;grid-template-rows:1fr 90px;
+  min-height:0;overflow:hidden;
+}
+
+/* ── Left: Controls ── */
+#left {
+  grid-column:1;grid-row:1;
+  border-right:1px solid var(--border2);
+  background:linear-gradient(180deg,#071220 0%,#090f1a 100%);
+  padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;
+}
+.sec-lbl { font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:2px; }
+.param-card {
+  background:var(--panel);border:1px solid var(--border2);padding:12px 14px;
+  position:relative;overflow:hidden;transition:border-color .3s;
+}
+.param-card:hover { border-color:var(--teal); }
+.param-card.locked { border-color:#1a2a3a !important; opacity:0.6; pointer-events:none; }
+.param-card.locked::after {
+  content:'🔒 仿真运行中';position:absolute;top:8px;right:8px;
+  font-size:9px;color:#445566;letter-spacing:1px;
+}
+.param-top { display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px; }
+.param-name { font-size:12px;color:var(--text);letter-spacing:1px; }
+.param-val { font-family:'Orbitron',monospace;font-size:14px;font-weight:700; }
+.param-unit { font-size:9px;color:var(--muted);margin-left:2px; }
+input[type=range] {
+  width:100%;height:4px;appearance:none;background:var(--dim);border-radius:2px;cursor:pointer;outline:none;
+}
+input[type=range]::-webkit-slider-thumb {
+  appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--teal);box-shadow:0 0 6px var(--teal);transition:transform .2s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.3); }
+input[type=range]:disabled { cursor:not-allowed; }
+input[type=range]:disabled::-webkit-slider-thumb { background:var(--muted);box-shadow:none; }
+.param-desc { font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5; }
+.param-bar { height:2px;border-radius:1px;margin-top:6px;transition:width .3s; }
+/* Pre-sim hint banner */
+#presim-hint {
+  background:linear-gradient(135deg,#081c30,#0a2240);
+  border:1px solid #1a4060;padding:8px 12px;
+  font-size:10px;color:#4a9abb;letter-spacing:1px;line-height:1.6;
+  position:relative;
+}
+#presim-hint::before { content:'💡 '; }
+#presim-hint.hidden { display:none; }
+
+/* Predict section */
+.predict-box {
+  background:#081828;border:1px solid #1a4060;padding:12px;
+}
+.predict-title { font-size:10px;color:var(--gold);letter-spacing:2px;margin-bottom:8px; }
+.predict-q { font-size:11px;color:#8ab0c8;line-height:1.6;margin-bottom:10px; }
+.predict-btns { display:flex;gap:8px;flex-wrap:wrap; }
+.pred-btn {
+  flex:1;min-width:70px;background:#0d2030;border:1px solid var(--border);
+  color:var(--muted);padding:6px 8px;cursor:pointer;font-family:inherit;
+  font-size:11px;transition:all .2s;text-align:center;
+}
+.pred-btn:hover { background:#1a3a55;border-color:var(--blue);color:var(--blue); }
+.pred-btn.chosen { background:#1a3a55;border-color:var(--teal);color:var(--teal); }
+#predict-result { font-size:11px;margin-top:8px;min-height:18px;transition:all .3s; }
+
+/* Run button */
+#btn-run {
+  background:linear-gradient(135deg,#0a3060,#0d4080);
+  border:1px solid var(--blue);color:var(--blue);
+  padding:10px;cursor:pointer;font-family:'Orbitron',monospace;
+  font-size:13px;font-weight:700;letter-spacing:2px;
+  transition:all .2s;text-align:center;
+}
+#btn-run:hover { background:linear-gradient(135deg,#103878,#1050a0);box-shadow:0 0 16px rgba(59,158,255,0.4); }
+#btn-run:active { transform:scale(0.98); }
+#btn-run.running { background:linear-gradient(135deg,#300808,#500d0d);border-color:var(--red);color:var(--red); }
+
+/* ── Center: Diagram ── */
+#center {
+  grid-column:2;grid-row:1;
+  position:relative;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:20px;overflow:hidden;
+}
+.center-lbl { font-size:10px;color:var(--muted);letter-spacing:3px;margin-bottom:16px; }
+
+/* Battery diagram */
+#batt-wrap { position:relative;width:320px;height:280px; }
+#batt-svg  { position:absolute;inset:0;width:100%;height:100%; }
+
+/* Particle overlay */
+#part-canvas { position:absolute;inset:0;width:100%;height:100%;pointer-events:none; }
+
+/* Readouts under diagram */
+#center-readouts {
+  display:flex;gap:16px;margin-top:16px;position:relative;z-index:2;
+}
+.readout {
+  background:var(--panel);border:1px solid var(--border2);
+  padding:8px 16px;text-align:center;min-width:90px;
+}
+.readout-lbl { font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:4px; }
+.readout-val { font-family:'Orbitron',monospace;font-size:18px;font-weight:700; }
+
+/* Physics equation display */
+#eq-display {
+  position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+  background:rgba(4,12,24,0.85);border:1px solid var(--border2);
+  padding:8px 20px;font-size:11px;color:var(--muted);white-space:nowrap;
+  pointer-events:none;
+}
+#eq-display span { color:var(--teal); }
+
+/* ── Right: Chart ── */
+#right {
+  grid-column:3;grid-row:1;
+  border-left:1px solid var(--border2);
+  background:linear-gradient(180deg,#070f1e 0%,#08101a 100%);
+  padding:16px;display:flex;flex-direction:column;gap:10px;overflow:hidden;
+}
+.chart-hdr { display:flex;justify-content:space-between;align-items:center; }
+.chart-title { font-size:11px;color:var(--text);letter-spacing:1px; }
+.chart-legend { display:flex;gap:12px;font-size:10px;color:var(--muted); }
+.leg-dot { display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px; }
+#chart-canvas { flex:1;width:100%;min-height:0;border:1px solid var(--border2);background:#050d18; }
+
+/* Threshold line labels */
+.thr-lbl { font-size:9px;color:var(--muted); }
+
+/* ── Bottom: Decision ── */
+#bottom {
+  grid-column:1 / -1;grid-row:2;
+  border-top:1px solid var(--border2);
+  background:linear-gradient(90deg,#060e1c,#08131f,#060e1c);
+  display:flex;align-items:center;gap:16px;padding:0 22px;
+  transition:background .5s;overflow:hidden;
+}
+#bottom.warn { animation:pulse-red 1.2s infinite; }
+
+.decision-block {
+  display:flex;flex-direction:column;gap:4px;min-width:140px;
+}
+.dec-lbl { font-size:9px;color:var(--muted);letter-spacing:2px; }
+.dec-val { font-family:'Orbitron',monospace;font-size:16px;font-weight:700; }
+
+#safety-badge {
+  padding:6px 18px;border:1px solid;font-family:'Orbitron',monospace;
+  font-size:13px;font-weight:700;letter-spacing:2px;min-width:100px;text-align:center;
+  transition:all .5s;
+}
+#advice-list { flex:1;display:flex;gap:10px;flex-wrap:wrap;align-items:center; }
+.advice-chip {
+  background:var(--panel2);border:1px solid var(--border);color:#6aabcc;
+  padding:5px 12px;font-size:11px;letter-spacing:1px;
+  animation:fade-in .4s ease;
+}
+
+#sim-progress { display:flex;flex-direction:column;gap:4px;min-width:160px; }
+.prog-lbl { font-size:9px;color:var(--muted);letter-spacing:2px; }
+#prog-bar-wrap { height:6px;background:var(--dim);border-radius:3px;overflow:hidden; }
+#prog-bar { height:100%;width:0%;background:linear-gradient(90deg,var(--teal),var(--blue));transition:width .1s; }
+#prog-time { font-size:11px;color:var(--teal); }
+
+/* Warning flash overlay */
+#warn-flash {
+  position:fixed;inset:0;pointer-events:none;z-index:998;
+  border:3px solid transparent;transition:border-color .2s;
+}
+#warn-flash.active { border-color:var(--red);box-shadow:inset 0 0 40px rgba(255,59,59,0.15); }
+
+/* Tooltip */
+#tooltip {
+  position:fixed;background:rgba(7,20,34,0.95);border:1px solid var(--border);
+  padding:6px 12px;font-size:11px;color:var(--text);pointer-events:none;
+  z-index:9999;display:none;max-width:200px;line-height:1.6;
+}
+</style>
+</head>
+<body>
+
+<div id="overlay"><div id="scan-beam"></div><div id="crt"></div></div>
+<div id="warn-flash"></div>
+<div id="tooltip"></div>
+
+<div id="app">
+
+<!-- ══ HEADER ══ -->
+<div id="hdr">
+  <div class="hdr-l">
+    <div class="dot"></div>
+    <span class="brand">THERMAL CTRL</span>
+    <span class="brand-cn">无主动散热电池热管理决策模拟器</span>
+  </div>
+  <div class="hdr-r">
+    <span style="font-size:11px;color:var(--muted)">SYS:</span>
+    <span class="sys-st">● ONLINE</span>
+    <button id="btn-mute" onclick="toggleMute()" title="切换声音报警">🔔 声音</button>
+    <button id="btn-reset">RESET</button>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div id="main">
+
+<!-- ─ LEFT ─ -->
+<div id="left">
+  <div class="sec-lbl">▶ 参数配置 PARAMETER CONFIG</div>
+  <div id="presim-hint">仿真前请先调节参数，开始后参数将锁定。</div>
+
+  <!-- P -->
+  <div class="param-card" id="card-P">
+    <div class="param-top">
+      <span class="param-name">⚡ 电池发热功率 P</span>
+      <span class="param-val" id="val-P" style="color:#ff8c42">50<span class="param-unit">W</span></span>
+    </div>
+    <input type="range" id="sl-P" min="0" max="200" value="50" step="1">
+    <div class="param-bar" id="bar-P" style="background:linear-gradient(90deg,#ff8c42,#ff3b3b)"></div>
+    <div class="param-desc" id="desc-P">热源功率适中，对应正常充放电工况。</div>
+  </div>
+
+  <!-- h -->
+  <div class="param-card" id="card-h">
+    <div class="param-top">
+      <span class="param-name">🌡 散热系数 h</span>
+      <span class="param-val" id="val-h" style="color:#3b9eff">0<span class="param-unit">W/m²K</span></span>
+    </div>
+    <input type="range" id="sl-h" min="0" max="50" value="0" step="1">
+    <div class="param-bar" id="bar-h" style="background:linear-gradient(90deg,#3b9eff,#00d4c8)"></div>
+    <div class="param-desc" id="desc-h">无对流散热（绝热工况）。</div>
+  </div>
+
+  <!-- A -->
+  <div class="param-card" id="card-A">
+    <div class="param-top">
+      <span class="param-name">📐 散热面积 A</span>
+      <span class="param-val" id="val-A" style="color:#00d4c8">0.05<span class="param-unit">m²</span></span>
+    </div>
+    <input type="range" id="sl-A" min="1" max="50" value="5" step="1">
+    <div class="param-bar" id="bar-A" style="background:linear-gradient(90deg,#00d4c8,#39e07a)"></div>
+    <div class="param-desc" id="desc-A">标准单体电池表面积量级。</div>
+  </div>
+
+  <!-- PCM -->
+  <div class="param-card" id="card-PCM">
+    <div class="param-top">
+      <span class="param-name">❄ 相变材料 PCM</span>
+      <span class="param-val" id="val-PCM" style="color:#a78bfa">0.0<span class="param-unit">kg</span></span>
+    </div>
+    <input type="range" id="sl-PCM" min="0" max="200" value="0" step="1">
+    <div class="param-bar" id="bar-PCM" style="background:linear-gradient(90deg,#a78bfa,#3b9eff)"></div>
+    <div class="param-desc" id="desc-PCM">未加入PCM，无相变缓温效果。</div>
+  </div>
+
+  <!-- Prediction -->
+  <div class="predict-box">
+    <div class="predict-title">🔬 预测-验证 PREDICT & VERIFY</div>
+    <div class="predict-q" id="predict-q">当前配置下，你预测1800s后温度将：</div>
+    <div class="predict-btns">
+      <div class="pred-btn" data-pred="safe"   onclick="choosePred(this)">安全 &lt;45°C</div>
+      <div class="pred-btn" data-pred="warn"   onclick="choosePred(this)">预警 45–60°C</div>
+      <div class="pred-btn" data-pred="danger" onclick="choosePred(this)">热失控 &gt;60°C</div>
+    </div>
+    <div id="predict-result"></div>
+  </div>
+
+  <button id="btn-run" onclick="toggleSim()">▶ 开始仿真 RUN SIM</button>
+</div>
+
+<!-- ─ CENTER ─ -->
+<div id="center">
+  <div class="center-lbl">▼ 电池热管理结构示意图 ▼</div>
+
+  <div id="batt-wrap">
+    <canvas id="part-canvas"></canvas>
+    <svg id="batt-svg" viewBox="0 0 320 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="battGrad" cx="50%" cy="50%" r="50%">
+          <stop id="gc1" offset="0%"   stop-color="#2244aa"/>
+          <stop id="gc2" offset="100%" stop-color="#112266"/>
+        </radialGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <linearGradient id="pcmGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"  stop-color="#3b9eff" stop-opacity="0"/>
+          <stop offset="50%" stop-color="#00d4c8" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+        </linearGradient>
+        <marker id="arrowR" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#ff6030"/>
+        </marker>
+        <marker id="arrowB" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#3b9eff"/>
+        </marker>
+      </defs>
+
+      <!-- PCM layer (behind battery) -->
+      <rect id="pcm-rect" x="44" y="64" width="232" height="152" rx="12"
+            fill="none" stroke="#3b9eff" stroke-width="0" opacity="0"/>
+      <rect id="pcm-anim" x="44" y="64" width="232" height="152" rx="12"
+            fill="url(#pcmGrad)" opacity="0" clip-path="url(#pcm-clip)"/>
+      <clipPath id="pcm-clip">
+        <rect x="44" y="64" width="232" height="152" rx="12"/>
+      </clipPath>
+
+      <!-- Main battery body -->
+      <rect id="batt-body" x="60" y="80" width="200" height="120" rx="10"
+            fill="url(#battGrad)" stroke="#1a4080" stroke-width="2"/>
+      <!-- Terminal -->
+      <rect x="148" y="68" width="24" height="16" rx="3" fill="#1a3060" stroke="#2a4880" stroke-width="1.5"/>
+      <!-- Internal cell lines -->
+      <line x1="113" y1="82" x2="113" y2="198" stroke="#0d2040" stroke-width="1.5"/>
+      <line x1="160" y1="82" x2="160" y2="198" stroke="#0d2040" stroke-width="1.5"/>
+      <line x1="207" y1="82" x2="207" y2="198" stroke="#0d2040" stroke-width="1.5"/>
+      <!-- Labels inside -->
+      <text x="87"  y="145" text-anchor="middle" fill="#2a6090" font-size="10" font-family="monospace">Cell 1</text>
+      <text x="137" y="145" text-anchor="middle" fill="#2a6090" font-size="10" font-family="monospace">Cell 2</text>
+      <text x="183" y="145" text-anchor="middle" fill="#2a6090" font-size="10" font-family="monospace">Cell 3</text>
+      <text x="230" y="145" text-anchor="middle" fill="#2a6090" font-size="10" font-family="monospace">Cell 4</text>
+      <!-- Battery label -->
+      <text x="160" y="170" text-anchor="middle" fill="#1a4080" font-size="9" font-family="monospace" letter-spacing="2">BATTERY MODULE</text>
+
+      <!-- Heat flow arrows (right) -->
+      <line id="arr-r1" x1="266" y1="110" x2="296" y2="110" stroke="#ff6030" stroke-width="2.5"
+            marker-end="url(#arrowR)" stroke-dasharray="6,3" opacity="0.7">
+        <animate attributeName="stroke-dashoffset" from="18" to="0" dur="0.8s" repeatCount="indefinite"/>
+      </line>
+      <line id="arr-r2" x1="266" y1="140" x2="296" y2="140" stroke="#ff6030" stroke-width="2.5"
+            marker-end="url(#arrowR)" stroke-dasharray="6,3" opacity="0.7">
+        <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1.0s" repeatCount="indefinite"/>
+      </line>
+      <line id="arr-r3" x1="266" y1="170" x2="296" y2="170" stroke="#ff6030" stroke-width="2.5"
+            marker-end="url(#arrowR)" stroke-dasharray="6,3" opacity="0.7">
+        <animate attributeName="stroke-dashoffset" from="18" to="0" dur="0.9s" repeatCount="indefinite"/>
+      </line>
+
+      <!-- Heat flow arrows (left) -->
+      <line id="arr-l1" x1="54" y1="110" x2="24" y2="110" stroke="#ff6030" stroke-width="2.5"
+            marker-end="url(#arrowR)" stroke-dasharray="6,3" opacity="0.7">
+        <animate attributeName="stroke-dashoffset" from="18" to="0" dur="0.9s" repeatCount="indefinite"/>
+      </line>
+      <line id="arr-l2" x1="54" y1="140" x2="24" y2="140" stroke="#ff6030" stroke-width="2.5"
+            marker-end="url(#arrowR)" stroke-dasharray="6,3" opacity="0.7">
+        <animate attributeName="stroke-dashoffset" from="18" to="0" dur="0.7s" repeatCount="indefinite"/>
+      </line>
+      <line id="arr-l3" x1="54" y1="170" x2="24" y2="170" stroke="#ff6030" stroke-width="2.5"
+            marker-end="url(#arrowR)" stroke-dasharray="6,3" opacity="0.7">
+        <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1.1s" repeatCount="indefinite"/>
+      </line>
+
+      <!-- PCM label -->
+      <text id="pcm-label" x="160" y="58" text-anchor="middle"
+            fill="#3b9eff" font-size="10" font-family="monospace" letter-spacing="1" opacity="0">
+        ❄ PHASE CHANGE MATERIAL (PCM)
+      </text>
+
+      <!-- Temperature label on battery -->
+      <text id="T-label" x="160" y="102" text-anchor="middle"
+            fill="#4488cc" font-size="13" font-family="Orbitron,monospace" font-weight="700" filter="url(#glow)">
+        25.0°C
+      </text>
+      <text x="160" y="115" text-anchor="middle" fill="#1a4080" font-size="9" font-family="monospace">T_battery</text>
+
+      <!-- dT/dt label -->
+      <text id="dtdt-label" x="160" y="195" text-anchor="middle"
+            fill="#1a5080" font-size="9" font-family="monospace">dT/dt = 0.00 °C/s</text>
+
+      <!-- Q labels -->
+      <text x="306" y="108" fill="#804020" font-size="9" font-family="monospace">Q_out</text>
+      <text x="0"   y="108" fill="#804020" font-size="9" font-family="monospace" text-anchor="start">Q_out</text>
+    </svg>
+  </div>
+
+  <div id="center-readouts">
+    <div class="readout">
+      <div class="readout-lbl">T_NOW</div>
+      <div class="readout-val" id="ro-T" style="color:var(--blue)">25.0</div>
+    </div>
+    <div class="readout">
+      <div class="readout-lbl">T_MAX</div>
+      <div class="readout-val" id="ro-Tmax" style="color:var(--orange)">25.0</div>
+    </div>
+    <div class="readout">
+      <div class="readout-lbl">dT/dt</div>
+      <div class="readout-val" id="ro-dtdt" style="color:var(--teal)">0.00</div>
+    </div>
+    <div class="readout">
+      <div class="readout-lbl">SIM TIME</div>
+      <div class="readout-val" id="ro-time" style="color:var(--muted)">0s</div>
+    </div>
+  </div>
+
+  <div id="eq-display">
+    dT/dt = ( P − h·A·(T−T<sub>env</sub>) ) / C_eff &nbsp;|&nbsp;
+    <span id="eq-vals">C_eff = 912 J/K</span>
+  </div>
+</div>
+
+<!-- ─ RIGHT ─ -->
+<div id="right">
+  <div class="chart-hdr">
+    <span class="chart-title">📈 温度-时间曲线  T(t)</span>
+    <div class="chart-legend">
+      <span><span class="leg-dot" style="background:#3b9eff"></span>温度</span>
+      <span><span class="leg-dot" style="background:rgba(255,140,66,0.5)"></span>预警45°C</span>
+      <span><span class="leg-dot" style="background:rgba(255,59,59,0.5)"></span>危险60°C</span>
+    </div>
+  </div>
+  <canvas id="chart-canvas"></canvas>
+</div>
+
+<!-- ─ BOTTOM ─ -->
+<div id="bottom">
+  <div class="decision-block">
+    <div class="dec-lbl">MAX TEMP</div>
+    <div class="dec-val" id="dec-tmax" style="color:var(--orange)">25.0 °C</div>
+  </div>
+
+  <div id="safety-badge" style="color:var(--green);border-color:var(--green);background:rgba(57,224,122,0.05)">
+    ✓ SAFE
+  </div>
+
+  <div id="advice-list">
+    <span style="font-size:11px;color:var(--muted)">← 运行仿真后显示系统建议</span>
+  </div>
+
+  <div id="sim-progress">
+    <div class="prog-lbl">SIM PROGRESS</div>
+    <div id="prog-bar-wrap"><div id="prog-bar"></div></div>
+    <div id="prog-time" style="color:var(--muted)">待机中 STANDBY</div>
+  </div>
+
+  <div id="alarm-indicator">
+    <span id="alarm-icon">🚨</span>
+    <span id="alarm-text">THERMAL RUNAWAY</span>
+  </div>
+</div>
+
+</div><!-- #main -->
+</div><!-- #app -->
+
+<script>
+// ══════════════════════════════════════════════════════
+//  CONSTANTS & STATE
+// ══════════════════════════════════════════════════════
+const T_ENV    = 25.0;    // °C  环境温度
+const T_WARN   = 45.0;    // °C  预警阈值
+const T_DANGER = 60.0;    // °C  热失控阈值
+const T_MAX_SIM= 100.0;   // °C  图表上限
+const SIM_DURATION = 1800; // s
+const DT       = 1.0;     // s  积分步长
+const C_CELL   = 912.0;   // J/K  电池热容（固定底值）
+const PCM_LATENT = 200000; // J/kg  石蜡潜热
+const PCM_Tmelt  = 42.0;  // °C  相变开始温度
+const PCM_Trange = 4.0;   // °C  相变温度区间
+
+let params = { P:50, h:0, A:0.05, PCM:0 };
+let simRunning = false;
+let simTimer   = null;
+let T_history  = [];
+let t_history  = [];
+let T_now      = T_ENV;
+let T_max_ever = T_ENV;
+let pcm_latent_remaining = 0; // J
+let userPred   = null;
+let predChecked = false;
+
+// ══════════════════════════════════════════════════════
+//  AUDIO ALARM SYSTEM
+// ══════════════════════════════════════════════════════
+let audioCtx = null;
+let alarmInterval = null;
+let alarmActive = false;
+let alarmLevel = 0; // 0=off, 1=warn, 2=danger
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playBeep(freq, duration, vol, type = 'sine') {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration + 0.05);
+  } catch(e) {}
+}
+
+function playWarnChime() {
+  // Double-beep warning pattern at 880Hz
+  playBeep(880, 0.15, 0.18, 'sine');
+  setTimeout(() => playBeep(880, 0.15, 0.18, 'sine'), 200);
+}
+
+function playDangerAlarm() {
+  // Urgent alternating siren: 1200Hz → 800Hz, square wave
+  playBeep(1200, 0.18, 0.25, 'square');
+  setTimeout(() => playBeep(800, 0.18, 0.25, 'square'), 220);
+  setTimeout(() => playBeep(1200, 0.18, 0.25, 'square'), 440);
+  setTimeout(() => playBeep(800,  0.18, 0.25, 'square'), 660);
+}
+
+function setAlarmLevel(level) {
+  if (level === alarmLevel) return;
+  alarmLevel = level;
+  if (alarmInterval) { clearInterval(alarmInterval); alarmInterval = null; }
+
+  // Update alarm indicator UI
+  const ind = document.getElementById('alarm-indicator');
+  const txt = document.getElementById('alarm-text');
+  const ico = document.getElementById('alarm-icon');
+  if (level === 0) {
+    ind.classList.remove('show','warn-level');
+  } else if (level === 1) {
+    ind.classList.add('show','warn-level');
+    txt.textContent = '温度预警 WARNING';
+    ico.textContent = '⚠️';
+  } else {
+    ind.classList.add('show');
+    ind.classList.remove('warn-level');
+    txt.textContent = '热失控警报 RUNAWAY';
+    ico.textContent = '🚨';
+  }
+
+  if (!isMuted) {
+    if (level === 1) {
+      playWarnChime();
+      alarmInterval = setInterval(playWarnChime, 4000);
+    } else if (level === 2) {
+      playDangerAlarm();
+      alarmInterval = setInterval(playDangerAlarm, 2000);
+    }
+  }
+}
+
+let isMuted = false;
+function toggleMute() {
+  isMuted = !isMuted;
+  const btn = document.getElementById('btn-mute');
+  if (isMuted) {
+    btn.textContent = '🔇 静音';
+    btn.classList.add('muted');
+    if (alarmInterval) { clearInterval(alarmInterval); alarmInterval = null; }
+  } else {
+    btn.textContent = '🔔 声音';
+    btn.classList.remove('muted');
+    // Re-arm current alarm level
+    const lvl = alarmLevel; alarmLevel = -1;
+    setAlarmLevel(lvl);
+  }
+}
+
+function stopAllAlarms() {
+  alarmLevel = 0;
+  if (alarmInterval) { clearInterval(alarmInterval); alarmInterval = null; }
+}
+
+// ══════════════════════════════════════════════════════
+//  SLIDER LOCK / UNLOCK
+// ══════════════════════════════════════════════════════
+const paramCards = ['P','h','A','PCM'];
+
+function lockSliders() {
+  paramCards.forEach(k => {
+    document.getElementById('card-'+k).classList.add('locked');
+    document.getElementById('sl-'+k).disabled = true;
+  });
+  document.getElementById('presim-hint').classList.add('hidden');
+}
+
+function unlockSliders() {
+  paramCards.forEach(k => {
+    document.getElementById('card-'+k).classList.remove('locked');
+    document.getElementById('sl-'+k).disabled = false;
+  });
+  document.getElementById('presim-hint').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════════════════
+//  SLIDERS
+// ══════════════════════════════════════════════════════
+const sliders = {
+  P:   { el: document.getElementById('sl-P'),   min:0, max:200, scale: v => v,
+         fmt: v => v + 'W',
+         desc: v => v===0 ? "功率为零，无热源（测试散热性能）。" :
+                    v<50  ? "低功率，对应小电流充放电工况。" :
+                    v<120 ? "中等功率，正常充放电场景。" :
+                    v<170 ? "高功率，快充或大倍率放电。" : "⚠ 极高功率！接近热失控风险区间。",
+         color:'#ff8c42' },
+  h:   { el: document.getElementById('sl-h'),   min:0, max:50,  scale: v => v,
+         fmt: v => v + ' W/m²K',
+         desc: v => v===0 ? "绝热工况，热量无法散出（模拟极端条件）。" :
+                    v<10  ? "自然对流，散热较弱。" :
+                    v<30  ? "强化自然对流，有一定散热能力。" : "接近强制对流，散热效果显著。",
+         color:'#3b9eff' },
+  A:   { el: document.getElementById('sl-A'),   min:1, max:50,  scale: v => +(v/100).toFixed(2),
+         fmt: v => (v/100).toFixed(2) + ' m²',
+         desc: v => {const a=v/100; return a<0.05?"小面积，散热能力受限。":a<0.2?"标准单体电池散热面积。":"大面积散热，适合模组级设计。";},
+         color:'#00d4c8' },
+  PCM: { el: document.getElementById('sl-PCM'), min:0, max:200, scale: v => +(v/100).toFixed(1),
+         fmt: v => (v/100).toFixed(1) + ' kg',
+         desc: v => v===0?"未加入PCM，无相变缓温效果。":
+                    v<50 ?"少量PCM，可延缓升温但有限。":
+                    v<120?"中量PCM，相变平台明显，效果良好。":"大量PCM，相变缓温效果显著，适合长时间工况。",
+         color:'#a78bfa' },
+};
+
+Object.entries(sliders).forEach(([key, cfg]) => {
+  cfg.el.addEventListener('input', () => {
+    params[key] = cfg.scale(+cfg.el.value);
+    document.getElementById('val-'+key).innerHTML =
+      `${cfg.fmt(+cfg.el.value)}<span class="param-unit"></span>`;
+    document.getElementById('desc-'+key).textContent = cfg.desc(+cfg.el.value);
+    const pct = (+cfg.el.value - cfg.min) / (cfg.max - cfg.min) * 100;
+    document.getElementById('bar-'+key).style.width = pct + '%';
+    document.getElementById('bar-'+key).style.height = '2px';
+    updatePCMVisual();
+    updateEqDisplay();
+    if (!simRunning) previewSteadyState();
+  });
+  // init bar widths
+  const pct = (+cfg.el.value - cfg.min) / (cfg.max - cfg.min) * 100;
+  document.getElementById('bar-'+key).style.width = pct + '%';
+  document.getElementById('bar-'+key).style.height = '2px';
+});
+
+// ══════════════════════════════════════════════════════
+//  PCM VISUAL
+// ══════════════════════════════════════════════════════
+function updatePCMVisual() {
+  const hasPCM = params.PCM > 0;
+  const pcmRect  = document.getElementById('pcm-rect');
+  const pcmLabel = document.getElementById('pcm-label');
+  const pcmAnim  = document.getElementById('pcm-anim');
+  if (hasPCM) {
+    const sw = Math.min(3 + params.PCM * 4, 12);
+    pcmRect.setAttribute('stroke-width', sw);
+    pcmRect.setAttribute('opacity', '0.6');
+    pcmLabel.setAttribute('opacity','1');
+    pcmAnim.setAttribute('opacity','0.25');
+  } else {
+    pcmRect.setAttribute('stroke-width','0');
+    pcmRect.setAttribute('opacity','0');
+    pcmLabel.setAttribute('opacity','0');
+    pcmAnim.setAttribute('opacity','0');
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  PHYSICS ENGINE
+// ══════════════════════════════════════════════════════
+function calcCeff() {
+  // Battery thermal mass + PCM sensible heat capacity (cp_pcm ~2000 J/kg·K)
+  return C_CELL + params.PCM * 2000;
+}
+
+function stepTemp(T, dt) {
+  const { P, h, A, PCM } = params;
+  const C_eff = calcCeff();
+  const Q_in  = P;
+  const Q_out = h * A * (T - T_ENV);
+  const Q_net = Q_in - Q_out;
+
+  // PCM absorption: if T in melt range and latent heat remains
+  if (PCM > 0 && pcm_latent_remaining > 0 && T >= PCM_Tmelt && T <= PCM_Tmelt + PCM_Trange) {
+    const Q_absorbed = Math.min(pcm_latent_remaining, Math.abs(Q_net) * dt);
+    pcm_latent_remaining -= Q_absorbed;
+    // Temperature stays nearly flat during phase change
+    const dT = (Q_net * dt - Q_absorbed * Math.sign(Q_net)) / C_eff;
+    return T + Math.max(-0.05, Math.min(0.05, dT)); // nearly isothermal
+  }
+
+  return T + (Q_net / C_eff) * dt;
+}
+
+function previewSteadyState() {
+  // Quick estimate of T at 1800s without running full sim
+  let T = T_ENV;
+  pcm_latent_remaining = params.PCM * PCM_LATENT;
+  let Tmax = T;
+  for (let t = 0; t < SIM_DURATION; t += DT) {
+    T = stepTemp(T, DT);
+    if (T > 150) { T = 150; break; }
+    if (T > Tmax) Tmax = T;
+  }
+  updateSafetyBadge(Tmax, false);
+}
+
+// ══════════════════════════════════════════════════════
+//  SIMULATION
+// ══════════════════════════════════════════════════════
+let simStep = 0;
+const SIM_STEPS = SIM_DURATION / DT;
+const STEPS_PER_FRAME = 10; // speed up rendering
+
+function toggleSim() {
+  if (simRunning) {
+    stopSim();
+  } else {
+    startSim();
+  }
+}
+
+function startSim() {
+  // Reset
+  T_now      = T_ENV;
+  T_max_ever = T_ENV;
+  T_history  = [T_ENV];
+  t_history  = [0];
+  pcm_latent_remaining = params.PCM * PCM_LATENT;
+  simStep    = 0;
+  predChecked = false;
+  simRunning  = true;
+
+  lockSliders();
+  stopAllAlarms();
+
+  document.getElementById('btn-run').textContent = '■ 停止仿真 STOP';
+  document.getElementById('btn-run').classList.add('running');
+  document.getElementById('prog-time').style.color = 'var(--teal)';
+
+  simTimer = setInterval(simFrame, 30);
+}
+
+function stopSim() {
+  clearInterval(simTimer);
+  simRunning = false;
+  stopAllAlarms();
+  unlockSliders();
+  document.getElementById('btn-run').textContent = '▶ 开始仿真 RUN SIM';
+  document.getElementById('btn-run').classList.remove('running');
+  document.getElementById('prog-time').textContent = '已停止 STOPPED';
+  checkPrediction();
+}
+
+function simFrame() {
+  for (let i = 0; i < STEPS_PER_FRAME && simStep < SIM_STEPS; i++, simStep++) {
+    T_now = stepTemp(T_now, DT);
+    T_now = Math.min(T_now, 150); // physical cap
+    if (T_now > T_max_ever) T_max_ever = T_now;
+
+    const t_now = simStep * DT;
+    // Store every 5 steps to keep array manageable
+    if (simStep % 5 === 0) {
+      T_history.push(T_now);
+      t_history.push(t_now);
+    }
+  }
+
+  updateUI();
+
+  if (simStep >= SIM_STEPS) {
+    stopSim();
+    checkPrediction();
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  UI UPDATE
+// ══════════════════════════════════════════════════════
+function updateUI() {
+  const t = simStep * DT;
+  const { P, h, A } = params;
+  const C_eff = calcCeff();
+  const dtdt  = (P - h * A * (T_now - T_ENV)) / C_eff;
+
+  // Readouts
+  document.getElementById('ro-T').textContent    = T_now.toFixed(1);
+  document.getElementById('ro-Tmax').textContent = T_max_ever.toFixed(1);
+  document.getElementById('ro-dtdt').textContent = dtdt.toFixed(3);
+  document.getElementById('ro-time').textContent = Math.round(t) + 's';
+  document.getElementById('dec-tmax').textContent = T_max_ever.toFixed(1) + ' °C';
+
+  // Color T readout
+  const tColor = tempToColor(T_now);
+  document.getElementById('ro-T').style.color = tColor;
+
+  // Battery color
+  updateBatteryColor(T_now);
+
+  // dT/dt label in SVG
+  document.getElementById('T-label').textContent = T_now.toFixed(1) + '°C';
+  document.getElementById('T-label').setAttribute('fill', tColor);
+  document.getElementById('dtdt-label').textContent = `dT/dt = ${dtdt.toFixed(3)} °C/s`;
+
+  // Progress bar
+  const pct = (t / SIM_DURATION * 100).toFixed(1);
+  document.getElementById('prog-bar').style.width = pct + '%';
+  document.getElementById('prog-time').textContent = `${Math.round(t)}s / ${SIM_DURATION}s  (${pct}%)`;
+
+  // Safety badge
+  updateSafetyBadge(T_max_ever, true);
+
+  // Draw chart
+  drawChart();
+
+  // PCM glow when melting
+  if (params.PCM > 0 && T_now >= PCM_Tmelt && T_now <= PCM_Tmelt + PCM_Trange && pcm_latent_remaining > 0) {
+    document.getElementById('pcm-anim').setAttribute('opacity','0.6');
+  }
+}
+
+function tempToColor(T) {
+  if (T < T_WARN)   return '#3b9eff';
+  if (T < T_DANGER) return '#ffc947';
+  return '#ff3b3b';
+}
+
+function updateBatteryColor(T) {
+  const frac = Math.min((T - T_ENV) / (T_DANGER - T_ENV + 20), 1);
+  // Blue → Yellow → Red
+  let r, g, b;
+  if (frac < 0.5) {
+    const f = frac * 2;
+    r = Math.round(34  + f * (200 - 34));
+    g = Math.round(68  + f * (180 - 68));
+    b = Math.round(170 + f * (0   - 170));
+  } else {
+    const f = (frac - 0.5) * 2;
+    r = Math.round(200 + f * (55  - 200));
+    g = Math.round(180 + f * (20  - 180));
+    b = Math.round(0);
+  }
+  const col1 = `rgb(${r},${g},${b})`;
+  const r2=Math.round(r*0.4), g2=Math.round(g*0.4), b2=Math.round(b*0.4);
+  const col2 = `rgb(${r2},${g2},${b2})`;
+  document.getElementById('gc1').setAttribute('stop-color', col1);
+  document.getElementById('gc2').setAttribute('stop-color', col2);
+
+  const flash = document.getElementById('warn-flash');
+  if (T >= T_DANGER) {
+    flash.classList.add('active');
+    document.getElementById('bottom').classList.add('warn');
+    if (simRunning) setAlarmLevel(2);
+  } else if (T >= T_WARN) {
+    flash.classList.remove('active');
+    document.getElementById('bottom').classList.remove('warn');
+    if (simRunning) setAlarmLevel(1);
+  } else {
+    flash.classList.remove('active');
+    document.getElementById('bottom').classList.remove('warn');
+    if (simRunning) setAlarmLevel(0);
+  }
+}
+
+function updateSafetyBadge(Tmax, live) {
+  const badge = document.getElementById('safety-badge');
+  const adv   = document.getElementById('advice-list');
+
+  if (Tmax < T_WARN) {
+    badge.textContent  = '✓ SAFE';
+    badge.style.color  = 'var(--green)';
+    badge.style.borderColor = 'var(--green)';
+    badge.style.background  = 'rgba(57,224,122,0.06)';
+    if (live) adv.innerHTML = '<span class="advice-chip">✅ 热管理设计合理，温度安全</span>';
+  } else if (Tmax < T_DANGER) {
+    badge.textContent  = '⚠ WARNING';
+    badge.style.color  = 'var(--gold)';
+    badge.style.borderColor = 'var(--gold)';
+    badge.style.background  = 'rgba(255,201,71,0.06)';
+    if (live) {
+      let chips = '';
+      if (params.h < 10) chips += '<span class="advice-chip">建议：提高散热系数 h</span>';
+      if (params.A < 0.1) chips += '<span class="advice-chip">建议：增大散热面积 A</span>';
+      if (params.PCM < 0.5) chips += '<span class="advice-chip">建议：加入PCM缓温</span>';
+      adv.innerHTML = chips || '<span class="advice-chip">建议：适当降低工作功率</span>';
+    }
+  } else {
+    badge.textContent  = '🔥 RUNAWAY';
+    badge.style.color  = 'var(--red)';
+    badge.style.borderColor = 'var(--red)';
+    badge.style.background  = 'rgba(255,59,59,0.08)';
+    if (live) {
+      let chips = '';
+      if (params.PCM === 0) chips += '<span class="advice-chip">⚠ 立即加入PCM缓温材料</span>';
+      if (params.h < 20)  chips += '<span class="advice-chip">⚠ 大幅提升散热系数 h</span>';
+      if (params.A < 0.2) chips += '<span class="advice-chip">⚠ 大幅增大散热面积</span>';
+      chips += '<span class="advice-chip">⚠ 降低功率或降低环境温度</span>';
+      adv.innerHTML = chips;
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  CHART DRAWING
+// ══════════════════════════════════════════════════════
+function drawChart() {
+  const canvas = document.getElementById('chart-canvas');
+  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const PAD = { left: 46, right: 14, top: 14, bottom: 32 };
+  const plotW = W - PAD.left - PAD.right;
+  const plotH = H - PAD.top  - PAD.bottom;
+
+  // Background
+  ctx.fillStyle = '#050d18';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#0d2030';
+  ctx.lineWidth   = 1;
+  const yTicks = [0, 20, 40, 45, 60, 80, 100];
+  yTicks.forEach(tv => {
+    const py = PAD.top + plotH * (1 - (tv - T_ENV) / (T_MAX_SIM - T_ENV + 5));
+    if (py < PAD.top || py > PAD.top + plotH) return;
+    ctx.beginPath();
+    ctx.moveTo(PAD.left, py); ctx.lineTo(PAD.left + plotW, py);
+    ctx.stroke();
+    ctx.fillStyle = '#334455';
+    ctx.font = '9px Share Tech Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText((T_ENV + tv - 0) + '°', PAD.left - 4, py + 3);
+  });
+  const xTicks = [0, 300, 600, 900, 1200, 1500, 1800];
+  xTicks.forEach(tv => {
+    const px = PAD.left + (tv / SIM_DURATION) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(px, PAD.top); ctx.lineTo(px, PAD.top + plotH);
+    ctx.stroke();
+    ctx.fillStyle = '#334455';
+    ctx.font = '9px Share Tech Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(tv + 's', px, PAD.top + plotH + 18);
+  });
+
+  // Axes
+  ctx.strokeStyle = '#1e3a52';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, PAD.top + plotH);
+  ctx.moveTo(PAD.left, PAD.top + plotH); ctx.lineTo(PAD.left + plotW, PAD.top + plotH);
+  ctx.stroke();
+
+  // Threshold zones
+  const toY = T => PAD.top + plotH * (1 - Math.max(0, T - T_ENV) / (T_MAX_SIM - T_ENV + 5));
+
+  // Danger zone fill
+  const yD = toY(T_DANGER), yW = toY(T_WARN);
+  ctx.fillStyle = 'rgba(255,59,59,0.07)';
+  ctx.fillRect(PAD.left, PAD.top, plotW, Math.max(0, yD - PAD.top));
+
+  ctx.fillStyle = 'rgba(255,201,71,0.07)';
+  ctx.fillRect(PAD.left, yD, plotW, Math.max(0, yW - yD));
+
+  // Threshold lines
+  [[T_WARN,'rgba(255,201,71,0.6)','45°C预警'],[T_DANGER,'rgba(255,59,59,0.7)','60°C危险']].forEach(([tv,col,lbl]) => {
+    const py = toY(tv);
+    ctx.strokeStyle = col; ctx.lineWidth = 1;
+    ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(PAD.left, py); ctx.lineTo(PAD.left + plotW, py); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = col; ctx.font='9px Share Tech Mono,monospace'; ctx.textAlign='left';
+    ctx.fillText(lbl, PAD.left + 4, py - 3);
+  });
+
+  // Axis labels
+  ctx.save(); ctx.translate(12, PAD.top + plotH/2); ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='#4a7090'; ctx.font='10px Share Tech Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText('Temperature (°C)', 0, 0); ctx.restore();
+  ctx.fillStyle='#4a7090'; ctx.font='10px Share Tech Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText('Time (s)', PAD.left + plotW/2, H - 4);
+
+  if (T_history.length < 2) return;
+
+  // Gradient fill under curve
+  const grad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + plotH);
+  grad.addColorStop(0,   'rgba(255,59,59,0.3)');
+  grad.addColorStop(0.4, 'rgba(255,201,71,0.15)');
+  grad.addColorStop(1,   'rgba(59,158,255,0.05)');
+
+  ctx.beginPath();
+  T_history.forEach((T, i) => {
+    const px = PAD.left + (t_history[i] / SIM_DURATION) * plotW;
+    const py = toY(T);
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  });
+  // close path for fill
+  const lastPx = PAD.left + (t_history[t_history.length-1] / SIM_DURATION) * plotW;
+  ctx.lineTo(lastPx, PAD.top + plotH);
+  ctx.lineTo(PAD.left, PAD.top + plotH);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Temperature curve
+  ctx.beginPath();
+  ctx.lineWidth = 2.5;
+  T_history.forEach((T, i) => {
+    const px = PAD.left + (t_history[i] / SIM_DURATION) * plotW;
+    const py = toY(T);
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  });
+  // Color the stroke by current temperature
+  const curCol = tempToColor(T_now);
+  ctx.strokeStyle = curCol;
+  ctx.shadowColor = curCol; ctx.shadowBlur = 6;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // PCM plateau indicator
+  if (params.PCM > 0) {
+    T_history.forEach((T, i) => {
+      if (i > 0 && Math.abs(T - T_history[i-1]) < 0.01 && T >= PCM_Tmelt - 0.5 && T <= PCM_Tmelt + PCM_Trange + 0.5) {
+        const px = PAD.left + (t_history[i] / SIM_DURATION) * plotW;
+        const py = toY(T);
+        ctx.fillStyle = 'rgba(167,139,250,0.8)';
+        ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI*2); ctx.fill();
+      }
+    });
+  }
+
+  // Moving dot at current position
+  if (simRunning && T_history.length > 0) {
+    const T_cur = T_history[T_history.length-1];
+    const t_cur = t_history[t_history.length-1];
+    const px = PAD.left + (t_cur / SIM_DURATION) * plotW;
+    const py = toY(T_cur);
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, Math.PI*2);
+    ctx.fillStyle = curCol;
+    ctx.shadowColor = curCol; ctx.shadowBlur = 12;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  EQUATION DISPLAY
+// ══════════════════════════════════════════════════════
+function updateEqDisplay() {
+  const C_eff = calcCeff();
+  document.getElementById('eq-vals').textContent =
+    `C_eff = ${C_eff.toFixed(0)} J/K  |  PCM潜热剩余: ${pcm_latent_remaining.toFixed(0)} J`;
+}
+
+// ══════════════════════════════════════════════════════
+//  PREDICT & VERIFY
+// ══════════════════════════════════════════════════════
+function choosePred(el) {
+  document.querySelectorAll('.pred-btn').forEach(b => b.classList.remove('chosen'));
+  el.classList.add('chosen');
+  userPred = el.dataset.pred;
+  predChecked = false;
+  document.getElementById('predict-result').textContent = '已记录预测，运行仿真后验证。';
+  document.getElementById('predict-result').style.color = 'var(--gold)';
+}
+
+function checkPrediction() {
+  if (!userPred || predChecked) return;
+  predChecked = true;
+  const Tmax = T_max_ever;
+  let actual;
+  if (Tmax < T_WARN)   actual = 'safe';
+  else if (Tmax < T_DANGER) actual = 'warn';
+  else                 actual = 'danger';
+
+  const res = document.getElementById('predict-result');
+  if (userPred === actual) {
+    res.textContent = `✅ 预测正确！Tmax=${Tmax.toFixed(1)}°C，与你的判断一致。`;
+    res.style.color = 'var(--green)';
+  } else {
+    const labels = {safe:'安全(<45°C)', warn:'预警(45-60°C)', danger:'热失控(>60°C)'};
+    res.textContent = `❌ 预测有误。实际: ${labels[actual]}，Tmax=${Tmax.toFixed(1)}°C。思考为什么？`;
+    res.style.color = 'var(--orange)';
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  RESET
+// ══════════════════════════════════════════════════════
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (simRunning) stopSim();
+  stopAllAlarms();
+  unlockSliders();
+  // reset sliders
+  document.getElementById('sl-P').value   = 50;
+  document.getElementById('sl-h').value   = 0;
+  document.getElementById('sl-A').value   = 5;
+  document.getElementById('sl-PCM').value = 0;
+  params = { P:50, h:0, A:0.05, PCM:0 };
+  Object.keys(sliders).forEach(k => {
+    const cfg = sliders[k];
+    const raw = +cfg.el.value;
+    document.getElementById('val-'+k).innerHTML = cfg.fmt(raw);
+    document.getElementById('desc-'+k).textContent = cfg.desc(raw);
+    const pct = (raw - cfg.min) / (cfg.max - cfg.min) * 100;
+    document.getElementById('bar-'+k).style.width = pct + '%';
+  });
+  T_now = T_ENV; T_max_ever = T_ENV;
+  T_history = []; t_history = [];
+  userPred = null; predChecked = false;
+  pcm_latent_remaining = 0;
+  document.getElementById('predict-result').textContent = '';
+  document.querySelectorAll('.pred-btn').forEach(b => b.classList.remove('chosen'));
+  document.getElementById('prog-bar').style.width = '0%';
+  document.getElementById('prog-time').textContent = '待机中 STANDBY';
+  document.getElementById('prog-time').style.color = 'var(--muted)';
+  document.getElementById('ro-T').textContent    = '25.0';
+  document.getElementById('ro-Tmax').textContent = '25.0';
+  document.getElementById('ro-dtdt').textContent = '0.000';
+  document.getElementById('ro-time').textContent = '0s';
+  document.getElementById('T-label').textContent = '25.0°C';
+  document.getElementById('dtdt-label').textContent = 'dT/dt = 0.000 °C/s';
+  document.getElementById('dec-tmax').textContent = '25.0 °C';
+  document.getElementById('advice-list').innerHTML = '<span style="font-size:11px;color:var(--muted)">← 运行仿真后显示系统建议</span>';
+  document.getElementById('alarm-indicator').classList.remove('show','warn-level');
+  document.getElementById('warn-flash').classList.remove('active');
+  document.getElementById('bottom').classList.remove('warn');
+  updatePCMVisual();
+  updateBatteryColor(T_ENV);
+  updateEqDisplay();
+  drawChart();
+});
+
+// ══════════════════════════════════════════════════════
+//  PARTICLE SYSTEM
+// ══════════════════════════════════════════════════════
+const partCanvas = document.getElementById('part-canvas');
+const partCtx    = partCanvas.getContext('2d');
+let parts = [];
+
+function initParts() {
+  partCanvas.width  = partCanvas.offsetWidth;
+  partCanvas.height = partCanvas.offsetHeight;
+  parts = Array.from({length:40}, () => ({
+    x: 60 + Math.random()*200, y: 80 + Math.random()*120,
+    vx: (Math.random()-0.5)*0.5, vy: (Math.random()-0.5)*0.5,
+    r: Math.random()*2+0.5, alpha: Math.random()*0.5+0.1,
+    hue: 200 + Math.random()*40,
+  }));
+}
+function animParts() {
+  partCtx.clearRect(0,0,partCanvas.width,partCanvas.height);
+  const speed = simRunning ? (T_now - T_ENV) / 30 + 0.5 : 0.2;
+  parts.forEach(p => {
+    p.x += p.vx * speed; p.y += p.vy * speed;
+    if (p.x < 60 || p.x > 260) p.vx *= -1;
+    if (p.y < 80 || p.y > 200) p.vy *= -1;
+    partCtx.beginPath();
+    partCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    // Hue shifts with temperature
+    const hue = simRunning ? 240 - (T_now - T_ENV) * 2 : 210;
+    const alpha = Math.floor(p.alpha*180).toString(16).padStart(2,'0');
+    partCtx.fillStyle = `hsl(${hue},80%,60%)${alpha}`;
+    partCtx.fill();
+  });
+  requestAnimationFrame(animParts);
+}
+
+// ══════════════════════════════════════════════════════
+//  CHART CANVAS RESIZE
+// ══════════════════════════════════════════════════════
+function resizeChart() {
+  const canvas = document.getElementById('chart-canvas');
+  canvas.width  = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  drawChart();
+}
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  resizeChart();
+  initParts();
+  animParts();
+  updateEqDisplay();
+  updatePCMVisual();
+  updateBatteryColor(T_ENV);
+
+  // Responsive
+  window.addEventListener('resize', () => {
+    resizeChart();
+    initParts();
+  });
+});
+</script>
+</body>
+</html>
