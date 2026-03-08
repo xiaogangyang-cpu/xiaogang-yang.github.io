@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+<title>非动力学控制的电解槽分解电压模拟器 · 三栏响应式 v1.0</title>
+<!-- MathJax (保持不变) -->
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [['$$','$$']] },
+  startup: { ready() { MathJax.startup.defaultReady(); } }
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #0a0c0f;
+    --panel: #0f1318;
+    --panel2: #141920;
+    --border: #1e2730;
+    --accent: #00d4aa;
+    --accent2: #f0a500;
+    --accent3: #e05555;
+    --text: #c8d8e8;
+    --dim: #8aacb0;
+    --grid: rgba(0,212,170,0.06);
+    --glow: 0 0 20px rgba(0,212,170,0.15);
+    --glow2: 0 0 20px rgba(240,165,0,0.2);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* 网格背景 */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app-wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 12px;
+  }
+
+  /* HEADER (微调) */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
+  }
+  .header-title {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: clamp(14px, 4vw, 28px);
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0,212,170,0.5);
+  }
+  .header-title span { color: var(--accent2); }
+  .header-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--dim);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    letter-spacing: 2px;
+    white-space: nowrap;
+  }
+  .status-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    margin-right: 8px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ----- 三栏核心布局 (左中右) ----- */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr 280px;  /* 默认三栏 */
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  /* 中间列 — 用flex纵向排列公式区 + 图表区 */
+  .middle-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;          /* 防止flex溢出 */
+  }
+
+  /* 左右面板通用样式 */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 16px;
+    position: relative;
+  }
+  .panel-title {
+    font-family: 'sans-serif', monospace;
+    font-size: 14px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    padding-bottom: 10px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-title::before {
+    content: '▶';
+    font-size: 14px;
+  }
+
+  /* 参数滑块组 (保持不变) */
+  .param-group { margin-bottom: 18px; }
+  .param-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .param-label span {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent2);
+    font-family: 'Share Tech Mono', monospace;
+    transition: color 0.2s;
+  }
+  .param-label span.changed { color: var(--accent); text-shadow: 0 0 8px rgba(0,212,170,0.6); }
+  .slider-track {
+    position: relative;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 8px 0 4px;
+  }
+  .slider-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 2px;
+    pointer-events: none;
+    transition: width 0.1s;
+  }
+  input[type=range] {
+    width: 100%;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    padding: 6px 0;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 8px var(--accent);
+    transition: transform 0.1s;
+  }
+  input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.3); }
+  input[type=range]::-webkit-slider-runnable-track { background: transparent; height: 0; }
+  .param-range {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--border);
+    margin-top: 2px;
+  }
+
+  /* 公式面板 (原本样式，移入middle-column) */
+  .formula-panel {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .formula-panel::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--accent), var(--accent2));
+  }
+  .formula-block {
+    margin-bottom: 20px;
+    padding: 14px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    position: relative;
+    transition: border-color 0.3s;
+  }
+  .formula-block.active { border-color: rgba(0,212,170,0.3); box-shadow: var(--glow); }
+  .formula-name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: var(--dim);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .formula-render { font-size: 12px; color: #ffaa00; line-height: 1.4; min-height: 25px; }
+  .formula-numeric {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+  }
+  .formula-numeric .val { color: var(--accent2); font-size: 16px; }
+
+  /* 图表区 (原本的charts-row, 现在位于middle-column内) */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .chart-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 16px;
+  }
+  .chart-title {
+    font-family: 'sans-serif', monospace;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .chart-title .indicator {
+    width: 8px; height: 8px;
+    background: var(--accent2);
+    box-shadow: 0 0 6px var(--accent2);
+    animation: pulse 1.5s infinite;
+  }
+  canvas {
+    width: 100%;
+    display: block;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    height: auto;          /* 保持比例，由JS控制像素尺寸 */
+  }
+
+  /* 右侧输出卡片 */
+  .output-grid { display: grid; gap: 10px; }
+  .output-card {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .output-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.3s;
+  }
+  .output-card.updated::after { transform: scaleX(1); }
+  .output-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .output-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    text-shadow: 0 0 15px rgba(0,212,170,0.4);
+    transition: all 0.2s;
+    line-height: 1;
+    word-break: break-word;
+  }
+  .output-value.warning { color: var(--accent3); text-shadow: 0 0 15px rgba(224,85,85,0.4); }
+  .output-value.caution { color: var(--accent2); text-shadow: 0 0 15px rgba(240,165,0,0.4); }
+  .output-unit {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--dim);
+    margin-top: 4px;
+  }
+  .output-bar {
+    margin-top: 8px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .output-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 2px;
+    transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* 任务面板 */
+  .tasks-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .tasks-header {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    letter-spacing: 3px;
+    color: var(--accent2);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .tasks-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+  .tasks-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .task-card {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .task-card:hover { border-color: rgba(240,165,0,0.4); transform: translateY(-2px); box-shadow: var(--glow2); }
+  .task-card.active { border-color: var(--accent2); }
+  .task-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent2), transparent);
+  }
+  .task-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px;
+    font-weight: 900;
+    color: rgba(240,165,0,0.15);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .task-title {
+    font-family: 'Arial', monospace;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: var(--accent2);
+    margin-bottom: 10px;
+  }
+  .task-desc { font-size: 13px; color: var(--dim); line-height: 1.6; margin-bottom: 10px; }
+  .task-question {
+    font-size: 13px; color: var(--text); line-height: 1.5; padding: 8px;
+    background: rgba(0,212,170,0.05); border-left: 2px solid var(--accent); font-style: italic;
+  }
+  .task-btn {
+    margin-top: 12px; width: 100%; padding: 8px; background: transparent;
+    border: 1px solid var(--accent2); color: var(--accent2);
+    font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px;
+    cursor: pointer; text-transform: uppercase; transition: all 0.2s;
+  }
+  .task-btn:hover { background: rgba(240,165,0,0.1); }
+  .task-param {
+    font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--accent);
+    background: rgba(0,212,170,0.07); padding: 4px 8px; margin: 2px 0; border-left: 2px solid var(--accent);
+    display: block;
+  }
+
+  /* 辅助样式 */
+  .annotation {
+    font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--dim);
+    padding: 6px 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+    margin-top: 11px; line-height: 1.3;
+  }
+  .annotation b { color: var(--accent2); }
+  .flash { animation: flashGreen 0.4s ease-out; }
+  @keyframes flashGreen { 0% { background: rgba(0,212,170,0.15); } 100% { background: transparent; } }
+
+  /* ========== 响应式设计 ========== */
+  /* 平板及窄桌面 */
+  @media screen and (max-width: 1000px) {
+    .main-grid {
+      grid-template-columns: 240px 1fr 240px;  /* 稍微缩小固定列 */
+    }
+  }
+
+  @media screen and (max-width: 800px) {
+    .main-grid {
+      grid-template-columns: 1fr;  /* 单列堆叠 */
+      gap: 16px;
+    }
+    /* 调整左右面板和中间列顺序 */
+    .left-params { order: 1; }
+    .middle-column { order: 2; }
+    .right-output { order: 3; }
+
+    .tasks-grid {
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    /* 中间图表区在小屏也调整为单列 */
+    .charts-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media screen and (max-width: 500px) {
+    .app-wrapper { padding: 6px; }
+    header { flex-direction: column; align-items: start; }
+    .header-badge { align-self: flex-start; }
+    .output-value { font-size: 18px; }
+    .task-card { padding: 12px; }
+  }
+
+  /* 滚动条 */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+
+  <!-- HEADER (保持不变) -->
+  <header>
+    <div>
+      <div class="header-title">热力学控制的分解电压<span>模拟器</span></div>
+      <div style="font-size:11px;color:var(--dim);letter-spacing:2px;margin-top:4px;font-family:'Share Tech Mono'">ELECTROLYZER ENGINEERING SIMULATOR</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px; flex-wrap:wrap;">
+      <div style="text-align:right">
+        <div class="header-badge"><span class="status-dot"></span>REALTIME SIM</div>
+      </div>
+      <div class="header-badge" style="color:var(--accent2)">v1.0</div>
+    </div>
+  </header>
+
+  <!-- 三栏核心布局：左参数 + 中模拟区(公式+图表) + 右输出 -->
+  <div class="main-grid">
+
+    <!-- 左侧：参数调控 -->
+    <div class="panel left-params">
+      <div class="panel-title">参数输入 </div>
+
+      <!-- pH -->
+      <div class="param-group">
+        <div class="param-label">pH 酸碱度 <span id="val-pH">7.0</span></div>
+        <div class="slider-track"><div class="slider-fill" id="fill-pH"></div><input type="range" id="pH" min="0" max="14" step="0.1" value="7"></div>
+        <div class="param-range"><span>0 (酸)</span><span>14 (碱)</span></div>
+      </div>
+      <!-- Temperature -->
+      <div class="param-group">
+        <div class="param-label">T 温度 (K) <span id="val-T">298</span></div>
+        <div class="slider-track"><div class="slider-fill" id="fill-T"></div><input type="range" id="T" min="298" max="353" step="1" value="298"></div>
+        <div class="param-range"><span>298K (25°C)</span><span>353K (80°C)</span></div>
+      </div>
+      <!-- Current density -->
+      <div class="param-group">
+        <div class="param-label">j 电流密度 (mA/cm²) <span id="val-j">100</span></div>
+        <div class="slider-track"><div class="slider-fill" id="fill-j"></div><input type="range" id="j" min="10" max="500" step="5" value="100"></div>
+        <div class="param-range"><span>10</span><span>500</span></div>
+      </div>
+      <!-- Resistance -->
+      <div class="param-group">
+        <div class="param-label">R 电阻 (Ω·cm²) <span id="val-R">0.50</span></div>
+        <div class="slider-track"><div class="slider-fill" id="fill-R"></div><input type="range" id="R" min="0.001" max="2.0" step="0.05" value="0.5"></div>
+        <div class="param-range"><span>0.001</span><span>2.0</span></div>
+      </div>
+<div class="annotation"><b>物理背景：</b><br>
+电解水反应：H₂O → H₂ + ½O₂ 在热力学上需要的最小电压（可逆电压）为1.23 V（25°C，标准状态下）。该值随温度升高而略微降低（约-0.84 mV/K），并受pH影响（每增加1 pH，理论电压降低约59 mV）。然而实际电解时，由于电极反应动力学限制（活化过电位）和系统欧姆电阻，所需槽电压更高：<br>
+<b>U = E + η_act + j·R</b><br>
+本模拟器聚焦于<span style="color:var(--accent2)">欧姆损失（IR降）</span>，即电流通过电解质、隔膜、电极等产生的电压降，与电流密度j和面电阻R成正比。欧姆损失是能耗的主要来源之一，尤其在高电流密度下。通过降低电阻（如优化电解液、缩短极距）或控制电流密度，可有效提升能量效率（η = 1.23 V / U × 100%）。本工具旨在帮助理解这些参数对电解性能的定量影响。
+</div>
+    </div>
+
+    <!-- 中间：模拟展示区 (公式 + 图表) -->
+    <div class="middle-column">
+
+      <!-- 图表区 (原charts-row, 移入中间) -->
+      <div class="charts-row">
+
+       <div class="chart-panel">
+          <div class="chart-title">
+            <span>阳极理论电势 — pH </span>
+            <div class="indicator" style="background:var(--accent3);box-shadow:0 0 6px var(--accent3)"></div>
+          </div>
+          <canvas id="chart-anode-pH" width="600" height="200"></canvas>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--dim);margin-top:6px;padding:4px 6px;background:rgba(0,0,0,0.3);border:1px solid var(--border);">
+            阳极: H₂O → ½O₂ + 2H⁺ + 2e⁻ &nbsp;|&nbsp; <span style="color:var(--accent3)">E<sub>anode</sub> = E⁰(T) − (RT/F)·ln10·pH &nbsp;[25°C ≈ −59.16 mV/pH]</span>
+          </div>
+        </div>
+        <div class="chart-panel">
+          <div class="chart-title">
+            <span>阴极理论电势 — pH </span>
+            <div class="indicator" style="background:#6ab0ff;box-shadow:0 0 6px #6ab0ff"></div>
+          </div>
+          <canvas id="chart-cathode-pH" width="600" height="200"></canvas>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--dim);margin-top:6px;padding:4px 6px;background:rgba(0,0,0,0.3);border:1px solid var(--border);">
+            阴极: 2H⁺ + 2e⁻ → H₂ &nbsp;|&nbsp; <span style="color:#6ab0ff">E<sub>cathode</sub> = 0 − (RT/F)·ln10·pH &nbsp;[25°C ≈ −59.16 mV/pH]</span>
+          </div>
+        </div>
+
+        <div class="chart-panel">
+          <div class="chart-title"><span>电解槽 T — U 特性曲线 &nbsp; </span><div class="indicator"></div></div>
+          <canvas id="chart-TU" width="600" height="200"></canvas>
+        </div>
+
+        <div class="chart-panel">
+          <div class="chart-title"><span>电解槽 j — U 特性曲线 &nbsp; </span><div class="indicator"></div></div>
+          <canvas id="chart-jU" width="600" height="200"></canvas>
+        </div>
+
+ 
+      </div>
+
+    
+
+    </div>
+
+    <!-- 右侧：结果输出 -->
+    <div class="panel right-output">
+      <div class="panel-title">输出结果 OUTPUTS</div>
+      <div class="output-grid">
+        <div class="output-card" id="oc-U"><div class="output-label">CELL VOLTAGE 槽电压</div><div class="output-value" id="out-U">—</div><div class="output-unit">V (伏特)</div><div class="output-bar"><div class="output-bar-fill" id="bar-U" style="width:0%"></div></div></div>
+        <div class="output-card" id="oc-IRdrop"><div class="output-label">IR DROP 欧姆降</div><div class="output-value" id="out-IRdrop">—</div><div class="output-unit">V — 电阻性损失</div><div class="output-bar"><div class="output-bar-fill" id="bar-IRdrop" style="width:0%"></div></div></div>
+        <div class="output-card" id="oc-W"><div class="output-label">ENERGY COST 单位能耗</div><div class="output-value" id="out-W">—</div><div class="output-unit">kWh/kg H₂</div><div class="output-bar"><div class="output-bar-fill" id="bar-W" style="width:0%"></div></div></div>
+        <div class="output-card" id="oc-n"><div class="output-label">H₂ PRODUCTION 产氢量</div><div class="output-value" id="out-n">—</div><div class="output-unit">×10⁻⁶ mol/s per cm²</div><div class="output-bar"><div class="output-bar-fill" id="bar-n" style="width:0%"></div></div></div>
+        <div class="output-card" id="oc-eff"><div class="output-label">THERMODYNAMIC EFF. 热力学效率</div><div class="output-value" id="out-eff">—</div><div class="output-unit">η = E⁰ / U × 100%</div><div class="output-bar"><div class="output-bar-fill" id="bar-eff" style="width:0%"></div></div></div>
+      </div>
+      <div class="annotation" style="margin-top:10px"><b>当前工况：</b><br><span id="annotation-status">正常运行范围</span></div>
+    </div>
+  </div> <!-- end main-grid -->
+
+
+  <!-- 公式推导面板 (原样) -->
+      <div class="formula-panel">
+        <div class="panel-title">公式推导 EQUATIONS</div>
+        <!-- Formula 1 -->
+        <div class="formula-block" id="fb1">
+          <div class="formula-name">① NERNST EQUATION — 能斯特方程</div>
+          <div class="formula-render">$$E = E^0 - \frac{RT}{nF}\ln\!\left(\frac{a_{H_2} \cdot a_{O_2}^{1/2}}{a_{H_2O}}\right)$$</div>
+          <div class="formula-numeric" id="fn1"><span>E⁰ = 1.229 V &nbsp;|&nbsp; T = <span class="val" id="fn1-T">298</span> K</span>, <span>E = <span class="val" id="fn1-E">1.229</span> V</span></div>
+        </div>
+        <!-- Formula 2 -->
+        <div class="formula-block" id="fb2">
+          <div class="formula-name">② CELL VOLTAGE — 槽电压</div>
+          <div class="formula-render">$$U = E + j \cdot R$$</div>
+          <div class="formula-numeric" id="fn2"><span>E = <span class="val" id="fn2-E">1.229</span> V &nbsp;+&nbsp; j = <span class="val" id="fn2-j">100</span> mA/cm² × R = <span class="val" id="fn2-R">0.5</span> Ω·cm²</span><br><span>IR drop = <span class="val" id="fn2-IR">0.050</span> V &nbsp;|&nbsp; U = <span class="val" id="fn2-U">1.279</span> V</span></div>
+        </div>
+        <!-- Formula 3 -->
+        <div class="formula-block" id="fb3">
+          <div class="formula-name">③ ENERGY & PRODUCTION — 能耗与产量</div>
+          <div class="formula-render">$$W = \frac{U \cdot M_{H_2}}{n_e \cdot F} \times 1000 \;\text{(kWh/kg)} \qquad \dot{n}_{H_2} = \frac{j \cdot A}{2F}$$</div>
+          <div class="formula-numeric" id="fn3"><span>W = <span class="val" id="fn3-W">—</span> kWh/kg &nbsp;|&nbsp; ṅ<sub>H₂</sub> = <span class="val" id="fn3-n">—</span> mol/s per cm²</span></div>
+        </div>
+        <!-- Formula 4 -->
+        <div class="formula-block" id="fb4">
+          <div class="formula-name">④ IR DOMINANCE RATIO — 欧姆主导比</div>
+          <div class="formula-render">$$\eta_{IR} = \frac{j \cdot R}{U} \times 100\%$$</div>
+          <div class="formula-numeric" id="fn4"><span>IR 占总电压：<span class="val" id="fn4-ratio">—</span>%</span><div style="margin-top:6px;height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div id="ratio-bar" style="height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:3px;transition:width 0.4s;width:0%"></div></div></div>
+        </div>
+      </div>
+
+
+  <!-- 探索任务面板 (保持不变，置于最下) -->
+  <div class="tasks-panel">
+    <div class="tasks-header">探索任务 EXPLORATION TASKS</div>
+    <div class="tasks-grid">
+      <div class="task-card" id="task1"><div class="task-num">01</div><div class="task-title">IR内阻主导</div><div class="task-desc"><code class="task-param">T = 298 K</code><code class="task-param">R = 0.5 Ω·cm²</code>改变 j 从 10 → 200 mA/cm²，观察电压变化曲线。</div><div class="task-question">❓ 在高电流密度下，IR drop 是否主导了总电压？临界电流在哪里？</div><button class="task-btn" onclick="applyTask(1)">▶ 加载任务参数</button></div>
+      <div class="task-card" id="task2"><div class="task-num">02</div><div class="task-title">温度主导</div><div class="task-desc"><code class="task-param">j = 100 mA/cm²</code><code class="task-param">R = 0.5 Ω·cm²</code>将温度从 298 K → 353 K 缓慢拖动。</div><div class="task-question">❓ E（热力学电位）是否明显随温度变化？温度真的能大幅降低能耗吗？</div><button class="task-btn" onclick="applyTask(2)">▶ 加载任务参数</button></div>
+      <div class="task-card" id="task3"><div class="task-num">03</div><div class="task-title">工程情景</div><div class="task-desc">企业情境：风电夜间只能提供 <b style="color:var(--accent2)">1.6 V</b>。<br>在此电压限制下，最大电流密度是多少？<br><code class="task-param">j_max = (U_max - E) / R</code></div><div class="task-question">❓ 拖动 j 滑条，找到 U ≤ 1.6 V 时的最大电流。这是工程约束优化！</div><button class="task-btn" onclick="applyTask(3)">▶ 加载任务参数</button></div>
+    </div>
+  </div>
+
+</div><!-- end app-wrapper -->
+
+<!-- 所有JavaScript保持不变（物理引擎、更新、绘图、任务） -->
+<script>
+// ==================== 物理常数与函数 (完全保留) ====================
+const F = 96485;      // Faraday constant C/mol
+const R_gas = 8.314;  // Gas constant J/(mol·K)
+const E0 = 1.229;     // Standard potential V at 25°C
+const M_H2 = 2.016;   // Molar mass g/mol
+const n_e = 2;        // electrons per mol H2
+
+function calcE(T, pH) {
+  const E_T = E0 - 8.5e-4 * (T - 298);
+  // pH小影响 (演示)
+  const E_cell = E_T + 0.059 / n_e * (14 - pH) * 0.02;
+  return Math.max(1.0, E_cell);
+}
+function calcU(E, j_mA, R_ohm) { const j_A = j_mA * 1e-3; return E + j_A * R_ohm; }
+function calcEnergy(U) { return (U * n_e * F) / (M_H2 / 1000) / 3600; }
+function calcH2(j_mA) { const j_A = j_mA * 1e-3; return j_A / (n_e * F); }
+
+// ==================== DOM 引用 ====================
+const sliders = { pH: document.getElementById('pH'), T: document.getElementById('T'), j: document.getElementById('j'), R: document.getElementById('R') };
+const vals = { pH: document.getElementById('val-pH'), T: document.getElementById('val-T'), j: document.getElementById('val-j'), R: document.getElementById('val-R') };
+const fills = { pH: document.getElementById('fill-pH'), T: document.getElementById('fill-T'), j: document.getElementById('fill-j'), R: document.getElementById('fill-R') };
+let state = { pH: 7, T: 298, j: 100, R: 0.5 };
+let prevU = null;
+
+function getSliderFraction(id) { const el = sliders[id]; return (el.value - el.min) / (el.max - el.min); }
+function updateFill(id) { fills[id].style.width = (getSliderFraction(id) * 100) + '%'; }
+function flashElement(el) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+
+// ==================== 主更新函数 ====================
+function update() {
+  const pH = parseFloat(sliders.pH.value);
+  const T  = parseFloat(sliders.T.value);
+  const j  = parseFloat(sliders.j.value);
+  const R  = parseFloat(sliders.R.value);
+  state = { pH, T, j, R };
+
+  vals.pH.textContent = pH.toFixed(1); vals.T.textContent  = T.toFixed(0); vals.j.textContent  = j.toFixed(0); vals.R.textContent  = R.toFixed(2);
+  ['pH','T','j','R'].forEach(updateFill);
+
+  const E  = calcE(T, pH);
+  const U  = calcU(E, j, R);
+  const IR = U - E;
+  const W  = calcEnergy(U);
+  const n  = calcH2(j) * 1e6; // µmol/s/cm²
+  const eff = (E0 / U) * 100;
+  const irRatio = (IR / U) * 100;
+
+  // 更新公式显示
+  document.getElementById('fn1-T').textContent = T.toFixed(0);
+  document.getElementById('fn1-E').textContent = E.toFixed(4);
+  document.getElementById('fn2-E').textContent = E.toFixed(4);
+  document.getElementById('fn2-j').textContent = j.toFixed(0);
+  document.getElementById('fn2-R').textContent = R.toFixed(2);
+  document.getElementById('fn2-IR').textContent = IR.toFixed(4);
+  document.getElementById('fn2-U').textContent = U.toFixed(4);
+  document.getElementById('fn3-W').textContent = W.toFixed(2);
+  document.getElementById('fn3-n').textContent = n.toFixed(3);
+  document.getElementById('fn4-ratio').textContent = irRatio.toFixed(1);
+  document.getElementById('ratio-bar').style.width = Math.min(irRatio, 100) + '%';
+
+  // 更新输出卡片
+  setOutput('U', U.toFixed(3), U > 2.0 ? 'warning' : U > 1.7 ? 'caution' : '');
+  setOutput('IRdrop', IR.toFixed(4), IR > 0.3 ? 'warning' : '');
+  setOutput('W', W.toFixed(2), W > 60 ? 'warning' : W > 50 ? 'caution' : '');
+  setOutput('n', n.toFixed(3), '', n / 2.6);
+  setOutput('eff', eff.toFixed(1) + '%', eff < 60 ? 'warning' : eff < 75 ? 'caution' : '');
+
+  document.getElementById('bar-U').style.width     = Math.min((U / 3.0) * 100, 100) + '%';
+  document.getElementById('bar-IRdrop').style.width = Math.min((IR / 0.5) * 100, 100) + '%';
+  document.getElementById('bar-W').style.width      = Math.min((W / 80) * 100, 100) + '%';
+  document.getElementById('bar-n').style.width      = Math.min((n / 2.6) * 100, 100) + '%';
+  document.getElementById('bar-eff').style.width    = eff + '%';
+
+  let status = '';
+  if (U > 2.2) status = '⚠️ 高电压 — 能耗过高，建议降低电流密度或减小电阻';
+  else if (irRatio > 50) status = '⚠️ IR Drop 主导 — 超过总电压 50%，欧姆损失是主要瓶颈';
+  else if (eff > 85) status = '✅ 优秀工况 — 热力学效率高，接近理论极限';
+  else if (eff > 75) status = '✔ 良好运行范围 — 效率合理';
+  else status = '运行中 — 可通过降温/减阻优化';
+  document.getElementById('annotation-status').textContent = status;
+
+  drawChartJU(T, R, j);
+  drawChartTU(j, R, T);
+  drawChartAnodePH(pH, T);
+  drawChartCathodePH(pH, T);
+  prevU = U;
+}
+
+function setOutput(id, valStr, cls = '', barFrac) {
+  const el = document.getElementById('out-' + id);
+  const card = document.getElementById('oc-' + id);
+  el.textContent = valStr;
+  el.className = 'output-value' + (cls ? ' ' + cls : '');
+  card.classList.remove('updated');
+  void card.offsetWidth;
+  card.classList.add('updated');
+}
+
+// ==================== 绘图函数 (原样保留) ====================
+function setupCanvas(id) {
+  const canvas = document.getElementById(id);
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = rect.width - 32;
+  canvas.width = w * window.devicePixelRatio || w;
+  canvas.height = 200 * (window.devicePixelRatio || 1);
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+  canvas.style.height = '200px';
+  return { ctx, w, h: 200 };
+}
+const CHART_COLORS = { bg: '#060810', grid: 'rgba(0,212,170,0.07)', axis: 'rgba(0,212,170,0.3)', line: '#00d4aa', line2: '#f0a500', dot: '#ffffff', text: '#b0d0e0' };
+function drawGrid(ctx, w, h, padL, padR, padT, padB) {
+  ctx.fillStyle = CHART_COLORS.bg; ctx.fillRect(0, 0, w, h);
+  const pw = w - padL - padR; const ph = h - padT - padB;
+  ctx.strokeStyle = CHART_COLORS.grid; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) { const y = padT + (ph / 4) * i; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke(); }
+  for (let i = 0; i <= 5; i++) { const x = padL + (pw / 5) * i; ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + ph); ctx.stroke(); }
+  ctx.strokeStyle = CHART_COLORS.axis; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT+ph); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(padL, padT+ph); ctx.lineTo(padL+pw, padT+ph); ctx.stroke();
+}
+function drawChartJU(T, R, currentJ) {
+  const { ctx, w, h } = setupCanvas('chart-jU');
+  const padL = 50, padR = 16, padT = 16, padB = 36; const pw = w - padL - padR; const ph = h - padT - padB;
+  drawGrid(ctx, w, h, padL, padR, padT, padB);
+  const jVals = [], UVals = [];
+  const E_now = calcE(T, state.pH);
+  for (let jj = 10; jj <= 500; jj += 5) { jVals.push(jj); UVals.push(calcU(E_now, jj, R)); }
+  const Umin = Math.min(...UVals), Umax = Math.max(...UVals), Urange = Umax - Umin;
+  function toX(j) { return padL + ((j - 10) / (500 - 10)) * pw; }
+  function toY(u) { return padT + ph - ((u - Umin + Urange*0.05) / (Urange * 1.15)) * ph; }
+  const y16 = toY(1.6);
+  if (y16 > padT && y16 < padT + ph) {
+    ctx.strokeStyle = 'rgba(224,85,85,0.6)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(padL, y16); ctx.lineTo(padL+pw, y16); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#e05555'; ctx.font = '10px Share Tech Mono, monospace'; ctx.fillText('内阻增大，夜间运行限制不超过1.6V', padL + 4, y16 - 4);
+  }
+  ctx.strokeStyle = CHART_COLORS.line; ctx.lineWidth = 2; ctx.shadowColor = CHART_COLORS.line; ctx.shadowBlur = 8;
+  ctx.beginPath(); jVals.forEach((jj, i) => { const x = toX(jj), y = toY(UVals[i]); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }); ctx.stroke(); ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(240,165,0,0.07)'; ctx.beginPath(); ctx.moveTo(toX(jVals[0]), toY(E_now));
+  jVals.forEach((jj, i) => ctx.lineTo(toX(jj), toY(UVals[i]))); ctx.lineTo(toX(jVals[jVals.length-1]), toY(E_now)); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,212,170,0.35)'; ctx.setLineDash([6, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(padL, toY(E_now)); ctx.lineTo(padL + pw, toY(E_now)); ctx.stroke(); ctx.setLineDash([]);
+  const cx = toX(currentJ), cy = toY(calcU(E_now, currentJ, R)); ctx.fillStyle = CHART_COLORS.line2; ctx.shadowColor = CHART_COLORS.line2; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.fillStyle = CHART_COLORS.text; ctx.font = '10px Share Tech Mono, monospace'; ctx.fillText('10', padL, padT + ph + 18); ctx.fillText('250', padL + pw/2 - 10, padT + ph + 18); ctx.fillText('500', padL + pw - 20, padT + ph + 18); ctx.fillText('j (mA/cm²)', padL + pw/2 - 20, padT + ph + 30);
+  ctx.save(); ctx.translate(8, padT + ph/2 + 20); ctx.rotate(-Math.PI/2); ctx.fillText('U (V)', 0, 0); ctx.restore();
+  for (let i = 0; i <= 4; i++) { const u = Umin + (Urange * 1.15) * (1 - i/4); const y = padT + (ph/4)*i; ctx.fillStyle = CHART_COLORS.text; ctx.font = '9px Share Tech Mono, monospace'; ctx.fillText(u.toFixed(2), padL - 40, y + 4); }
+}
+function drawChartTU(j, R, currentT) {
+  const { ctx, w, h } = setupCanvas('chart-TU');
+  const padL = 50, padR = 16, padT = 16, padB = 36; const pw = w - padL - padR; const ph = h - padT - padB;
+  drawGrid(ctx, w, h, padL, padR, padT, padB);
+  const Tvals = [], UVals = [];
+  for (let T = 298; T <= 353; T += 1) { Tvals.push(T); UVals.push(calcU(calcE(T, state.pH), j, R)); }
+  const Umin = Math.min(...UVals), Umax = Math.max(...UVals), Urange = Umax - Umin || 0.01;
+  function toX(t) { return padL + ((t - 298) / (353 - 298)) * pw; }
+  function toY(u) { return padT + ph - ((u - Umin + Urange*0.05) / (Urange * 1.3)) * ph; }
+  const grad = ctx.createLinearGradient(0, padT, 0, padT+ph); grad.addColorStop(0, 'rgba(240,165,0,0.15)'); grad.addColorStop(1, 'rgba(240,165,0,0)');
+  ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(toX(298), padT+ph); Tvals.forEach((T, i) => ctx.lineTo(toX(T), toY(UVals[i]))); ctx.lineTo(toX(353), padT+ph); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = CHART_COLORS.line2; ctx.lineWidth = 2; ctx.shadowColor = CHART_COLORS.line2; ctx.shadowBlur = 8;
+  ctx.beginPath(); Tvals.forEach((T, i) => { const x = toX(T), y = toY(UVals[i]); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }); ctx.stroke(); ctx.shadowBlur = 0;
+  const cx = toX(currentT), cy = toY(calcU(calcE(currentT, state.pH), j, R)); ctx.fillStyle = CHART_COLORS.line; ctx.shadowColor = CHART_COLORS.line; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.fillStyle = CHART_COLORS.text; ctx.font = '10px Share Tech Mono, monospace'; ctx.fillText('298K', padL, padT + ph + 18); ctx.fillText('325K', padL + pw/2 - 12, padT + ph + 18); ctx.fillText('353K', padL + pw - 22, padT + ph + 18); ctx.fillText('T (K)', padL + pw/2 - 15, padT + ph + 30);
+  ctx.save(); ctx.translate(12, padT + ph/2 + 20); ctx.rotate(-Math.PI/2); ctx.fillText('U (V)', 0, 0); ctx.restore();
+  for (let i = 0; i <= 4; i++) { const u = Umin + (Urange * 1.3) * (1 - i/4); const y = padT + (ph/4)*i; ctx.fillStyle = CHART_COLORS.text; ctx.font = '9px Share Tech Mono, monospace'; ctx.fillText(u.toFixed(3), padL - 44, y + 4); }
+}
+
+// ==================== pH-电势图绘制函数 ====================
+function drawChartAnodePH(currentPH, currentT) {
+  const { ctx, w, h } = setupCanvas('chart-anode-pH');
+  const padL = 56, padR = 16, padT = 24, padB = 36;
+  const pw = w - padL - padR, ph = h - padT - padB;
+  drawGrid(ctx, w, h, padL, padR, padT, padB);
+
+  const pHmin = 0, pHmax = 14;
+
+  // ── 坐标轴范围：固定在 298K 基础上，加少量余量，永不随T变化 ──
+  const slope298 = (R_gas * 298 / F) * Math.LN10;   // 0.05916 V/pH
+  const E0_298   = E0;                                // 1.229 V
+  const yAxisMax = E0_298 + 0.06;                     // 固定上限 ≈ 1.29 V
+  const yAxisMin = E0_298 - slope298 * pHmax - 0.06; // 固定下限 ≈ 0.34 V
+  const yRange   = yAxisMax - yAxisMin;
+
+  function toX(p) { return padL + (p / pHmax) * pw; }
+  function toY(e) { return padT + ph - ((e - yAxisMin) / yRange) * ph; }
+
+  // ── 当前温度的计算参数 ──
+  const slope  = (R_gas * currentT / F) * Math.LN10;
+  const E0_T   = E0 - 8.5e-4 * (currentT - 298);
+  const eAtPH  = p => E0_T - slope * p;
+
+  // ── 298K 参考曲线（始终绘制，作为固定基准） ──
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.setLineDash([4, 5]); ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i = 0, p = 0; p <= pHmax + 0.01; p += 0.2, i++) {
+    const x = toX(p), y = toY(E0_298 - slope298 * p);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke(); ctx.setLineDash([]);
+  // 298K 标签（右端）
+  const y298end = toY(E0_298 - slope298 * pHmax);
+  ctx.fillStyle = 'rgba(200,216,232,0.45)'; ctx.font = '12px Share Tech Mono, monospace';
+  ctx.fillText('25°C ref  −59.2mV/pH', padL + pw - 128, y298end - 5);
+
+  // ── 实际曲线渐变填充 ──
+  const grad = ctx.createLinearGradient(0, padT, 0, padT + ph);
+  grad.addColorStop(0, 'rgba(224,85,85,0.22)');
+  grad.addColorStop(1, 'rgba(224,85,85,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(yAxisMin));
+  for (let p = 0; p <= pHmax; p += 0.1) ctx.lineTo(toX(p), toY(eAtPH(p)));
+  ctx.lineTo(toX(pHmax), toY(yAxisMin));
+  ctx.closePath(); ctx.fill();
+
+  // ── 实际曲线（随T实时更新） ──
+  ctx.strokeStyle = '#e05555'; ctx.lineWidth = 2.5;
+  ctx.shadowColor = '#e05555'; ctx.shadowBlur = 8;
+  ctx.beginPath();
+  for (let i = 0, p = 0; p <= pHmax + 0.01; p += 0.1, i++) {
+    const x = toX(p), y = toY(eAtPH(p));
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke(); ctx.shadowBlur = 0;
+  // 实际曲线标签（左端）
+  const yActStart = toY(E0_T);
+  ctx.fillStyle = '#e05555'; ctx.font = '9px Share Tech Mono, monospace';
+  const slopeMv = (slope * 1000).toFixed(1);
+  ctx.fillText(currentT + 'K  −' + slopeMv + 'mV/pH', padL + 3, yActStart - 5);
+
+  // ── 当前 pH 亮点 ──
+  const E_cur = eAtPH(currentPH);
+  const cx = toX(currentPH), cy = toY(E_cur);
+  // 光晕
+  ctx.fillStyle = 'rgba(224,85,85,0.2)';
+  ctx.beginPath(); ctx.arc(cx, cy, 11, 0, Math.PI * 2); ctx.fill();
+  // 白色亮点
+  ctx.fillStyle = '#ffffff'; ctx.shadowColor = '#e05555'; ctx.shadowBlur = 18;
+  ctx.beginPath(); ctx.arc(cx, cy, 5.5, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+  // 数值标注
+  const labelX = cx > padL + pw * 0.72 ? cx - 72 : cx + 9;
+  const labelY = cy < padT + 20 ? cy + 18 : cy - 9;
+  ctx.fillStyle = '#ff8888'; ctx.font = 'bold 11px Share Tech Mono, monospace';
+  ctx.fillText(E_cur.toFixed(3) + ' V', labelX, labelY);
+
+  // ── 坐标轴标签 & Y轴刻度 ──
+  ctx.fillStyle = CHART_COLORS.text; ctx.font = '10px Share Tech Mono, monospace';
+  ['0','7','14'].forEach((v, i) => {
+    const x = [padL, padL + pw/2 - 4, padL + pw - 14][i];
+    ctx.fillText(v, x, padT + ph + 18);
+  });
+  ctx.fillText('pH', padL + pw / 2 - 8, padT + ph + 30);
+  ctx.save(); ctx.translate(12, padT + ph / 2 + 20); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('E (V vs SHE)', 0, 0); ctx.restore();
+  for (let i = 0; i <= 4; i++) {
+    const e = yAxisMax - (yRange / 4) * i;
+    const y = padT + (ph / 4) * i;
+    ctx.fillStyle = CHART_COLORS.text; ctx.font = '9px Share Tech Mono, monospace';
+    ctx.fillText(e.toFixed(2), padL - 44, y + 4);
+  }
+}
+
+function drawChartCathodePH(currentPH, currentT) {
+  const { ctx, w, h } = setupCanvas('chart-cathode-pH');
+  const padL = 56, padR = 16, padT = 24, padB = 36;
+  const pw = w - padL - padR, ph = h - padT - padB;
+  drawGrid(ctx, w, h, padL, padR, padT, padB);
+
+  const pHmin = 0, pHmax = 14;
+
+  // ── 坐标轴范围：固定在 298K 基础上，永不随T变化 ──
+  const slope298 = (R_gas * 298 / F) * Math.LN10;   // 0.05916 V/pH
+  const yAxisMax = 0 + 0.06;                          // 固定上限 ≈ +0.06 V
+  const yAxisMin = -slope298 * pHmax - 0.06;          // 固定下限 ≈ −0.89 V
+  const yRange   = yAxisMax - yAxisMin;
+
+  function toX(p) { return padL + (p / pHmax) * pw; }
+  function toY(e) { return padT + ph - ((e - yAxisMin) / yRange) * ph; }
+
+  // ── 当前温度的计算参数 ──
+  const slope = (R_gas * currentT / F) * Math.LN10;
+  const eAtPH = p => -slope * p;
+
+  // ── 298K 参考曲线（始终绘制，作为固定基准） ──
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.setLineDash([4, 5]); ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i = 0, p = 0; p <= pHmax + 0.01; p += 0.2, i++) {
+    const x = toX(p), y = toY(-slope298 * p);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke(); ctx.setLineDash([]);
+  // 298K 标签（右端）
+  const y298end = toY(-slope298 * pHmax);
+  ctx.fillStyle = 'rgba(200,216,232,0.45)'; ctx.font = '11px Share Tech Mono, monospace';
+  ctx.fillText('25°C ref  −59.2mV/pH', padL + pw - 148, y298end - 5);
+
+  // ── 实际曲线渐变填充 ──
+  const grad = ctx.createLinearGradient(0, padT, 0, padT + ph);
+  grad.addColorStop(0, 'rgba(106,176,255,0)');
+  grad.addColorStop(1, 'rgba(106,176,255,0.22)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(0));
+  for (let p = 0; p <= pHmax; p += 0.1) ctx.lineTo(toX(p), toY(eAtPH(p)));
+  ctx.lineTo(toX(pHmax), toY(0));
+  ctx.closePath(); ctx.fill();
+
+  // ── 实际曲线（随T实时更新） ──
+  ctx.strokeStyle = '#6ab0ff'; ctx.lineWidth = 2.5;
+  ctx.shadowColor = '#6ab0ff'; ctx.shadowBlur = 8;
+  ctx.beginPath();
+  for (let i = 0, p = 0; p <= pHmax + 0.01; p += 0.1, i++) {
+    const x = toX(p), y = toY(eAtPH(p));
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke(); ctx.shadowBlur = 0;
+  // 实际曲线标签（左端略偏下）
+  ctx.fillStyle = '#6ab0ff'; ctx.font = '9px Share Tech Mono, monospace';
+  const slopeMv = (slope * 1000).toFixed(1);
+  ctx.fillText(currentT + 'K  −' + slopeMv + 'mV/pH', padL + 33, toY(0) + 14);
+
+  // ── 0V (SHE) 水平参考线 ──
+  const yZero = toY(0);
+  ctx.strokeStyle = 'rgba(0,212,170,0.3)'; ctx.setLineDash([5, 4]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(padL, yZero); ctx.lineTo(padL + pw, yZero); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(0,212,170,0.75)'; ctx.font = '9px Share Tech Mono, monospace';
+  ctx.fillText('0V (SHE)', padL + pw - 62, yZero - 4);
+
+  // ── 当前 pH 亮点 ──
+  const E_cur = eAtPH(currentPH);
+  const cx = toX(currentPH), cy = toY(E_cur);
+  ctx.fillStyle = 'rgba(106,176,255,0.2)';
+  ctx.beginPath(); ctx.arc(cx, cy, 11, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.shadowColor = '#6ab0ff'; ctx.shadowBlur = 18;
+  ctx.beginPath(); ctx.arc(cx, cy, 5.5, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+  const labelX = cx > padL + pw * 0.72 ? cx - 72 : cx + 9;
+  const labelY = cy < padT + 20 ? cy + 18 : cy - 9;
+  ctx.fillStyle = '#9acfff'; ctx.font = 'bold 11px Share Tech Mono, monospace';
+  ctx.fillText(E_cur.toFixed(3) + ' V', labelX, labelY);
+
+  // ── 坐标轴标签 & Y轴刻度 ──
+  ctx.fillStyle = CHART_COLORS.text; ctx.font = '10px Share Tech Mono, monospace';
+  ['0','7','14'].forEach((v, i) => {
+    const x = [padL, padL + pw/2 - 4, padL + pw - 14][i];
+    ctx.fillText(v, x, padT + ph + 18);
+  });
+  ctx.fillText('pH', padL + pw / 2 - 8, padT + ph + 30);
+  ctx.save(); ctx.translate(12, padT + ph / 2 + 20); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('E (V vs SHE)', 0, 0); ctx.restore();
+  for (let i = 0; i <= 4; i++) {
+    const e = yAxisMax - (yRange / 4) * i;
+    const y = padT + (ph / 4) * i;
+    ctx.fillStyle = CHART_COLORS.text; ctx.font = '9px Share Tech Mono, monospace';
+    ctx.fillText(e.toFixed(2), padL - 44, y + 4);
+  }
+}
+
+
+function applyTask(num) {
+  document.querySelectorAll('.task-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('task'+num).classList.add('active');
+  if (num === 1) { sliders.T.value = 298; sliders.R.value = 0.5; sliders.j.value = 100; sliders.pH.value = 7; }
+  else if (num === 2) { sliders.j.value = 100; sliders.R.value = 0.5; sliders.T.value = 298; sliders.pH.value = 7; }
+  else if (num === 3) { sliders.T.value = 298; sliders.R.value = 0.5; sliders.j.value = 100; sliders.pH.value = 7; }
+  update();
+}
+
+// ==================== 事件绑定 ====================
+Object.values(sliders).forEach(slider => {
+  slider.addEventListener('input', update);
+  slider.addEventListener('input', () => { const id = slider.id; const span = vals[id]; span.classList.add('changed'); setTimeout(() => span.classList.remove('changed'), 300); });
+});
+window.addEventListener('load', () => { update(); window.addEventListener('resize', update); });
+</script>
+</body>
+</html>
