@@ -1,0 +1,1980 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LiFePO₄ Cooling Curve Simulator — 冷却曲线与相变演化模拟器</title>
+
+<!-- MathJax -->
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},svg:{fontCache:'global'}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet"/>
+
+<style>
+/* ═══════════════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════════════ */
+:root{
+  --bg:       #020617;
+  --bg1:      #050e1f;
+  --bg2:      #091628;
+  --bg3:      #0d1f38;
+  --teal:     #0d9488;
+  --teal2:    #14b8a6;
+  --teal3:    #5eead4;
+  --amber:    #f59e0b;
+  --amber2:   #fbbf24;
+  --rose:     #f43f5e;
+  --violet:   #8b5cf6;
+  --sky:      #38bdf8;
+  --text:     #f8fafc;
+  --muted:    #64748b;
+  --muted2:   #94a3b8;
+  --border:   rgba(13,148,136,0.2);
+  --border2:  rgba(13,148,136,0.08);
+  --glow:     0 0 20px rgba(13,148,136,0.35);
+  --glow2:    0 0 40px rgba(13,148,136,0.2),0 0 80px rgba(13,148,136,0.08);
+  --font-ui:  'Rajdhani', sans-serif;
+  --font-mono:'Share Tech Mono', monospace;
+  --font-cn:  'Noto Sans SC', sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-ui);
+  min-height:100vh;
+  overflow-x:hidden;
+  /* Hex grid overlay */
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(13,148,136,0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(56,189,248,0.03) 0%, transparent 40%),
+    linear-gradient(rgba(13,148,136,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(13,148,136,0.03) 1px, transparent 1px);
+  background-size:100% 100%, 100% 100%, 44px 44px, 44px 44px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════════════════ */
+@keyframes fadeUp   { from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none} }
+@keyframes fadeIn   { from{opacity:0}to{opacity:1} }
+@keyframes scan     { 0%{transform:translateY(-100%)}100%{transform:translateY(100vh)} }
+@keyframes glowPulse{ 0%,100%{opacity:.6}50%{opacity:1} }
+@keyframes blink    { 0%,100%{opacity:1}50%{opacity:.2} }
+@keyframes spin     { to{transform:rotate(360deg)} }
+@keyframes platPulse{ 0%,100%{background:rgba(244,63,94,.12);border-color:rgba(244,63,94,.4)}
+                      50%{background:rgba(244,63,94,.28);border-color:rgba(244,63,94,.9)} }
+@keyframes drawLine { from{stroke-dashoffset:1}to{stroke-dashoffset:0} }
+@keyframes phaseFade{ from{opacity:0;transform:scaleY(.8)}to{opacity:1;transform:none} }
+@keyframes ripple   { 0%{transform:scale(1);opacity:.8}100%{transform:scale(3);opacity:0} }
+@keyframes slideIn  { from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none} }
+
+.fade-up{ animation:fadeUp .7s ease both; }
+.fade-up:nth-child(1){animation-delay:.05s}
+.fade-up:nth-child(2){animation-delay:.15s}
+.fade-up:nth-child(3){animation-delay:.25s}
+
+/* Scanline */
+.scanline{
+  pointer-events:none;position:fixed;inset:0 0 auto 0;
+  height:3px;
+  background:linear-gradient(90deg,transparent,var(--teal2),transparent);
+  animation:scan 5s linear infinite;
+  z-index:9999;opacity:.5;
+}
+
+/* ═══════════════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════════════ */
+header{
+  padding:2.2rem 2rem 1.8rem;
+  text-align:center;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,rgba(13,148,136,0.07) 0%,transparent 100%);
+  position:relative;
+  overflow:hidden;
+  animation:fadeIn 1s ease both;
+}
+header::after{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,transparent,transparent 48px,rgba(13,148,136,0.04) 48px,rgba(13,148,136,0.04) 49px);
+  pointer-events:none;
+}
+.h-badge{
+  display:inline-block;
+  font-family:var(--font-mono);font-size:.62rem;
+  color:var(--teal2);border:1px solid var(--teal);
+  padding:.18rem .9rem;border-radius:2px;
+  letter-spacing:.22em;margin-bottom:.9rem;
+  animation:blink 4s ease infinite;
+}
+.h-title{
+  font-family:var(--font-ui);font-weight:700;
+  font-size:clamp(1.5rem,3.5vw,2.5rem);
+  letter-spacing:.04em;line-height:1.2;
+  text-shadow:var(--glow);
+}
+.h-title em{color:var(--teal2);font-style:normal;}
+.h-sub{
+  font-family:var(--font-mono);font-size:.75rem;
+  color:var(--muted2);letter-spacing:.18em;margin-top:.5rem;
+}
+.h-dots{display:flex;justify-content:center;gap:.5rem;margin-top:1.1rem;}
+.h-dot{width:6px;height:6px;border-radius:50%;animation:glowPulse 2s ease infinite;}
+.h-dot:nth-child(1){background:var(--teal);animation-delay:0s;}
+.h-dot:nth-child(2){background:var(--amber);animation-delay:.35s;}
+.h-dot:nth-child(3){background:var(--rose);animation-delay:.7s;}
+
+/* ═══════════════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════════════ */
+.wrap{max-width:1440px;margin:0 auto;padding:1.8rem 1.5rem 4rem;display:flex;flex-direction:column;gap:1.8rem;}
+
+/* ═══════════════════════════════════════════════════════
+   CARD
+═══════════════════════════════════════════════════════ */
+.card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  overflow:hidden;
+  position:relative;
+  transition:box-shadow .3s;
+}
+.card:hover{box-shadow:var(--glow2);}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1.5px;
+  background:linear-gradient(90deg,transparent,var(--teal),transparent);
+}
+.card-head{
+  display:flex;align-items:center;gap:.8rem;
+  padding:1.1rem 1.5rem;
+  border-bottom:1px solid var(--border2);
+  background:rgba(13,148,136,0.04);
+}
+.card-icon{
+  width:30px;height:30px;border:1px solid var(--teal);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--teal);font-size:.85rem;flex-shrink:0;
+}
+.card-title{font-family:var(--font-ui);font-weight:700;font-size:.88rem;letter-spacing:.12em;color:var(--text);}
+.card-cn{font-family:var(--font-cn);font-size:.72rem;color:var(--muted2);margin-left:.3rem;}
+.card-num{font-family:var(--font-mono);font-size:.6rem;color:var(--teal);letter-spacing:.25em;}
+.card-body{padding:1.5rem;}
+
+/* ═══════════════════════════════════════════════════════
+   SECTION 1 — THEORY
+═══════════════════════════════════════════════════════ */
+.theory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;}
+.theory-card{
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  padding:1.2rem 1.3rem;position:relative;overflow:hidden;
+  transition:transform .25s,box-shadow .25s;cursor:default;
+}
+.theory-card:hover{transform:translateY(-3px);box-shadow:var(--glow);}
+.theory-card::before{
+  content:attr(data-n);
+  position:absolute;right:.8rem;top:.4rem;
+  font-family:var(--font-mono);font-size:2.5rem;font-weight:900;
+  color:rgba(13,148,136,0.08);line-height:1;
+}
+.t-label{font-family:var(--font-mono);font-size:.62rem;color:var(--teal);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.5rem;}
+.t-title{font-family:var(--font-ui);font-weight:600;font-size:1rem;margin-bottom:.7rem;}
+.t-formula{
+  background:rgba(13,148,136,0.07);border:1px solid rgba(13,148,136,0.2);
+  border-radius:4px;padding:.7rem;text-align:center;margin-bottom:.7rem;font-size:1.05rem;
+}
+.t-list{list-style:none;display:flex;flex-direction:column;gap:.3rem;}
+.t-list li{font-family:var(--font-mono);font-size:.72rem;color:var(--muted2);padding-left:1rem;position:relative;}
+.t-list li::before{content:'▸';position:absolute;left:0;color:var(--teal);}
+.phase-tag{
+  display:inline-block;font-family:var(--font-mono);font-size:.68rem;
+  padding:.15rem .55rem;border-radius:3px;border:1px solid;margin:.15rem .1rem;
+}
+.phase-tag.fp{border-color:var(--amber);color:var(--amber);}
+.phase-tag.f2p{border-color:var(--rose);color:var(--rose);}
+.phase-tag.f2o{border-color:var(--violet);color:var(--violet);}
+.phase-tag.lfp{border-color:var(--teal);color:var(--teal);}
+
+/* ═══════════════════════════════════════════════════════
+   TWO-COLUMN LAYOUT FOR DIAGRAM + CONTROLS
+═══════════════════════════════════════════════════════ */
+.sim-grid{display:grid;grid-template-columns:1fr 380px;gap:1.5rem;}
+@media(max-width:1100px){.sim-grid{grid-template-columns:1fr;}}
+
+/* ═══════════════════════════════════════════════════════
+   PHASE DIAGRAM CANVAS AREA
+═══════════════════════════════════════════════════════ */
+.diagram-area{display:flex;flex-direction:column;gap:1rem;}
+.canvas-box{
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  position:relative;overflow:hidden;min-height:380px;
+}
+#phaseCanvas{display:block;cursor:crosshair;width:100%;}
+.canvas-placeholder{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:.8rem;pointer-events:none;
+}
+.upload-zone{
+  border:2px dashed var(--border);border-radius:6px;padding:1.8rem;
+  text-align:center;cursor:pointer;transition:all .25s;position:relative;
+}
+.upload-zone:hover{border-color:var(--teal);background:rgba(13,148,136,0.04);}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-icon{font-size:1.8rem;margin-bottom:.5rem;opacity:.45;}
+.upload-text{font-family:var(--font-mono);font-size:.73rem;color:var(--muted2);line-height:1.7;}
+
+/* AI Analysis overlay */
+.ai-badge{
+  position:absolute;top:.7rem;right:.7rem;
+  background:rgba(139,92,246,0.15);border:1px solid var(--violet);
+  border-radius:4px;padding:.2rem .6rem;
+  font-family:var(--font-mono);font-size:.6rem;color:var(--violet);
+  letter-spacing:.12em;
+}
+.ai-badge.analyzing{animation:blink .8s ease infinite;}
+
+/* Temp marker on canvas */
+.temp-marker{
+  position:absolute;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent 55px,var(--amber),transparent);
+  pointer-events:none;transition:top .08s linear;
+}
+
+/* Phase transformation flash */
+.phase-flash{
+  position:absolute;inset:0;
+  background:rgba(244,63,94,0.07);
+  border:2px solid rgba(244,63,94,0.6);
+  border-radius:6px;
+  pointer-events:none;
+  display:none;
+  animation:platPulse .5s ease infinite;
+}
+.phase-flash.active{display:block;}
+
+/* ═══════════════════════════════════════════════════════
+   CONTROLS PANEL (right sidebar)
+═══════════════════════════════════════════════════════ */
+.ctrl-panel{display:flex;flex-direction:column;gap:1rem;}
+
+.ctrl-block{
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:1.1rem;
+}
+.ctrl-label{
+  font-family:var(--font-mono);font-size:.62rem;color:var(--teal);
+  letter-spacing:.2em;text-transform:uppercase;margin-bottom:.8rem;
+}
+
+/* Sliders */
+.slider-row{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.8rem;}
+.slider-top{display:flex;justify-content:space-between;align-items:center;}
+.sl-name{font-family:var(--font-ui);font-size:.8rem;color:var(--muted2);font-weight:500;}
+.sl-val{font-family:var(--font-mono);font-size:.78rem;color:var(--teal2);}
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:4px;
+  background:var(--bg);border-radius:2px;outline:none;
+  background-image:linear-gradient(var(--teal),var(--teal));
+  background-size:50% 100%;background-repeat:no-repeat;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--teal2);border:2px solid var(--bg);cursor:pointer;
+  box-shadow:0 0 6px rgba(13,148,136,.6);
+}
+
+/* Text inputs */
+.inp-group{margin-bottom:.7rem;}
+.inp-label{display:block;font-family:var(--font-mono);font-size:.62rem;color:var(--muted2);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.3rem;}
+.inp{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:4px;color:var(--text);font-family:var(--font-mono);font-size:.82rem;
+  padding:.45rem .7rem;outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.inp:focus{border-color:var(--teal);box-shadow:var(--glow);}
+.inp.err{border-color:var(--rose);}
+.err-msg{font-family:var(--font-mono);font-size:.65rem;color:var(--rose);margin-top:.25rem;display:none;}
+.err-msg.show{display:block;}
+
+/* Cooling rate selector */
+.rate-btns{display:flex;gap:.5rem;}
+.rate-btn{
+  flex:1;padding:.45rem;border-radius:4px;border:1px solid var(--border);
+  background:transparent;color:var(--muted2);font-family:var(--font-mono);font-size:.7rem;
+  cursor:pointer;transition:all .2s;text-align:center;letter-spacing:.05em;
+}
+.rate-btn:hover{border-color:var(--teal);color:var(--teal);}
+.rate-btn.active-slow{background:rgba(13,148,136,.15);border-color:var(--teal);color:var(--teal);}
+.rate-btn.active-med {background:rgba(245,158,11,.12);border-color:var(--amber);color:var(--amber);}
+.rate-btn.active-fast{background:rgba(244,63,94,.12);border-color:var(--rose);color:var(--rose);}
+
+/* Buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.45rem;
+  padding:.55rem 1.1rem;border-radius:4px;border:1px solid;
+  font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;
+  cursor:pointer;transition:all .22s;text-transform:uppercase;position:relative;overflow:hidden;
+}
+.btn::after{content:'';position:absolute;inset:0;background:currentColor;opacity:0;transition:opacity .2s;}
+.btn:hover::after{opacity:.06;}
+.btn-teal{background:rgba(13,148,136,.15);border-color:var(--teal);color:var(--teal);}
+.btn-teal:hover{background:rgba(13,148,136,.28);box-shadow:var(--glow);}
+.btn-amber{background:rgba(245,158,11,.1);border-color:var(--amber);color:var(--amber);}
+.btn-amber:hover{background:rgba(245,158,11,.22);box-shadow:0 0 18px rgba(245,158,11,.35);}
+.btn-rose{background:rgba(244,63,94,.1);border-color:var(--rose);color:var(--rose);}
+.btn-rose:hover{background:rgba(244,63,94,.22);box-shadow:0 0 18px rgba(244,63,94,.35);}
+.btn-violet{background:rgba(139,92,246,.1);border-color:var(--violet);color:var(--violet);}
+.btn-violet:hover{background:rgba(139,92,246,.22);}
+.btn-sm{padding:.35rem .75rem;font-size:.65rem;}
+.btn-full{width:100%;}
+.btn[disabled]{opacity:.35;cursor:not-allowed;}
+
+.action-btns{display:flex;flex-direction:column;gap:.6rem;}
+
+/* Status indicator */
+.status-pill{
+  display:inline-flex;align-items:center;gap:.4rem;
+  font-family:var(--font-mono);font-size:.65rem;
+  padding:.2rem .7rem;border-radius:100px;border:1px solid;
+}
+.status-pill.idle{border-color:var(--muted);color:var(--muted);}
+.status-pill.running{border-color:var(--teal);color:var(--teal);animation:glowPulse 1s ease infinite;}
+.status-pill.done{border-color:var(--amber);color:var(--amber);}
+.status-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.status-dot.pulse{animation:glowPulse .8s ease infinite;}
+
+/* ═══════════════════════════════════════════════════════
+   CHARTS AREA
+═══════════════════════════════════════════════════════ */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;}
+@media(max-width:800px){.charts-row{grid-template-columns:1fr;}}
+.chart-box{
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  padding:1rem;position:relative;
+}
+.chart-title{font-family:var(--font-mono);font-size:.65rem;color:var(--teal);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.7rem;}
+canvas.chart{max-height:260px;}
+
+/* Phase transformation event card */
+.event-card{
+  display:flex;align-items:center;gap:.7rem;
+  background:var(--bg);border:1px solid var(--border);border-radius:5px;
+  padding:.5rem .8rem;margin-bottom:.4rem;
+  animation:slideIn .3s ease both;
+  font-family:var(--font-mono);font-size:.7rem;
+}
+.event-card .ev-temp{color:var(--amber);font-weight:700;min-width:70px;}
+.event-card .ev-name{color:var(--text);flex:1;}
+.event-card .ev-phase{color:var(--muted2);}
+
+/* Phase fraction table */
+.phase-table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:.72rem;margin-top:.5rem;}
+.phase-table th{color:var(--muted);font-weight:400;padding:.35rem .5rem;text-align:left;border-bottom:1px solid var(--border2);letter-spacing:.1em;font-size:.6rem;text-transform:uppercase;}
+.phase-table td{padding:.35rem .5rem;border-bottom:1px solid var(--border2);}
+.phase-table .ph-bar{height:5px;border-radius:3px;margin-top:.2rem;transition:width .5s ease;}
+
+/* Impurity panel */
+.impurity-row{
+  display:flex;align-items:center;gap:.7rem;
+  padding:.5rem .7rem;border-radius:4px;border:1px solid var(--border);
+  margin-bottom:.4rem;background:var(--bg);
+  animation:phaseFade .4s ease both;
+}
+.imp-icon{font-size:.9rem;width:20px;text-align:center;}
+.imp-info{flex:1;}
+.imp-name{font-family:var(--font-mono);font-size:.72rem;color:var(--text);}
+.imp-desc{font-family:var(--font-cn);font-size:.65rem;color:var(--muted2);margin-top:.1rem;}
+.imp-prob{font-family:var(--font-mono);font-size:.7rem;color:var(--rose);min-width:50px;text-align:right;}
+
+/* Log terminal */
+.log-box{
+  background:var(--bg);border:1px solid var(--border2);border-radius:4px;
+  padding:.7rem;max-height:140px;overflow-y:auto;
+  font-family:var(--font-mono);font-size:.68rem;line-height:1.7;
+}
+.log-box::-webkit-scrollbar{width:4px;}
+.log-box::-webkit-scrollbar-track{background:transparent;}
+.log-box::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.log-line{color:var(--muted2);}
+.log-line.info{color:var(--teal2);}
+.log-line.warn{color:var(--amber);}
+.log-line.alert{color:var(--rose);}
+.log-line .ts{color:var(--muted);margin-right:.4rem;}
+
+/* Composition line tooltip */
+.comp-tooltip{
+  position:absolute;background:var(--bg);border:1px solid var(--teal);
+  border-radius:3px;padding:.25rem .55rem;
+  font-family:var(--font-mono);font-size:.65rem;color:var(--teal2);
+  pointer-events:none;white-space:nowrap;display:none;
+}
+
+/* Progress bar */
+.progress-wrap{height:3px;background:var(--bg);border-radius:2px;overflow:hidden;margin-top:.5rem;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--teal2));width:0%;transition:width .1s linear;border-radius:2px;}
+
+/* ═══════════════════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════════════════ */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--teal);}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+
+<!-- ═══════════════════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════════════════ -->
+<header>
+  <div class="h-badge">LIFEPO₄ THERMODYNAMICS LAB · v3.0</div>
+  <h1 class="h-title">LiFePO₄ <em>冷却曲线与相变演化</em> 模拟器</h1>
+  <p class="h-sub">Cooling Curve Simulator— PHASE TRANSFORMATION TRAINING SYSTEM</p>
+  <div class="h-dots">
+    <div class="h-dot"></div><div class="h-dot"></div><div class="h-dot"></div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════
+     MAIN WRAPPER
+═══════════════════════════════════════════════════════ -->
+<div class="wrap">
+
+<!-- ────────────────────────────────────────────────────
+     SECTION 1 · THEORY
+──────────────────────────────────────────────────────── -->
+<section class="card fade-up" id="sec-theory">
+  <div class="card-head">
+    <div class="card-icon">⚗</div>
+    <span class="card-num">01 /</span>
+    <span class="card-title">CORE THEORY</span>
+    <span class="card-cn">核心理论</span>
+  </div>
+  <div class="card-body">
+    <div class="theory-grid" id="theoryGrid"></div>
+  </div>
+</section>
+
+<!-- ────────────────────────────────────────────────────
+     SECTION 2 · PHASE DIAGRAM + SIMULATOR
+──────────────────────────────────────────────────────── -->
+<section class="card fade-up" id="sec-sim">
+  <div class="card-head">
+    <div class="card-icon">🌡</div>
+    <span class="card-num">02 /</span>
+    <span class="card-title">PHASE DIAGRAM &amp; COOLING SIMULATOR</span>
+    <span class="card-cn">相图与冷却模拟器</span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:.6rem;">
+      <span class="status-pill idle" id="statusPill">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">IDLE</span>
+      </span>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="sim-grid">
+
+      <!-- LEFT: Diagram -->
+      <div class="diagram-area">
+
+        <!-- Upload zone -->
+        <div id="uploadZone" class="upload-zone">
+          <input type="file" id="fileInput" accept="image/png,image/jpeg,image/gif,image/bmp"/>
+          <div class="upload-icon">📊</div>
+          <div class="upload-text">
+            <strong style="color:var(--teal2);">Upload Phase Diagram</strong><br/>
+            上传材料相图 (PNG / JPG)<br/>
+            <small>或使用下方内置 LiFePO₄ 演示相图</small>
+          </div>
+        </div>
+
+        <!-- Canvas area -->
+        <div class="canvas-box" id="canvasBox" style="display:none;">
+          <span class="ai-badge" id="aiBadge">✦ AI ANALYSIS</span>
+          <canvas id="phaseCanvas"></canvas>
+          <div class="temp-marker" id="tempMarker" style="display:none;"></div>
+          <div class="phase-flash" id="phaseFlash"></div>
+          <div class="comp-tooltip" id="compTooltip"></div>
+        </div>
+
+        <!-- Demo buttons -->
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+          <button class="btn btn-teal btn-sm" onclick="loadDemoLFP()">▶ LiFePO₄ Demo Phase Diagram</button>
+          <button class="btn btn-sm btn-amber" onclick="loadDemoLi2O()">▶ Li₂O-P₂O₅ System</button>
+          <button class="btn btn-sm btn-rose" onclick="clearAll()">✕ Clear</button>
+        </div>
+
+        <!-- Phase Events Log -->
+        <div class="ctrl-block">
+          <div class="ctrl-label">📋 Phase Transformation Events — 相变事件记录</div>
+          <div id="eventList" style="max-height:130px;overflow-y:auto;">
+            <div style="font-family:var(--font-mono);font-size:.7rem;color:var(--muted);text-align:center;padding:.5rem;">模拟运行后显示相变事件</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Controls -->
+      <div class="ctrl-panel">
+
+        <!-- Composition -->
+        <div class="ctrl-block">
+          <div class="ctrl-label">🎯 Composition Line — 组成线</div>
+          <div class="slider-row">
+            <div class="slider-top">
+              <span class="sl-name">Li/(Li+Fe) ratio x</span>
+              <span class="sl-val" id="compValDisplay">0.50</span>
+            </div>
+            <input type="range" id="compSlider" min="0" max="1" step="0.01" value="0.5"
+                   oninput="onCompSlider(this.value)"/>
+          </div>
+          <div class="inp-group">
+            <label class="inp-label">Manual Input — 手动输入 (0~1)</label>
+            <input class="inp" type="number" id="compInput" min="0" max="1" step="0.01" value="0.5"
+                   oninput="onCompInput(this.value)"/>
+            <div class="err-msg" id="compErr">⚠ 组成必须在 0 ≤ x ≤ 1 范围内</div>
+          </div>
+          <button class="btn btn-teal btn-sm btn-full" onclick="selectComposition()">📍 Set Composition Line — 绘制组成线</button>
+        </div>
+
+        <!-- Temperature range -->
+        <div class="ctrl-block">
+          <div class="ctrl-label">🌡 Temperature Range — 温度范围</div>
+          <div class="slider-row">
+            <div class="slider-top">
+              <span class="sl-name">T<sub>max</sub> (°C)</span>
+              <span class="sl-val" id="tmaxDisplay">1200</span>
+            </div>
+            <input type="range" id="tmaxSlider" min="500" max="1600" step="10" value="1200"
+                   oninput="onTmaxSlider(this.value)"/>
+          </div>
+          <div class="slider-row">
+            <div class="slider-top">
+              <span class="sl-name">T<sub>min</sub> (°C)</span>
+              <span class="sl-val" id="tminDisplay">200</span>
+            </div>
+            <input type="range" id="tminSlider" min="0" max="800" step="10" value="200"
+                   oninput="onTminSlider(this.value)"/>
+          </div>
+          <div class="inp-group">
+            <div class="err-msg" id="tempErr" style="display:none;">⚠ T_max 必须大于 T_min</div>
+          </div>
+        </div>
+
+        <!-- Cooling rate -->
+        <div class="ctrl-block">
+          <div class="ctrl-label">⚡ Cooling Rate — 冷却速率</div>
+          <div class="rate-btns">
+            <button class="rate-btn active-slow" id="rateSlow" onclick="setCoolingRate('slow')">🐢 Slow<br/>慢冷</button>
+            <button class="rate-btn" id="rateMed" onclick="setCoolingRate('medium')">🚶 Medium<br/>中速</button>
+            <button class="rate-btn" id="rateFast" onclick="setCoolingRate('fast')">🚀 Fast<br/>快冷</button>
+          </div>
+          <div style="margin-top:.7rem;font-family:var(--font-mono);font-size:.65rem;color:var(--muted2);" id="rateInfo">
+            慢冷 → 充分热力学平衡，FePO₄ 可能析出
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="ctrl-block">
+          <div class="ctrl-label">▶ Simulation Control — 模拟控制</div>
+          <div class="action-btns">
+            <button class="btn btn-rose btn-full" id="btnCool" onclick="startCooling()">
+              ▼ Start Cooling — 开始冷却
+            </button>
+            <button class="btn btn-teal btn-full" id="btnHeat" onclick="startHeating()">
+              ▲ Start Heating — 开始加热
+            </button>
+            <button class="btn btn-sm btn-full" style="border-color:var(--muted);color:var(--muted);" onclick="stopSim()">
+              ■ Stop — 停止
+            </button>
+          </div>
+          <div class="progress-wrap" style="margin-top:.8rem;">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div style="margin-top:.5rem;font-family:var(--font-mono);font-size:.65rem;color:var(--muted2);" id="simProgress">
+            等待开始模拟…
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /.sim-grid -->
+  </div>
+</section>
+
+<!-- ────────────────────────────────────────────────────
+     SECTION 3 · CHARTS + IMPURITY
+──────────────────────────────────────────────────────── -->
+<section class="card fade-up" id="sec-charts">
+  <div class="card-head">
+    <div class="card-icon">📈</div>
+    <span class="card-num">03 /</span>
+    <span class="card-title">SIMULATION RESULTS</span>
+    <span class="card-cn">模拟结果可视化</span>
+  </div>
+  <div class="card-body">
+
+    <div class="charts-row" style="margin-bottom:1.2rem;">
+      <!-- Cooling curve -->
+      <div class="chart-box">
+        <div class="chart-title">🌡 Cooling / Heating Curve — 冷却/升温曲线 (T vs t)</div>
+        <canvas class="chart" id="coolingChart"></canvas>
+      </div>
+      <!-- Phase fraction -->
+      <div class="chart-box">
+        <div class="chart-title">📊 Phase Fraction vs Temperature — 相分数随温度变化</div>
+        <canvas class="chart" id="fractionChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Phase composition table + Impurity panel -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+
+      <!-- Phase table -->
+      <div class="ctrl-block">
+        <div class="ctrl-label">🔬 Phase Composition — 当前相组成</div>
+        <table class="phase-table" id="phaseTable">
+          <thead>
+            <tr>
+              <th>Phase 相</th>
+              <th>Fraction 相分数</th>
+              <th>Note 说明</th>
+            </tr>
+          </thead>
+          <tbody id="phaseTableBody">
+            <tr><td colspan="3" style="color:var(--muted);text-align:center;padding:.8rem;">模拟后显示</td></tr>
+          </tbody>
+        </table>
+
+        <!-- System log -->
+        <div class="ctrl-label" style="margin-top:1rem;">💻 System Log — 系统日志</div>
+        <div class="log-box" id="logBox">
+          <div class="log-line info"><span class="ts">[00:00]</span>系统就绪。请上传相图或加载演示相图。</div>
+        </div>
+      </div>
+
+      <!-- Impurity panel -->
+      <div class="ctrl-block">
+        <div class="ctrl-label">⚠ Impurity Phase Prediction — 杂质相预测</div>
+        <div id="impurityPanel">
+          <div style="font-family:var(--font-mono);font-size:.7rem;color:var(--muted);text-align:center;padding:.8rem;">
+            模拟运行后显示杂质相分析
+          </div>
+        </div>
+
+        <!-- Gibbs energy display -->
+        <div class="ctrl-label" style="margin-top:1rem;">⚖ Thermodynamic State — 热力学状态</div>
+        <div style="background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:.8rem;">
+          <div id="gibbsDisplay" style="font-family:var(--font-mono);font-size:.72rem;line-height:1.9;color:var(--muted2);">
+            当前温度: <span id="curTdisp" style="color:var(--teal2);">—</span><br/>
+            ΔG 状态: <span id="curGdisp" style="color:var(--amber);">等待模拟</span><br/>
+            主相: <span id="curPhase" style="color:var(--teal);">—</span><br/>
+            冷却速率: <span id="curRate" style="color:var(--rose);">Slow</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+</div><!-- /.wrap -->
+
+<!-- ═══════════════════════════════════════════════════════
+     JAVASCRIPT MODULES
+═══════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+/* ════════════════════════════════════════════════════════
+   MODULE: APP STATE
+   Central state object for all simulation data
+════════════════════════════════════════════════════════ */
+const APP = {
+  // Diagram
+  uploadedImage: null,
+  demoType: null,
+  canvasW: 800,
+  canvasH: 500,
+
+  // Composition line
+  composition: 0.5,       // 0..1 normalized
+  compLinePx: null,       // pixel x position of composition line
+
+  // Temperature
+  Tmax: 1200,
+  Tmin: 200,
+
+  // Simulation
+  coolingRate: 'slow',
+  simRunning: false,
+  simDirection: 'cool',   // 'cool' | 'heat'
+  simTimer: null,
+  simStep: 0,
+  simSteps: 200,
+
+  // Cooling curve data
+  coolingTimes: [],
+  coolingTemps: [],
+  plateauRegions: [],     // [{t0,t1}] plateau indices
+
+  // Phase fractions data (vs temperature)
+  fractionTemps: [],
+  fractionLFP: [],        // LiFePO4
+  fractionL: [],          // Liquid
+  fractionFP: [],         // FePO4
+  fractionOther: [],      // other
+
+  // Phase transformation events
+  events: [],
+
+  // Charts
+  coolingChartInst: null,
+  fractionChartInst: null,
+
+  // AI detected phase boundaries (pixel y positions)
+  aiLiquidus: null,
+  aiSolidus: null,
+  aiEutectic: null,
+
+  // Log
+  logEntries: [],
+  logTimer: 0,
+};
+
+/* ════════════════════════════════════════════════════════
+   LiFePO4 THERMODYNAMIC MODEL
+   Simplified pseudo-binary Li₂O–FeO–P₂O₅ system
+   Reference phase boundaries (normalized composition 0..1, T in °C)
+════════════════════════════════════════════════════════ */
+const LFP_MODEL = {
+  // Liquidus temperature as function of composition x (0=Fe side, 1=Li side)
+  liquidus(x) {
+    // Simplified: eutectic at x≈0.5, T≈850°C; melts higher at extremes
+    const Teut = 850;
+    const k = 4 * (1200 - Teut);
+    return Teut + k * x * (1 - x) * 0 + (x < 0.5
+      ? 1050 - 400 * (x / 0.5)
+      : 1050 - 400 * ((1 - x) / 0.5));
+  },
+  // Solidus temperature
+  solidus(x) {
+    return this.liquidus(x) - 80 - 60 * Math.sin(Math.PI * x);
+  },
+  // Eutectic temperature
+  eutecticT: 820,
+  eutecticX: 0.48,
+
+  // LiFePO4 stability range
+  lfpStableXmin: 0.38,
+  lfpStableXmax: 0.62,
+  lfpFormationT: 940,   // °C at stoichiometric
+
+  // FePO4 solvus
+  fpo4Solvus(x) { return 920 - 200 * Math.abs(x - 0.3); },
+
+  // Determine primary phase at (x, T)
+  primaryPhase(x, T) {
+    const Tliq = this.liquidus(x);
+    const Tsol = this.solidus(x);
+    if (T > Tliq + 5) return 'liquid';
+    if (T > Tsol && T <= Tliq + 5) return 'liquid+solid';
+    if (x >= this.lfpStableXmin && x <= this.lfpStableXmax && T < this.lfpFormationT) return 'LiFePO₄';
+    if (x < this.lfpStableXmin) return 'FePO₄+LiFePO₄';
+    if (x > this.lfpStableXmax) return 'Li₃PO₄+LiFePO₄';
+    return 'LiFePO₄';
+  },
+
+  // Phase fractions at (x, T) — simplified lever rule analog
+  phaseFractions(x, T, coolingRate) {
+    const Tliq = this.liquidus(x);
+    const Tsol = this.solidus(x);
+    const liq = T > Tliq ? 1.0
+               : T < Tsol ? 0.0
+               : (T - Tsol) / (Tliq - Tsol);
+
+    let lfp = 0, fpo4 = 0, other = 0;
+
+    // Impurity formation depends on rate
+    const impMult = coolingRate === 'fast' ? 1.8 : coolingRate === 'medium' ? 1.1 : 0.5;
+
+    if (T < Tsol) {
+      const inLFP = x >= this.lfpStableXmin && x <= this.lfpStableXmax;
+      if (inLFP) {
+        lfp   = 1.0 - 0.08 * impMult;
+        fpo4  = T < this.fpo4Solvus(x) ? 0.04 * impMult : 0.0;
+        other = 0.04 * impMult;
+      } else if (x < this.lfpStableXmin) {
+        fpo4  = 0.35 + (this.lfpStableXmin - x) * 2;
+        lfp   = Math.max(0, 1.0 - fpo4 - 0.05 * impMult);
+        other = 0.05 * impMult;
+      } else {
+        other = 0.25;
+        lfp   = 0.75 - 0.05 * impMult;
+      }
+    }
+
+    // Normalize
+    const total = liq + lfp + fpo4 + other;
+    return {
+      liquid: liq / total,
+      LiFePO4: lfp / total,
+      FePO4: fpo4 / total,
+      other: other / total,
+    };
+  },
+
+  // Phase boundaries along composition line x — returns array of {T, type}
+  phaseBoundaries(x) {
+    const bounds = [];
+    const Tliq = this.liquidus(x);
+    const Tsol = this.solidus(x);
+    bounds.push({ T: Tliq, type: 'liquidus', label: '液相线 (Liquidus)', color: '#38bdf8' });
+    bounds.push({ T: Tsol, type: 'solidus',  label: '固相线 (Solidus)',  color: '#6ee7b7' });
+    if (x >= this.lfpStableXmin && x <= this.lfpStableXmax) {
+      bounds.push({ T: this.lfpFormationT, type: 'lfp_form', label: 'LiFePO₄ 形成线', color: '#0d9488' });
+    }
+    if (x < this.lfpStableXmin) {
+      bounds.push({ T: this.fpo4Solvus(x), type: 'fpo4', label: 'FePO₄ 析出', color: '#f59e0b' });
+    }
+    return bounds.sort((a, b) => b.T - a.T);
+  }
+};
+
+/* ════════════════════════════════════════════════════════
+   MODULE: THEORY RENDERER
+════════════════════════════════════════════════════════ */
+function renderTheory() {
+  const grid = document.getElementById('theoryGrid');
+  const items = [
+    {
+      n: '01', label: 'Cooling Curve', title: '冷却曲线',
+      body: `
+        <ul class="t-list">
+          <li>冷却曲线反映 <strong style="color:var(--teal2)">温度 vs 时间</strong> 的关系</li>
+          <li>相变发生时曲线出现 <strong style="color:var(--amber)">平台区</strong></li>
+          <li>平台表示相变潜热的释放</li>
+          <li>平台温度即为该组成的相变点</li>
+        </ul>
+        <div class="t-formula" style="margin-top:.7rem;font-size:.8rem;">
+          $Q = \\Delta H_{trans} \\cdot m$
+        </div>`
+    },
+    {
+      n: '02', label: 'Phase Equilibrium', title: '相平衡条件',
+      body: `
+        <div class="t-formula">$\\Delta G = 0$</div>
+        <div class="t-formula">$\\mu_i^\\alpha = \\mu_i^\\beta$</div>
+        <ul class="t-list">
+          <li>两相共存时化学势相等</li>
+          <li>吉布斯自由能变化为零</li>
+          <li>吉布斯相律: $F = C - P + 2$</li>
+          <li>冷却速率影响是否达到平衡</li>
+        </ul>`
+    },
+    {
+      n: '03', label: 'LiFePO₄ Impurities', title: 'LiFePO₄ 杂质相',
+      body: `
+        <div style="margin-bottom:.6rem;font-family:var(--font-cn);font-size:.75rem;color:var(--muted2);">可能出现的杂质相：</div>
+        <div style="margin-bottom:.5rem;">
+          <span class="phase-tag lfp">LiFePO₄ ✓</span>
+          <span class="phase-tag fp">FePO₄</span>
+          <span class="phase-tag f2p">Fe₂P</span>
+          <span class="phase-tag f2o">Fe₂O₃</span>
+        </div>
+        <ul class="t-list">
+          <li>快冷 → Fe₂P 等还原相</li>
+          <li>慢冷 → FePO₄ 可能析出</li>
+          <li>杂相降低电池比容量</li>
+          <li>控制冷却速率可抑制杂相</li>
+        </ul>`
+    }
+  ];
+
+  grid.innerHTML = items.map(it => `
+    <div class="theory-card" data-n="${it.n}">
+      <div class="t-label">${it.label}</div>
+      <div class="t-title">${it.title}</div>
+      ${it.body}
+    </div>`).join('');
+
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([grid]);
+}
+
+/* ════════════════════════════════════════════════════════
+   MODULE: CANVAS / PHASE DIAGRAM
+════════════════════════════════════════════════════════ */
+
+/** Show the canvas box, hide upload zone */
+function showCanvas() {
+  document.getElementById('uploadZone').style.display = 'none';
+  document.getElementById('canvasBox').style.display = 'block';
+}
+
+/**
+ * uploadPhaseDiagram — reads user file and renders on canvas
+ */
+function uploadPhaseDiagram(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      APP.uploadedImage = img;
+      APP.demoType = null;
+      showCanvas();
+      resizeCanvas();
+      drawPhaseDiagram();
+      log('用户相图已上传。正在分析相界线…', 'info');
+      aiAnalyzeImage();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/** File input change handler */
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) uploadPhaseDiagram(e.target.files[0]);
+});
+
+/** Resize canvas to fit wrapper */
+function resizeCanvas() {
+  const box = document.getElementById('canvasBox');
+  const canvas = document.getElementById('phaseCanvas');
+  const w = box.clientWidth;
+  const ratio = APP.uploadedImage
+    ? APP.uploadedImage.height / APP.uploadedImage.width
+    : 500 / 800;
+  const h = Math.min(w * ratio, 500);
+  canvas.width = w;
+  canvas.height = h;
+  APP.canvasW = w;
+  APP.canvasH = h;
+}
+
+/**
+ * drawPhaseDiagram — master render of the phase diagram canvas
+ * Draws: background image OR demo diagram, composition line, temp marker, boundaries
+ */
+function drawPhaseDiagram() {
+  const canvas = document.getElementById('phaseCanvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Draw image or demo diagram
+  if (APP.uploadedImage) {
+    ctx.drawImage(APP.uploadedImage, 0, 0, w, h);
+  } else if (APP.demoType) {
+    drawDemoDiagram(ctx, w, h, APP.demoType);
+  } else {
+    return;
+  }
+
+  // Draw AI detected boundaries
+  drawAIBoundaries(ctx, w, h);
+
+  // Draw composition line
+  drawCompositionLine(ctx, w, h);
+}
+
+/**
+ * drawCompositionLine — renders vertical composition line at APP.compLinePx
+ * with intersection markers at phase boundaries
+ */
+function drawCompositionLine(ctx, w, h) {
+  if (APP.compLinePx === null) return;
+  const x = APP.compLinePx;
+
+  // Dashed vertical line
+  ctx.save();
+  ctx.setLineDash([6, 4]);
+  ctx.strokeStyle = 'rgba(245,158,11,0.9)';
+  ctx.lineWidth = 2;
+  ctx.shadowColor = 'rgba(245,158,11,0.5)';
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.moveTo(x, 10);
+  ctx.lineTo(x, h - 10);
+  ctx.stroke();
+  ctx.restore();
+
+  // Composition label
+  ctx.font = 'bold 11px Share Tech Mono, monospace';
+  ctx.fillStyle = '#fbbf24';
+  ctx.textAlign = 'center';
+  ctx.fillText(`x = ${APP.composition.toFixed(2)}`, x, h - 6);
+
+  // Draw intersection markers (phase boundaries at this composition)
+  const boundaries = LFP_MODEL.phaseBoundaries(APP.composition);
+  const pad = { t: 30, b: 40 };
+  const Trange = APP.Tmax - APP.Tmin;
+
+  boundaries.forEach(bd => {
+    const py = pad.t + (1 - (bd.T - APP.Tmin) / Trange) * (h - pad.t - pad.b);
+    if (py < 0 || py > h) return;
+
+    // Horizontal tick
+    ctx.save();
+    ctx.strokeStyle = bd.color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x - 16, py);
+    ctx.lineTo(x + 16, py);
+    ctx.stroke();
+
+    // Circle marker
+    ctx.fillStyle = bd.color;
+    ctx.beginPath();
+    ctx.arc(x, py, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Label
+    ctx.font = '10px Share Tech Mono, monospace';
+    ctx.fillStyle = bd.color;
+    ctx.textAlign = x > APP.canvasW * 0.6 ? 'right' : 'left';
+    ctx.fillText(`${bd.label} (${Math.round(bd.T)}°C)`, x + (x > APP.canvasW * 0.6 ? -20 : 20), py - 3);
+    ctx.restore();
+  });
+}
+
+/** Draw AI-detected phase boundaries */
+function drawAIBoundaries(ctx, w, h) {
+  if (!APP.aiLiquidus && !APP.aiSolidus) return;
+  ctx.save();
+  ctx.setLineDash([12, 6]);
+  ctx.lineWidth = 1.5;
+  if (APP.aiLiquidus) {
+    ctx.strokeStyle = 'rgba(56,189,248,0.6)';
+    ctx.beginPath(); ctx.moveTo(30, APP.aiLiquidus); ctx.lineTo(w-30, APP.aiLiquidus); ctx.stroke();
+    ctx.fillStyle = '#38bdf8'; ctx.font='10px Share Tech Mono, monospace'; ctx.textAlign='left';
+    ctx.fillText('Liquidus (AI)', 34, APP.aiLiquidus - 4);
+  }
+  if (APP.aiSolidus) {
+    ctx.strokeStyle = 'rgba(110,231,183,0.6)';
+    ctx.beginPath(); ctx.moveTo(30, APP.aiSolidus); ctx.lineTo(w-30, APP.aiSolidus); ctx.stroke();
+    ctx.fillStyle = '#6ee7b7'; ctx.font='10px Share Tech Mono, monospace'; ctx.textAlign='left';
+    ctx.fillText('Solidus (AI)', 34, APP.aiSolidus - 4);
+  }
+  if (APP.aiEutectic) {
+    ctx.strokeStyle = 'rgba(251,191,36,0.6)';
+    ctx.beginPath(); ctx.moveTo(30, APP.aiEutectic); ctx.lineTo(w-30, APP.aiEutectic); ctx.stroke();
+    ctx.fillStyle = '#fbbf24'; ctx.font='10px Share Tech Mono, monospace'; ctx.textAlign='left';
+    ctx.fillText('Eutectic (AI)', 34, APP.aiEutectic - 4);
+  }
+  ctx.restore();
+}
+
+/* ════════════════════════════════════════════════════════
+   MODULE: AI ANALYSIS (simulated)
+   Analyzes the canvas image to detect phase boundaries
+   For uploaded images: uses pixel brightness heuristic
+   For demos: uses known geometry
+════════════════════════════════════════════════════════ */
+async function aiAnalyzeImage() {
+  const badge = document.getElementById('aiBadge');
+  badge.textContent = '✦ AI ANALYZING…';
+  badge.classList.add('analyzing');
+  log('AI 正在分析相图…', 'info');
+
+  await sleep(800);
+
+  const canvas = document.getElementById('phaseCanvas');
+  const h = canvas.height;
+
+  if (APP.uploadedImage) {
+    // Heuristic: detect horizontal edges via pixel scan
+    const boundaries = detectPhaseBoundary(canvas);
+    APP.aiLiquidus  = boundaries.liquidus;
+    APP.aiSolidus   = boundaries.solidus;
+    APP.aiEutectic  = boundaries.eutectic;
+    log(`AI 识别: Liquidus @ py=${Math.round(APP.aiLiquidus)}, Solidus @ py=${Math.round(APP.aiSolidus)}`, 'info');
+  } else if (APP.demoType === 'lfp') {
+    // Known geometry for LFP demo
+    const pad = { t: 40, b: 50 };
+    const ch = h - pad.t - pad.b;
+    const Tliq = LFP_MODEL.liquidus(APP.composition);
+    const Tsol = LFP_MODEL.solidus(APP.composition);
+    const Teut = LFP_MODEL.eutecticT;
+    const Trange = APP.Tmax - APP.Tmin;
+    APP.aiLiquidus = pad.t + (1 - (Tliq - APP.Tmin) / Trange) * ch;
+    APP.aiSolidus  = pad.t + (1 - (Tsol - APP.Tmin) / Trange) * ch;
+    APP.aiEutectic = pad.t + (1 - (Teut - APP.Tmin) / Trange) * ch;
+    log(`AI 识别 LFP 相图: Liquidus≈${Math.round(Tliq)}°C, Solidus≈${Math.round(Tsol)}°C, Eutectic≈${Teut}°C`, 'info');
+  }
+
+  badge.textContent = '✦ AI DONE';
+  badge.classList.remove('analyzing');
+  drawPhaseDiagram();
+
+  await sleep(1500);
+  badge.textContent = '✦ AI ANALYSIS';
+}
+
+/**
+ * detectPhaseBoundary — heuristic pixel edge detection
+ * Scans columns for brightness gradient peaks to find phase boundaries
+ */
+function detectPhaseBoundary(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const px = imgData.data;
+
+  // Compute average brightness per row
+  const rowBrightness = new Float32Array(h);
+  for (let y = 0; y < h; y++) {
+    let sum = 0;
+    for (let x = Math.floor(w*0.1); x < Math.floor(w*0.9); x++) {
+      const i = (y * w + x) * 4;
+      sum += (px[i] + px[i+1] + px[i+2]) / 3;
+    }
+    rowBrightness[y] = sum / (w * 0.8);
+  }
+
+  // Find gradient peaks (phase boundaries appear as brightness transitions)
+  const gradients = [];
+  for (let y = 2; y < h - 2; y++) {
+    gradients.push({ y, g: Math.abs(rowBrightness[y+1] - rowBrightness[y-1]) });
+  }
+  gradients.sort((a, b) => b.g - a.g);
+
+  const top3 = gradients.slice(0, 5).map(g => g.y).sort((a, b) => a - b);
+  const hMid = h * 0.5;
+
+  return {
+    liquidus:  top3[0] || h * 0.25,
+    solidus:   top3[1] || h * 0.4,
+    eutectic:  top3.find(y => y > hMid) || h * 0.6,
+  };
+}
+
+/* ════════════════════════════════════════════════════════
+   MODULE: DEMO PHASE DIAGRAMS
+════════════════════════════════════════════════════════ */
+
+/** Load LiFePO₄ demo pseudo-binary phase diagram */
+function loadDemoLFP() {
+  APP.demoType = 'lfp';
+  APP.uploadedImage = null;
+  showCanvas();
+  resizeCanvas();
+  drawDemoDiagramFull();
+  log('LiFePO₄ 演示相图已加载', 'info');
+}
+
+/** Load Li₂O-P₂O₅ system */
+function loadDemoLi2O() {
+  APP.demoType = 'li2o';
+  APP.uploadedImage = null;
+  showCanvas();
+  resizeCanvas();
+  drawDemoDiagramFull();
+  log('Li₂O-P₂O₅ 演示相图已加载', 'info');
+}
+
+function drawDemoDiagramFull() {
+  const canvas = document.getElementById('phaseCanvas');
+  const ctx = canvas.getContext('2d');
+  drawDemoDiagram(ctx, canvas.width, canvas.height, APP.demoType);
+  drawAIBoundaries(ctx, canvas.width, canvas.height);
+  drawCompositionLine(ctx, canvas.width, canvas.height);
+  // Auto-trigger AI analysis
+  setTimeout(() => aiAnalyzeImage(), 200);
+}
+
+/**
+ * drawDemoDiagram — renders a synthetic phase diagram
+ */
+function drawDemoDiagram(ctx, w, h, type) {
+  const pad = { l: 55, r: 30, t: 40, b: 50 };
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+  const Tmax = APP.Tmax, Tmin = APP.Tmin;
+  const Trange = Tmax - Tmin;
+
+  const xP = x => pad.l + x * cw;           // composition → pixel x
+  const yP = T => pad.t + (1 - (T - Tmin) / Trange) * ch; // temp → pixel y
+
+  // Background
+  ctx.fillStyle = '#050e1f';
+  ctx.fillRect(0, 0, w, h);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(13,148,136,0.1)';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 10; i++) {
+    const gx = pad.l + cw/10*i;
+    const gy = pad.t + ch/10*i;
+    ctx.beginPath(); ctx.moveTo(gx, pad.t); ctx.lineTo(gx, pad.t+ch); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad.l, gy); ctx.lineTo(pad.l+cw, gy); ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, pad.t+ch); ctx.lineTo(pad.l+cw, pad.t+ch);
+  ctx.stroke();
+
+  if (type === 'lfp') {
+    drawLFPDiagram(ctx, xP, yP, pad, cw, ch, w, h, Tmin, Tmax);
+  } else {
+    drawLi2ODiagram(ctx, xP, yP, pad, cw, ch, w, h, Tmin, Tmax);
+  }
+
+  // Axis labels
+  ctx.fillStyle = '#64748b'; ctx.font = '11px Share Tech Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(type === 'lfp' ? 'Li/(Li+Fe) Composition x' : 'Li₂O Mole Fraction x', pad.l + cw/2, h - 8);
+  ctx.save(); ctx.translate(13, pad.t + ch/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('Temperature (°C)', 0, 0); ctx.restore();
+
+  // Tick labels
+  ctx.font = '9px Share Tech Mono, monospace'; ctx.fillStyle = '#64748b';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 5; i++) {
+    const tx = pad.l + cw/5*i;
+    ctx.fillText((i/5).toFixed(1), tx, pad.t+ch+16);
+  }
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const ty = pad.t + ch/4*i;
+    ctx.fillText(Math.round(Tmax - (Tmax-Tmin)*i/4), pad.l-5, ty+4);
+  }
+}
+
+/** Draw LiFePO₄ pseudo-binary phase diagram regions + lines */
+function drawLFPDiagram(ctx, xP, yP, pad, cw, ch, w, h, Tmin, Tmax) {
+  const N = 120;
+
+  // === Filled regions ===
+
+  // Liquid (top region)
+  ctx.beginPath();
+  ctx.moveTo(xP(0), yP(Tmax));
+  for (let i = 0; i <= N; i++) {
+    const x = i/N;
+    ctx.lineTo(xP(x), yP(LFP_MODEL.liquidus(x)));
+  }
+  ctx.lineTo(xP(1), yP(Tmax));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(56,189,248,0.13)';
+  ctx.fill();
+
+  // Two-phase L+S
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) { const x=i/N; ctx.lineTo(xP(x), yP(LFP_MODEL.liquidus(x))); }
+  for (let i = N; i >= 0; i--) { const x=i/N; ctx.lineTo(xP(x), yP(LFP_MODEL.solidus(x))); }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(110,231,183,0.10)';
+  ctx.fill();
+
+  // LiFePO₄ single phase band
+  const xL = LFP_MODEL.lfpStableXmin, xR = LFP_MODEL.lfpStableXmax;
+  ctx.beginPath();
+  ctx.moveTo(xP(xL), yP(LFP_MODEL.lfpFormationT));
+  ctx.lineTo(xP(xR), yP(LFP_MODEL.lfpFormationT));
+  for (let i = N; i >= 0; i--) {
+    const x = xL + (xR-xL)*i/N;
+    ctx.lineTo(xP(x), yP(LFP_MODEL.solidus(x)));
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(13,148,136,0.18)';
+  ctx.fill();
+
+  // Left: FePO₄ region
+  ctx.beginPath();
+  ctx.moveTo(xP(0), yP(LFP_MODEL.solidus(0)));
+  for (let i = 0; i <= Math.round(N*xL); i++) {
+    const x=i/N; ctx.lineTo(xP(x), yP(LFP_MODEL.solidus(x)));
+  }
+  ctx.lineTo(xP(xL), yP(Tmin));
+  ctx.lineTo(xP(0), yP(Tmin));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(245,158,11,0.10)';
+  ctx.fill();
+
+  // Right: Li-rich region
+  ctx.beginPath();
+  ctx.moveTo(xP(xR), yP(LFP_MODEL.solidus(xR)));
+  for (let i = Math.round(N*xR); i <= N; i++) {
+    const x=i/N; ctx.lineTo(xP(x), yP(LFP_MODEL.solidus(x)));
+  }
+  ctx.lineTo(xP(1), yP(Tmin));
+  ctx.lineTo(xP(xR), yP(Tmin));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(139,92,246,0.10)';
+  ctx.fill();
+
+  // === Boundary curves ===
+  ctx.lineWidth = 2.5;
+
+  // Liquidus
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) { const x=i/N; const cmd = i===0?'moveTo':'lineTo'; ctx[cmd](xP(x), yP(LFP_MODEL.liquidus(x))); }
+  ctx.strokeStyle = '#38bdf8'; ctx.stroke();
+
+  // Solidus
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) { const x=i/N; const cmd = i===0?'moveTo':'lineTo'; ctx[cmd](xP(x), yP(LFP_MODEL.solidus(x))); }
+  ctx.strokeStyle = '#6ee7b7'; ctx.stroke();
+
+  // LFP formation line
+  ctx.beginPath();
+  ctx.moveTo(xP(xL), yP(LFP_MODEL.lfpFormationT));
+  ctx.lineTo(xP(xR), yP(LFP_MODEL.lfpFormationT));
+  ctx.strokeStyle = '#0d9488'; ctx.lineWidth = 2; ctx.setLineDash([8,4]); ctx.stroke(); ctx.setLineDash([]);
+
+  // FePO4 solvus
+  ctx.beginPath();
+  for (let i = 0; i <= Math.round(N*xL); i++) {
+    const x=i/N; const cmd = i===0?'moveTo':'lineTo';
+    ctx[cmd](xP(x), yP(LFP_MODEL.fpo4Solvus(x)));
+  }
+  ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.5; ctx.setLineDash([5,3]); ctx.stroke(); ctx.setLineDash([]);
+
+  // === Labels ===
+  ctx.font = 'bold 13px Noto Sans SC, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#60a5fa'; ctx.fillText('L (液相)', xP(0.5), yP(LFP_MODEL.liquidus(0.5) + (Tmax - LFP_MODEL.liquidus(0.5))*0.4));
+  ctx.fillStyle = '#6ee7b7'; ctx.font = '11px Noto Sans SC, sans-serif';
+  ctx.fillText('L + S (两相)', xP(0.5), yP((LFP_MODEL.liquidus(0.5)+LFP_MODEL.solidus(0.5))/2));
+  ctx.fillStyle = '#0d9488'; ctx.fillText('LiFePO₄ ✦', xP(0.5), yP(LFP_MODEL.lfpFormationT - 80));
+  ctx.fillStyle = '#f59e0b'; ctx.fillText('FePO₄+LFP', xP(0.18), yP(LFP_MODEL.solidus(0.18) - 60));
+  ctx.fillStyle = '#a78bfa'; ctx.fillText('Li₃PO₄+LFP', xP(0.78), yP(LFP_MODEL.solidus(0.78) - 60));
+
+  // Stoichiometric line
+  ctx.strokeStyle = 'rgba(13,148,136,0.3)'; ctx.lineWidth = 1; ctx.setLineDash([4,8]);
+  ctx.beginPath(); ctx.moveTo(xP(0.5), yP(Tmax)); ctx.lineTo(xP(0.5), yP(Tmin)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = '#0d9488'; ctx.font = '9px Share Tech Mono, monospace'; ctx.textAlign = 'center';
+  ctx.fillText('stoich.', xP(0.5), pad.t + 16);
+}
+
+/** Draw simplified Li₂O-P₂O₅ binary diagram */
+function drawLi2ODiagram(ctx, xP, yP, pad, cw, ch, w, h, Tmin, Tmax) {
+  const eutX = 0.33, eutT = 720;
+  const meltL = 1100, meltR = 1200;
+
+  ctx.fillStyle = 'rgba(56,189,248,0.10)';
+  ctx.beginPath();
+  ctx.moveTo(xP(0), yP(meltL)); ctx.lineTo(xP(eutX), yP(eutT)); ctx.lineTo(xP(1), yP(meltR));
+  ctx.lineTo(xP(1), yP(Tmax)); ctx.lineTo(xP(0), yP(Tmax)); ctx.closePath(); ctx.fill();
+
+  ctx.fillStyle = 'rgba(110,231,183,0.1)';
+  ctx.fillRect(xP(0), yP(eutT), xP(1)-xP(0), ch - (yP(eutT)-pad.t));
+
+  ctx.beginPath(); ctx.moveTo(xP(0), yP(meltL)); ctx.lineTo(xP(eutX), yP(eutT)); ctx.lineTo(xP(1), yP(meltR));
+  ctx.strokeStyle='#38bdf8'; ctx.lineWidth=2.5; ctx.stroke();
+
+  ctx.beginPath(); ctx.moveTo(xP(0), yP(eutT)); ctx.lineTo(xP(1), yP(eutT));
+  ctx.strokeStyle='#fbbf24'; ctx.lineWidth=2; ctx.setLineDash([8,4]); ctx.stroke(); ctx.setLineDash([]);
+
+  ctx.font='bold 12px Noto Sans SC,sans-serif'; ctx.fillStyle='#60a5fa'; ctx.textAlign='center';
+  ctx.fillText('L (液相)', xP(0.5), yP(1050));
+  ctx.fillStyle='#6ee7b7'; ctx.fillText('Li₂O + Li₃PO₄', xP(0.15), yP(620));
+  ctx.fillStyle='#a78bfa'; ctx.fillText('Li₃PO₄ + P₂O₅', xP(0.7), yP(620));
+
+  ctx.beginPath(); ctx.arc(xP(eutX), yP(eutT), 5, 0, Math.PI*2);
+  ctx.fillStyle='#fbbf24'; ctx.fill();
+  ctx.fillStyle='#fbbf24'; ctx.font='10px Share Tech Mono, monospace';
+  ctx.fillText(`E (${eutX.toFixed(2)}, ${eutT}°C)`, xP(eutX)+8, yP(eutT)-8);
+}
+
+/* ════════════════════════════════════════════════════════
+   MODULE: COMPOSITION & TEMPERATURE CONTROLS
+════════════════════════════════════════════════════════ */
+
+/** Sync composition slider → input + update line */
+function onCompSlider(v) {
+  APP.composition = parseFloat(v);
+  document.getElementById('compInput').value = v;
+  document.getElementById('compValDisplay').textContent = parseFloat(v).toFixed(2);
+  updateSliderFill('compSlider');
+}
+
+/** Sync composition input → slider */
+function onCompInput(v) {
+  const n = parseFloat(v);
+  const err = document.getElementById('compErr');
+  if (isNaN(n) || n < 0 || n > 1) { err.classList.add('show'); document.getElementById('compInput').classList.add('err'); return; }
+  err.classList.remove('show'); document.getElementById('compInput').classList.remove('err');
+  APP.composition = n;
+  document.getElementById('compSlider').value = n;
+  document.getElementById('compValDisplay').textContent = n.toFixed(2);
+  updateSliderFill('compSlider');
+}
+
+function onTmaxSlider(v) {
+  APP.Tmax = parseInt(v);
+  document.getElementById('tmaxDisplay').textContent = v;
+  validateTemps();
+  updateSliderFill('tmaxSlider');
+}
+function onTminSlider(v) {
+  APP.Tmin = parseInt(v);
+  document.getElementById('tminDisplay').textContent = v;
+  validateTemps();
+  updateSliderFill('tminSlider');
+}
+
+function validateTemps() {
+  const err = document.getElementById('tempErr');
+  if (APP.Tmax <= APP.Tmin) { err.style.display='block'; return false; }
+  err.style.display='none'; return true;
+}
+
+/**
+ * selectComposition — sets the composition line position and redraws
+ */
+function selectComposition() {
+  if (!APP.uploadedImage && !APP.demoType) { alert('请先上传相图或加载演示相图！'); return; }
+
+  // Map composition 0..1 to canvas pixel x
+  const canvas = document.getElementById('phaseCanvas');
+  const padL = 55, padR = 30;
+  APP.compLinePx = padL + APP.composition * (canvas.width - padL - padR);
+
+  drawPhaseDiagram();
+  log(`组成线已设定: x = ${APP.composition.toFixed(2)}, 相变点: ${LFP_MODEL.phaseBoundaries(APP.composition).map(b=>b.label+' '+Math.round(b.T)+'°C').join(', ')}`, 'info');
+}
+
+/** Allow clicking on canvas to set composition line */
+document.getElementById('phaseCanvas').addEventListener('click', function(e) {
+  const rect = this.getBoundingClientRect();
+  const scaleX = this.width / rect.width;
+  const px = (e.clientX - rect.left) * scaleX;
+  const padL = 55, padR = 30;
+  const comp = Math.max(0, Math.min(1, (px - padL) / (this.width - padL - padR)));
+  APP.composition = comp;
+  APP.compLinePx = px;
+  document.getElementById('compSlider').value = comp;
+  document.getElementById('compInput').value = comp.toFixed(2);
+  document.getElementById('compValDisplay').textContent = comp.toFixed(2);
+  updateSliderFill('compSlider');
+  drawPhaseDiagram();
+
+  // Show tooltip
+  const tip = document.getElementById('compTooltip');
+  tip.style.display = 'block';
+  tip.style.left = (e.clientX - rect.left) + 'px';
+  tip.style.top = (e.clientY - rect.top - 30) + 'px';
+  tip.textContent = `x = ${comp.toFixed(3)}`;
+  setTimeout(() => tip.style.display='none', 1800);
+});
+
+/* ════════════════════════════════════════════════════════
+   MODULE: COOLING RATE
+════════════════════════════════════════════════════════ */
+
+const RATE_INFO = {
+  slow:   { label:'慢冷 → 充分热力学平衡，FePO₄ 可能析出，LiFePO₄ 结晶完整', dT: 3, steps: 200 },
+  medium: { label:'中速冷却 → 部分平衡，少量 Fe₂O₃ 析出', dT: 6, steps: 160 },
+  fast:   { label:'快冷 (淬火) → 偏离平衡，Fe₂P 等还原相形成，LiFePO₄ 结晶不完整', dT: 12, steps: 120 },
+};
+
+function setCoolingRate(rate) {
+  APP.coolingRate = rate;
+  ['slow','med','fast'].forEach(r => {
+    document.getElementById('rate'+r.charAt(0).toUpperCase()+r.slice(1)).className = 'rate-btn';
+  });
+  const mapId = { slow:'rateSlow', medium:'rateMed', fast:'rateFast' };
+  const mapCls = { slow:'active-slow', medium:'active-med', fast:'active-fast' };
+  document.getElementById(mapId[rate]).classList.add(mapCls[rate]);
+  document.getElementById('rateInfo').textContent = RATE_INFO[rate].label;
+  document.getElementById('curRate').textContent = rate.charAt(0).toUpperCase()+rate.slice(1);
+  log(`冷却速率设为: ${rate}`, 'warn');
+}
+
+/* ════════════════════════════════════════════════════════
+   MODULE: SIMULATION ENGINE
+════════════════════════════════════════════════════════ */
+
+/**
+ * startCooling — initializes and runs the cooling simulation
+ */
+function startCooling() {
+  if (!validateTemps()) return;
+  if (!APP.uploadedImage && !APP.demoType) { alert('请先加载相图！'); return; }
+  APP.simDirection = 'cool';
+  runSimulation();
+}
+
+/**
+ * startHeating — initializes and runs the heating simulation
+ */
+function startHeating() {
+  if (!validateTemps()) return;
+  if (!APP.uploadedImage && !APP.demoType) { alert('请先加载相图！'); return; }
+  APP.simDirection = 'heat';
+  runSimulation();
+}
+
+/** Stop running simulation */
+function stopSim() {
+  APP.simRunning = false;
+  clearInterval(APP.simTimer);
+  setStatus('idle', 'STOPPED');
+  log('模拟已停止', 'warn');
+  document.getElementById('phaseFlash').classList.remove('active');
+  document.getElementById('tempMarker').style.display = 'none';
+}
+
+/**
+ * runSimulation — main simulation loop
+ * Scans temperature from Tmax→Tmin (or Tmin→Tmax for heating)
+ * Detects phase boundaries and generates cooling curve with plateaus
+ */
+function runSimulation() {
+  if (APP.simRunning) stopSim();
+  APP.simRunning = true;
+
+  const rate = RATE_INFO[APP.coolingRate];
+  APP.simSteps = rate.steps;
+
+  // Clear previous data
+  APP.coolingTimes = [];
+  APP.coolingTemps = [];
+  APP.plateauRegions = [];
+  APP.fractionTemps = [];
+  APP.fractionLFP = [];
+  APP.fractionL = [];
+  APP.fractionFP = [];
+  APP.fractionOther = [];
+  APP.events = [];
+
+  const isCool = APP.simDirection === 'cool';
+  const Tstart = isCool ? APP.Tmax : APP.Tmin;
+  const Tend   = isCool ? APP.Tmin : APP.Tmax;
+  const Trange = APP.Tmax - APP.Tmin;
+
+  // Get phase boundaries for current composition
+  const boundaries = LFP_MODEL.phaseBoundaries(APP.composition);
+
+  setStatus('running', isCool ? 'COOLING…' : 'HEATING…');
+  log(`${isCool?'冷却':'加热'}模拟开始: ${Tstart}°C → ${Tend}°C, 组成 x=${APP.composition.toFixed(2)}, 速率=${APP.coolingRate}`, 'info');
+
+  let step = 0;
+  let t = 0;
+  let inPlateau = false;
+  let plateauSteps = 0;
+
+  APP.simTimer = setInterval(() => {
+    if (!APP.simRunning || step >= APP.simSteps) {
+      clearInterval(APP.simTimer);
+      APP.simRunning = false;
+      setStatus('done', 'DONE');
+      onSimComplete();
+      return;
+    }
+
+    // Current temperature (linear scan)
+    const progress = step / APP.simSteps;
+    let T = isCool
+      ? Tstart - progress * Trange
+      : Tstart + progress * Trange;
+
+    // Check if we are near a phase boundary → plateau
+    const nearBoundary = boundaries.find(b => Math.abs(b.T - T) < (rate.dT * 2.5));
+    if (nearBoundary && !inPlateau) {
+      inPlateau = true;
+      plateauSteps = 0;
+      APP.plateauRegions.push({ startIdx: APP.coolingTimes.length });
+      // Flash effect
+      triggerPhaseFlash(nearBoundary);
+      addEvent(nearBoundary.T, nearBoundary.label, nearBoundary.color);
+      log(`⚡ 相变检测: ${nearBoundary.label} @ T=${Math.round(nearBoundary.T)}°C`, 'alert');
+    }
+    if (nearBoundary && inPlateau) {
+      plateauSteps++;
+      T = nearBoundary.T; // Hold temperature (plateau)
+      if (plateauSteps > 12) {
+        inPlateau = false;
+        if (APP.plateauRegions.length > 0) APP.plateauRegions[APP.plateauRegions.length-1].endIdx = APP.coolingTimes.length;
+      }
+    } else {
+      inPlateau = false;
+    }
+
+    // Time increment depends on plateau (slower during plateau in real process)
+    const dt = nearBoundary ? 0.4 : 1.0;
+    t += dt;
+
+    APP.coolingTimes.push(t);
+    APP.coolingTemps.push(T);
+
+    // Phase fractions at current state
+    const frac = LFP_MODEL.phaseFractions(APP.composition, T, APP.coolingRate);
+    APP.fractionTemps.push(T);
+    APP.fractionLFP.push(frac.LiFePO4 * 100);
+    APP.fractionL.push(frac.liquid * 100);
+    APP.fractionFP.push(frac.FePO4 * 100);
+    APP.fractionOther.push(frac.other * 100);
+
+    // Update temp marker on canvas
+    updateTempMarker(T);
+
+    // Update thermodynamic display
+    const phase = LFP_MODEL.primaryPhase(APP.composition, T);
+    document.getElementById('curTdisp').textContent = Math.round(T) + '°C';
+    document.getElementById('curGdisp').textContent = nearBoundary ? 'ΔG = 0 (相变进行中)' : 'ΔG < 0 (自发冷却)';
+    document.getElementById('curPhase').textContent = phase;
+
+    // Update progress
+    const pct = Math.round(progress * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('simProgress').textContent = `T = ${Math.round(T)}°C | 进度 ${pct}%`;
+
+    // Update live charts every 5 steps
+    if (step % 5 === 0) {
+      updateCoolingChart();
+      updateFractionChart();
+    }
+
+    step++;
+  }, 40); // 40ms per step → ~200 steps = 8s total
+}
+
+/** Move the temperature marker line on the canvas */
+function updateTempMarker(T) {
+  const canvas = document.getElementById('phaseCanvas');
+  const marker = document.getElementById('tempMarker');
+  const pad = { t: 40, b: 50 };
+  const ch = canvas.height - pad.t - pad.b;
+  const Trange = APP.Tmax - APP.Tmin;
+  const py = pad.t + (1 - (T - APP.Tmin) / Trange) * ch;
+
+  marker.style.display = 'block';
+  marker.style.top = py + 'px';
+}
+
+/** Flash the phase transformation indicator */
+function triggerPhaseFlash(boundary) {
+  const flash = document.getElementById('phaseFlash');
+  flash.classList.add('active');
+  setTimeout(() => flash.classList.remove('active'), 2500);
+}
+
+/** Add an event to the event list panel */
+function addEvent(T, label, color) {
+  APP.events.push({ T, label, color });
+  const list = document.getElementById('eventList');
+  const card = document.createElement('div');
+  card.className = 'event-card';
+  card.innerHTML = `
+    <span class="ev-temp">T=${Math.round(T)}°C</span>
+    <span class="ev-name" style="color:${color}">⚡ ${label}</span>
+    <span class="ev-phase">x=${APP.composition.toFixed(2)}</span>
+  `;
+  if (list.children.length === 1 && list.children[0].tagName === 'DIV') list.innerHTML = '';
+  list.prepend(card);
+}
+
+/** Called when simulation finishes */
+function onSimComplete() {
+  log(`模拟完成。检测到 ${APP.events.length} 个相变事件。`, 'info');
+  document.getElementById('progressFill').style.width = '100%';
+  document.getElementById('simProgress').textContent = `✓ 模拟完成 | ${APP.events.length} 个相变事件`;
+  document.getElementById('tempMarker').style.display = 'none';
+
+  updateCoolingChart();
+  updateFractionChart();
+  updatePhaseTable();
+  simulateImpurityFormation();
+}
+
+/* ════════════════════════════════════════════════════════
+   MODULE: CHARTS
+════════════════════════════════════════════════════════ */
+
+/**
+ * updateCoolingChart — draws the Temperature vs Time cooling curve
+ * Highlights plateau regions in red
+ */
+function updateCoolingChart() {
+  const ctx2 = document.getElementById('coolingChart').getContext('2d');
+
+  const plateauColors = APP.coolingTimes.map((t, i) => {
+    const inP = APP.plateauRegions.some(r => i >= r.startIdx && i <= (r.endIdx || r.startIdx + 15));
+    return inP ? 'rgba(244,63,94,0.85)' : 'rgba(13,148,136,0.8)';
+  });
+
+  if (APP.coolingChartInst) APP.coolingChartInst.destroy();
+  APP.coolingChartInst = new Chart(ctx2, {
+    type: 'line',
+    data: {
+      labels: APP.coolingTimes,
+      datasets: [{
+        label: APP.simDirection === 'cool' ? 'Cooling Curve' : 'Heating Curve',
+        data: APP.coolingTemps,
+        borderColor: 'rgba(13,148,136,0.9)',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: false,
+        tension: 0.2,
+        segment: {
+          borderColor: ctx => {
+            const i = ctx.p0DataIndex;
+            const inP = APP.plateauRegions.some(r => i >= r.startIdx && i <= (r.endIdx || r.startIdx+15));
+            return inP ? 'rgba(244,63,94,0.9)' : 'rgba(13,148,136,0.9)';
+          }
+        }
+      }]
+    },
+    options: {
+      responsive: true, animation: { duration: 0 },
+      plugins: {
+        legend: { labels: { color:'#94a3b8', font:{ family:'Share Tech Mono', size:11 } } },
+        tooltip: { callbacks: { label: c => ` ${Math.round(c.parsed.y)}°C` } }
+      },
+      scales: {
+        x: { display: false },
+        y: {
+          title: { display:true, text:'Temperature (°C)', color:'#64748b', font:{family:'Share Tech Mono',size:10} },
+          grid: { color:'rgba(255,255,255,0.04)' },
+          ticks: { color:'#94a3b8', font:{family:'Share Tech Mono',size:10} }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * updateFractionChart — plots phase fraction vs temperature
+ */
+function updateFractionChart() {
+  const ctx2 = document.getElementById('fractionChart').getContext('2d');
+  if (APP.fractionChartInst) APP.fractionChartInst.destroy();
+
+  const Ts = APP.fractionTemps;
+  APP.fractionChartInst = new Chart(ctx2, {
+    type: 'line',
+    data: {
+      labels: Ts.map(t => Math.round(t)),
+      datasets: [
+        { label:'LiFePO₄', data:APP.fractionLFP, borderColor:'#0d9488', borderWidth:2, pointRadius:0, fill:true, backgroundColor:'rgba(13,148,136,0.1)', tension:.3 },
+        { label:'Liquid',  data:APP.fractionL,   borderColor:'#38bdf8', borderWidth:2, pointRadius:0, fill:true, backgroundColor:'rgba(56,189,248,0.06)', tension:.3 },
+        { label:'FePO₄',  data:APP.fractionFP,  borderColor:'#f59e0b', borderWidth:1.5,pointRadius:0, fill:true, backgroundColor:'rgba(245,158,11,0.06)', tension:.3 },
+        { label:'Other',   data:APP.fractionOther,borderColor:'#8b5cf6',borderWidth:1.5,pointRadius:0, fill:true, backgroundColor:'rgba(139,92,246,0.06)', tension:.3 },
+      ]
+    },
+    options: {
+      responsive: true, animation: { duration: 0 },
+      plugins: {
+        legend: { labels: { color:'#94a3b8', font:{family:'Share Tech Mono',size:10} } }
+      },
+      scales: {
+        x: {
+          title: { display:true, text:'Temperature (°C)', color:'#64748b', font:{family:'Share Tech Mono',size:10} },
+          grid: { color:'rgba(255,255,255,0.04)' },
+          ticks: { color:'#94a3b8', font:{family:'Share Tech Mono',size:10}, maxTicksLimit:8,
+                   callback: (v, i) => Ts[i] ? Math.round(Ts[i]) : '' }
+        },
+        y: {
+          min:0, max:100,
+          title: { display:true, text:'Phase Fraction (%)', color:'#64748b', font:{family:'Share Tech Mono',size:10} },
+          grid: { color:'rgba(255,255,255,0.04)' },
+          ticks: { color:'#94a3b8', font:{family:'Share Tech Mono',size:10} }
+        }
+      }
+    }
+  });
+}
+
+/** Update phase composition table with final state */
+function updatePhaseTable() {
+  const lastT = APP.coolingTemps[APP.coolingTemps.length - 1] ?? APP.Tmin;
+  const frac = LFP_MODEL.phaseFractions(APP.composition, lastT, APP.coolingRate);
+
+  const phases = [
+    { name:'LiFePO₄', frac:frac.LiFePO4, color:'#0d9488', note:'主相 / Target phase' },
+    { name:'Liquid',  frac:frac.liquid,   color:'#38bdf8', note:'液相' },
+    { name:'FePO₄',  frac:frac.FePO4,   color:'#f59e0b', note:'杂质相 / Impurity' },
+    { name:'Other',   frac:frac.other,   color:'#8b5cf6', note:'其他 / Mixed' },
+  ];
+
+  const tbody = document.getElementById('phaseTableBody');
+  tbody.innerHTML = phases.map(p => `
+    <tr>
+      <td style="color:${p.color};font-weight:600;">${p.name}</td>
+      <td>
+        <span style="color:${p.color};">${(p.frac*100).toFixed(1)}%</span>
+        <div class="ph-bar" style="width:${(p.frac*100).toFixed(1)}%;background:${p.color};opacity:.7;"></div>
+      </td>
+      <td style="color:var(--muted2);font-size:.65rem;">${p.note}</td>
+    </tr>`).join('');
+}
+
+/* ════════════════════════════════════════════════════════
+   MODULE: IMPURITY FORMATION SIMULATION
+   Different cooling rates produce different impurity phases
+════════════════════════════════════════════════════════ */
+/**
+ * simulateImpurityFormation — calculates expected impurity phases
+ * based on cooling rate (kinetic model) and composition
+ */
+function simulateImpurityFormation() {
+  const panel = document.getElementById('impurityPanel');
+  panel.innerHTML = '';
+
+  const rate = APP.coolingRate;
+  const x = APP.composition;
+
+  // Impurity prediction model
+  const impurities = [];
+
+  // FePO4: stable at low x, enhanced by slow cooling
+  const fpo4Prob = rate === 'slow' ? 0.55 : rate === 'medium' ? 0.25 : 0.10;
+  if (x < 0.45 || rate === 'slow') {
+    impurities.push({
+      icon:'🟡', name:'FePO₄',
+      desc:'铁磷酸盐，降低容量 / Reduces capacity',
+      prob: Math.min(0.9, fpo4Prob + (0.45-Math.min(x,0.45))*0.8),
+      cond: `慢冷 & x < 0.45`
+    });
+  }
+
+  // Fe2P: reduced phase, preferentially formed at fast cooling
+  if (rate === 'fast') {
+    impurities.push({
+      icon:'🔴', name:'Fe₂P',
+      desc:'还原性磷化铁，快冷时形成 / Formed at fast quench',
+      prob: 0.65 + (x - 0.5) * 0.2,
+      cond:'快速淬火 (Fast quench)'
+    });
+  }
+
+  // Fe2O3: oxidation product, medium-fast cooling
+  if (rate !== 'slow') {
+    impurities.push({
+      icon:'🟠', name:'Fe₂O₃',
+      desc:'氧化铁，影响循环性能 / Affects cycling',
+      prob: rate === 'fast' ? 0.40 : 0.20,
+      cond:'氧化气氛 + 中高速冷却'
+    });
+  }
+
+  // Li3PO4: excess Li side
+  if (x > 0.6) {
+    impurities.push({
+      icon:'🟣', name:'Li₃PO₄',
+      desc:'磷酸锂，锂过量时出现 / Excess Li phase',
+      prob: (x - 0.6) * 2.5,
+      cond:'x > 0.6 (Li 过量)'
+    });
+  }
+
+  // If no impurities
+  if (impurities.length === 0) {
+    impurities.push({
+      icon:'✅', name:'LiFePO₄ (纯相)',
+      desc:'组成和速率控制良好，无明显杂相',
+      prob: 0, cond:'理想条件'
+    });
+  }
+
+  impurities.forEach((imp, i) => {
+    const div = document.createElement('div');
+    div.className = 'impurity-row';
+    div.style.animationDelay = (i * 0.1) + 's';
+    div.innerHTML = `
+      <div class="imp-icon">${imp.icon}</div>
+      <div class="imp-info">
+        <div class="imp-name">${imp.name}</div>
+        <div class="imp-desc">${imp.desc}</div>
+        <div style="font-family:var(--font-mono);font-size:.6rem;color:var(--muted);margin-top:.15rem;">条件: ${imp.cond}</div>
+      </div>
+      <div class="imp-prob">${imp.prob > 0 ? (imp.prob*100).toFixed(0)+'%' : '—'}</div>
+    `;
+    panel.appendChild(div);
+  });
+
+  log(`杂质相预测完成: ${impurities.map(i=>i.name).join(', ')}`, 'warn');
+}
+
+/* ════════════════════════════════════════════════════════
+   UTILITY FUNCTIONS
+════════════════════════════════════════════════════════ */
+
+function setStatus(type, text) {
+  const pill = document.getElementById('statusPill');
+  const dot  = document.getElementById('statusDot');
+  const txt  = document.getElementById('statusText');
+  pill.className = `status-pill ${type}`;
+  dot.className  = `status-dot ${type === 'running' ? 'pulse' : ''}`;
+  txt.textContent = text;
+}
+
+/** Add a log entry to the system log box */
+function log(msg, type = '') {
+  APP.logTimer++;
+  const box = document.getElementById('logBox');
+  const div = document.createElement('div');
+  div.className = `log-line ${type}`;
+  const ts = String(Math.floor(APP.logTimer/60)).padStart(2,'0') + ':' + String(APP.logTimer%60).padStart(2,'0');
+  div.innerHTML = `<span class="ts">[${ts}]</span>${msg}`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  // Keep max 50 entries
+  while (box.children.length > 50) box.removeChild(box.firstChild);
+}
+
+/** Update slider gradient fill to show current value */
+function updateSliderFill(id) {
+  const sl = document.getElementById(id);
+  const pct = ((sl.value - sl.min) / (sl.max - sl.min) * 100).toFixed(1);
+  sl.style.backgroundSize = pct + '% 100%';
+}
+
+function clearAll() {
+  stopSim();
+  APP.uploadedImage = null; APP.demoType = null;
+  APP.compLinePx = null; APP.events = [];
+  document.getElementById('uploadZone').style.display = 'flex';
+  document.getElementById('canvasBox').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('eventList').innerHTML = '<div style="font-family:var(--font-mono);font-size:.7rem;color:var(--muted);text-align:center;padding:.5rem;">模拟运行后显示相变事件</div>';
+  if (APP.coolingChartInst) { APP.coolingChartInst.destroy(); APP.coolingChartInst = null; }
+  if (APP.fractionChartInst) { APP.fractionChartInst.destroy(); APP.fractionChartInst = null; }
+  document.getElementById('phaseTableBody').innerHTML = '<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:.8rem;">模拟后显示</td></tr>';
+  document.getElementById('impurityPanel').innerHTML = '<div style="font-family:var(--font-mono);font-size:.7rem;color:var(--muted);text-align:center;padding:.8rem;">模拟运行后显示杂质相分析</div>';
+  log('界面已清空', 'warn');
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ════════════════════════════════════════════════════════
+   MODULE: INIT
+════════════════════════════════════════════════════════ */
+function init() {
+  renderTheory();
+
+  // Initialize slider fills
+  ['compSlider','tmaxSlider','tminSlider'].forEach(updateSliderFill);
+
+  // Auto-load demo on startup for instant visual feedback
+  setTimeout(() => {
+    loadDemoLFP();
+    selectComposition();
+    log('LiFePO₄ 相图演示已自动加载', 'info');
+    log('提示: 调整组成、温度范围和冷却速率后点击 Start Cooling 开始模拟', 'info');
+  }, 600);
+}
+
+window.addEventListener('resize', () => {
+  if (APP.uploadedImage || APP.demoType) {
+    resizeCanvas();
+    drawPhaseDiagram();
+  }
+});
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
