@@ -1,0 +1,2808 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>相图阅读与相律训练模拟器— Phase Diagram Explorer </title>
+
+<!-- MathJax for formula rendering -->
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$','$'],['\\(','\\)']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet" />
+
+<style>
+/* ============================================================
+   CSS CUSTOM PROPERTIES — DESIGN TOKENS
+   ============================================================ */
+:root {
+  --bg-deep:    #020617;
+  --bg-panel:   #0a1628;
+  --bg-card:    #0f2040;
+  --accent:     #0d9488;
+  --accent-glow:#14b8a6;
+  --accent2:    #f59e0b;
+  --accent3:    #8b5cf6;
+  --danger:     #ef4444;
+  --success:    #22c55e;
+  --text-main:  #f8fafc;
+  --text-muted: #94a3b8;
+  --border:     rgba(13,148,136,0.25);
+  --glow-sm:    0 0 8px rgba(13,148,136,0.6);
+  --glow-md:    0 0 20px rgba(13,148,136,0.4), 0 0 60px rgba(13,148,136,0.15);
+  --glow-lg:    0 0 40px rgba(13,148,136,0.5), 0 0 100px rgba(13,148,136,0.2);
+  --font-display: 'Orbitron', monospace;
+  --font-mono:    'JetBrains Mono', monospace;
+  --font-body:    'Noto Sans SC', sans-serif;
+}
+
+/* ============================================================
+   BASE RESET & GLOBAL
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-deep);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+  /* animated grid background */
+  background-image:
+    linear-gradient(rgba(13,148,136,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(13,148,136,0.04) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* ============================================================
+   PAGE LOAD FADE-IN ANIMATION
+   ============================================================ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+@keyframes rotateHex {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes glowPulse {
+  0%, 100% { box-shadow: var(--glow-sm); }
+  50%       { box-shadow: var(--glow-md); }
+}
+
+.section-animate {
+  animation: fadeInUp 0.7s ease both;
+}
+.section-animate:nth-child(1) { animation-delay: 0.1s; }
+.section-animate:nth-child(2) { animation-delay: 0.25s; }
+.section-animate:nth-child(3) { animation-delay: 0.4s; }
+
+/* Scanline overlay */
+.scanline {
+  pointer-events: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 40px;
+  background: linear-gradient(transparent, rgba(13,148,136,0.06), transparent);
+  animation: scanline 6s linear infinite;
+  z-index: 9999;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.site-header {
+  position: relative;
+  padding: 2.5rem 2rem 2rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(13,148,136,0.08) 0%, transparent 100%);
+  animation: fadeIn 1s ease both;
+}
+
+.header-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 0.2rem 0.8rem;
+  border-radius: 2px;
+  letter-spacing: 0.2em;
+  margin-bottom: 1rem;
+  animation: blink 3s ease infinite;
+}
+
+.site-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 4vw, 2.6rem);
+  font-weight: 900;
+  color: var(--text-main);
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  text-shadow: var(--glow-sm);
+}
+.site-title span { color: var(--accent-glow); }
+
+.site-sub {
+  margin-top: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  letter-spacing: 0.15em;
+}
+
+.header-deco {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.2rem;
+}
+.header-deco-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: glowPulse 2s ease infinite;
+}
+.header-deco-dot:nth-child(2) { animation-delay: 0.3s; background: var(--accent2); }
+.header-deco-dot:nth-child(3) { animation-delay: 0.6s; background: var(--accent3); }
+
+/* ============================================================
+   LAYOUT — MAIN CONTAINER
+   ============================================================ */
+.main-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ============================================================
+   SECTION CARD
+   ============================================================ */
+.card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  transition: box-shadow 0.3s;
+}
+.card:hover { box-shadow: var(--glow-md); }
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(13,148,136,0.05);
+}
+
+.card-icon {
+  width: 32px; height: 32px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.1em;
+}
+.card-title-cn {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-left: 0.4rem;
+  letter-spacing: 0.05em;
+}
+
+.card-body { padding: 1.5rem; }
+
+/* ============================================================
+   SECTION 1 — THEORY
+   ============================================================ */
+.theory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.theory-block {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.2rem;
+  position: relative;
+  transition: transform 0.25s, box-shadow 0.25s;
+  cursor: default;
+}
+.theory-block:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--glow-md);
+}
+
+.theory-num {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: rgba(13,148,136,0.2);
+  position: absolute;
+  top: 0.6rem; right: 1rem;
+  line-height: 1;
+}
+
+.theory-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--accent);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+}
+
+.theory-title {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-main);
+  margin-bottom: 0.8rem;
+}
+
+.formula-display {
+  background: rgba(13,148,136,0.08);
+  border: 1px solid rgba(13,148,136,0.2);
+  border-radius: 4px;
+  padding: 0.8rem;
+  text-align: center;
+  margin-bottom: 0.8rem;
+  font-size: 1.1rem;
+}
+
+.theory-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.theory-list li {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding-left: 1rem;
+  position: relative;
+}
+.theory-list li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+/* Tooltip */
+.has-tooltip { position: relative; }
+.tooltip-box {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-deep);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.72rem;
+  color: var(--text-main);
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: var(--glow-sm);
+  font-family: var(--font-mono);
+  pointer-events: none;
+}
+.has-tooltip:hover .tooltip-box { display: block; }
+
+/* Variable badges */
+.var-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+.var-badge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 3px;
+  border: 1px solid;
+}
+.var-badge.f { border-color: var(--accent);  color: var(--accent); }
+.var-badge.c { border-color: var(--accent2); color: var(--accent2); }
+.var-badge.p { border-color: var(--accent3); color: var(--accent3); }
+
+/* ============================================================
+   SECTION 2 — PHASE DIAGRAM READER (CORE)
+   ============================================================ */
+.diagram-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .diagram-layout { grid-template-columns: 1fr; }
+}
+
+/* Canvas wrapper */
+.canvas-wrapper {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#phaseCanvas {
+  display: block;
+  cursor: crosshair;
+  max-width: 100%;
+}
+
+.canvas-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  color: var(--text-muted);
+  user-select: none;
+}
+.canvas-placeholder svg {
+  opacity: 0.25;
+}
+.canvas-placeholder p {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+}
+
+/* Sidebar controls */
+.sidebar-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Calibration panel */
+.calib-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.1rem;
+}
+.calib-title {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--accent);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0.8rem;
+}
+.calib-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+.calib-step {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+.calib-step:hover { border-color: var(--border); background: rgba(13,148,136,0.05); }
+.calib-step.active { border-color: var(--accent); color: var(--accent); background: rgba(13,148,136,0.1); }
+.calib-step.done  { border-color: var(--success); color: var(--success); }
+.calib-dot {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  flex-shrink: 0;
+}
+
+.calib-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.calib-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.calib-input-row label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  width: 80px;
+  flex-shrink: 0;
+}
+.calib-input-row input {
+  flex: 1;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.3rem 0.5rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.calib-input-row input:focus { border-color: var(--accent); }
+
+/* Info panel */
+.info-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.1rem;
+}
+.info-panel .calib-title { margin-bottom: 0.6rem; }
+.coord-display {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.8;
+  color: var(--text-muted);
+}
+.coord-display .val {
+  color: var(--accent-glow);
+  font-weight: 600;
+}
+
+/* Phase region selector */
+.phase-selector {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.1rem;
+}
+.phase-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.6rem 0;
+}
+.phase-radio {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.phase-radio:hover { border-color: var(--border); }
+.phase-radio input[type="radio"] { display: none; }
+.phase-radio.selected-single  { border-color: var(--accent);  color: var(--accent);  background: rgba(13,148,136,0.1); }
+.phase-radio.selected-two     { border-color: var(--accent2); color: var(--accent2); background: rgba(245,158,11,0.08); }
+.phase-radio.selected-three   { border-color: var(--accent3); color: var(--accent3); background: rgba(139,92,246,0.08); }
+
+/* ============================================================
+   SECTION 3 — GIBBS CALCULATOR
+   ============================================================ */
+.gibbs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+@media (max-width: 700px) { .gibbs-grid { grid-template-columns: 1fr; } }
+
+.gibbs-form {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.3rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+.form-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.15em;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+}
+.form-input {
+  width: 100%;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 0.55rem 0.8rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-input:focus {
+  border-color: var(--accent);
+  box-shadow: var(--glow-sm);
+}
+.form-input.error { border-color: var(--danger); }
+
+.error-msg {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--danger);
+  margin-top: 0.3rem;
+  display: none;
+}
+.error-msg.visible { display: block; }
+
+/* Result display */
+.gibbs-result {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.result-f-display {
+  text-align: center;
+  padding: 1.5rem;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.result-f-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+.result-f-value {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--accent-glow);
+  text-shadow: var(--glow-md);
+  transition: all 0.3s;
+}
+.result-f-meaning {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.4rem;
+}
+
+.result-breakdown {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: rgba(13,148,136,0.04);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.7rem 0.9rem;
+  line-height: 2;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  border: 1px solid;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+}
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.btn:hover::after { opacity: 0.06; }
+
+.btn-primary {
+  background: rgba(13,148,136,0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn-primary:hover {
+  background: rgba(13,148,136,0.25);
+  box-shadow: var(--glow-md);
+}
+
+.btn-secondary {
+  background: rgba(245,158,11,0.1);
+  border-color: var(--accent2);
+  color: var(--accent2);
+}
+.btn-secondary:hover {
+  background: rgba(245,158,11,0.2);
+  box-shadow: 0 0 20px rgba(245,158,11,0.3);
+}
+
+.btn-danger {
+  background: rgba(239,68,68,0.1);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.btn-danger:hover {
+  background: rgba(239,68,68,0.2);
+  box-shadow: 0 0 20px rgba(239,68,68,0.3);
+}
+
+.btn-purple {
+  background: rgba(139,92,246,0.1);
+  border-color: var(--accent3);
+  color: var(--accent3);
+}
+.btn-purple:hover {
+  background: rgba(139,92,246,0.2);
+  box-shadow: 0 0 20px rgba(139,92,246,0.3);
+}
+
+.btn-sm { padding: 0.4rem 0.8rem; font-size: 0.7rem; }
+.btn-full { width: 100%; }
+
+/* File input */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 6px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+}
+.upload-zone:hover {
+  border-color: var(--accent);
+  background: rgba(13,148,136,0.05);
+}
+.upload-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+.upload-icon {
+  font-size: 2rem;
+  margin-bottom: 0.6rem;
+  opacity: 0.5;
+}
+.upload-text {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   SECTION 4 — CHALLENGE GAME
+   ============================================================ */
+.challenge-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+@media (max-width: 800px) { .challenge-layout { grid-template-columns: 1fr; } }
+
+.challenge-chart-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  position: relative;
+}
+
+#challengeCanvas {
+  width: 100%;
+  max-height: 320px;
+}
+
+.challenge-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.challenge-stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+  text-align: center;
+}
+.stat-item { }
+.stat-num {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--accent-glow);
+}
+.stat-lbl {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+}
+
+.challenge-question {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.1rem;
+  flex: 1;
+}
+.question-title {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--accent);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0.8rem;
+}
+.question-data {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.8rem;
+  background: var(--bg-deep);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+.question-data .data-row {
+  display: flex;
+  justify-content: space-between;
+}
+.question-data .data-key { color: var(--text-muted); }
+.question-data .data-val { color: var(--accent-glow); font-weight: 600; }
+
+.answer-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.feedback-box {
+  padding: 0.8rem;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  text-align: center;
+  margin-top: 0.5rem;
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+.feedback-box.correct {
+  display: block;
+  background: rgba(34,197,94,0.1);
+  border: 1px solid var(--success);
+  color: var(--success);
+}
+.feedback-box.wrong {
+  display: block;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+
+/* ============================================================
+   MARKED POINTS LIST
+   ============================================================ */
+.points-list {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+.points-list::-webkit-scrollbar { width: 4px; }
+.points-list::-webkit-scrollbar-track { background: transparent; }
+.points-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.point-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.7rem;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  animation: fadeInUp 0.3s ease both;
+}
+.point-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.point-info { flex: 1; color: var(--text-muted); }
+.point-info span { color: var(--text-main); }
+.point-delete {
+  cursor: pointer;
+  color: var(--danger);
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  font-size: 0.8rem;
+}
+.point-delete:hover { opacity: 1; }
+
+/* ============================================================
+   RIPPLE ANIMATION ON CANVAS CLICK
+   ============================================================ */
+.ripple-marker {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid var(--danger);
+  width: 30px; height: 30px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: pulse-ring 0.8s ease-out forwards;
+}
+
+/* ============================================================
+   SCROLLBAR GLOBAL
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* ============================================================
+   SECTION DIVIDER
+   ============================================================ */
+.section-num {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  color: var(--accent);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+/* Demo binary diagram legend */
+.demo-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 0.8rem;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+.legend-swatch {
+  width: 16px; height: 8px;
+  border-radius: 2px;
+}
+
+/* Mode indicator */
+.mode-indicator {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 3px;
+  display: inline-block;
+}
+.mode-indicator.calibrate { background: rgba(245,158,11,0.15); color: var(--accent2); border: 1px solid var(--accent2); }
+.mode-indicator.mark      { background: rgba(13,148,136,0.15);  color: var(--accent);  border: 1px solid var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- Scanline effect overlay -->
+<div class="scanline"></div>
+
+<!-- ================================================================
+     HEADER
+     ================================================================ -->
+<header class="site-header">
+  <div class="header-badge">MATERIALS THERMODYNAMICS LAB v2.0</div>
+  <h1 class="site-title"> 相图阅读与相律训练<span>模拟器</span></h1>
+  <p class="site-sub"> Phase Diagram Explorer— GIBBS PHASE RULE TRAINING SYSTEM</p>
+  <div class="header-deco">
+    <div class="header-deco-dot"></div>
+    <div class="header-deco-dot"></div>
+    <div class="header-deco-dot"></div>
+  </div>
+</header>
+
+<!-- ================================================================
+     MAIN CONTENT
+     ================================================================ -->
+<div class="main-container">
+
+  <!-- ============================================================
+       SECTION 1 — CORE THEORY  核心理论区
+       ============================================================ -->
+  <section class="card section-animate" id="section-theory">
+    <div class="card-header">
+      <div class="card-icon">⚗</div>
+      <span class="section-num">01 /</span>
+      <span class="card-title">CORE THEORY</span>
+      <span class="card-title-cn">核心理论</span>
+    </div>
+    <div class="card-body">
+      <div class="theory-grid" id="theoryGrid">
+        <!-- Rendered by renderTheory() -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 2 — PHASE DIAGRAM READER  相图阅读区
+       ============================================================ -->
+  <section class="card section-animate" id="section-diagram">
+    <div class="card-header">
+      <div class="card-icon">🗺</div>
+      <span class="section-num">02 /</span>
+      <span class="card-title">PHASE DIAGRAM READER</span>
+      <span class="card-title-cn">相图阅读训练</span>
+      <div style="margin-left:auto; display:flex; gap:0.5rem; align-items:center;">
+        <span class="mode-indicator calibrate" id="modeIndicator">CALIBRATION MODE</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="diagram-layout">
+
+        <!-- Left: canvas -->
+        <div>
+          <!-- Upload zone (shown when no image) -->
+          <div class="upload-zone" id="uploadZone">
+            <input type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/bmp" id="fileInput" />
+            <div class="upload-icon">📊</div>
+            <div class="upload-text">
+              <strong style="color:var(--accent);">Upload Phase Diagram</strong><br />
+              点击或拖拽上传相图 (PNG / JPG)<br />
+              <small>或使用下方内置演示相图</small>
+            </div>
+          </div>
+
+          <!-- Canvas (hidden until image loaded) -->
+          <div class="canvas-wrapper" id="canvasWrapper" style="display:none;">
+            <canvas id="phaseCanvas"></canvas>
+          </div>
+
+          <!-- Demo buttons -->
+          <div style="margin-top:0.8rem; display:flex; gap:0.6rem; flex-wrap:wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="loadDemoEutectic()">▶ Demo: 共晶系统 Al-Si</button>
+            <button class="btn btn-sm" style="background:rgba(139,92,246,0.1);border-color:var(--accent3);color:var(--accent3);" onclick="loadDemoPeritectic()">▶ Demo: 包晶系统 Fe-C</button>
+            <button class="btn btn-danger btn-sm" onclick="clearCanvas()">✕ Clear</button>
+          </div>
+
+          <!-- Demo legend (hidden by default) -->
+          <div class="demo-legend" id="demoLegend" style="display:none;"></div>
+
+          <!-- Marked points list -->
+          <div style="margin-top:1rem;">
+            <div style="font-family:var(--font-mono);font-size:0.68rem;color:var(--accent);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.4rem;">
+              Marked Points — 标注点记录
+            </div>
+            <div class="points-list" id="pointsList">
+              <div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);padding:0.5rem;text-align:center;">暂无标注点</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: controls -->
+        <div class="sidebar-controls">
+
+          <!-- Calibration panel -->
+          <div class="calib-panel">
+            <div class="calib-title">📐 Axis Calibration — 坐标轴标定</div>
+            <div class="calib-steps">
+              <div class="calib-step active" id="stepOrigin" onclick="setCalibStep('origin')">
+                <div class="calib-dot">O</div>
+                <div>
+                  <div style="font-weight:600;">Step 1: 点击原点</div>
+                  <div style="font-size:0.62rem;opacity:0.7;">Click the origin (0,0)</div>
+                </div>
+              </div>
+              <div class="calib-step" id="stepXmax" onclick="setCalibStep('xmax')">
+                <div class="calib-dot">X</div>
+                <div>
+                  <div style="font-weight:600;">Step 2: 点击 X 最大值</div>
+                  <div style="font-size:0.62rem;opacity:0.7;">Click X-axis maximum</div>
+                </div>
+              </div>
+              <div class="calib-step" id="stepYmax" onclick="setCalibStep('ymax')">
+                <div class="calib-dot">Y</div>
+                <div>
+                  <div style="font-weight:600;">Step 3: 点击 Y 最大值</div>
+                  <div style="font-size:0.62rem;opacity:0.7;">Click Y-axis maximum</div>
+                </div>
+              </div>
+            </div>
+            <div class="calib-input-group">
+              <div class="calib-input-row">
+                <label>X max 值</label>
+                <input type="number" id="calibXmax" placeholder="e.g. 100" value="100" />
+                <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);width:30px;">%</span>
+              </div>
+              <div class="calib-input-row">
+                <label>Y max 值</label>
+                <input type="number" id="calibYmax" placeholder="e.g. 1500" value="1500" />
+                <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);width:30px;">°C</span>
+              </div>
+              <div class="calib-input-row">
+                <label>X 轴标签</label>
+                <input type="text" id="calibXlabel" placeholder="e.g. Composition" value="Composition (wt%)" />
+              </div>
+              <div class="calib-input-row">
+                <label>Y 轴标签</label>
+                <input type="text" id="calibYlabel" placeholder="e.g. Temperature" value="Temperature (°C)" />
+              </div>
+            </div>
+            <div style="margin-top:0.7rem; display:flex; gap:0.5rem;">
+              <button class="btn btn-primary btn-sm" onclick="switchToMarkMode()">✓ 完成标定 → 标注模式</button>
+              <button class="btn btn-danger btn-sm" onclick="resetCalibration()">↺ Reset</button>
+            </div>
+            <div style="margin-top:0.6rem;" id="calibStatus">
+              <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);">等待上传相图后进行标定…</span>
+            </div>
+          </div>
+
+          <!-- Coordinate readout -->
+          <div class="info-panel">
+            <div class="calib-title">📍 Current Point — 当前坐标</div>
+            <div class="coord-display" id="coordDisplay">
+              Pixel: <span class="val" id="coordPx">—</span><br />
+              <span id="realCoordRow" style="display:none;">
+                <span id="calibXlabelDisplay">Composition</span>: <span class="val" id="coordX">—</span><br />
+                <span id="calibYlabelDisplay">Temperature</span>: <span class="val" id="coordY">—</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Phase region judgment -->
+          <div class="phase-selector">
+            <div class="calib-title">🔬 Phase Region — 相区判断</div>
+            <div class="phase-radio-group" id="phaseRadioGroup">
+              <label class="phase-radio" id="radioSingle">
+                <input type="radio" name="phaseRegion" value="single" onchange="selectPhaseRegion('single')" />
+                <span style="color:var(--accent);font-size:0.8rem;">●</span>
+                <span>Single Phase 单相区</span>
+              </label>
+              <label class="phase-radio" id="radioTwo">
+                <input type="radio" name="phaseRegion" value="two" onchange="selectPhaseRegion('two')" />
+                <span style="color:var(--accent2);font-size:0.8rem;">◐</span>
+                <span>Two Phase 两相区</span>
+              </label>
+              <label class="phase-radio" id="radioThree">
+                <input type="radio" name="phaseRegion" value="three" onchange="selectPhaseRegion('three')" />
+                <span style="color:var(--accent3);font-size:0.8rem;">◉</span>
+                <span>Three Phase 三相线</span>
+              </label>
+            </div>
+            <div style="margin-top:0.6rem;">
+              <button class="btn btn-primary btn-sm btn-full" onclick="confirmMark()">✓ Confirm Mark — 确认标注</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 3 — GIBBS PHASE RULE CALCULATOR  相律训练区
+       ============================================================ -->
+  <section class="card section-animate" id="section-gibbs">
+    <div class="card-header">
+      <div class="card-icon">⚖</div>
+      <span class="section-num">03 /</span>
+      <span class="card-title">GIBBS PHASE RULE</span>
+      <span class="card-title-cn">相律计算器</span>
+    </div>
+    <div class="card-body">
+      <div class="gibbs-grid">
+
+        <!-- Input form -->
+        <div class="gibbs-form">
+          <div class="form-group">
+            <label class="form-label">C — Number of Components (组分数)</label>
+            <input class="form-input" type="number" id="inputC" min="1" placeholder="e.g. 2 (二元系)" value="2"
+                   oninput="liveCalculate()" />
+            <div class="error-msg" id="errC">⚠ C must be ≥ 1 (组分数须≥1)</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">P — Number of Phases (相数)</label>
+            <input class="form-input" type="number" id="inputP" min="1" placeholder="e.g. 2 (两相共存)" value="2"
+                   oninput="liveCalculate()" />
+            <div class="error-msg" id="errP">⚠ P must be ≥ 1 (相数须≥1)</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">System Type (系统类型)</label>
+            <select class="form-input" id="systemType" onchange="liveCalculate()">
+              <option value="2">General System (含温压, +2)</option>
+              <option value="1">Condensed System (凝聚系统, +1)</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-full" onclick="calculateGibbs()">
+            ⚡ Calculate Freedom — 计算自由度
+          </button>
+
+          <!-- Quick reference table -->
+          <div style="margin-top:1.2rem;">
+            <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);letter-spacing:0.15em;margin-bottom:0.6rem;">QUICK REFERENCE — 常见情形</div>
+            <table style="width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:0.7rem;">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border);">
+                  <th style="color:var(--text-muted);padding:0.3rem;text-align:left;">C</th>
+                  <th style="color:var(--text-muted);padding:0.3rem;text-align:left;">P</th>
+                  <th style="color:var(--text-muted);padding:0.3rem;text-align:left;">F</th>
+                  <th style="color:var(--text-muted);padding:0.3rem;text-align:left;">含义</th>
+                </tr>
+              </thead>
+              <tbody id="quickRefTable">
+                <!-- filled by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Result display -->
+        <div class="gibbs-result">
+          <div class="result-f-display">
+            <div class="result-f-label">DEGREES OF FREEDOM (F)</div>
+            <div class="result-f-value" id="resultF">—</div>
+            <div class="result-f-meaning" id="resultMeaning">输入参数后计算</div>
+          </div>
+          <div class="result-breakdown" id="resultBreakdown">
+            公式：$F = C - P + 2$<br/>
+            等待计算…
+          </div>
+
+          <!-- Mini bar chart for F interpretation -->
+          <div style="flex:1; min-height:140px;">
+            <canvas id="freedomChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 4 — CHALLENGE GAME  交互训练游戏
+       ============================================================ -->
+  <section class="card section-animate" id="section-challenge">
+    <div class="card-header">
+      <div class="card-icon">🎯</div>
+      <span class="section-num">04 /</span>
+      <span class="card-title">PHASE DIAGRAM CHALLENGE</span>
+      <span class="card-title-cn">相图判读训练游戏</span>
+    </div>
+    <div class="card-body">
+      <div class="challenge-layout">
+
+        <!-- Chart visualization -->
+        <div class="challenge-chart-box">
+          <canvas id="challengeCanvas"></canvas>
+          <div id="challengeOverlay" style="position:absolute;top:1rem;right:1rem;font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);text-align:right;"></div>
+        </div>
+
+        <!-- Question panel -->
+        <div class="challenge-panel">
+          <!-- Score stats -->
+          <div class="challenge-stat">
+            <div class="stat-item">
+              <div class="stat-num" id="statScore">0</div>
+              <div class="stat-lbl">Score 得分</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-num" id="statCorrect">0</div>
+              <div class="stat-lbl">Correct 正确</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-num" id="statTotal">0</div>
+              <div class="stat-lbl">Total 总题数</div>
+            </div>
+          </div>
+
+          <!-- Question -->
+          <div class="challenge-question">
+            <div class="question-title">🎯 Current Question — 当前题目</div>
+            <div class="question-data" id="questionData">
+              <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);text-align:center;">
+                点击 START 开始训练
+              </div>
+            </div>
+            <div class="answer-btns" id="answerBtns" style="display:none;">
+              <button class="btn btn-primary" onclick="checkAnswer('single')">● Single Phase 单相区</button>
+              <button class="btn btn-secondary" onclick="checkAnswer('two')">◐ Two Phase 两相区</button>
+              <button class="btn btn-purple" onclick="checkAnswer('three')">◉ Three Phase 三相线</button>
+            </div>
+            <div class="feedback-box" id="feedbackBox"></div>
+          </div>
+
+          <!-- Controls -->
+          <div style="display:flex; gap:0.7rem; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="startChallenge()">▶ START / Next 下一题</button>
+            <button class="btn btn-danger btn-sm" onclick="resetChallenge()">↺ Reset 重置</button>
+          </div>
+
+          <!-- Explanation box -->
+          <div class="calib-panel" id="explanationBox" style="display:none;">
+            <div class="calib-title">📖 Explanation — 解析</div>
+            <div id="explanationText" style="font-family:var(--font-mono);font-size:0.73rem;color:var(--text-muted);line-height:1.7;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /.main-container -->
+
+<!-- ================================================================
+     JAVASCRIPT — ALL MODULES
+     ================================================================ -->
+<script>
+/* ================================================================
+   MODULE: STATE
+   Global application state
+   ================================================================ */
+const State = {
+  // Calibration
+  calibMode: true,          // true = calibration, false = mark mode
+  calibStep: 'origin',      // 'origin' | 'xmax' | 'ymax'
+  calibOrigin: null,        // {px, py}
+  calibXmaxPx: null,        // {px, py}
+  calibYmaxPx: null,        // {px, py}
+  calibDone: false,
+
+  // Canvas / image
+  uploadedImage: null,
+  canvasW: 800,
+  canvasH: 520,
+
+  // Marked points
+  markedPoints: [],
+  selectedRegion: null,
+  pendingPoint: null,        // {px, py, rx, ry} — waiting for region confirm
+
+  // Demo diagram type
+  demoType: null,
+
+  // Challenge game
+  challengeScore: 0,
+  challengeCorrect: 0,
+  challengeTotal: 0,
+  currentChallenge: null,
+
+  // Charts
+  freedomChart: null,
+  challengeChart: null
+};
+
+/* ================================================================
+   MODULE: THEORY RENDERER
+   Renders the core theory section with MathJax
+   ================================================================ */
+function renderTheory() {
+  const grid = document.getElementById('theoryGrid');
+  const theories = [
+    {
+      num: '01',
+      label: 'Gibbs Phase Rule',
+      title: '吉布斯相律',
+      formula: '$$F = C - P + 2$$',
+      content: null,
+      vars: [
+        { key: 'F', desc: 'Degrees of Freedom — 自由度', cls: 'f' },
+        { key: 'C', desc: 'Components — 组分数', cls: 'c' },
+        { key: 'P', desc: 'Phases — 相数', cls: 'p' }
+      ],
+      tooltip: '相律是热力学平衡的核心定律，描述系统在平衡时可独立改变的强度量数目'
+    },
+    {
+      num: '02',
+      label: 'Binary Phase Diagram',
+      title: '二元相图判读要点',
+      formula: null,
+      content: [
+        { item: '单相区', tip: '均匀单一相，自由度 F ≥ 1' },
+        { item: '两相区', tip: '两相共存，可用杠杆定律确定相的比例' },
+        { item: '三相点（线）', tip: '三相共存，F=0，温度和成分固定' },
+        { item: '共晶反应', tip: 'L → α + β，低温三相不变点' },
+        { item: '包晶反应', tip: 'L + α → β，包晶温度处三相不变' }
+      ],
+      tooltip: '二元系相图是最常见的工程相图，横轴为组成，纵轴为温度'
+    },
+    {
+      num: '03',
+      label: 'Reading Principles',
+      title: '相图阅读原则',
+      formula: null,
+      content: [
+        { item: '横轴通常为组成（摩尔分数或质量分数）', tip: '' },
+        { item: '纵轴通常为温度或压力', tip: '' },
+        { item: '相界线表示两相平衡条件', tip: '沿相界线 F=1' },
+        { item: '杠杆定律确定两相质量比', tip: '在两相区内可用杠杆定律' },
+        { item: '冷却曲线反映相变过程', tip: '相变时出现平台或转折' }
+      ],
+      tooltip: '掌握相图阅读是材料科学的基本技能'
+    }
+  ];
+
+  grid.innerHTML = theories.map(t => `
+    <div class="theory-block has-tooltip">
+      <div class="theory-num">${t.num}</div>
+      <div class="tooltip-box">${t.tooltip}</div>
+      <div class="theory-label">${t.label}</div>
+      <div class="theory-title">${t.title}</div>
+      ${t.formula ? `<div class="formula-display">${t.formula}</div>` : ''}
+      ${t.vars ? `<div class="var-badges">${t.vars.map(v => `
+        <span class="var-badge ${v.cls} has-tooltip">
+          <span class="tooltip-box" style="font-size:0.65rem;">${v.desc}</span>
+          ${v.key}
+        </span>`).join('')}
+      </div>` : ''}
+      ${t.content ? `<ul class="theory-list">${t.content.map(c => `
+        <li class="${c.tip ? 'has-tooltip' : ''}">
+          ${c.tip ? `<span class="tooltip-box">${c.tip}</span>` : ''}
+          ${c.item}
+        </li>`).join('')}
+      </ul>` : ''}
+    </div>
+  `).join('');
+
+  // Re-render MathJax after DOM update
+  if (window.MathJax && MathJax.typesetPromise) {
+    MathJax.typesetPromise([grid]);
+  }
+}
+
+/* ================================================================
+   MODULE: CANVAS / DIAGRAM
+   Handles image upload, canvas drawing, click marking
+   ================================================================ */
+
+/** Initialize canvas element and events */
+function initCanvas() {
+  const canvas = document.getElementById('phaseCanvas');
+  canvas.addEventListener('click', handleClick);
+  canvas.addEventListener('mousemove', handleMouseMove);
+}
+
+/**
+ * uploadDiagram — triggered by file input change
+ * Reads the uploaded image and draws it on canvas
+ */
+function uploadDiagram(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      State.uploadedImage = img;
+      State.demoType = null;
+      showCanvas();
+      drawCanvas();
+      document.getElementById('demoLegend').style.display = 'none';
+      updateCalibStatus('图片已加载。请按步骤标定坐标轴。');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/** Show canvas, hide upload zone */
+function showCanvas() {
+  document.getElementById('uploadZone').style.display = 'none';
+  document.getElementById('canvasWrapper').style.display = 'flex';
+}
+
+/**
+ * drawCanvas — master render function
+ * Redraws the entire canvas: background image + calibration marks + marked points
+ */
+function drawCanvas() {
+  const canvas = document.getElementById('phaseCanvas');
+  const wrapper = document.getElementById('canvasWrapper');
+
+  // Fit canvas to wrapper width
+  const maxW = wrapper.clientWidth || 700;
+  let cw = maxW, ch;
+
+  if (State.uploadedImage) {
+    const ratio = State.uploadedImage.height / State.uploadedImage.width;
+    ch = Math.min(cw * ratio, 520);
+    cw = ch / ratio;
+  } else {
+    ch = 520;
+  }
+
+  canvas.width = cw;
+  canvas.height = ch;
+  State.canvasW = cw;
+  State.canvasH = ch;
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, cw, ch);
+
+  // Draw background image
+  if (State.uploadedImage) {
+    ctx.drawImage(State.uploadedImage, 0, 0, cw, ch);
+  } else if (State.demoType) {
+    drawDemoDiagram(ctx, cw, ch, State.demoType);
+  } else {
+    // Empty state
+    ctx.fillStyle = 'rgba(13,148,136,0.03)';
+    ctx.fillRect(0, 0, cw, ch);
+  }
+
+  // Draw calibration points
+  drawCalibPoints(ctx);
+
+  // Draw all marked points
+  State.markedPoints.forEach(pt => {
+    drawMarker(ctx, pt.px, pt.py, pt.region, pt.id);
+  });
+
+  // Draw pending point (not yet confirmed)
+  if (State.pendingPoint) {
+    drawPendingMarker(ctx, State.pendingPoint.px, State.pendingPoint.py);
+  }
+}
+
+/** Draw calibration reference markers */
+function drawCalibPoints(ctx) {
+  const pts = [
+    { pt: State.calibOrigin, label: 'O', color: '#fbbf24' },
+    { pt: State.calibXmaxPx, label: 'Xmax', color: '#34d399' },
+    { pt: State.calibYmaxPx, label: 'Ymax', color: '#a78bfa' }
+  ];
+  pts.forEach(({ pt, label, color }) => {
+    if (!pt) return;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 1.5;
+    // Cross-hair
+    ctx.beginPath();
+    ctx.moveTo(pt.px - 10, pt.py);
+    ctx.lineTo(pt.px + 10, pt.py);
+    ctx.moveTo(pt.px, pt.py - 10);
+    ctx.lineTo(pt.px, pt.py + 10);
+    ctx.stroke();
+    // Label
+    ctx.font = '11px JetBrains Mono, monospace';
+    ctx.fillText(label, pt.px + 7, pt.py - 5);
+    ctx.restore();
+  });
+}
+
+/**
+ * handleClick — fires on canvas click
+ * Either sets calibration point or marks a point for region assignment
+ */
+function handleClick(e) {
+  const canvas = document.getElementById('phaseCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const px = (e.clientX - rect.left) * scaleX;
+  const py = (e.clientY - rect.top) * scaleY;
+
+  if (State.calibMode) {
+    // --- Calibration mode ---
+    setCalibPoint(px, py);
+  } else {
+    // --- Mark mode ---
+    markPoint(px, py);
+  }
+
+  drawCanvas();
+  updateCoordDisplay(px, py);
+}
+
+/** Mouse move: update coordinate display */
+function handleMouseMove(e) {
+  const canvas = document.getElementById('phaseCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const px = (e.clientX - rect.left) * scaleX;
+  const py = (e.clientY - rect.top) * scaleY;
+  updateCoordDisplay(px, py);
+}
+
+/** Record a calibration point based on current step */
+function setCalibPoint(px, py) {
+  if (State.calibStep === 'origin') {
+    State.calibOrigin = { px, py };
+    updateCalibStatus('✓ 原点已标定。请点击 Step 2 → X轴最大值处。');
+    markStepDone('stepOrigin');
+    setCalibStep('xmax');
+  } else if (State.calibStep === 'xmax') {
+    State.calibXmaxPx = { px, py };
+    updateCalibStatus('✓ X轴最大值已标定。请点击 Step 3 → Y轴最大值处。');
+    markStepDone('stepXmax');
+    setCalibStep('ymax');
+  } else if (State.calibStep === 'ymax') {
+    State.calibYmaxPx = { px, py };
+    State.calibDone = true;
+    updateCalibStatus('✓ 坐标轴标定完成！点击"完成标定"进入标注模式。');
+    markStepDone('stepYmax');
+  }
+}
+
+/** Set active calibration step */
+function setCalibStep(step) {
+  State.calibStep = step;
+  ['stepOrigin','stepXmax','stepYmax'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  const map = { origin:'stepOrigin', xmax:'stepXmax', ymax:'stepYmax' };
+  if (map[step]) document.getElementById(map[step]).classList.add('active');
+}
+
+/** Mark a step as done visually */
+function markStepDone(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('active');
+  el.classList.add('done');
+}
+
+/** Switch from calibration mode to mark mode */
+function switchToMarkMode() {
+  if (!State.uploadedImage && !State.demoType) {
+    alert('请先上传相图或加载演示相图！');
+    return;
+  }
+  State.calibMode = false;
+  document.getElementById('modeIndicator').textContent = 'MARK MODE';
+  document.getElementById('modeIndicator').classList.remove('calibrate');
+  document.getElementById('modeIndicator').classList.add('mark');
+  updateCalibStatus('✅ 标注模式已激活。在相图上点击任意位置进行标注。');
+}
+
+/** Reset calibration state */
+function resetCalibration() {
+  State.calibMode = true;
+  State.calibStep = 'origin';
+  State.calibOrigin = null;
+  State.calibXmaxPx = null;
+  State.calibYmaxPx = null;
+  State.calibDone = false;
+  ['stepOrigin','stepXmax','stepYmax'].forEach(id => {
+    document.getElementById(id).classList.remove('done','active');
+  });
+  setCalibStep('origin');
+  document.getElementById('modeIndicator').textContent = 'CALIBRATION MODE';
+  document.getElementById('modeIndicator').classList.add('calibrate');
+  document.getElementById('modeIndicator').classList.remove('mark');
+  document.getElementById('realCoordRow').style.display = 'none';
+  drawCanvas();
+  updateCalibStatus('标定已重置。请重新点击原点。');
+}
+
+/**
+ * markPoint — records a pending point at px,py
+ * Converts pixel→real coords using calibration
+ */
+function markPoint(px, py) {
+  const real = pixelToReal(px, py);
+  State.pendingPoint = { px, py, rx: real.x, ry: real.y };
+  State.selectedRegion = null;
+
+  // Reset radio selections
+  ['radioSingle','radioTwo','radioThree'].forEach(id => {
+    document.getElementById(id).classList.remove('selected-single','selected-two','selected-three');
+    document.getElementById(id).querySelector('input').checked = false;
+  });
+
+  // Ripple animation
+  addRipple(px, py);
+}
+
+/**
+ * drawMarker — draws a confirmed marker on canvas
+ */
+function drawMarker(ctx, px, py, region, id) {
+  const colors = { single:'#0d9488', two:'#f59e0b', three:'#8b5cf6' };
+  const color = colors[region] || '#ef4444';
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.strokeStyle = '#020617';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(px, py, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  // Label
+  ctx.fillStyle = '#f8fafc';
+  ctx.font = 'bold 9px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(String(id), px, py + 3.5);
+  ctx.restore();
+}
+
+/** Draw pending (unconfirmed) marker */
+function drawPendingMarker(ctx, px, py) {
+  ctx.save();
+  ctx.strokeStyle = '#ef4444';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4,3]);
+  ctx.beginPath();
+  ctx.arc(px, py, 8, 0, Math.PI * 2);
+  ctx.stroke();
+  // Crosshair
+  ctx.setLineDash([]);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px-12, py); ctx.lineTo(px+12, py);
+  ctx.moveTo(px, py-12); ctx.lineTo(px, py+12);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** Add CSS ripple overlay at canvas coordinates */
+function addRipple(px, py) {
+  const wrapper = document.getElementById('canvasWrapper');
+  const canvas = document.getElementById('phaseCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const wRect = wrapper.getBoundingClientRect();
+  // Map canvas px back to screen
+  const scaleX = rect.width / canvas.width;
+  const scaleY = rect.height / canvas.height;
+  const screenX = px * scaleX + (rect.left - wRect.left);
+  const screenY = py * scaleY + (rect.top - wRect.top);
+
+  const ripple = document.createElement('div');
+  ripple.className = 'ripple-marker';
+  ripple.style.left = screenX + 'px';
+  ripple.style.top = screenY + 'px';
+  wrapper.style.position = 'relative';
+  wrapper.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 900);
+}
+
+/**
+ * confirmMark — saves the pending point with the chosen region
+ */
+function confirmMark() {
+  if (!State.pendingPoint) {
+    alert('请先在相图上点击一个位置！');
+    return;
+  }
+  if (!State.selectedRegion) {
+    alert('请选择该点所在的相区！');
+    return;
+  }
+  const id = State.markedPoints.length + 1;
+  const pt = { ...State.pendingPoint, region: State.selectedRegion, id };
+  State.markedPoints.push(pt);
+  State.pendingPoint = null;
+
+  drawCanvas();
+  renderPointsList();
+}
+
+/** Render the list of marked points below the canvas */
+function renderPointsList() {
+  const list = document.getElementById('pointsList');
+  if (State.markedPoints.length === 0) {
+    list.innerHTML = '<div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);padding:0.5rem;text-align:center;">暂无标注点</div>';
+    return;
+  }
+  const regionNames = { single:'单相区', two:'两相区', three:'三相线' };
+  const regionColors = { single:'#0d9488', two:'#f59e0b', three:'#8b5cf6' };
+
+  list.innerHTML = State.markedPoints.map(pt => `
+    <div class="point-item">
+      <div class="point-dot" style="background:${regionColors[pt.region]};"></div>
+      <div class="point-info">
+        <strong style="color:var(--text-main);">#${pt.id}</strong>
+        <span style="color:${regionColors[pt.region]};margin-left:0.4rem;">${regionNames[pt.region]}</span>
+        — 
+        ${pt.rx !== null ? `X: <span>${pt.rx.toFixed(2)}</span>, Y: <span>${pt.ry.toFixed(1)}</span>` : `px(${pt.px.toFixed(0)}, ${pt.py.toFixed(0)})`}
+      </div>
+      <span class="point-delete" onclick="deletePoint(${pt.id})">✕</span>
+    </div>
+  `).join('');
+}
+
+/** Delete a marked point by id */
+function deletePoint(id) {
+  State.markedPoints = State.markedPoints.filter(p => p.id !== id);
+  drawCanvas();
+  renderPointsList();
+}
+
+/** Convert pixel coordinates to real (composition/temperature) using calibration */
+function pixelToReal(px, py) {
+  if (!State.calibOrigin || !State.calibXmaxPx || !State.calibYmaxPx) {
+    return { x: null, y: null };
+  }
+  const xmaxVal = parseFloat(document.getElementById('calibXmax').value) || 100;
+  const ymaxVal = parseFloat(document.getElementById('calibYmax').value) || 1500;
+
+  const dxPx = State.calibXmaxPx.px - State.calibOrigin.px;
+  const dyPy = State.calibYmaxPx.py - State.calibOrigin.py;
+
+  const rx = ((px - State.calibOrigin.px) / dxPx) * xmaxVal;
+  // Y is inverted: pixel increases downward, temperature increases upward
+  const ry = ((State.calibOrigin.py - py) / Math.abs(dyPy)) * ymaxVal;
+
+  return { x: rx, y: ry };
+}
+
+/** Update the coordinate display panel */
+function updateCoordDisplay(px, py) {
+  document.getElementById('coordPx').textContent = `(${px.toFixed(0)}, ${py.toFixed(0)})`;
+  const real = pixelToReal(px, py);
+  if (real.x !== null && State.calibDone) {
+    document.getElementById('realCoordRow').style.display = 'inline';
+    document.getElementById('coordX').textContent = real.x.toFixed(2);
+    document.getElementById('coordY').textContent = real.y.toFixed(1);
+    // Update label display
+    document.getElementById('calibXlabelDisplay').textContent = document.getElementById('calibXlabel').value || 'Composition';
+    document.getElementById('calibYlabelDisplay').textContent = document.getElementById('calibYlabel').value || 'Temperature';
+  }
+}
+
+/** Update calibration status message */
+function updateCalibStatus(msg) {
+  document.getElementById('calibStatus').innerHTML =
+    `<span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);">${msg}</span>`;
+}
+
+/** Handle phase region radio selection */
+function selectPhaseRegion(region) {
+  State.selectedRegion = region;
+  ['radioSingle','radioTwo','radioThree'].forEach(id => {
+    document.getElementById(id).classList.remove('selected-single','selected-two','selected-three');
+  });
+  const map = { single:['radioSingle','selected-single'], two:['radioTwo','selected-two'], three:['radioThree','selected-three'] };
+  if (map[region]) document.getElementById(map[region][0]).classList.add(map[region][1]);
+}
+
+/** Clear canvas and reset to upload state */
+function clearCanvas() {
+  State.uploadedImage = null;
+  State.demoType = null;
+  State.markedPoints = [];
+  State.pendingPoint = null;
+  State.calibDone = false;
+  State.calibOrigin = null;
+  State.calibXmaxPx = null;
+  State.calibYmaxPx = null;
+
+  document.getElementById('uploadZone').style.display = 'flex';
+  document.getElementById('canvasWrapper').style.display = 'none';
+  document.getElementById('demoLegend').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+  renderPointsList();
+  resetCalibration();
+}
+
+/* ================================================================
+   MODULE: DEMO PHASE DIAGRAMS
+   Built-in eutectic and peritectic demo diagrams
+   ================================================================ */
+
+/** Load a demo eutectic diagram (Al-Si style) */
+function loadDemoEutectic() {
+  State.demoType = 'eutectic';
+  State.uploadedImage = null;
+  showCanvas();
+
+  const canvas = document.getElementById('phaseCanvas');
+  const wrapper = document.getElementById('canvasWrapper');
+  canvas.width = wrapper.clientWidth || 700;
+  canvas.height = 520;
+  State.canvasW = canvas.width;
+  State.canvasH = canvas.height;
+
+  drawCanvas();
+
+  // Set up default calibration for demo
+  State.calibOrigin   = { px: 60, py: 460 };
+  State.calibXmaxPx  = { px: canvas.width - 40, py: 460 };
+  State.calibYmaxPx  = { px: 60, py: 40 };
+  State.calibDone = true;
+
+  document.getElementById('calibXmax').value = '100';
+  document.getElementById('calibYmax').value = '800';
+  document.getElementById('calibXlabel').value = 'Si Content (wt%)';
+  document.getElementById('calibYlabel').value = 'Temperature (°C)';
+  markStepDone('stepOrigin');
+  markStepDone('stepXmax');
+  markStepDone('stepYmax');
+
+  updateCalibStatus('✅ 演示相图已加载，坐标已自动标定。可直接切换到标注模式。');
+
+  // Legend
+  const legend = document.getElementById('demoLegend');
+  legend.style.display = 'flex';
+  legend.innerHTML = `
+    <div class="legend-item"><div class="legend-swatch" style="background:#3b82f6;"></div>液相 L</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#6ee7b7;"></div>α-Al</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#fcd34d;"></div>Si</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:rgba(100,100,200,0.3);"></div>L+α</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:rgba(200,150,50,0.3);"></div>L+Si</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:rgba(80,180,120,0.3);"></div>α+Si</div>
+  `;
+}
+
+/** Load peritectic demo (Fe-C simplified) */
+function loadDemoPeritectic() {
+  State.demoType = 'peritectic';
+  State.uploadedImage = null;
+  showCanvas();
+
+  const canvas = document.getElementById('phaseCanvas');
+  const wrapper = document.getElementById('canvasWrapper');
+  canvas.width = wrapper.clientWidth || 700;
+  canvas.height = 520;
+  State.canvasW = canvas.width;
+  State.canvasH = canvas.height;
+
+  drawCanvas();
+
+  State.calibOrigin   = { px: 60, py: 460 };
+  State.calibXmaxPx  = { px: canvas.width - 40, py: 460 };
+  State.calibYmaxPx  = { px: 60, py: 40 };
+  State.calibDone = true;
+
+  document.getElementById('calibXmax').value = '6.69';
+  document.getElementById('calibYmax').value = '1600';
+  document.getElementById('calibXlabel').value = 'Carbon Content (wt%)';
+  document.getElementById('calibYlabel').value = 'Temperature (°C)';
+  markStepDone('stepOrigin');
+  markStepDone('stepXmax');
+  markStepDone('stepYmax');
+
+  updateCalibStatus('✅ Fe-C 简化相图已加载，坐标已自动标定。');
+
+  const legend = document.getElementById('demoLegend');
+  legend.style.display = 'flex';
+  legend.innerHTML = `
+    <div class="legend-item"><div class="legend-swatch" style="background:#60a5fa;"></div>液相 L</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa;"></div>奥氏体 γ</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#34d399;"></div>铁素体 α</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#f87171;"></div>渗碳体 Fe₃C</div>
+  `;
+}
+
+/**
+ * drawDemoDiagram — renders a synthetic phase diagram on canvas
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} w   canvas width
+ * @param {number} h   canvas height
+ * @param {string} type 'eutectic' | 'peritectic'
+ */
+function drawDemoDiagram(ctx, w, h, type) {
+  const pad = { l: 60, r: 40, t: 40, b: 60 };
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+
+  // Background
+  ctx.fillStyle = '#0a1628';
+  ctx.fillRect(0, 0, w, h);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(13,148,136,0.12)';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 10; i++) {
+    const x = pad.l + (cw / 10) * i;
+    const y = pad.t + (ch / 10) * i;
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ch); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + cw, y); ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t);
+  ctx.lineTo(pad.l, pad.t + ch);
+  ctx.lineTo(pad.l + cw, pad.t + ch);
+  ctx.stroke();
+
+  if (type === 'eutectic') {
+    drawEutecticDiagram(ctx, pad, cw, ch, w, h);
+  } else {
+    drawPeritecticDiagram(ctx, pad, cw, ch, w, h);
+  }
+
+  // Axis labels
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '12px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(type === 'eutectic' ? 'Si Content (wt%)' : 'Carbon Content (wt%)', pad.l + cw/2, h - 10);
+
+  ctx.save();
+  ctx.translate(14, pad.t + ch/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillText('Temperature (°C)', 0, 0);
+  ctx.restore();
+
+  // Tick labels X
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 5; i++) {
+    const x = pad.l + (cw/5)*i;
+    const val = type === 'eutectic' ? (i*20) : (i * 6.69/5).toFixed(2);
+    ctx.fillText(val, x, pad.t + ch + 18);
+  }
+
+  // Tick labels Y
+  ctx.textAlign = 'right';
+  const yMax = type === 'eutectic' ? 800 : 1600;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ch - (ch/4)*i;
+    ctx.fillText(Math.round(yMax*i/4), pad.l - 6, y + 4);
+  }
+}
+
+/** Draw eutectic (Al-Si style) phase regions */
+function drawEutecticDiagram(ctx, pad, cw, ch, w, h) {
+  const l = pad.l, t = pad.t;
+
+  // Eutectic point at ~12.5% Si, 577°C → normalize
+  // X: 0..100%, Y: 0..800°C
+  const xToP = x => l + (x/100)*cw;
+  const yToP = y => t + ch - (y/800)*ch;
+
+  const eutX = xToP(12.5), eutY = yToP(577);
+  const meltAlY = yToP(660);   // Al melting left
+  const meltSiY = yToP(1414);  // Si melting (off chart top)
+
+  // === Filled regions ===
+
+  // Liquid region (top)
+  ctx.beginPath();
+  ctx.moveTo(l, meltAlY);
+  ctx.lineTo(eutX, eutY);
+  ctx.lineTo(xToP(100), t);
+  ctx.lineTo(l, t);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(59,130,246,0.18)';
+  ctx.fill();
+
+  // L + α region (left two-phase)
+  ctx.beginPath();
+  ctx.moveTo(l, meltAlY);
+  ctx.lineTo(eutX, eutY);
+  ctx.lineTo(eutX, t+ch);
+  ctx.lineTo(l, t+ch);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(100,120,200,0.12)';
+  ctx.fill();
+
+  // L + Si region (right two-phase)
+  ctx.beginPath();
+  ctx.moveTo(eutX, eutY);
+  ctx.lineTo(xToP(100), t);
+  ctx.lineTo(xToP(100), t+ch);
+  ctx.lineTo(eutX, t+ch);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(200,150,50,0.12)';
+  ctx.fill();
+
+  // α region (solid Al, far left)
+  ctx.beginPath();
+  ctx.moveTo(l, meltAlY);
+  ctx.lineTo(xToP(1.6), eutY);
+  ctx.lineTo(l, eutY);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(110,231,183,0.25)';
+  ctx.fill();
+
+  // α + Si (bottom wide)
+  ctx.beginPath();
+  ctx.moveTo(l, eutY);
+  ctx.lineTo(xToP(100), eutY);
+  ctx.lineTo(xToP(100), t+ch);
+  ctx.lineTo(l, t+ch);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(80,180,120,0.12)';
+  ctx.fill();
+
+  // === Phase boundary lines ===
+  ctx.lineWidth = 2.5;
+
+  // Liquidus left: Al melt → eutectic
+  ctx.beginPath();
+  ctx.moveTo(l, meltAlY);
+  ctx.lineTo(eutX, eutY);
+  ctx.strokeStyle = '#3b82f6';
+  ctx.stroke();
+
+  // Liquidus right: eutectic → Si (off-screen, clipped at top)
+  ctx.beginPath();
+  ctx.moveTo(eutX, eutY);
+  ctx.lineTo(xToP(100), t);
+  ctx.strokeStyle = '#3b82f6';
+  ctx.stroke();
+
+  // Solvus left
+  ctx.beginPath();
+  ctx.moveTo(l, meltAlY);
+  ctx.lineTo(xToP(1.6), eutY);
+  ctx.strokeStyle = '#6ee7b7';
+  ctx.stroke();
+
+  // Eutectic line (three-phase invariant)
+  ctx.beginPath();
+  ctx.moveTo(l, eutY);
+  ctx.lineTo(xToP(100), eutY);
+  ctx.strokeStyle = '#fcd34d';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // === Labels ===
+  ctx.font = 'bold 13px Noto Sans SC, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#60a5fa';
+  ctx.fillText('L (液相)', l + cw*0.5, yToP(720));
+
+  ctx.fillStyle = '#6ee7b7';
+  ctx.font = '12px Noto Sans SC, sans-serif';
+  ctx.fillText('α-Al', l + cw*0.04, yToP(500));
+
+  ctx.fillStyle = '#fcd34d';
+  ctx.fillText('Si', xToP(98), yToP(500));
+
+  ctx.fillStyle = 'rgba(100,120,200,0.9)';
+  ctx.fillText('L+α', xToP(5), yToP(630));
+
+  ctx.fillStyle = 'rgba(200,150,50,0.9)';
+  ctx.fillText('L+Si', xToP(60), yToP(680));
+
+  ctx.fillStyle = 'rgba(80,180,120,0.9)';
+  ctx.fillText('α + Si', xToP(50), yToP(400));
+
+  // Eutectic point marker
+  ctx.beginPath();
+  ctx.arc(eutX, eutY, 5, 0, Math.PI*2);
+  ctx.fillStyle = '#fcd34d';
+  ctx.fill();
+  ctx.font = '11px JetBrains Mono, monospace';
+  ctx.fillStyle = '#fcd34d';
+  ctx.textAlign = 'left';
+  ctx.fillText('E (12.5%, 577°C)', eutX + 8, eutY - 8);
+}
+
+/** Draw peritectic (Fe-C simplified) phase regions */
+function drawPeritecticDiagram(ctx, pad, cw, ch, w, h) {
+  const l = pad.l, t = pad.t;
+  const xToP = x => l + (x/6.69)*cw;
+  const yToP = y => t + ch - (y/1600)*ch;
+
+  // Fe: melts at 1538°C. Peritectic at ~0.17%C, 1495°C
+  // Eutectic at 4.3%C, 1148°C
+  const pericX = xToP(0.17), pericY = yToP(1495);
+  const eutX = xToP(4.3), eutY = yToP(1148);
+  const A3 = yToP(910);
+
+  // Liquid region top
+  ctx.beginPath();
+  ctx.moveTo(l, yToP(1538));
+  ctx.lineTo(pericX, pericY);
+  ctx.lineTo(eutX, eutY);
+  ctx.lineTo(xToP(6.69), yToP(1250));
+  ctx.lineTo(xToP(6.69), t);
+  ctx.lineTo(l, t);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(59,130,246,0.20)';
+  ctx.fill();
+
+  // Austenite γ region
+  ctx.beginPath();
+  ctx.moveTo(pericX, pericY);
+  ctx.lineTo(xToP(2.11), eutY);
+  ctx.lineTo(xToP(0.77), A3);
+  ctx.lineTo(l, yToP(912));
+  ctx.lineTo(l, yToP(1495));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(167,139,250,0.20)';
+  ctx.fill();
+
+  // Ferrite α small region
+  ctx.beginPath();
+  ctx.moveTo(l, yToP(1538));
+  ctx.lineTo(pericX, pericY);
+  ctx.lineTo(l, yToP(1495));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(52,211,153,0.2)';
+  ctx.fill();
+
+  // Two-phase L+γ
+  ctx.beginPath();
+  ctx.moveTo(pericX, pericY);
+  ctx.lineTo(eutX, eutY);
+  ctx.lineTo(xToP(2.11), eutY);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(100,120,200,0.12)';
+  ctx.fill();
+
+  // Cementite Fe3C + L
+  ctx.beginPath();
+  ctx.moveTo(eutX, eutY);
+  ctx.lineTo(xToP(6.69), yToP(1250));
+  ctx.lineTo(xToP(6.69), eutY);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(248,113,113,0.15)';
+  ctx.fill();
+
+  // Bottom: α + Fe3C (pearlite region)
+  ctx.beginPath();
+  ctx.moveTo(l, A3);
+  ctx.lineTo(xToP(0.77), A3);
+  ctx.lineTo(xToP(6.69), eutY);
+  ctx.lineTo(xToP(6.69), t+ch);
+  ctx.lineTo(l, t+ch);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(80,80,150,0.15)';
+  ctx.fill();
+
+  // === Lines ===
+  ctx.lineWidth = 2.5;
+  // Liquidus
+  ctx.beginPath();
+  ctx.moveTo(l, yToP(1538));
+  ctx.lineTo(pericX, pericY);
+  ctx.lineTo(eutX, eutY);
+  ctx.lineTo(xToP(6.69), yToP(1250));
+  ctx.strokeStyle = '#3b82f6';
+  ctx.stroke();
+
+  // Solidus / γ solvus
+  ctx.beginPath();
+  ctx.moveTo(pericX, pericY);
+  ctx.lineTo(xToP(2.11), eutY);
+  ctx.strokeStyle = '#a78bfa';
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(xToP(2.11), eutY);
+  ctx.lineTo(xToP(0.77), A3);
+  ctx.lineTo(l, yToP(912));
+  ctx.strokeStyle = '#a78bfa';
+  ctx.stroke();
+
+  // Eutectic line
+  ctx.beginPath();
+  ctx.moveTo(l, eutY);
+  ctx.lineTo(xToP(6.69), eutY);
+  ctx.strokeStyle = '#fcd34d';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8,4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Peritectic line
+  ctx.beginPath();
+  ctx.moveTo(l, pericY);
+  ctx.lineTo(xToP(0.53), pericY);
+  ctx.strokeStyle = '#34d399';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6,3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // A3 line
+  ctx.beginPath();
+  ctx.moveTo(l, A3);
+  ctx.lineTo(xToP(0.77), A3);
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // === Labels ===
+  ctx.font = 'bold 13px Noto Sans SC, sans-serif';
+  ctx.textAlign = 'center';
+
+  ctx.fillStyle = '#60a5fa';
+  ctx.fillText('L (液相)', xToP(2), yToP(1520));
+
+  ctx.fillStyle = '#a78bfa';
+  ctx.fillText('γ (奥氏体)', xToP(0.9), yToP(1300));
+
+  ctx.fillStyle = '#34d399';
+  ctx.fillText('α', xToP(0.05), yToP(700));
+
+  ctx.fillStyle = '#f87171';
+  ctx.fillText('Fe₃C', xToP(6.2), yToP(600));
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText('α+γ', xToP(0.35), yToP(800));
+  ctx.fillText('γ+Fe₃C', xToP(3.5), yToP(1000));
+  ctx.fillText('α+Fe₃C', xToP(3), yToP(600));
+
+  // Key points
+  [[eutX, eutY, 'E 共晶\n(4.3%,1148°C)'], [pericX, pericY, 'P 包晶']].forEach(([x,y,lbl]) => {
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI*2);
+    ctx.fillStyle = '#fcd34d';
+    ctx.fill();
+    ctx.fillStyle = '#fcd34d';
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(lbl, x+7, y-5);
+  });
+}
+
+/* ================================================================
+   MODULE: GIBBS PHASE RULE CALCULATOR
+   ================================================================ */
+
+/** Initialize quick reference table */
+function initQuickRef() {
+  const rows = [
+    { C:1, P:1, sys:2, meaning:'纯物质，单相' },
+    { C:1, P:2, sys:2, meaning:'纯物质，两相平衡' },
+    { C:1, P:3, sys:2, meaning:'纯物质，三相点' },
+    { C:2, P:1, sys:2, meaning:'二元系，单相区' },
+    { C:2, P:2, sys:2, meaning:'二元系，两相区' },
+    { C:2, P:3, sys:2, meaning:'二元系，三相线' },
+  ];
+  const tbody = document.getElementById('quickRefTable');
+  tbody.innerHTML = rows.map(r => {
+    const F = r.C - r.P + r.sys;
+    const color = F === 0 ? 'var(--accent3)' : F === 1 ? 'var(--accent)' : 'var(--accent2)';
+    return `<tr style="border-bottom:1px solid rgba(13,148,136,0.1);">
+      <td style="padding:0.3rem;color:var(--accent2);">${r.C}</td>
+      <td style="padding:0.3rem;color:var(--accent3);">${r.P}</td>
+      <td style="padding:0.3rem;color:${color};font-weight:700;">${F}</td>
+      <td style="padding:0.3rem;color:var(--text-muted);">${r.meaning}</td>
+    </tr>`;
+  }).join('');
+}
+
+/** Live calculate triggered by input change */
+function liveCalculate() {
+  const C = parseInt(document.getElementById('inputC').value);
+  const P = parseInt(document.getElementById('inputP').value);
+  if (!isNaN(C) && !isNaN(P) && C >= 1 && P >= 1) {
+    calculateGibbs();
+  }
+}
+
+/**
+ * calculateGibbs — reads C, P, system type; computes F = C - P + n
+ * Validates inputs, displays result, updates chart
+ */
+function calculateGibbs() {
+  const cInput = document.getElementById('inputC');
+  const pInput = document.getElementById('inputP');
+  const errC = document.getElementById('errC');
+  const errP = document.getElementById('errP');
+
+  const C = parseInt(cInput.value);
+  const P = parseInt(pInput.value);
+  const n = parseInt(document.getElementById('systemType').value);
+
+  let valid = true;
+
+  // Validate C ≥ 1
+  if (isNaN(C) || C < 1) {
+    cInput.classList.add('error');
+    errC.classList.add('visible');
+    valid = false;
+  } else {
+    cInput.classList.remove('error');
+    errC.classList.remove('visible');
+  }
+
+  // Validate P ≥ 1
+  if (isNaN(P) || P < 1) {
+    pInput.classList.add('error');
+    errP.classList.add('visible');
+    valid = false;
+  } else {
+    pInput.classList.remove('error');
+    errP.classList.remove('visible');
+  }
+
+  if (!valid) return;
+
+  const F = C - P + n;
+  const sysLabel = n === 2 ? '+2 (含温压)' : '+1 (凝聚系统)';
+
+  // Determine meaning
+  let meaning = '';
+  if (F < 0) meaning = '⚠ 过约束 (Over-constrained)';
+  else if (F === 0) meaning = '不变量系统 (Invariant) — 温度、成分均固定';
+  else if (F === 1) meaning = '单变量系统 (Univariant) — 一个强度量可变';
+  else if (F === 2) meaning = '双变量系统 (Bivariant) — 可独立改变两个变量';
+  else meaning = `多变量系统 — 可独立改变 ${F} 个强度量`;
+
+  document.getElementById('resultF').textContent = F;
+  document.getElementById('resultMeaning').textContent = meaning;
+
+  const breakdownN = n === 2 ? 'C - P + 2' : 'C - P + 1';
+  document.getElementById('resultBreakdown').innerHTML =
+    `公式：$F = ${breakdownN}$<br/>
+     $F = ${C} - ${P} + ${n} = \\mathbf{${F}}$<br/>
+     <span style="color:var(--accent2);">C=${C}</span> 组分，
+     <span style="color:var(--accent3);">P=${P}</span> 相，
+     系统: ${sysLabel}`;
+
+  // Re-render MathJax
+  if (window.MathJax && MathJax.typesetPromise) {
+    MathJax.typesetPromise([document.getElementById('resultBreakdown')]);
+  }
+
+  // Color F by value
+  const fEl = document.getElementById('resultF');
+  if (F <= 0) fEl.style.color = '#ef4444';
+  else if (F === 1) fEl.style.color = '#0d9488';
+  else fEl.style.color = '#f59e0b';
+
+  updateFreedomChart(C, P, F, n);
+}
+
+/** Update the Freedom Chart (bar) */
+function updateFreedomChart(C, P, F, n) {
+  const canvas = document.getElementById('freedomChart');
+  const ctx = canvas.getContext('2d');
+
+  if (State.freedomChart) State.freedomChart.destroy();
+
+  State.freedomChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['C (组分)', 'P (相数)', `+${n}`, 'F (自由度)'],
+      datasets: [{
+        label: 'Value',
+        data: [C, P, n, Math.max(F, 0)],
+        backgroundColor: ['rgba(245,158,11,0.5)', 'rgba(139,92,246,0.5)', 'rgba(148,163,184,0.3)', F < 0 ? 'rgba(239,68,68,0.5)' : 'rgba(13,148,136,0.6)'],
+        borderColor:     ['#f59e0b', '#8b5cf6', '#64748b', F < 0 ? '#ef4444' : '#0d9488'],
+        borderWidth: 1.5,
+        borderRadius: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y}`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+/* ================================================================
+   MODULE: CHALLENGE GAME
+   Generates random points on a eutectic phase diagram and asks
+   the student to identify the phase region
+   ================================================================ */
+
+// Eutectic diagram geometry (normalized 0-1 for x composition, 0-1 for temperature)
+// Uses Al-Si eutectic as reference: eutectic at 12.5%, 577°C; max 800°C
+const CHALLENGE_DIAGRAM = {
+  eutX: 0.125, // 12.5%
+  eutT: 0.721, // 577/800
+  meltAl: 0.825, // 660/800
+  solvusX: 0.016  // solubility limit ~1.6%
+};
+
+/**
+ * startChallenge — generates a new random challenge point
+ * and draws it on the challenge canvas
+ */
+function startChallenge() {
+  const pt = generateRandomPoint();
+  State.currentChallenge = pt;
+  State.challengeTotal++;
+  document.getElementById('statTotal').textContent = State.challengeTotal;
+
+  renderChallengeQuestion(pt);
+  drawChallengeChart(pt);
+  document.getElementById('feedbackBox').className = 'feedback-box';
+  document.getElementById('answerBtns').style.display = 'flex';
+  document.getElementById('explanationBox').style.display = 'none';
+}
+
+/**
+ * generateRandomPoint — creates a random (composition, temperature) point
+ * and determines its correct phase region in the Al-Si eutectic diagram
+ */
+function generateRandomPoint() {
+  const x = Math.random(); // 0..1 (composition fraction)
+  const t = Math.random() * 0.95 + 0.02; // 0.02..0.97 temperature fraction
+  const region = getPhaseRegion(x, t);
+
+  return {
+    x: parseFloat((x * 100).toFixed(1)),       // wt% Si
+    t: parseFloat((t * 800).toFixed(0)),         // °C
+    xFrac: x,
+    tFrac: t,
+    correctRegion: region
+  };
+}
+
+/**
+ * getPhaseRegion — determines phase region for a point
+ * using eutectic diagram geometry
+ */
+function getPhaseRegion(x, t) {
+  const D = CHALLENGE_DIAGRAM;
+  // Above liquidus = liquid only
+  const liquidusLeft = D.meltAl + (D.eutT - D.meltAl) * (x / D.eutX);
+  const liquidusRight = D.eutT + (1.0 - D.eutT) * ((x - D.eutX) / (1.0 - D.eutX));
+
+  const onLiquidus = x <= D.eutX ? liquidusLeft : liquidusRight;
+  if (t > onLiquidus && t < 1.0) return 'single'; // liquid single phase
+
+  // Three-phase invariant line
+  if (Math.abs(t - D.eutT) < 0.02) return 'three';
+
+  // Below eutectic line
+  if (t < D.eutT - 0.02) {
+    // Solid two-phase region α + Si
+    if (x > D.solvusX) return 'two';
+    return 'single'; // pure α solid
+  }
+
+  // Between liquidus and eutectic
+  if (x <= D.eutX) return 'two';  // L + α
+  return 'two';  // L + Si
+}
+
+/** Render the question panel with current point data */
+function renderChallengeQuestion(pt) {
+  document.getElementById('questionData').innerHTML = `
+    <div class="data-row">
+      <span class="data-key">Si Content (组成)</span>
+      <span class="data-val">${pt.x} wt%</span>
+    </div>
+    <div class="data-row">
+      <span class="data-key">Temperature (温度)</span>
+      <span class="data-val">${pt.t} °C</span>
+    </div>
+    <div class="data-row">
+      <span class="data-key">Question</span>
+      <span class="data-val" style="color:var(--accent2);">该点处于哪个相区？</span>
+    </div>
+  `;
+}
+
+/**
+ * drawChallengeChart — renders the Al-Si binary eutectic diagram
+ * with the current challenge point highlighted
+ */
+function drawChallengeChart(pt) {
+  const canvas = document.getElementById('challengeCanvas');
+  if (State.challengeChart) State.challengeChart.destroy();
+
+  // Build boundary curves for Chart.js
+  const D = CHALLENGE_DIAGRAM;
+  const pts = 60;
+
+  // Liquidus left branch
+  const liquidusL_data = [];
+  for (let i = 0; i <= pts; i++) {
+    const x = (D.eutX / pts) * i;
+    const t = D.meltAl + (D.eutT - D.meltAl) * (x / D.eutX);
+    liquidusL_data.push({ x: x*100, y: t*800 });
+  }
+
+  // Liquidus right branch
+  const liquidusR_data = [];
+  for (let i = 0; i <= pts; i++) {
+    const x = D.eutX + ((1 - D.eutX) / pts) * i;
+    const t = D.eutT + (1.0 - D.eutT) * ((x - D.eutX) / (1.0 - D.eutX));
+    liquidusR_data.push({ x: x*100, y: t*800 });
+  }
+
+  // Eutectic line
+  const eutLine = [
+    { x: 0, y: D.eutT * 800 },
+    { x: 100, y: D.eutT * 800 }
+  ];
+
+  // Al melting point marker
+  const alMelt = [{ x: 0, y: D.meltAl * 800 }];
+
+  State.challengeChart = new Chart(canvas, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: 'Liquidus L',
+          data: [...liquidusL_data, ...liquidusR_data],
+          showLine: true,
+          fill: false,
+          borderColor: '#3b82f6',
+          borderWidth: 2.5,
+          pointRadius: 0,
+          tension: 0
+        },
+        {
+          label: 'Eutectic Line',
+          data: eutLine,
+          showLine: true,
+          fill: false,
+          borderColor: '#fcd34d',
+          borderWidth: 2,
+          borderDash: [8, 4],
+          pointRadius: 0
+        },
+        {
+          label: 'Challenge Point',
+          data: [{ x: pt.x, y: pt.t }],
+          pointRadius: 10,
+          pointHoverRadius: 13,
+          pointBackgroundColor: '#ef4444',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          showLine: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          labels: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 }, boxWidth: 16 }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (ctx.datasetIndex === 2) return ` Point: (${ctx.parsed.x}%, ${ctx.parsed.y}°C)`;
+              return ctx.dataset.label;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          min: 0, max: 100,
+          title: { display: true, text: 'Si Content (wt%)', color: '#64748b', font: { family: 'JetBrains Mono', size: 11 } },
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 } }
+        },
+        y: {
+          type: 'linear',
+          min: 0, max: 800,
+          title: { display: true, text: 'Temperature (°C)', color: '#64748b', font: { family: 'JetBrains Mono', size: 11 } },
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 } }
+        }
+      }
+    }
+  });
+
+  // Overlay text
+  const D_map = { single:'液相(单相区)', two:'两相区', three:'三相线(共晶)' };
+  document.getElementById('challengeOverlay').innerHTML =
+    `<span style="color:var(--accent);">Al-Si 二元共晶系统</span><br/>
+     <span>红点 = 待判断点</span>`;
+}
+
+/**
+ * checkAnswer — compares student's answer to the correct region
+ */
+function checkAnswer(answer) {
+  if (!State.currentChallenge) return;
+
+  const correct = State.currentChallenge.correctRegion;
+  const isCorrect = answer === correct;
+
+  const regionNames = { single:'单相区 (Single Phase)', two:'两相区 (Two Phase)', three:'三相线 (Three Phase)' };
+  const feedback = document.getElementById('feedbackBox');
+  feedback.className = 'feedback-box ' + (isCorrect ? 'correct' : 'wrong');
+  feedback.innerHTML = isCorrect
+    ? `✓ 正确！该点位于 <strong>${regionNames[correct]}</strong>`
+    : `✗ 错误！正确答案是 <strong>${regionNames[correct]}</strong>，你选了 ${regionNames[answer]}`;
+
+  if (isCorrect) {
+    State.challengeScore += 10;
+    State.challengeCorrect++;
+    document.getElementById('statCorrect').textContent = State.challengeCorrect;
+  }
+  document.getElementById('statScore').textContent = State.challengeScore;
+  document.getElementById('answerBtns').style.display = 'none';
+
+  // Show explanation
+  showExplanation(State.currentChallenge, correct);
+  State.currentChallenge = null;
+}
+
+/** Show explanation for the current challenge */
+function showExplanation(pt, region) {
+  const box = document.getElementById('explanationBox');
+  const txt = document.getElementById('explanationText');
+  box.style.display = 'block';
+
+  const D = CHALLENGE_DIAGRAM;
+  const liquidusT = pt.xFrac <= D.eutX
+    ? (D.meltAl + (D.eutT - D.meltAl) * (pt.xFrac / D.eutX)) * 800
+    : (D.eutT + (1 - D.eutT) * ((pt.xFrac - D.eutX) / (1 - D.eutX))) * 800;
+
+  const explanations = {
+    single: `该点处于单相区。\n• 组成 ${pt.x}% Si，温度 ${pt.t}°C\n• 液相线温度约 ${liquidusT.toFixed(0)}°C\n• 温度高于液相线 → 完全为液相（单相）\n• 吉布斯相律：F = C - P + 2 = 2 - 1 + 2 = 3`,
+    two:    `该点处于两相区。\n• 组成 ${pt.x}% Si，温度 ${pt.t}°C\n• 两相共存：L + α 或 L + Si\n• 可用杠杆定律计算各相比例\n• 吉布斯相律：F = C - P + 2 = 2 - 2 + 2 = 2`,
+    three:  `该点处于三相不变线（共晶线）。\n• 温度约 577°C（共晶温度）\n• 三相共存：L + α + Si\n• F = C - P + 2 = 2 - 3 + 2 = 1 (凝聚系 F=0)\n• 发生共晶反应：L → α + Si`
+  };
+
+  txt.textContent = explanations[region] || '暂无解析';
+
+  // Apply Gibbs calculation to sidebar too
+  if (region === 'single') { document.getElementById('inputC').value=2; document.getElementById('inputP').value=1; }
+  else if (region === 'two') { document.getElementById('inputC').value=2; document.getElementById('inputP').value=2; }
+  else { document.getElementById('inputC').value=2; document.getElementById('inputP').value=3; }
+  liveCalculate();
+}
+
+/** Reset challenge game stats */
+function resetChallenge() {
+  State.challengeScore = 0;
+  State.challengeCorrect = 0;
+  State.challengeTotal = 0;
+  State.currentChallenge = null;
+  document.getElementById('statScore').textContent = '0';
+  document.getElementById('statCorrect').textContent = '0';
+  document.getElementById('statTotal').textContent = '0';
+  document.getElementById('feedbackBox').className = 'feedback-box';
+  document.getElementById('answerBtns').style.display = 'none';
+  document.getElementById('explanationBox').style.display = 'none';
+  document.getElementById('questionData').innerHTML =
+    '<div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);text-align:center;">点击 START 开始训练</div>';
+  if (State.challengeChart) { State.challengeChart.destroy(); State.challengeChart = null; }
+}
+
+/* ================================================================
+   MODULE: FILE INPUT HANDLER
+   ================================================================ */
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (file) uploadDiagram(file);
+});
+
+/* ================================================================
+   MODULE: INIT
+   Entry point — called on DOMContentLoaded
+   ================================================================ */
+function init() {
+  renderTheory();
+  initCanvas();
+  initQuickRef();
+  updateFreedomChart(2, 2, 2, 2);
+
+  // Initial Gibbs calc
+  setTimeout(() => {
+    calculateGibbs();
+    // Load demo eutectic on start for immediate visual interest
+    loadDemoEutectic();
+    // Then switch to mark mode automatically
+    setTimeout(() => switchToMarkMode(), 300);
+  }, 600);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+/* ================================================================
+   MODULE: WINDOW RESIZE — redraw canvas
+   ================================================================ */
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (State.uploadedImage || State.demoType) drawCanvas();
+  }, 150);
+});
+</script>
+</body>
+</html>
