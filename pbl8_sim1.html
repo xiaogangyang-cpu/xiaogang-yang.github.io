@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>0–3级反应动力学调控模拟器 | Reaction Kinetics Simulator</title>
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 字体: Montserrat / Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js 绘图 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- MathJax 公式渲染 -->
+    <script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    <style>
+        /* 未来科技视觉定制 */
+        body {
+            background-color: #020617;
+            color: #f8fafc;
+            font-family: 'Roboto', sans-serif;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(13, 148, 136, 0.05) 0%, transparent 30%),
+                radial-gradient(circle at 90% 70%, rgba(13, 148, 136, 0.07) 0%, transparent 35%),
+                repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 2px, transparent 2px, transparent 8px);
+        }
+        h1, h2, h3, .font-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+        }
+        .teal-highlight {
+            color: #0d9488;
+            text-shadow: 0 0 8px rgba(13, 148, 136, 0.3);
+        }
+        .yellow-bullet {
+            color: #facc15;
+            margin-right: 6px;
+            font-size: 0.9rem;
+        }
+        .glass-panel {
+            background: rgba(2, 6, 23, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(13, 148, 136, 0.3);
+            box-shadow: 0 0 30px rgba(13, 148, 136, 0.15);
+            transition: all 0.3s ease;
+            border-radius: 1.2rem;
+        }
+        .glass-panel:hover {
+            border-color: #0d9488;
+            box-shadow: 0 0 45px rgba(13, 148, 136, 0.3);
+        }
+        .btn-glow {
+            background: rgba(13, 148, 136, 0.1);
+            border: 1px solid #0d9488;
+            color: #f8fafc;
+            padding: 0.75rem 2rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(5px);
+            font-size: 1rem;
+        }
+        .btn-glow:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px #0d9488;
+            background: rgba(13, 148, 136, 0.25);
+            border-color: #0d9488;
+        }
+        .tooltip-icon {
+            position: relative;
+            cursor: help;
+            border-bottom: 1px dashed #0d9488;
+        }
+        .tooltip-icon .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background: #0f172a;
+            border-left: 4px solid #0d9488;
+            color: #f1f5f9;
+            text-align: left;
+            padding: 10px;
+            border-radius: 8px;
+            position: absolute;
+            z-index: 60;
+            bottom: 150%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 0.8rem;
+            box-shadow: 0 0 20px black;
+            pointer-events: none;
+        }
+        .tooltip-icon:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        .modal-overlay {
+            background: rgba(2, 6, 23, 0.95);
+            backdrop-filter: blur(12px);
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* 自定义滑块 */
+        .slider-teal::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #0d9488;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #0d9488;
+            cursor: pointer;
+        }
+        .slider-teal::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #0d9488;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #0d9488;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6 fade-in">
+
+    <!-- ==================== 顶部核心理论区 ==================== -->
+    <div class="max-w-7xl mx-auto mb-8">
+        <div class="glass-panel p-6">
+            <div class="flex items-center gap-3 mb-5">
+                <i class="fa-solid fa-lightbulb text-yellow-400 text-2xl drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]"></i>
+                <h2 class="text-2xl font-bold text-white">核心理论</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
+                <!-- 1. 反应级数 -->
+                <div class="flex items-start gap-2">
+                    <span class="yellow-bullet">▶</span>
+                    <div class="tooltip-icon">
+                        <span class="font-bold text-base">反应级数</span><br>
+                        反应速率：<span class="text-teal-300">$ r = k[A]^n $</span>
+                        <span class="tooltip-text">r：速率，k：常数，n：级数 (0,1,2,3)</span>
+                    </div>
+                </div>
+                <!-- 2. LiPF₆水解副反应 -->
+                <div class="flex items-start gap-2">
+                    <span class="yellow-bullet">▶</span>
+                    <div class="tooltip-icon">
+                        <span class="font-bold text-base">LiPF₆ 水解</span><br>
+                        <span class="text-teal-300">$ \text{LiPF}_6 + \text{H}_2\text{O} \rightarrow \text{POF}_3 + 2\text{HF} + \text{LiF} $</span>
+                        <span class="tooltip-text">生成HF腐蚀电极，常近似一级动力学</span>
+                    </div>
+                </div>
+                <!-- 3. Arrhenius公式 -->
+                <div class="flex items-start gap-2">
+                    <span class="yellow-bullet">▶</span>
+                    <div class="tooltip-icon">
+                        <span class="font-bold text-base">Arrhenius</span><br>
+                        <span class="text-teal-300">$ k = A e^{-E_a/(RT)} $</span>
+                        <span class="tooltip-text">温度升高，k指数增大</span>
+                    </div>
+                </div>
+                <!-- 4. 水含量影响 -->
+                <div class="flex items-start gap-2">
+                    <span class="yellow-bullet">▶</span>
+                    <div class="tooltip-icon">
+                        <span class="font-bold text-base">水含量影响</span><br>
+                        ppm级水分即可触发副反应，控制水含量是关键。
+                        <span class="tooltip-text">水含量升高，有效速率增加</span>
+                    </div>
+                </div>
+                <!-- 5. 动力学调控手段 -->
+                <div class="flex items-start gap-2">
+                    <span class="yellow-bullet">▶</span>
+                    <div class="tooltip-icon">
+                        <span class="font-bold text-base">动力学调控</span><br>
+                        降低水含量、降温、添加稳定剂。
+                        <span class="tooltip-text">调控手段减缓副反应</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 中部模拟器启动区 ==================== -->
+    <div class="max-w-4xl mx-auto mb-12">
+        <div class="glass-panel p-8 text-center relative overflow-hidden">
+            <i class="fa-solid fa-flask absolute -right-6 -bottom-6 text-8xl text-teal-500/10"></i>
+            <i class="fa-solid fa-code-branch absolute -left-8 top-0 text-7xl text-teal-500/5"></i>
+            <div class="flex justify-center items-center gap-4 mb-3">
+                <i class="fa-solid fa-flask-vial text-3xl teal-highlight"></i>
+                <h1 class="text-3xl md:text-4xl font-title font-bold text-white tracking-wide">0–3级反应动力学调控模拟器</h1>
+            </div>
+            <span class="inline-block bg-teal-900/30 text-teal-400 border border-teal-500 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-6">基础 · 动力学模拟</span>
+            <div class="flex flex-col sm:flex-row justify-center gap-5">
+                <button onclick="openModal('simulatorModal')" class="btn-glow">
+                    <i class="fa-solid fa-play"></i> 启动模拟器
+                </button>
+                <button onclick="openModal('theoryModal')" class="btn-glow">
+                    <i class="fa-solid fa-book"></i> 理论背景
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 模拟器模态窗口 ==================== -->
+    <div id="simulatorModal" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50 p-4" style="backdrop-filter: blur(12px);">
+        <div class="glass-panel w-full max-w-7xl max-h-[95vh] overflow-y-auto p-6">
+            <div class="flex justify-between items-center border-b border-teal-800 pb-3 mb-5">
+                <h2 class="text-2xl font-bold teal-highlight"><i class="fa-solid fa-microscope mr-2"></i>动力学控制台</h2>
+                <button onclick="closeModal('simulatorModal')" class="text-slate-400 hover:text-white text-3xl">&times;</button>
+            </div>
+            <!-- 参数区域 + 图表 -->
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- 左侧控制面板 -->
+                <div class="lg:col-span-1 space-y-4">
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
+                        <h3 class="text-white font-bold mb-3 border-l-4 border-teal-500 pl-2">环境与动力学参数</h3>
+                        <div class="space-y-3 text-sm">
+                            <div>
+                                <label class="block text-slate-300 mb-1">反应级数 n</label>
+                                <select id="orderSelect" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
+                                    <option value="0">0 级反应</option>
+                                    <option value="1" selected>1 级反应</option>
+                                    <option value="2">2 级反应</option>
+                                    <option value="3">3 级反应</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 mb-1">初始浓度 [A]₀ (mol/L)</label>
+                                <input type="number" id="conc0" value="1.0" min="0.01" step="0.1" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 mb-1">速率常数 k (298K)</label>
+                                <input type="number" id="rateConst" value="0.05" min="0.001" step="0.01" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 mb-1">温度 T (K) <span id="tempVal" class="text-teal-400 float-right">298</span></label>
+                                <input type="range" id="tempSlider" min="250" max="400" value="298" step="1" class="w-full slider-teal" oninput="document.getElementById('tempVal').innerText=this.value">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 mb-1">活化能 Ea (kJ/mol)</label>
+                                <input type="number" id="eaInput" value="50" min="1" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 mb-1">水含量 (ppm) <span id="waterVal" class="text-blue-400 float-right">20</span></label>
+                                <input type="range" id="waterSlider" min="0" max="1000" value="20" step="10" class="w-full slider-teal" oninput="document.getElementById('waterVal').innerText=this.value">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 mb-1">反应时间 (s)</label>
+                                <input type="number" id="timeMax" value="100" min="5" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
+                            </div>
+                            <div class="pt-2 border-t border-slate-700">
+                                <label class="flex items-center gap-2 text-slate-300">
+                                    <input type="checkbox" id="lipf6Mode" class="form-checkbox text-teal-500 rounded bg-slate-900 border-slate-600">
+                                    <span class="text-sm">开启 LiPF₆ 副反应模式 (HF显示)</span>
+                                </label>
+                            </div>
+                            <button onclick="runSimulation()" class="w-full bg-teal-600 hover:bg-teal-500 text-white py-2 rounded font-bold transition-colors mt-2">计算 / 模拟</button>
+                        </div>
+                    </div>
+
+                    <!-- 教学游戏卡片 -->
+                    <div class="bg-slate-900/70 p-4 rounded-xl border border-yellow-600/40">
+                        <div class="flex items-center gap-2 text-yellow-400 text-xs uppercase tracking-wider mb-2"><i class="fa-solid fa-gamepad"></i> 教学判断实验</div>
+                        <p class="text-xs text-slate-400 mb-2">系统生成一组实验数据，根据 [A]-t 曲线判断反应级数。</p>
+                        <button onclick="generateGameData()" class="w-full bg-slate-700 hover:bg-slate-600 text-white text-xs py-1.5 rounded mb-2">🎲 生成实验数据</button>
+                        <div id="gamePanel" class="hidden">
+                            <p class="text-xs text-teal-300 mb-1">请选择级数：</p>
+                            <div class="flex gap-1">
+                                <button onclick="checkGame(0)" class="flex-1 bg-blue-600/80 text-xs py-1 rounded">0级</button>
+                                <button onclick="checkGame(1)" class="flex-1 bg-blue-600/80 text-xs py-1 rounded">1级</button>
+                                <button onclick="checkGame(2)" class="flex-1 bg-blue-600/80 text-xs py-1 rounded">2级</button>
+                            </div>
+                            <div id="gameFeedback" class="mt-2 text-xs p-2 bg-slate-800 rounded hidden"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧图表区 (3个图) -->
+                <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700 md:col-span-2 h-64">
+                        <canvas id="chartConc"></canvas>
+                    </div>
+                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700 h-60">
+                        <canvas id="chartLn"></canvas>
+                    </div>
+                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700 h-60">
+                        <canvas id="chartArrhenius"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 理论背景模态窗口 ==================== -->
+    <div id="theoryModal" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50 p-4">
+        <div class="glass-panel w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">
+            <div class="flex justify-between items-center border-b border-teal-800 pb-3 mb-4">
+                <h2 class="text-2xl font-bold teal-highlight"><i class="fa-regular fa-file-lines mr-2"></i>动力学理论背景</h2>
+                <button onclick="closeModal('theoryModal')" class="text-slate-400 hover:text-white text-3xl">&times;</button>
+            </div>
+            <div class="space-y-4 text-sm text-slate-300">
+                <section>
+                    <h3 class="text-lg font-bold text-white mb-2">1. 积分速率方程推导</h3>
+                    <p>$ r = -\frac{d[A]}{dt} = k[A]^n $</p>
+                    <ul class="list-disc list-inside ml-2 mt-1 space-y-1">
+                        <li><b>0级：</b>$[A] = [A]_0 - kt$ （直线）</li>
+                        <li><b>1级：</b>$ \ln[A] = \ln[A]_0 - kt$ （半对数直线）</li>
+                        <li><b>2级：</b>$ \frac{1}{[A]} = \frac{1}{[A]_0} + kt $</li>
+                        <li><b>3级：</b>$ \frac{1}{2[A]^2} = \frac{1}{2[A]_0^2} + kt $</li>
+                    </ul>
+                </section>
+                <section>
+                    <h3 class="text-lg font-bold text-white mb-2">2. Arrhenius 方程</h3>
+                    <p>$k(T) = k_{298} \exp\left[ \frac{E_a}{R} \left( \frac{1}{298} - \frac{1}{T} \right) \right]$，其中 $R=8.314\,\text{J/mol·K}$。</p>
+                </section>
+                <section>
+                    <h3 class="text-lg font-bold text-white mb-2">3. LiPF₆ 水解与 HF 生成</h3>
+                    <p>$\text{LiPF}_6 + \text{H}_2\text{O} \rightarrow \text{POF}_3 + 2\text{HF} + \text{LiF}$，HF 腐蚀电极。模拟中水含量增加使有效 k 增大：$k_{eff} = k (1 + 0.002 \times \text{ppm})$。</p>
+                </section>
+                <section>
+                    <h3 class="text-lg font-bold text-white mb-2">4. 工程案例</h3>
+                    <p>锂电电解液注液工序露点控制 -40℃以下（水<20 ppm）；正极浆料分散需调控pH与吸附。</p>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 模块化模拟器 (整合 kinetics_model, charts, game) ==========
+        // 全局变量
+        let chartConc, chartLn, chartArr;
+        let gameActualOrder = 1; // 随机生成的目标级数
+        let gameData = []; // 生成的模拟点
+        
+        function openModal(id) {
+            document.getElementById(id).style.display = 'flex';
+            if (id === 'simulatorModal') setTimeout(runSimulation, 150);
+        }
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        // 参数校验
+        function validateInputs() {
+            const c0 = parseFloat(document.getElementById('conc0').value);
+            const k = parseFloat(document.getElementById('rateConst').value);
+            const t = parseFloat(document.getElementById('tempSlider').value);
+            const time = parseFloat(document.getElementById('timeMax').value);
+            if (c0 <= 0) return '初始浓度必须 > 0';
+            if (k <= 0) return '速率常数 > 0';
+            if (t <= 0) return '温度 > 0';
+            if (time < 0) return '反应时间 ≥ 0';
+            return '';
+        }
+
+        // 计算有效 k 基于温度和活化能 (简化)
+        function computeK(T, k298, Ea) {
+            const R = 8.314; // J/mol·K
+            const EaJ = Ea * 1000;
+            return k298 * Math.exp((EaJ / R) * (1/298 - 1/T));
+        }
+
+        // 运行主模拟
+        function runSimulation() {
+            const warn = validateInputs();
+            if (warn) { alert(warn); return; }
+
+            const n = parseInt(document.getElementById('orderSelect').value);
+            const A0 = parseFloat(document.getElementById('conc0').value);
+            const k298 = parseFloat(document.getElementById('rateConst').value);
+            const T = parseFloat(document.getElementById('tempSlider').value);
+            const Ea = parseFloat(document.getElementById('eaInput').value);
+            const water = parseFloat(document.getElementById('waterSlider').value);
+            const timeMax = parseFloat(document.getElementById('timeMax').value);
+            const lipf6Mode = document.getElementById('lipf6Mode').checked;
+
+            // 修正k: 温度 + 水含量影响 (水因子)
+            let k = computeK(T, k298, Ea);
+            if (lipf6Mode) {
+                k = k * (1 + 0.002 * water); // 水加速因子
+            }
+
+            // 生成时间数组
+            const times = [];
+            const conc = [];
+            const step = timeMax / 60;
+            for (let t = 0; t <= timeMax; t += step) {
+                times.push(t);
+                let ct = A0;
+                if (n === 0) ct = Math.max(0, A0 - k * t);
+                else if (n === 1) ct = A0 * Math.exp(-k * t);
+                else if (n === 2) ct = 1 / (1/A0 + k * t);
+                else if (n === 3) ct = Math.sqrt(1 / (2 * (1/(2*A0*A0) + k * t))); // 1/(2A^2) = 1/(2A0^2) + kt
+                if (ct < 0) ct = 0;
+                conc.push(ct);
+            }
+
+            // 更新浓度曲线
+            if (chartConc) {
+                chartConc.data.labels = times.map(v => v.toFixed(1));
+                chartConc.data.datasets[0].data = conc;
+                chartConc.update();
+            }
+
+            // 计算 ln[A] 与 1/[A] (用于检测线性)
+            const lnA = [];
+            const invA = [];
+            times.forEach((t,i) => {
+                const c = conc[i];
+                lnA.push(c > 0 ? Math.log(c) : null);
+                invA.push(c > 0 ? 1/c : null);
+            });
+            if (chartLn) {
+                chartLn.data.labels = times.map(v => v.toFixed(1));
+                chartLn.data.datasets[0].data = lnA;  // 一级检验
+                chartLn.data.datasets[1].data = invA; // 二级检验 (右侧轴可忽略)
+                chartLn.update();
+            }
+
+            // Arrhenius曲线: 温度范围
+            const temps = [];
+            const ks = [];
+            for (let tt = 260; tt <= 400; tt+=10) {
+                temps.push(tt);
+                ks.push(computeK(tt, k298, Ea));
+            }
+            if (chartArr) {
+                chartArr.data.labels = temps;
+                chartArr.data.datasets[0].data = ks;
+                chartArr.update();
+            }
+
+            // 若lipf6模式, 简单显示HF生成(文本提示)
+            if (lipf6Mode && window.gameFeedback) {
+                // 可显示额外信息
+            }
+        }
+
+        // 生成游戏数据 (随机选择0,1,2级, 并绘制点)
+        function generateGameData() {
+            const possible = [0,1,2];
+            gameActualOrder = possible[Math.floor(Math.random() * possible.length)];
+            const A0 = 1.0;
+            const k_game = 0.04;
+            const tMax = 60;
+            const pts = [];
+            for (let t=0; t<=tMax; t+=3) {
+                let c = A0;
+                if (gameActualOrder === 0) c = Math.max(0, A0 - k_game * t);
+                else if (gameActualOrder === 1) c = A0 * Math.exp(-k_game * t);
+                else if (gameActualOrder === 2) c = 1 / (1/A0 + k_game * t);
+                pts.push({t, c});
+            }
+            gameData = pts;
+            // 把游戏数据绘制到主浓度图上作为散点 (新数据集)
+            if (chartConc) {
+                chartConc.data.datasets[1] = {
+                    label: '实验数据 (未知级数)',
+                    data: pts.map(p => p.c),
+                    borderColor: '#facc15',
+                    backgroundColor: '#facc15',
+                    type: 'scatter',
+                    pointRadius: 5,
+                    showLine: false
+                };
+                chartConc.update();
+            }
+            document.getElementById('gamePanel').classList.remove('hidden');
+            document.getElementById('gameFeedback').classList.add('hidden');
+        }
+
+        function checkGame(guess) {
+            const fbDiv = document.getElementById('gameFeedback');
+            fbDiv.classList.remove('hidden');
+            let msg = guess === gameActualOrder ? '✅ 正确！' : '❌ 错误，';
+            if (gameActualOrder === 0) msg += '这是0级反应：[A]与t呈线性。';
+            else if (gameActualOrder === 1) msg += '这是一级反应：ln[A]与t呈线性。';
+            else if (gameActualOrder === 2) msg += '这是二级反应：1/[A]与t呈线性。';
+            fbDiv.innerHTML = msg;
+        }
+
+        // 初始化图表
+        window.onload = function() {
+            const ctx1 = document.getElementById('chartConc').getContext('2d');
+            chartConc = new Chart(ctx1, {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: '浓度 [A] (mol/L)', borderColor: '#0d9488', data: [], pointRadius: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+            const ctx2 = document.getElementById('chartLn').getContext('2d');
+            chartLn = new Chart(ctx2, {
+                type: 'line',
+                data: { labels: [], datasets: [
+                    { label: 'ln[A]', borderColor: '#f43f5e', data: [], pointRadius: 0, yAxisID: 'y' },
+                    { label: '1/[A]', borderColor: '#facc15', data: [], pointRadius: 0, yAxisID: 'y1' }
+                ]},
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { type: 'linear', position: 'left' }, y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } } } }
+            });
+            const ctx3 = document.getElementById('chartArrhenius').getContext('2d');
+            chartArr = new Chart(ctx3, {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'k(T)', borderColor: '#0d9488', data: [] }] },
+                options: { responsive: true }
+            });
+
+            // 关闭模态点击外部
+            window.onclick = function(e) {
+                if (e.target.classList.contains('modal-overlay')) {
+                    e.target.style.display = 'none';
+                }
+            };
+        };
+    </script>
+</body>
+</html>
