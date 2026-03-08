@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>100 MW 风电制氢企业决策模拟器 v3.0</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Barlow+Condensed:wght@300;400;500;600;700;800&family=Barlow:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg:       #080d0a;
+  --bg2:      #0c1410;
+  --panel:    #0e1a12;
+  --panel2:   #122016;
+  --border:   #1a3020;
+  --border2:  #254030;
+  --wind:     #c8f03a;
+  --wind-d:   #4a6010;
+  --ael:      #ff9d00;
+  --ael-d:    #6a3a00;
+  --pem:      #00d4ff;
+  --pem-d:    #004060;
+  --danger:   #ff4040;
+  --warn:     #ffaa00;
+  --good:     #40ff80;
+  --neutral:  #80c0a0;
+  --text:     #b0d0b8;
+  --dim:      #c0d8f0;
+  --bright:   #e8f8ec;
+  --f-mono:   'Microsoft YaHei', 'PingFang SC', 'SimHei', 'Noto Sans SC', sans-serif;
+  --f-cond:   'Microsoft YaHei', 'PingFang SC', 'SimHei', 'Noto Sans SC', sans-serif;
+  --f-body:   'Microsoft YaHei', 'PingFang SC', 'SimHei', 'Noto Sans SC', sans-serif;
+}
+
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  background:var(--bg); color:var(--text);
+  font-family:var(--f-body); font-size:13px;
+  min-height:100vh; overflow-x:hidden;
+}
+body::before {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+}
+body::after {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(200,240,58,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 0% 50%, rgba(0,212,255,0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 100% 80%, rgba(255,157,0,0.03) 0%, transparent 60%);
+}
+
+.app { position:relative; z-index:1; max-width:1600px; margin:0 auto; padding:12px; }
+
+/* HEADER */
+header {
+  display:flex; align-items:stretch; gap:0;
+  margin-bottom:10px; border:1px solid var(--border2);
+  background:var(--panel); overflow:hidden; flex-wrap:wrap;
+}
+.h-accent { width:6px; background:linear-gradient(180deg, var(--wind), var(--pem), var(--ael)); flex-shrink:0; }
+.h-main { padding:12px 18px; flex:1; min-width:250px; }
+.h-title { font-family:var(--f-cond); font-size:32px; font-weight:800; letter-spacing:3px; color:var(--bright); line-height:1; text-transform:uppercase; }
+.h-title span { color:var(--wind); }
+.h-sub { font-family:var(--f-mono); font-size:14px; color:var(--dim); letter-spacing:3px; margin-top:4px; }
+.h-stats { display:flex; gap:0; border-left:1px solid var(--border2); flex-wrap:wrap; }
+.h-stat { padding:14px 20px; border-right:1px solid var(--border2); display:flex; flex-direction:column; justify-content:center; align-items:center; min-width:110px; }
+.h-stat-val { font-family:var(--f-mono); font-size:20px; font-weight:700; line-height:1; color:var(--wind); }
+.h-stat-label { font-family:var(--f-mono); font-size:12px; letter-spacing:2px; color:var(--dim); margin-top:3px; text-transform:uppercase; }
+.sim-ctrl { padding:12px 16px; display:flex; flex-direction:column; justify-content:center; gap:8px; min-width:140px; }
+.btn-sim { padding:8px 14px; border:none; cursor:pointer; font-family:var(--f-mono); font-size:14px; letter-spacing:2px; font-weight:700; text-transform:uppercase; transition:all 0.2s; }
+.btn-run  { background:var(--wind); color:#060c08; }
+.btn-run:hover  { box-shadow:0 0 16px rgba(200,240,58,0.5); }
+.btn-stop { background:rgba(255,64,64,0.15); border:1px solid var(--danger); color:var(--danger); }
+.btn-stop:hover { background:rgba(255,64,64,0.25); }
+.time-ctrl { display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:12px; color:var(--dim); }
+.time-val { color:var(--wind); font-size:12px; font-weight:600; }
+
+/* MAIN GRID */
+.main-grid {
+  display:grid;
+  grid-template-columns: 280px 1fr 300px;
+  gap:20px; align-items:start;
+}
+
+/* PANEL */
+.panel { background:var(--panel); border:1px solid var(--border); padding:16px; position:relative; }
+.p-title { font-family:var(--f-mono); font-size:14px; letter-spacing:3px; text-transform:uppercase; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid var(--border2); display:flex; align-items:center; gap:8px; color:var(--neutral); }
+.p-title .bar { width:3px; height:16px; border-radius:1px; flex-shrink:0; }
+.wind-bar { background:var(--wind); box-shadow:0 0 6px var(--wind); }
+.ael-bar  { background:var(--ael);  box-shadow:0 0 6px var(--ael); }
+.pem-bar  { background:var(--pem);  box-shadow:0 0 6px var(--pem); }
+.sys-bar  { background:var(--neutral); }
+.dec-bar  { background:#a855f7; box-shadow:0 0 6px #a855f7; }
+
+/* TECH SELECTOR */
+.tech-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+.tech-card { padding:12px 10px; border:1px solid var(--border2); cursor:pointer; transition:all 0.25s; position:relative; overflow:hidden; background:rgba(0,0,0,0.2); }
+.tech-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; transition:opacity 0.25s; opacity:0; }
+.tech-card.ael-c::before { background:var(--ael); }
+.tech-card.pem-c::before { background:var(--pem); }
+.tech-card:hover { transform:translateY(-1px); }
+.tech-card.active-ael { border-color:var(--ael); background:rgba(255,157,0,0.07); }
+.tech-card.active-ael::before { opacity:1; }
+.tech-card.active-pem { border-color:var(--pem); background:rgba(0,212,255,0.06); }
+.tech-card.active-pem::before { opacity:1; }
+.tech-name { font-family:var(--f-cond); font-size:18px; font-weight:700; letter-spacing:2px; margin-bottom:4px; }
+.ael-c .tech-name { color:var(--ael); }
+.pem-c .tech-name { color:var(--pem); }
+.tech-full { font-family:var(--f-mono); font-size:10px; color:var(--dim); letter-spacing:1px; margin-bottom:8px; }
+.tech-specs { display:flex; flex-direction:column; gap:3px; }
+.tech-spec { font-family:var(--f-mono); font-size:10px; color:var(--text); }
+.tech-spec b { font-size:10px; }
+
+/* SLIDERS */
+.sl-group { margin-bottom:12px; }
+.sl-label { font-family:var(--f-mono); font-size:12px; color:var(--dim); letter-spacing:1px; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center; text-transform:uppercase; }
+.sl-val { font-size:13px; font-weight:700; color:var(--wind); }
+.sl-track { position:relative; height:3px; background:var(--border2); border-radius:2px; margin:5px 0 3px; }
+.sl-fill  { position:absolute; left:0; top:0; bottom:0; border-radius:2px; pointer-events:none; }
+.sf-wind { background:linear-gradient(90deg, var(--wind-d), var(--wind)); }
+input[type=range] { width:100%; appearance:none; background:transparent; cursor:pointer; position:relative; z-index:1; padding:6px 0; margin:0; }
+input[type=range]::-webkit-slider-thumb { appearance:none; width:12px; height:12px; border-radius:50%; background:var(--wind); border:2px solid var(--bg); box-shadow:0 0 8px var(--wind); transition:transform 0.15s; }
+input[type=range]:hover::-webkit-slider-thumb { transform:scale(1.4); }
+input[type=range]::-webkit-slider-runnable-track { background:transparent; height:0; }
+
+/* TOGGLE */
+.toggle-row { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; background:rgba(0,0,0,0.2); border:1px solid var(--border); margin-bottom:12px; cursor:pointer; transition:border-color 0.2s; }
+.toggle-row:hover { border-color:var(--border2); }
+.toggle-label { font-family:var(--f-mono); font-size:12px; letter-spacing:1px; color:var(--text); }
+.toggle { width:34px; height:18px; border-radius:12px; position:relative; background:var(--border2); transition:background 0.2s; flex-shrink:0; }
+.toggle::after { content:''; position:absolute; width:12px; height:12px; border-radius:50%; top:3px; left:3px; background:var(--dim); transition:all 0.2s; }
+.toggle.on { background:rgba(200,240,58,0.3); border:1px solid var(--wind); }
+.toggle.on::after { left:17px; background:var(--wind); box-shadow:0 0 6px var(--wind); }
+
+/* WIND MODE BUTTONS */
+.mode-btns { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; }
+.mode-btn { padding:8px 6px; border:1px solid var(--border2); cursor:pointer; font-family:var(--f-mono); font-size:12px; letter-spacing:1px; text-transform:uppercase; background:rgba(0,0,0,0.2); color:var(--dim); transition:all 0.2s; text-align:center; }
+.mode-btn.active { border-color:var(--wind); color:var(--wind); background:rgba(200,240,58,0.07); }
+.mode-btn:hover { color:var(--text); border-color:var(--border2); }
+
+/* SCENARIO BUTTONS */
+.scenario-grid { display:grid; grid-template-columns:1fr; gap:6px; margin-top:12px; }
+.sc-btn { padding:9px 12px; border:1px solid var(--border2); cursor:pointer; font-family:var(--f-mono); font-size:12px; letter-spacing:2px; text-transform:uppercase; background:rgba(0,0,0,0.2); color:var(--dim); transition:all 0.2s; text-align:left; display:flex; align-items:center; gap:8px; }
+.sc-btn:hover { color:var(--text); border-color:var(--neutral); }
+.sc-btn.sc1 { border-left:3px solid var(--ael); }
+.sc-btn.sc2 { border-left:3px solid var(--wind); }
+.sc-btn.sc3 { border-left:3px solid var(--pem); }
+.sc-btn.sc1:hover { border-color:var(--ael); color:var(--ael); background:rgba(255,157,0,0.05); }
+.sc-btn.sc2:hover { border-color:var(--wind); color:var(--wind); background:rgba(200,240,58,0.05); }
+.sc-btn.sc3:hover { border-color:var(--pem); color:var(--pem); background:rgba(0,212,255,0.05); }
+
+/* CHARTS */
+.charts-col { display:flex; flex-direction:column; gap:30px; }
+.chart-panel { background:var(--panel); border:1px solid var(--border); padding:12px 14px; position:relative; height:368px; display:flex; flex-direction:column; box-sizing:border-box; }
+.chart-panel.flow-panel { height:368px; }
+.chart-panel > canvas { flex:1; width:100%; height:100%; display:block; }
+.chart-hdr { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; flex-wrap:wrap; flex:0 0 auto; }
+.chart-title-t { font-family:var(--f-mono); font-size:14px; letter-spacing:2px; text-transform:uppercase; }
+.ct-wind { color:var(--wind); }
+.ct-load { color:var(--ael); }
+.ct-mixed { color:var(--pem); }
+.chart-legend { display:flex; gap:12px; font-family:var(--f-mono); font-size:9px; color:var(--dim); }
+.leg-dot { display:inline-block; width:8px; height:2px; border-radius:1px; margin-right:4px; vertical-align:middle; }
+
+/* ALERT */
+.alert-bar { display:flex; gap:6px; flex-wrap:wrap; padding:6px 0 0; margin-top:6px; border-top:1px solid var(--border); flex:0 0 auto; }
+.alert { font-family:var(--f-mono); font-size:9px; letter-spacing:1px; padding:3px 8px; border-radius:1px; font-weight:600; text-transform:uppercase; }
+.a-warn  { background:rgba(255,170,0,0.15);  color:var(--warn);  border:1px solid rgba(255,170,0,0.3); }
+.a-danger{ background:rgba(255,64,64,0.12);  color:var(--danger);border:1px solid rgba(255,64,64,0.3); }
+.a-good  { background:rgba(64,255,128,0.10); color:var(--good);  border:1px solid rgba(64,255,128,0.3); }
+.a-info  { background:rgba(0,212,255,0.10);  color:var(--pem);   border:1px solid rgba(0,212,255,0.3); }
+
+/* FLOW BAR */
+.flow-row { display:flex; gap:0; height:24px; border:1px solid var(--border2); overflow:hidden; border-radius:2px; margin:8px 0 4px; flex:0 0 auto; }
+.flow-seg { height:100%; transition:width 0.5s; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.f-electrolysis { background:rgba(200,240,58,0.3); border-right:1px solid var(--border); }
+.f-curtail      { background:rgba(255,64,64,0.2);  border-right:1px solid var(--border); }
+.f-underload    { background:rgba(255,170,0,0.15); }
+.flow-label { font-family:var(--f-mono); font-size:8px; letter-spacing:1px; white-space:nowrap; font-weight:600; }
+
+/* RIGHT KPI */
+.right-col { display:flex; flex-direction:column; gap:10px; }
+.kpi-card { background:var(--panel2); border:1px solid var(--border2); padding:12px 14px; }
+.kpi-main { border-top:3px solid var(--wind); }
+.kpi-pem  { border-top:3px solid var(--pem); }
+.kpi-cost { border-top:3px solid var(--ael); }
+.kpi-risk { border-top:3px solid var(--danger); }
+.kpi-label { font-family:var(--f-mono); font-size:14px; letter-spacing:3px; color:var(--dim); text-transform:uppercase; margin-bottom:6px; }
+.kpi-val { font-family:var(--f-cond); font-size:22px; font-weight:800; letter-spacing:2px; line-height:1; }
+.kv-wind { color:var(--wind); }
+.kv-pem  { color:var(--pem); }
+.kv-ael  { color:var(--ael); }
+.kpi-unit { font-family:var(--f-mono); font-size:12px; color:var(--dim); margin-top:3px; }
+.kpi-sub  { font-family:var(--f-mono); font-size:12px; color:var(--neutral); margin-top:6px; }
+
+.cost-row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--border); font-family:var(--f-mono); font-size:12px; }
+.cost-name { color:var(--dim); }
+.cost-val  { color:var(--text); font-weight:600; }
+
+.risk-meter { height:4px; background:var(--border2); border-radius:2px; margin:8px 0 6px; }
+.risk-fill { height:100%; border-radius:2px; transition:width 0.5s, background 0.5s; }
+.risk-indicators { display:flex; flex-direction:column; gap:3px; }
+.risk-item { font-family:var(--f-mono); font-size:12px; color:var(--dim); }
+
+/* VERDICT */
+.verdict-box { border:1px solid; padding:12px 14px; }
+.v-good { border-color:rgba(64,255,128,0.4); background:rgba(64,255,128,0.04); }
+.v-warn { border-color:rgba(255,170,0,0.4); background:rgba(255,170,0,0.04); }
+.v-danger { border-color:rgba(255,64,64,0.4); background:rgba(255,64,64,0.04); }
+.verdict-title { font-family:var(--f-mono); font-size:12px; letter-spacing:3px; color:var(--dim); text-transform:uppercase; margin-bottom:6px; }
+.verdict-main { font-family:var(--f-cond); font-size:16px; font-weight:700; letter-spacing:1px; color:var(--bright); margin-bottom:6px; }
+.verdict-body { font-family:var(--f-mono); font-size:12px; color:var(--text); line-height:1.6; }
+
+/* DECISION PANEL */
+.decision-panel { background:linear-gradient(135deg, rgba(168,85,247,0.05), rgba(0,0,0,0.3)); border:1px solid rgba(168,85,247,0.3); padding:14px; }
+.dec-title { font-family:var(--f-mono); font-size:14px; letter-spacing:3px; color:#a855f7; text-transform:uppercase; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid rgba(168,85,247,0.2); }
+.dec-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid rgba(168,85,247,0.1); }
+.dec-key { font-family:var(--f-mono); font-size:12px; color:var(--dim); }
+.dec-val { font-family:var(--f-mono); font-size:12px; font-weight:700; color:var(--bright); }
+.dec-val.good { color:var(--good); }
+.dec-val.warn { color:var(--warn); }
+.dec-val.danger { color:var(--danger); }
+.dec-recommend { margin-top:10px; padding:8px; background:rgba(168,85,247,0.1); border:1px solid rgba(168,85,247,0.25); font-family:var(--f-mono); font-size:12px; color:#d8b4fe; line-height:1.7; }
+
+/* COMP TABLE */
+.comp-table { width:100%; border-collapse:collapse; font-family:var(--f-mono); font-size:12px; }
+.comp-table th { padding:4px 6px; border-bottom:1px solid var(--border2); color:var(--dim); font-weight:600; text-align:left; letter-spacing:1px; }
+.comp-table td { padding:4px 6px; border-bottom:1px solid var(--border); }
+.td-ael { color:var(--ael); font-weight:600; }
+.td-pem { color:var(--pem); font-weight:600; }
+
+/* TASKS */
+.tasks-header { font-family:var(--f-mono); font-size:12px; letter-spacing:4px; text-transform:uppercase; color:var(--dim); padding:12px 0 6px; margin-top:8px; border-top:1px solid var(--border); }
+.tasks-bar { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:8px; }
+.task-step { background:var(--panel); border:1px solid var(--border); border-top:2px solid var(--wind); padding:14px; display:flex; flex-direction:column; gap:8px; }
+.step-n { font-family:var(--f-cond); font-size:32px; font-weight:800; color:var(--dim); line-height:1; }
+.step-title { font-family:var(--f-cond); font-size:16px; font-weight:700; color:var(--bright); letter-spacing:1px; }
+.step-body { font-family:var(--f-mono); font-size:12px; color:var(--text); line-height:1.6; }
+.step-body code { color:var(--wind); background:rgba(200,240,58,0.1); padding:1px 4px; }
+.step-q { font-family:var(--f-mono); font-size:12px; color:var(--neutral); line-height:1.6; }
+.step-btn { padding:8px 12px; border:1px solid var(--wind); background:rgba(200,240,58,0.08); color:var(--wind); font-family:var(--f-mono); font-size:12px; letter-spacing:2px; cursor:pointer; transition:all 0.2s; margin-top:auto; }
+.step-btn:hover { background:rgba(200,240,58,0.15); box-shadow:0 0 10px rgba(200,240,58,0.2); }
+
+/* LIVE DOT */
+@keyframes glow { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.live-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--wind); box-shadow:0 0 6px var(--wind); animation:glow 1.5s infinite; margin-right:6px; }
+
+select { background:var(--panel2); border:1px solid var(--border2); color:var(--dim); font-family:var(--f-mono); font-size:9px; padding:3px 6px; outline:none; }
+select:focus { border-color:var(--wind); }
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border2); }
+
+/* WIND MODE BADGE */
+.wind-mode-badge { white-space: nowrap;
+  min-width: 70px;          /* 可选，保证最小宽度 */
+  text-align: center; display:inline-block; font-family:var(--f-mono); font-size:12px; letter-spacing:2px; padding:2px 8px; background:rgba(200,240,58,0.1); border:1px solid rgba(200,240,58,0.3); color:var(--wind); text-transform:uppercase; margin-left:8px; }
+
+@media (max-width: 1100px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .chart-panel { height:160px; }
+  .chart-panel.flow-panel { height:215px; }
+  .h-stats { width:100%; border-left:none; border-top:1px solid var(--border2); justify-content:space-around; }
+  .tasks-bar { grid-template-columns:1fr 1fr; }
+}
+@media (max-width:600px) {
+  .chart-panel { height:150px; }
+  .tasks-bar { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header>
+  <div class="h-accent"></div>
+  <div class="h-main">
+    <div class="h-title"><span>100 MW</span> 风电制绿氢 企业决策模拟器</div>
+    <div class="h-sub"> AEL vs PEM ELECTROLYZER TECHNOLOGY SELECTION v3.0</div>
+  </div>
+  <div class="h-stats">
+    <div class="h-stat">
+      <div class="h-stat-val" id="hdr-power">100</div>
+      <div class="h-stat-label">MW 装机</div>
+    </div>
+    <div class="h-stat">
+      <div class="h-stat-val" id="hdr-h2" style="color:var(--pem)">—</div>
+      <div class="h-stat-label">t/年 产氢</div>
+    </div>
+    <div class="h-stat">
+      <div class="h-stat-val" id="hdr-cost" style="color:var(--ael)">—</div>
+      <div class="h-stat-label">元/kg 成本</div>
+    </div>
+    <div class="h-stat">
+      <div class="h-stat-val" id="hdr-risk" style="color:var(--neutral)">—</div>
+      <div class="h-stat-label">风险指数</div>
+    </div>
+  </div>
+  <div class="sim-ctrl">
+    <button class="btn-sim btn-run" id="btn-run" onclick="toggleSim()">▶ 启动模拟</button>
+    <div class="time-ctrl">
+      <span>速度</span>
+      <select id="sim-speed">
+        <option value="1">×1</option>
+        <option value="4" selected>×4</option>
+        <option value="16">×16</option>
+        <option value="64">×64</option>
+      </select>
+      <span class="time-val" id="sim-time">— 天</span>
+    </div>
+  </div>
+</header>
+
+<div class="main-grid">
+
+  <!-- LEFT -->
+  <div>
+    <div class="panel" style="margin-bottom:10px">
+      <div class="p-title"><div class="bar ael-bar"></div>技术路线 </div>
+      <div class="tech-grid">
+        <div class="tech-card ael-c active-ael" onclick="selectTech('AEL')">
+          <div class="tech-name">AEL</div>
+          <div class="tech-full">碱性电解槽</div>
+          <div class="tech-specs">
+            <div class="tech-spec">爬坡率 <b style="color:var(--ael)">25 MW/h</b></div>
+            <div class="tech-spec">最低负荷 <b style="color:var(--ael)">40%</b></div>
+            <div class="tech-spec">寿命 <b style="color:var(--ael)">80,000h</b></div>
+            <div class="tech-spec">成本 <b style="color:var(--ael)">低 ¥800/kW</b></div>
+          </div>
+        </div>
+        <div class="tech-card pem-c" onclick="selectTech('PEM')">
+          <div class="tech-name">PEM</div>
+          <div class="tech-full">质子交换膜</div>
+          <div class="tech-specs">
+            <div class="tech-spec">爬坡率 <b style="color:var(--pem)">180 MW/h</b></div>
+            <div class="tech-spec">最低负荷 <b style="color:var(--pem)">5%</b></div>
+            <div class="tech-spec">寿命 <b style="color:var(--pem)">60,000h</b></div>
+            <div class="tech-spec">成本 <b style="color:var(--pem)">高 ¥2000/kW</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:10px">
+      <div class="p-title"><div class="bar sys-bar"></div>运行策略</div>
+      <div class="toggle-row" onclick="toggleOpt('track')">
+        <div class="toggle-label">跟踪风电波动</div>
+        <div class="toggle on" id="tog-track"></div>
+      </div>
+      <div class="toggle-row" onclick="toggleOpt('limit')">
+        <div class="toggle-label">限功率运行</div>
+        <div class="toggle" id="tog-limit"></div>
+      </div>
+      <div class="toggle-row" onclick="toggleOpt('smooth')">
+        <div class="toggle-label">平滑运行策略</div>
+        <div class="toggle" id="tog-smooth"></div>
+      </div>
+      <div class="sl-group" style="margin-top:10px">
+        <div class="sl-label">设定功率上限 (% 额定) <span class="sl-val" id="v-plimit">100</span>%</div>
+        <div class="sl-track"><div class="sl-fill sf-wind" id="f-plimit"></div>
+          <input type="range" id="sl-plimit" min="40" max="100" step="5" value="100">
+        </div>
+        <div style="display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:9px;color:var(--dim)"><span>40%</span><span>100%</span></div>
+      </div>
+      <div class="sl-group">
+        <div class="sl-label">低通滤波时间常数 τ (min) <span class="sl-val" id="v-tau">0</span></div>
+        <div class="sl-track"><div class="sl-fill sf-wind" id="f-tau"></div>
+          <input type="range" id="sl-tau" min="0" max="60" step="5" value="0">
+        </div>
+        <div style="display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:9px;color:var(--dim)"><span>0 (无平滑)</span><span>60 min</span></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:10px">
+      <div class="p-title"><div class="bar wind-bar"></div>风电参数
+        <span class="wind-mode-badge" id="mode-badge">年度模式</span>
+      </div>
+      <!-- 波动模式切换 -->
+      <div style="font-family:var(--f-mono);font-size:12px;color:var(--dim);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase;">波动模式 FLUCTUATION MODE</div>
+      <div class="mode-btns">
+        <div class="mode-btn active" id="mode-annual" onclick="setWindMode('annual')">
+          📅 年度季节<br><span style="font-size:8px;opacity:0.7">低频+季节性</span>
+        </div>
+        <div class="mode-btn" id="mode-daily" onclick="setWindMode('daily')">
+          ⚡ 日内高频<br><span style="font-size:8px;opacity:0.7">快速三角波</span>
+        </div>
+      </div>
+      <div class="sl-group">
+        <div class="sl-label">波动幅度 (±%) <span class="sl-val" id="v-wvar">40</span>%</div>
+        <div class="sl-track"><div class="sl-fill sf-wind" id="f-wvar"></div>
+          <input type="range" id="sl-wvar" min="10" max="70" step="5" value="40">
+        </div>
+      </div>
+      <div class="sl-group">
+        <div class="sl-label">波动频率 (次/天) <span class="sl-val" id="v-wfreq">4</span></div>
+        <div class="sl-track"><div class="sl-fill sf-wind" id="f-wfreq"></div>
+          <input type="range" id="sl-wfreq" min="1" max="12" step="1" value="4">
+        </div>
+      </div>
+      <button class="step-btn" style="width:100%;margin-top:4px;font-size:9px" onclick="regenerateWind()">🔄 重新生成风电</button>
+    </div>
+
+    <div class="panel">
+      <div class="p-title"><div class="bar wind-bar"></div>教学情形</div>
+      <div class="scenario-grid">
+        <button class="sc-btn sc1" onclick="applyScenario(1)">▶ 情形1: AEL + 直接跟踪 → 高风险</button>
+        <button class="sc-btn sc2" onclick="applyScenario(2)">▶ 情形2: AEL + 平滑限功率 → 稳定</button>
+        <button class="sc-btn sc3" onclick="applyScenario(3)">▶ 情形3: PEM + 跟踪波动 → 最优</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MIDDLE CHARTS -->
+  <div class="charts-col">
+
+    <div class="chart-panel">
+      <div class="chart-hdr">
+        <div>
+          <div class="chart-title-t ct-wind">① 风电功率波动</div>
+          <div style="font-family:var(--f-mono);font-size:12px;color:var(--dim);margin-top:2px">100 MW 基准 | <span id="wind-mode-label">年度季节模式</span> | 实时连续信号</div>
+        </div>
+        <div class="chart-legend">
+          <span><span class="leg-dot" style="background:var(--wind)"></span>风电功率</span>
+          <span><span class="leg-dot" style="background:var(--dim)"></span>额定100MW</span>
+        </div>
+      </div>
+      <canvas id="c-wind"></canvas>
+      <div class="alert-bar" id="wind-alerts"></div>
+    </div>
+
+    <div class="chart-panel flow-panel">
+      <div class="chart-hdr">
+        <div>
+          <div class="chart-title-t ct-load" id="load-chart-title">② 电解槽负载响应</div>
+          <div style="font-family:var(--f-mono);font-size:12px;color:var(--dim);margin-top:2px">
+            斜率限制+一阶滞后混合模型 | τ = <span id="tau-display">无滤波</span>
+          </div>
+        </div>
+        <div class="chart-legend">
+          <span><span class="leg-dot" style="background:var(--wind)"></span>风电</span>
+          <span id="load-legend-color"><span class="leg-dot" style="background:var(--ael)"></span>电解负载</span>
+          <span><span class="leg-dot" style="background:rgba(255,64,64,0.6)"></span>弃风/限载</span>
+        </div>
+      </div>
+      <canvas id="c-load"></canvas>
+      <div style="font-family:var(--f-mono);font-size:12px;color:var(--dim);margin-top:6px;margin-bottom:2px;flex:0 0 auto">功率分配</div>
+      <div class="flow-row">
+        <div class="flow-seg f-electrolysis" id="flow-elec"><span class="flow-label" id="flow-elec-label">—</span></div>
+        <div class="flow-seg f-curtail" id="flow-curt"><span class="flow-label" id="flow-curt-label"></span></div>
+        <div class="flow-seg f-underload" id="flow-under"><span class="flow-label" id="flow-under-label"></span></div>
+      </div>
+      <div class="alert-bar" id="load-alerts"></div>
+    </div>
+
+    <div class="chart-panel">
+      <div class="chart-hdr">
+        <div>
+          <div class="chart-title-t ct-mixed">③ 累计产氢 / 能效趋势</div>
+          <div style="font-family:var(--f-mono);font-size:12px;color:var(--dim);margin-top:2px">左轴：累计产氢 (t) | 右轴：实时电耗 (kWh/kg)</div>
+        </div>
+        <div class="chart-legend">
+          <span><span class="leg-dot" style="background:var(--wind)"></span>累计 H₂</span>
+          <span><span class="leg-dot" style="background:var(--pem)"></span>电耗</span>
+        </div>
+      </div>
+      <canvas id="c-h2"></canvas>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-col">
+    <div class="kpi-card kpi-main">
+      <div class="kpi-label">年产氢量</div>
+      <div class="kpi-val kv-wind" id="kpi-h2">— t/年</div>
+      <div class="kpi-unit">吨/年 (全年8760h推算)</div>
+      <div class="kpi-sub">有效利用率 <span id="kpi-util">—</span>% &nbsp;|&nbsp; 弃风 <span id="kpi-curtail">—</span>%</div>
+    </div>
+
+    <div class="kpi-card kpi-pem">
+      <div class="kpi-label">单位电耗</div>
+      <div class="kpi-val kv-pem" id="kpi-energy">— kWh/kg</div>
+      <div class="kpi-unit">kWh per kg H₂</div>
+      <div class="kpi-sub">低负荷损耗 <span id="kpi-lowload">—</span>% &nbsp;|&nbsp; 平均负荷 <span id="kpi-avgload">—</span>%</div>
+    </div>
+
+    <div class="kpi-card kpi-cost">
+      <div class="kpi-label">成本估算</div>
+      <div class="kpi-val kv-ael" id="kpi-cost">— 元/kg</div>
+      <div class="kpi-unit">综合制氢成本</div>
+      <div style="margin-top:8px">
+        <div class="cost-row"><span class="cost-name">电力成本</span><span class="cost-val" id="c-elec">—</span></div>
+        <div class="cost-row"><span class="cost-name">设备折旧</span><span class="cost-val" id="c-dep">—</span></div>
+        <div class="cost-row"><span class="cost-name">运维成本</span><span class="cost-val" id="c-om">—</span></div>
+        <div class="cost-row"><span class="cost-name">全年总耗电</span><span class="cost-val" id="c-totalelec">—</span></div>
+      </div>
+    </div>
+
+    <div class="kpi-card kpi-risk">
+      <div class="kpi-label">寿命风险指数</div>
+      <div class="kpi-val" id="kpi-risk-val" style="color:var(--neutral)">—</div>
+      <div class="kpi-unit">0 = 无风险 | 100 = 危险</div>
+      <div class="risk-meter"><div class="risk-fill" id="risk-bar"></div></div>
+      <div class="risk-indicators" id="risk-items"></div>
+    </div>
+
+    <!-- 最终决策数据面板 -->
+    <div class="decision-panel">
+      <div class="dec-title">📊 最终决策数据 </div>
+      <div class="dec-row"><span class="dec-key">全年总产氢</span><span class="dec-val" id="dec-h2total">—</span></div>
+      <div class="dec-row"><span class="dec-key">总耗电量</span><span class="dec-val" id="dec-elec">—</span></div>
+      <div class="dec-row"><span class="dec-key">平均电耗</span><span class="dec-val" id="dec-avgE">—</span></div>
+      <div class="dec-row"><span class="dec-key">总弃风电量</span><span class="dec-val" id="dec-curtail">—</span></div>
+      <div class="dec-row"><span class="dec-key">弃风比例</span><span class="dec-val" id="dec-curtailpct">—</span></div>
+      <div class="dec-row"><span class="dec-key">综合制氢成本</span><span class="dec-val" id="dec-cost">—</span></div>
+      <div class="dec-row"><span class="dec-key">启停次数(年)</span><span class="dec-val" id="dec-startstop">—</span></div>
+      <div class="dec-row"><span class="dec-key">低负荷时长</span><span class="dec-val" id="dec-lowload">—</span></div>
+      <div class="dec-row"><span class="dec-key">风险指数</span><span class="dec-val" id="dec-risk">—</span></div>
+      <div class="dec-row"><span class="dec-key">技术路线</span><span class="dec-val" id="dec-tech">—</span></div>
+      <div class="dec-row"><span class="dec-key">波动模式</span><span class="dec-val" id="dec-mode">—</span></div>
+      <div id="dec-recommend-box" class="dec-recommend" style="display:none"></div>
+    </div>
+
+
+    <div class="kpi-card" style="background:var(--panel)">
+      <div class="kpi-label" style="margin-bottom:8px">参数对比</div>
+      <table class="comp-table">
+        <tr><th>指标</th><th style="color:var(--ael)">AEL</th><th style="color:var(--pem)">PEM</th></tr>
+        <tr><td style="color:var(--dim)">爬坡率</td><td class="td-ael">25 MW/h</td><td class="td-pem">180 MW/h</td></tr>
+        <tr><td style="color:var(--dim)">最低负荷</td><td class="td-ael">40%</td><td class="td-pem">5%</td></tr>
+        <tr><td style="color:var(--dim)">投资成本</td><td class="td-ael">¥800/kW</td><td class="td-pem">¥2000/kW</td></tr>
+        <tr><td style="color:var(--dim)">额定效率</td><td class="td-ael">70%</td><td class="td-pem">75%</td></tr>
+        <tr><td style="color:var(--dim)">设计寿命</td><td class="td-ael">80,000h</td><td class="td-pem">60,000h</td></tr>
+        <tr><td style="color:var(--dim)">波动适应</td><td class="td-ael">差</td><td class="td-pem">优</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+    <div class="verdict-box v-warn" id="verdict-box">
+      <div class="verdict-title">决策评价</div>
+      <div class="verdict-main" id="verdict-main">等待模拟...</div>
+      <div class="verdict-body" id="verdict-body">请选择技术路线并启动模拟，系统将自动生成工程决策建议。</div>
+    </div>
+
+
+<div class="tasks-header">学习任务路径</div>
+<div class="tasks-bar">
+  <div class="task-step">
+    <div class="step-n">01</div>
+    <div class="step-title">观察 AEL 跟踪波动</div>
+    <div class="step-body">默认设置 <code>AEL + 跟踪</code>，启动模拟。观察负载响应曲线——AEL爬坡率仅25MW/h，出现明显三角形斜坡滞后，与风电曲线差异明显。</div>
+    <div class="step-q">❓ AEL 无法快速跟踪波动时，多余电力去了哪里？对寿命有何影响？</div>
+    <button class="step-btn" onclick="applyScenario(1);toggleSim(true)">▶ 加载并运行</button>
+  </div>
+  <div class="task-step">
+    <div class="step-n">02</div>
+    <div class="step-title">AEL + 平滑限功率</div>
+    <div class="step-body">开启 <code>平滑运行</code>，设 <code>τ = 30 min</code>，功率上限 <code>80%</code>。观察弃风比例变化和风险指数下降。</div>
+    <div class="step-q">❓ 稳定运行代价是弃风。弃风比例多少时仍然经济？有无储能方案？</div>
+    <button class="step-btn" onclick="applyScenario(2);toggleSim(true)">▶ 加载并运行</button>
+  </div>
+  <div class="task-step">
+    <div class="step-n">03</div>
+    <div class="step-title">切换 PEM 对比</div>
+    <div class="step-body">切换至 <code>PEM</code>，关闭平滑，开启跟踪波动。PEM爬坡率180MW/h，几乎瞬时跟随，响应曲线近似方波/三角波尖锐，与AEL差异极大。</div>
+    <div class="step-q">❓ PEM 成本是 AEL 的 2.5 倍，但风险更低、产量更高。如何权衡？</div>
+    <button class="step-btn" onclick="applyScenario(3);toggleSim(true)">▶ 加载并运行</button>
+  </div>
+  <div class="task-step">
+    <div class="step-n">04</div>
+    <div class="step-title">小组决策讨论</div>
+    <div class="step-body">回顾三种情形数据，综合考虑：产量、成本、寿命风险、弃风比例，查看右侧「最终决策数据」面板，做出最终技术选型决策。</div>
+    <div class="step-q">❓ 若风电波动 ±60%、且无储能缓冲，你的最终推荐是什么？为什么？</div>
+    <button class="step-btn" onclick="showDecision()">📊 生成决策报告</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════
+const S = {
+  tech: 'AEL',
+  track: true,
+  limit: false,
+  smooth: false,
+  plimit: 100,
+  tau: 0,
+  wvar: 40,
+  wfreq: 4,
+  windMode: 'annual', // 'annual' | 'daily'
+  running: false,
+  tick: 0,
+  maxTicks: 8760,
+  windSeed: 42,
+};
+
+// AEL: ramp_rate = 0.0000000025 MW/h; PEM: ramp_rate = 180 MW/h
+const TECH = {
+  AEL: { ramp_rate: 0.0000000025,  min_load: 0.40, capex: 800,  lifetime_h: 80000, eff_nom: 0.70, U_nom: 1.85, color: '#ff9d00', lag: 0.08 },
+  PEM: { ramp_rate: 180, min_load: 0.05, capex: 2000, lifetime_h: 60000, eff_nom: 0.75, U_nom: 1.75, color: '#00d4ff', lag: 0.60 },
+};
+
+const P_rated = 100;
+let windData = [], loadData = [], h2CumData = [], energyData = [];
+
+// ══════════════════════════════════════════════════
+//  WIND GENERATION  — continuous signal, mode-aware
+// ══════════════════════════════════════════════════
+function generateWind() {
+  const n = S.maxTicks;
+  const amp = S.wvar / 100 * P_rated;
+  const freq = S.wfreq /100;
+  windData = new Array(n);
+
+  // LCG random with seed
+  let rng = S.windSeed;
+  const rand = () => {
+    rng = (Math.imul(rng, 1664525) + 1013904223) | 0;
+    return (rng >>> 0) / 0xffffffff - 0.5;
+  };
+
+  if (S.windMode === 'annual') {
+    // 年度季节模式：低频 + 季节性（一年内明显变化）
+    for (let i = 0; i < n; i++) {
+      const t = i / n;  // 0..1 = full year
+      // 季节主波（年周期，冬季风大，夏季风小）
+      const seasonal = 1.0 - 0.20 * Math.sin(3 * Math.PI * t - Math.PI / 1);
+      // 日波动（低频，freq次/天）
+      const daily = Math.sin(2 * Math.PI * t * freq * 365);
+      // 慢波
+      const slow  = 0.5 * Math.sin(2 * Math.PI * t * 20 + 0.5);
+      // 随机噪声
+      const noise = rand() * 0.25;
+      let P = P_rated * seasonal + amp * (0.5 * daily + 0.25 * slow + 0.25 * noise);
+      windData[i] = Math.max(5, Math.min(P_rated * 1.1, P));
+    }
+  } else {
+    // 日内高频模式：快速三角波为主（一天内快速波动）
+    // 高频三角波 + 随机 + 微弱季节背景
+    for (let i = 0; i < n; i++) {
+      const t = i / n;
+      const t_day = (i % 24) / 24; // within-day phase
+      // 三角波：高频振荡
+      const triPhase = (t * freq * 365 * 2) % 1;
+      const triWave = triPhase < 0.5 ? (6 * triPhase - 1) : (3 - 6 * triPhase);
+      // 额外叠加更高频三角波
+      const triPhase2 = (t * freq * 365 * 5.7 + 0.3) % 1;
+      const triWave2 = triPhase2 < 0.5 ? (4 * triPhase2 - 1) : (3 - 4 * triPhase2);
+      // 微弱季节背景
+      const seasonal = 1.0 - 0.08 * Math.sin(2 * Math.PI * t);
+      const noise = rand() * 0.15;
+      let P = P_rated * seasonal + amp * (0.55 * triWave + 0.30 * triWave2 + 0.15 * noise);
+      windData[i] = Math.max(5, Math.min(P_rated * 1.15, P));
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  COMPUTE LOAD — 斜率限制(三角波响应) + 一阶滞后混合
+// ══════════════════════════════════════════════════
+function computeLoad() {
+  const n = S.maxTicks;
+  const tech = TECH[S.tech];
+  loadData    = new Array(n);
+  h2CumData   = new Array(n);
+  energyData  = new Array(n);
+
+  const min_MW   = tech.min_load * P_rated;
+  const limit_MW = S.plimit / 100 * P_rated;
+  // ramp per hour (MW/h) → per tick (1 h)
+  const max_ramp = tech.ramp_rate; // MW per hour
+
+  const smooth_tau = S.tau / 60; // hours
+  const F = 96485, M_H2 = 2.016e-3, ne = 2;
+  const U_op = tech.U_nom;
+
+  const eff_fn = lf =>
+    lf < 0.3 ? tech.eff_nom * (0.5 + lf / 0.3 * 0.5)
+              : tech.eff_nom * (1 - 0.05 * (lf - 0.3));
+
+  let prev_load = P_rated * 0.7;
+  let smooth_state = P_rated * 0.7; // for low-pass filter state
+  let h2_cum = 0;
+
+  for (let i = 0; i < n; i++) {
+    let wind_i = windData[i];
+
+    // 1. Power limit cap
+    let raw_target = Math.min(wind_i, limit_MW);
+
+    // 2. Low-pass smoothing filter (1st order)
+    if (S.smooth && smooth_tau > 0) {
+      // alpha = dt / (tau + dt), dt=1h
+      const alpha = 1 / (1 + smooth_tau);
+      smooth_state = smooth_state + alpha * (raw_target - smooth_state);
+      raw_target = smooth_state;
+    } else {
+      smooth_state = raw_target;
+    }
+
+    // 3. Clamp to [0, limit_MW]
+    raw_target = Math.max(0, Math.min(limit_MW, raw_target));
+
+    let actual;
+    if (!S.track) {
+      // No tracking: direct setpoint
+      actual = raw_target < min_MW ? 0 : raw_target;
+    } else {
+      // SLOPE LIMITING (triangle wave response) + 1st-order lag mixed model
+      // Slope limit: max change per hour = max_ramp
+      let ramp_limited = prev_load;
+      if (raw_target > prev_load) {
+        ramp_limited = Math.min(prev_load + max_ramp, raw_target);
+      } else {
+        ramp_limited = Math.max(prev_load - max_ramp, raw_target);
+      }
+
+      // 1st-order lag blended with slope limited
+      // lag factor: AEL low (slow), PEM high (fast)
+      const lag_alpha = tech.lag; // AEL=0.000008(sluggish), PEM=0.060(fast)
+      actual = ramp_limited + lag_alpha * (raw_target - ramp_limited);
+
+      // Enforce min load
+      if (actual < min_MW) {
+        actual = (raw_target < min_MW) ? 0 : min_MW;
+      }
+    }
+
+    actual = Math.max(0, Math.min(limit_MW, actual));
+    loadData[i] = actual;
+
+    // H₂ production
+    const lf = actual / P_rated;
+    const eff = eff_fn(lf);
+    // kg/h = MW * 1e6 W * eff / (V*n*F/M)
+    const h2_rate = actual > 0
+      ? (actual * 1e6 * eff) / (U_op * ne * F / M_H2)
+      : 0;
+    h2_cum += h2_rate;
+    h2CumData[i] = h2_cum;
+
+    // Specific energy kWh/kg
+    const spec_e = actual > 0
+      ? (U_op * ne * F / M_H2) / (3600 * eff) / 1000
+      : null;
+    energyData[i] = spec_e;
+
+    prev_load = actual;
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  STATS
+// ══════════════════════════════════════════════════
+function computeStats(upTo) {
+  const n = Math.max(1, Math.min(upTo || S.maxTicks, S.maxTicks));
+  const tech = TECH[S.tech];
+  const h2_kg = h2CumData[n-1] || 0;
+  const annualH2_t = h2_kg / n * 8760 / 1000;
+
+  const loads = loadData.slice(0, n);
+  const winds = windData.slice(0, n);
+  const avgLoad = loads.reduce((a,b) => a+b, 0) / n;
+  const avgLoadPct = avgLoad / P_rated * 100;
+
+  let curtailMWh = 0;
+  for (let i = 0; i < n; i++) {
+    const ex = winds[i] - loads[i];
+    if (ex > 0) curtailMWh += ex;
+  }
+  const totalWindMWh = winds.reduce((a,b) => a+b, 0);
+  const totalLoadMWh = loads.reduce((a,b) => a+b, 0);
+  const curtailPct = totalWindMWh > 0 ? curtailMWh / totalWindMWh * 100 : 0;
+  const utilPct = 100 - curtailPct;
+
+  const validE = energyData.slice(0, n).filter(v => v !== null);
+  const avgE = validE.length > 0 ? validE.reduce((a,b) => a+b, 0) / validE.length : 0;
+
+  let startStops = 0;
+  let prevOn = loads[0] > 0;
+  for (let i = 1; i < n; i++) {
+    const on = loads[i] > 0;
+    if (!prevOn && on) startStops++;
+    prevOn = on;
+  }
+  const annualStartStops = Math.round(startStops * 8760 / n);
+
+  const overloadH = loads.filter(v => v > P_rated).length;
+  const lowLoadH = loads.filter(v => v > 0 && v < P_rated * 0.5).length;
+  const lowLoadPct = lowLoadH / n * 100;
+  const lowLoadH_annual = Math.round(lowLoadH * 8760 / n);
+
+  const startStopRisk = Math.min(50, annualStartStops * (S.tech === 'AEL' ? 1.5 : 0.5));
+  const lowLoadRisk   = lowLoadPct * (S.tech === 'AEL' ? 0.8 : 0.3);
+  const overloadRisk  = Math.min(20, overloadH * 0.5);
+  const riskIndex = Math.min(100, startStopRisk + lowLoadRisk + overloadRisk);
+
+  let elecCostKg = 0, depPerKg = 0, omPerKg = 0, costKg = 0;
+  const annualLoadMWh = totalLoadMWh * 8760 / n; // annualized
+  const annualCurtailMWh = curtailMWh * 8760 / n;
+  if (annualH2_t > 0) {
+    elecCostKg = avgE * 0.30;
+    const lifeyears = tech.lifetime_h / 8760;
+    depPerKg = (tech.capex * P_rated * 1000) / (lifeyears * annualH2_t * 1000 * 1000);
+    omPerKg  = (tech.capex * P_rated * 1000 * 0.02) / (annualH2_t * 1000 * 1000);
+    costKg = elecCostKg + depPerKg + omPerKg;
+  }
+
+  return {
+    annualH2_t, avgLoadPct, curtailPct, utilPct, avgE,
+    annualStartStops, lowLoadPct, lowLoadH_annual, overloadH, riskIndex,
+    costKg, elecCostKg, depPerKg, omPerKg,
+    totalLoadMWh, annualLoadMWh, annualCurtailMWh
+  };
+}
+
+// ══════════════════════════════════════════════════
+//  CANVAS / CHART
+// ══════════════════════════════════════════════════
+function setupCanvas(id) {
+  const cv = document.getElementById(id);
+  const dpr = window.devicePixelRatio || 1;
+  let w = cv.parentElement.clientWidth - 28;
+  let h = cv.clientHeight;
+  if (w < 100) w = 520;
+  if (h < 50) h = (id === 'c-load') ? 120 : 90;
+  cv.width  = w * dpr;
+  cv.height = h * dpr;
+  cv.style.width  = w + 'px';
+  cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, w, h };
+}
+
+const BG     = '#07100a';
+const GRID_C = 'rgba(200,240,58,0.04)';
+const AX_C   = 'rgba(255,255,255,0.08)';
+
+function drawGrid(ctx, w, h, pl, pr, pt, pb) {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = GRID_C;
+  ctx.lineWidth = 1;
+  const pw = w - pl - pr, ph = h - pt - pb;
+  for (let i = 0; i <= 4; i++) {
+    const y = pt + ph/4*i;
+    ctx.beginPath(); ctx.moveTo(pl, y); ctx.lineTo(pl+pw, y); ctx.stroke();
+  }
+  for (let i = 0; i <= 6; i++) {
+    const x = pl + pw/6*i;
+    ctx.beginPath(); ctx.moveTo(x, pt); ctx.lineTo(x, pt+ph); ctx.stroke();
+  }
+  ctx.strokeStyle = AX_C; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pl, pt); ctx.lineTo(pl, pt+ph); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pl, pt+ph); ctx.lineTo(pl+pw, pt+ph); ctx.stroke();
+  return { pw, ph };
+}
+
+function drawTimeChart(canvasId, datasets, yMin, yMax, ticks, maxTicks) {
+  const { ctx, w, h } = setupCanvas(canvasId);
+  const pl=40, pr=10, pt=10, pb=22;
+  const { pw, ph } = drawGrid(ctx, w, h, pl, pr, pt, pb);
+
+  const windowSize = Math.min(ticks, Math.floor(maxTicks / 4));
+  const start = Math.max(0, ticks - windowSize);
+
+  const toX = i => pl + ((i - start) / windowSize) * pw;
+  const toY = v => pt + ph - ((v - yMin) / (yMax - yMin)) * ph;
+
+  // rated line
+  if (yMax >= 100) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(pl, toY(P_rated)); ctx.lineTo(pl+pw, toY(P_rated)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  datasets.forEach(ds => {
+    if (!ds.data && !ds.fill) return;
+    if (ds.fill) {
+      // curtail area between wind and load
+      ctx.fillStyle = 'rgba(255,64,64,0.15)';
+      ctx.beginPath();
+      let started = false;
+      for (let i = start; i < Math.min(ticks, start + windowSize); i++) {
+        const wv = windData[i] || 0;
+        const lv = loadData[i] || 0;
+        if (wv > lv) {
+          if (!started) { ctx.moveTo(toX(i), toY(wv)); started = true; }
+          else ctx.lineTo(toX(i), toY(wv));
+        }
+      }
+      for (let i = Math.min(ticks-1, start+windowSize-1); i >= start; i--) {
+        const wv = windData[i] || 0, lv = loadData[i] || 0;
+        if (wv > lv) ctx.lineTo(toX(i), toY(lv));
+      }
+      ctx.closePath(); ctx.fill();
+      return;
+    }
+    ctx.strokeStyle = ds.color;
+    ctx.lineWidth = ds.width || 1.5;
+    ctx.shadowColor = ds.color;
+    ctx.shadowBlur = ds.glow ? 8 : 0;
+    ctx.beginPath();
+    let first = true;
+    for (let i = start; i < Math.min(ticks, start + windowSize); i++) {
+      const v = ds.data[i];
+      if (v == null) { first = true; continue; }
+      const x = toX(i), y = toY(Math.max(yMin, Math.min(yMax, v)));
+      first ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      first = false;
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  });
+
+  // cursor
+  if (ticks > 0) {
+    const cx = toX(ticks - 1);
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.setLineDash([2,3]);
+    ctx.beginPath(); ctx.moveTo(cx, pt); ctx.lineTo(cx, pt+ph); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // y axis labels
+  ctx.fillStyle = 'rgba(100,130,110,0.7)';
+  ctx.font = '9px IBM Plex Mono, monospace';
+  for (let i = 0; i <= 4; i++) {
+    const v = yMax - (yMax - yMin) * (i/4);
+    ctx.fillText(Math.round(v), 2, pt + ph/4*i + 4);
+  }
+  // x axis labels
+  ctx.fillStyle = 'rgba(100,130,110,0.5)';
+  const days = Math.round(ticks / 24);
+  ctx.fillText(`D${Math.round(start/24)}`, pl, pt+ph+16);
+  ctx.fillText(`D${Math.round((start/24 + days)/2)}`, pl+pw/2-12, pt+ph+16);
+  ctx.fillText(`D${days}`, pl+pw-24, pt+ph+16);
+}
+
+function drawH2Chart(ticks) {
+  const { ctx, w, h } = setupCanvas('c-h2');
+  const pl=40, pr=52, pt=10, pb=22;
+  const { pw, ph } = drawGrid(ctx, w, h, pl, pr, pt, pb);
+  if (ticks < 2) return;
+
+  const windowSize = Math.min(ticks, Math.floor(S.maxTicks / 4));
+  const start = Math.max(0, ticks - windowSize);
+
+  const h2Max = Math.max(...h2CumData.slice(start, ticks).map(v => v/1000), 1);
+  const eMin = 40, eMax = 80;
+
+  const toX    = i => pl + ((i - start) / windowSize) * pw;
+  const toYH2  = v => pt + ph - (v / h2Max) * ph;
+  const toYE   = v => pt + ph - ((v - eMin) / (eMax - eMin)) * ph;
+
+  // H2 area fill
+  const grd = ctx.createLinearGradient(0, pt, 0, pt+ph);
+  grd.addColorStop(0, 'rgba(200,240,58,0.18)');
+  grd.addColorStop(1, 'rgba(200,240,58,0)');
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.moveTo(toX(start), pt+ph);
+  for (let i = start; i < ticks; i++) ctx.lineTo(toX(i), toYH2(h2CumData[i]/1000));
+  ctx.lineTo(toX(ticks-1), pt+ph);
+  ctx.closePath(); ctx.fill();
+
+  // H2 line
+  ctx.strokeStyle = 'rgba(200,240,58,0.85)'; ctx.lineWidth = 2;
+  ctx.shadowBlur = 6; ctx.shadowColor = '#c8f03a';
+  ctx.beginPath();
+  for (let i = start; i < ticks; i++) {
+    i === start ? ctx.moveTo(toX(i), toYH2(h2CumData[i]/1000)) : ctx.lineTo(toX(i), toYH2(h2CumData[i]/1000));
+  }
+  ctx.stroke(); ctx.shadowBlur = 0;
+
+  // Energy line
+  ctx.strokeStyle = 'rgba(0,212,255,0.7)'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  let first = true;
+  for (let i = start; i < ticks; i++) {
+    const v = energyData[i];
+    if (v == null) { first = true; continue; }
+    const y = toYE(Math.max(eMin, Math.min(eMax, v)));
+    first ? ctx.moveTo(toX(i), y) : ctx.lineTo(toX(i), y);
+    first = false;
+  }
+  ctx.stroke();
+
+  // Right axis labels (energy)
+  ctx.fillStyle = 'rgba(0,212,255,0.5)';
+  ctx.font = '9px IBM Plex Mono, monospace';
+  [eMax, (eMax+eMin)/2, eMin].forEach((v,i) => ctx.fillText(v.toFixed(0), pl+pw+4, pt + (ph/2)*i + 4));
+  ctx.fillText('kWh/kg', pl+pw+4, pt+ph+16);
+
+  // Left axis labels (H2)
+  ctx.fillStyle = 'rgba(180,200,100,0.5)';
+  ctx.fillText(h2Max.toFixed(1)+'t', 0, pt+8);
+  ctx.fillText('0', 0, pt+ph+4);
+}
+
+// ══════════════════════════════════════════════════
+//  ALERTS
+// ══════════════════════════════════════════════════
+function genAlerts(stats) {
+  // Wind alerts
+  const wa = document.getElementById('wind-alerts');
+  wa.innerHTML = '';
+  const windNow = windData[Math.max(0, S.tick-1)] || 0;
+  if (windNow > 95) wa.innerHTML += `<span class="alert a-warn">⚠ 满发 ${windNow.toFixed(0)} MW</span>`;
+  if (stats.curtailPct > 25) wa.innerHTML += `<span class="alert a-danger">弃风 ${stats.curtailPct.toFixed(0)}%</span>`;
+  else if (stats.curtailPct > 10) wa.innerHTML += `<span class="alert a-warn">弃风 ${stats.curtailPct.toFixed(0)}%</span>`;
+  if (stats.curtailPct < 5) wa.innerHTML += `<span class="alert a-good">风资源充分利用</span>`;
+  wa.innerHTML += `<span class="alert a-info">${S.windMode === 'annual' ? '年度季节' : '日内高频'}模式</span>`;
+
+  // Load alerts
+  const la = document.getElementById('load-alerts');
+  la.innerHTML = '';
+  const tech = TECH[S.tech];
+  if (stats.annualStartStops > 500) la.innerHTML += `<span class="alert a-danger">⚡ 启停${stats.annualStartStops}次/年</span>`;
+  else if (stats.annualStartStops > 200) la.innerHTML += `<span class="alert a-warn">启停${stats.annualStartStops}次/年</span>`;
+  if (stats.lowLoadPct > 30) la.innerHTML += `<span class="alert a-warn">低负荷 ${stats.lowLoadPct.toFixed(0)}%时长</span>`;
+  if (stats.riskIndex < 15) la.innerHTML += `<span class="alert a-good">✓ 低风险</span>`;
+  else if (stats.riskIndex > 50) la.innerHTML += `<span class="alert a-danger">高风险 ${stats.riskIndex.toFixed(0)}</span>`;
+  la.innerHTML += `<span class="alert a-info">${S.tech} 爬坡 ${tech.ramp_rate} MW/h</span>`;
+}
+
+// ══════════════════════════════════════════════════
+//  VERDICT
+// ══════════════════════════════════════════════════
+function genVerdict(stats, risk) {
+  const box = document.getElementById('verdict-box');
+  const main = document.getElementById('verdict-main');
+  const body = document.getElementById('verdict-body');
+
+  let cls = 'v-good', title = '', text = '';
+
+  if (risk > 50) {
+    cls = 'v-danger';
+    title = '⛔ 高风险运行 — 不推荐';
+    text = `当前 ${S.tech} 方案面临严重寿命风险。频繁启停（${stats.annualStartStops}次/年）和长期低负荷运行（${stats.lowLoadPct.toFixed(0)}%时长）将显著缩短设备寿命。`;
+    if (S.tech === 'AEL') text += ' 建议：开启平滑策略并设置功率上限，或改用PEM技术。';
+    else text += ' 建议：调整运行策略，减少频繁启停。';
+  } else if (risk > 15) {
+    cls = 'v-warn';
+    title = '⚠ 中等风险 — 需优化';
+    text = `${S.tech} 方案基本可行，但存在一定风险（指数${risk.toFixed(0)}）。`;
+    if (stats.curtailPct > 20) text += ` 弃风率${stats.curtailPct.toFixed(0)}%偏高，建议增设储能或调整功率上限。`;
+    else text += ` 综合制氢成本${stats.costKg.toFixed(2)}元/kg，进一步优化可提升经济性。`;
+  } else {
+    cls = 'v-good';
+    title = '✓ 优良方案 — 推荐';
+    text = `${S.tech} 方案在当前策略下运行良好。风险指数${risk.toFixed(0)}（低），年产氢${stats.annualH2_t.toFixed(0)}t，综合成本${stats.costKg.toFixed(2)}元/kg。`;
+    if (S.tech === 'PEM') text += ' PEM快速响应（180 MW/h爬坡）使其能灵活跟踪风电波动，大幅减少弃风。';
+    else text += ' 合理的平滑策略有效降低了设备压力。';
+  }
+
+  box.className = 'verdict-box ' + cls;
+  main.textContent = title;
+  body.textContent = text;
+}
+
+// ══════════════════════════════════════════════════
+//  DECISION DATA PANEL  — 最终决策数据
+// ══════════════════════════════════════════════════
+function updateDecisionPanel(stats) {
+  const s = computeStats(S.maxTicks); // use full data if available
+  const cs = s.annualH2_t > 0 ? s : stats;
+
+  const setDec = (id, val, cls) => {
+    const el = document.getElementById(id);
+    el.textContent = val;
+    el.className = 'dec-val' + (cls ? ' ' + cls : '');
+  };
+
+  setDec('dec-h2total', cs.annualH2_t.toFixed(1) + ' t/年');
+  setDec('dec-elec', (cs.annualLoadMWh / 1e4).toFixed(2) + ' 万MWh/年');
+  setDec('dec-avgE', cs.avgE.toFixed(2) + ' kWh/kg', cs.avgE < 50 ? 'good' : cs.avgE < 60 ? '' : 'warn');
+  setDec('dec-curtail', (cs.annualCurtailMWh / 1e4).toFixed(2) + ' 万MWh');
+  setDec('dec-curtailpct', cs.curtailPct.toFixed(1) + '%', cs.curtailPct < 10 ? 'good' : cs.curtailPct < 25 ? 'warn' : 'danger');
+  setDec('dec-cost', cs.costKg.toFixed(2) + ' 元/kg', cs.costKg < 20 ? 'good' : cs.costKg < 30 ? 'warn' : 'danger');
+  setDec('dec-startstop', cs.annualStartStops + ' 次', cs.annualStartStops < 100 ? 'good' : cs.annualStartStops < 300 ? 'warn' : 'danger');
+  setDec('dec-lowload', cs.lowLoadH_annual + ' h', cs.lowLoadH_annual < 500 ? 'good' : cs.lowLoadH_annual < 2000 ? 'warn' : 'danger');
+  setDec('dec-risk', cs.riskIndex.toFixed(0), cs.riskIndex < 15 ? 'good' : cs.riskIndex < 50 ? 'warn' : 'danger');
+  setDec('dec-tech', S.tech + (S.smooth ? '+平滑' : '') + (S.limit ? '+限功率' : ''));
+  setDec('dec-mode', S.windMode === 'annual' ? '年度季节模式' : '日内高频模式');
+}
+
+// ══════════════════════════════════════════════════
+//  UPDATE UI
+// ══════════════════════════════════════════════════
+function updateUI(ticks) {
+  const t = Math.max(1, Math.min(ticks || S.tick, S.maxTicks));
+  document.getElementById('sim-time').textContent = `${Math.floor(t/24)} / 365 天`;
+
+  const loadColor = S.tech === 'AEL' ? '#ff9d00' : '#00d4ff';
+  drawTimeChart('c-wind', [{data:windData, color:'rgba(200,240,58,0.85)', glow:true}], 0, 120, t, S.maxTicks);
+  drawTimeChart('c-load', [
+    {data:windData, color:'rgba(200,240,58,0.25)', width:1},
+    {fill:true},
+    {data:loadData, color:loadColor, glow:true, width:2}
+  ], 0, 120, t, S.maxTicks);
+  drawH2Chart(t);
+
+  const stats = computeStats(t);
+  document.getElementById('kpi-h2').textContent = stats.annualH2_t.toFixed(1) + ' t/年';
+  document.getElementById('kpi-util').textContent = stats.utilPct.toFixed(1);
+  document.getElementById('kpi-curtail').textContent = stats.curtailPct.toFixed(1);
+  document.getElementById('kpi-energy').textContent = stats.avgE.toFixed(2) + ' kWh/kg';
+  document.getElementById('kpi-lowload').textContent = stats.lowLoadPct.toFixed(1);
+  document.getElementById('kpi-avgload').textContent = stats.avgLoadPct.toFixed(1);
+  document.getElementById('kpi-cost').textContent = stats.costKg.toFixed(2) + ' 元/kg';
+  document.getElementById('c-elec').textContent = stats.elecCostKg.toFixed(2) + ' ¥/kg';
+  document.getElementById('c-dep').textContent = stats.depPerKg.toFixed(2) + ' ¥/kg';
+  document.getElementById('c-om').textContent = stats.omPerKg.toFixed(2) + ' ¥/kg';
+  document.getElementById('c-totalelec').textContent = (stats.annualLoadMWh/1e4).toFixed(2) + ' 万MWh';
+
+  document.getElementById('hdr-h2').textContent = stats.annualH2_t.toFixed(1);
+  document.getElementById('hdr-cost').textContent = stats.costKg.toFixed(2);
+  document.getElementById('hdr-risk').textContent = stats.riskIndex.toFixed(0);
+
+
+  const risk = stats.riskIndex;
+  document.getElementById('kpi-risk-val').textContent = risk.toFixed(0);
+  const riskBar = document.getElementById('risk-bar');
+  riskBar.style.width = risk + '%';
+  riskBar.style.background = risk < 15 ? '#40ff80' : risk < 50 ? '#ffaa00' : '#ff4040';
+
+const hdrRisk = document.getElementById('hdr-risk');
+hdrRisk.textContent = stats.riskIndex.toFixed(0);
+// 根据新阈值动态改变颜色
+if (stats.riskIndex < 15) {
+    hdrRisk.style.color = '#40ff80'; // 低风险绿
+} else if (stats.riskIndex <= 50) {
+    hdrRisk.style.color = '#ffaa00'; // 中风险黄
+} else {
+    hdrRisk.style.color = '#ff4040'; // 高风险红
+}
+
+
+  // Risk indicators
+  const ri = document.getElementById('risk-items');
+  ri.innerHTML = [
+    `<div class="risk-item">启停次数：<b>${stats.annualStartStops}次/年</b></div>`,
+    `<div class="risk-item">低负荷时长：<b>${stats.lowLoadH_annual}h/年</b></div>`,
+    `<div class="risk-item">弃风率：<b>${stats.curtailPct.toFixed(1)}%</b></div>`,
+  ].join('');
+
+  // Power allocation flow bar
+  const electPct = stats.utilPct;
+  document.getElementById('flow-elec').style.width = Math.max(electPct, 10) + '%';
+  document.getElementById('flow-curt').style.width = Math.max(stats.curtailPct, 0) + '%';
+  document.getElementById('flow-under').style.width = Math.max(100 - electPct - stats.curtailPct, 0) + '%';
+  document.getElementById('flow-elec-label').textContent = electPct.toFixed(0) + '% 电解';
+  document.getElementById('flow-curt-label').textContent = stats.curtailPct > 3 ? stats.curtailPct.toFixed(0) + '% 弃风' : '';
+  document.getElementById('flow-under-label').textContent = '';
+
+  genAlerts(stats);
+  genVerdict(stats, risk);
+  updateDecisionPanel(stats);
+}
+
+// ══════════════════════════════════════════════════
+//  SIM LOOP
+// ══════════════════════════════════════════════════
+let animId = null, lastTime = null;
+
+function simLoop(timestamp) {
+  if (!lastTime) lastTime = timestamp;
+  const elapsed = timestamp - lastTime;
+  const speed = parseInt(document.getElementById('sim-speed').value);
+  const hoursPerFrame = elapsed / 1000 * speed;
+  lastTime = timestamp;
+  S.tick = Math.min(S.maxTicks, S.tick + Math.max(1, Math.ceil(hoursPerFrame)));
+  updateUI(S.tick);
+  if (S.tick < S.maxTicks) {
+    animId = requestAnimationFrame(simLoop);
+  } else {
+    S.running = false;
+    document.getElementById('btn-run').textContent = '▶ 重新模拟';
+  }
+}
+
+function toggleSim(forceStart) {
+  const btn = document.getElementById('btn-run');
+  if (S.running && !forceStart) {
+    S.running = false;
+    cancelAnimationFrame(animId);
+    btn.textContent = '▶ 继续模拟';
+    return;
+  }
+  if (!S.running) {
+    if (S.tick >= S.maxTicks || forceStart) {
+      S.tick = 0;
+      generateWind();
+      computeLoad();
+    }
+    S.running = true;
+    lastTime = null;
+    btn.textContent = '⏸ 暂停';
+    animId = requestAnimationFrame(simLoop);
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  CONTROLS
+// ══════════════════════════════════════════════════
+function selectTech(t) {
+  S.tech = t;
+  document.querySelectorAll('.tech-card').forEach(c => c.classList.remove('active-ael','active-pem'));
+  if (t === 'AEL') document.querySelector('.ael-c').classList.add('active-ael');
+  else document.querySelector('.pem-c').classList.add('active-pem');
+  const color = t === 'AEL' ? 'var(--ael)' : 'var(--pem)';
+  document.getElementById('load-chart-title').style.color = color;
+  document.getElementById('load-legend-color').innerHTML =
+    `<span class="leg-dot" style="background:${t==='AEL'?'#ff9d00':'#00d4ff'}"></span>电解负载`;
+  recompute();
+}
+
+function toggleOpt(opt) {
+  S[opt] = !S[opt];
+  document.getElementById('tog-' + opt).className = 'toggle' + (S[opt] ? ' on' : '');
+  recompute();
+}
+
+function setWindMode(mode) {
+  S.windMode = mode;
+  document.getElementById('mode-annual').className = 'mode-btn' + (mode === 'annual' ? ' active' : '');
+  document.getElementById('mode-daily').className  = 'mode-btn' + (mode === 'daily'  ? ' active' : '');
+  document.getElementById('mode-badge').textContent = mode === 'annual' ? '年度模式' : '日内高频';
+  document.getElementById('wind-mode-label').textContent = mode === 'annual' ? '年度季节模式（低频+季节变化）' : '日内高频模式（快速三角波）';
+  regenerateWind();
+}
+
+function regenerateWind() {
+  S.windSeed = Math.floor(Math.random() * 1e8) | 42;
+  generateWind();
+  computeLoad();
+  if (S.tick === 0) S.tick = Math.floor(S.maxTicks / 4);
+  updateUI(S.tick);
+}
+
+function recompute() {
+  if (S.tick > 0) { computeLoad(); updateUI(S.tick); }
+}
+
+// SLIDERS
+['sl-plimit','sl-tau','sl-wvar','sl-wfreq'].forEach(id => {
+  const sl  = document.getElementById(id);
+  const key   = {'sl-plimit':'plimit','sl-tau':'tau','sl-wvar':'wvar','sl-wfreq':'wfreq'}[id];
+  const valId = {'sl-plimit':'v-plimit','sl-tau':'v-tau','sl-wvar':'v-wvar','sl-wfreq':'v-wfreq'}[id];
+  const fillId= {'sl-plimit':'f-plimit','sl-tau':'f-tau','sl-wvar':'f-wvar','sl-wfreq':'f-wfreq'}[id];
+  sl.addEventListener('input', () => {
+    S[key] = parseFloat(sl.value);
+    document.getElementById(valId).textContent = S[key];
+    const pct = (S[key] - parseFloat(sl.min)) / (parseFloat(sl.max) - parseFloat(sl.min)) * 100;
+    document.getElementById(fillId).style.width = pct + '%';
+    document.getElementById('tau-display').textContent = S.tau > 0 ? S.tau + ' min' : '无滤波';
+    if (id === 'sl-wvar' || id === 'sl-wfreq') {
+      generateWind();
+      computeLoad();
+    } else {
+      computeLoad();
+    }
+    if (S.tick > 0) updateUI(S.tick);
+  });
+});
+
+// SCENARIOS
+function applyScenario(n) {
+  if (n === 1) {
+    // AEL + direct tracking, no smooth
+    selectTech('AEL');
+    S.track = true; S.limit = false; S.smooth = false;
+    S.plimit = 100; S.tau = 0;
+  } else if (n === 2) {
+    // AEL + smooth + power limit
+    selectTech('AEL');
+    S.track = true; S.limit = true; S.smooth = true;
+    S.plimit = 80; S.tau = 30;
+    document.getElementById('sl-plimit').value = 80;
+    document.getElementById('sl-tau').value = 30;
+    document.getElementById('v-plimit').textContent = 80;
+    document.getElementById('v-tau').textContent = 30;
+    document.getElementById('f-plimit').style.width = '75%';
+    document.getElementById('f-tau').style.width = '50%';
+  } else if (n === 3) {
+    // PEM + tracking, no smooth
+    selectTech('PEM');
+    S.track = true; S.limit = false; S.smooth = false;
+    S.plimit = 100; S.tau = 0;
+  }
+  // Sync toggles
+  ['track','limit','smooth'].forEach(opt => {
+    document.getElementById('tog-' + opt).className = 'toggle' + (S[opt] ? ' on' : '');
+  });
+  document.getElementById('tau-display').textContent = S.tau > 0 ? S.tau + ' min' : '无滤波';
+  recompute();
+}
+
+// SHOW DECISION REPORT
+function showDecision() {
+  const stats = computeStats(S.maxTicks);
+  const box = document.getElementById('dec-recommend-box');
+  box.style.display = 'block';
+
+  let rec = '';
+  if (S.tech === 'PEM' && !S.smooth && stats.riskIndex < 40) {
+    rec = `✅ 推荐方案：PEM + 直接跟踪波动\n综合最优：年产${stats.annualH2_t.toFixed(0)}t，成本${stats.costKg.toFixed(2)}元/kg，风险指数${stats.riskIndex.toFixed(0)}。PEM高爬坡率（180 MW/h）完美适配风电波动，是高波动场景的首选。`;
+  } else if (S.tech === 'AEL' && S.smooth && stats.riskIndex < 40) {
+    rec = `✅ 可接受方案：AEL + 平滑限功率\n以${stats.curtailPct.toFixed(0)}%弃风换取稳定运行，成本${stats.costKg.toFixed(2)}元/kg，风险指数${stats.riskIndex.toFixed(0)}。适合预算有限但追求稳定的项目。`;
+  } else if (stats.riskIndex > 65) {
+    rec = `⛔ 不推荐当前方案\n风险指数${stats.riskIndex.toFixed(0)}过高，${S.tech}爬坡率不足以应对${S.windMode==='annual'?'季节性':'高频'}波动。建议：${S.tech==='AEL'?'切换为PEM或开启平滑策略':'调整运行参数'}。`;
+  } else {
+    rec = `⚠ 中等方案，可进一步优化\n当前技术 ${S.tech}，风险${stats.riskIndex.toFixed(0)}，成本${stats.costKg.toFixed(2)}元/kg。建议对比PEM方案或调整滤波时间常数τ以找到最优平衡点。`;
+  }
+  box.textContent = rec;
+}
+
+// ══════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  document.getElementById('f-plimit').style.width = '100%';
+  document.getElementById('f-wvar').style.width = '50%';
+  document.getElementById('f-wfreq').style.width = '25%';
+  document.getElementById('tau-display').textContent = '无滤波';
+
+  generateWind();
+  computeLoad();
+  S.tick = Math.floor(S.maxTicks / 4);
+  updateUI(S.tick);
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { if (S.tick > 0) updateUI(S.tick); }, 80);
+  });
+});
+</script>
+</body>
+</html>
