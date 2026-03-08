@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>风光绿电驱动反渗透海水淡化 · 第二定律控制系统</title>
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    displayMath: [['$$','$$'], ['\\[','\\]']]
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea'] }
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+<style>
+:root {
+  --bg:    #0a0f1f;
+  --bg2:   #0d1528;
+  --bg3:   #111d35;
+  --panel: rgba(10, 20, 50, 0.82);
+  --cyan:  #00f0ff;
+  --green: #00ff9f;
+  --red:   #ff0055;
+  --orange:#ff8800;
+  --yellow:#ffd700;
+  --purple:#bf5fff;
+  --dim:   #1a2a44;
+  --dimtx: #3a6080;
+  --txt:   #c5e8ff;
+  --bc:    rgba(0, 240, 255, 0.22);
+  --gc:    rgba(0, 255, 159, 0.22);
+  --rc:    rgba(255, 0, 85, 0.22);
+  --glow-c: 0 0 14px rgba(0, 240, 255, 0.55);
+  --glow-g: 0 0 14px rgba(0, 255, 159, 0.55);
+  --glow-r: 0 0 16px rgba(255, 0, 85, 0.65);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--txt);
+  font-family: 'Courier New', Consolas, monospace;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 9990;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent, transparent 3px,
+    rgba(0,240,255,0.012) 3px, rgba(0,240,255,0.012) 6px
+  );
+}
+
+/* ── 顶部标题栏 ── */
+#topbar {
+  position: sticky; top: 0; z-index: 500;
+  height: 58px;
+  background: rgba(10, 15, 31, 0.97);
+  border-bottom: 1px solid var(--bc);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  box-shadow: 0 2px 24px rgba(0,240,255,0.1);
+}
+.logo-wrap { display: flex; align-items: center; gap: 12px; }
+.logo-icon {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1.5px solid var(--cyan);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; box-shadow: var(--glow-c);
+  animation: spin 18s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.logo-name { font-size: 14px; color: var(--cyan); letter-spacing: 2px; font-weight: bold; }
+.logo-sub  { font-size: 9px; color: var(--dimtx); letter-spacing: 2px; margin-top: 2px; }
+
+#step-nav { display: flex; align-items: center; gap: 6px; }
+.sn-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 14px; border-radius: 20px;
+  border: 1px solid var(--dimtx);
+  font-size: 10px; color: var(--dimtx);
+  letter-spacing: 1px; transition: all 0.35s;
+}
+.sn-item.active { border-color: var(--cyan); color: var(--cyan); background: rgba(0,240,255,0.08); box-shadow: var(--glow-c); }
+.sn-item.done   { border-color: var(--green); color: var(--green); background: rgba(0,255,159,0.06); }
+.sn-item.locked { opacity: 0.32; cursor: default; }
+.sn-num { width: 17px; height: 17px; border-radius: 50%; border: 1px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 9px; }
+.top-sys { font-size: 10px; color: var(--dimtx); text-align: right; line-height: 1.5; }
+#sys-clock { color: var(--cyan); }
+
+/* ── 布局 ── */
+#app { display: flex; min-height: calc(100vh - 58px); }
+#left-pane { width: 60%; border-right: 1px solid var(--bc); display: flex; flex-direction: column; position: relative; }
+#right-pane { width: 40%; display: flex; flex-direction: column; overflow-y: auto; }
+
+.step-page { display: none; animation: fadeIn 0.5s ease; }
+.step-page.active { display: flex; flex: 1; flex-direction: column; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+.canvas-area { flex: 1; position: relative; background: rgba(0,0,0,0.25); overflow: hidden; }
+.canvas-area canvas { width: 100%; height: 100%; display: block; }
+.canvas-overlay { position: absolute; inset: 0; pointer-events: none; }
+.cv-badge { position: absolute; padding: 3px 10px; border-radius: 10px; font-size: 10px; letter-spacing: 1px; border: 1px solid var(--cyan); color: var(--cyan); background: rgba(10,15,31,0.75); }
+
+.ctrl-panel { padding: 18px; background: var(--panel); border-bottom: 1px solid var(--bc); backdrop-filter: blur(6px); }
+
+.ptitle { font-size: 11px; letter-spacing: 2.5px; color: var(--cyan); text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.ptitle .pd { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: var(--glow-c); animation: blink-pd 2s infinite; }
+@keyframes blink-pd { 0%,100%{opacity:1} 50%{opacity:.2} }
+.ptitle.g { color: var(--green); }
+.ptitle.g .pd { background: var(--green); box-shadow: var(--glow-g); }
+.ptitle.r { color: var(--red); }
+.ptitle.r .pd { background: var(--red); box-shadow: var(--glow-r); }
+
+.step-title { font-size: 15px; color: var(--cyan); letter-spacing: 2px; margin-bottom: 4px; }
+.step-subtitle { font-size: 10px; color: var(--dimtx); letter-spacing: 1.5px; margin-bottom: 14px; }
+
+.ctrl { margin: 10px 0; }
+.ctrl-label { display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 5px; }
+.ctrl-name { color: var(--dimtx); letter-spacing: 1px; }
+.ctrl-val { font-size: 13px; font-weight: bold; color: var(--cyan); min-width: 80px; text-align: right; }
+.ctrl-val.g { color: var(--green); }
+.ctrl-val.r { color: var(--red); }
+.ctrl-val.y { color: var(--yellow); }
+input[type=range] { width: 100%; height: 4px; cursor: pointer; accent-color: var(--cyan); background: linear-gradient(to right, var(--cyan) 0%, var(--dim) 0%); }
+input[type=range].grn { accent-color: var(--green); }
+input[type=range].red { accent-color: var(--red); }
+input[type=range].ylw { accent-color: var(--yellow); }
+input[type=range].prp { accent-color: var(--purple); }
+.ctrl-sub { display: flex; justify-content: space-between; font-size: 9px; color: var(--dimtx); margin-top: 2px; }
+
+.formula-section { padding: 14px 18px; background: rgba(0,0,0,0.35); border-top: 1px solid var(--bc); border-bottom: 1px solid var(--bc); }
+.fbox { background: rgba(0,0,0,0.45); border: 1px solid rgba(0,240,255,0.18); border-radius: 4px; padding: 9px 13px; text-align: center; margin: 8px 0; font-size: 12px; color: var(--cyan); }
+
+.results-section { padding: 14px 18px; background: var(--panel); }
+.dg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.dg3 { grid-template-columns: 1fr 1fr 1fr; }
+.dc { background: rgba(0,0,0,0.32); border: 1px solid rgba(0,240,255,0.1); border-radius: 4px; padding: 8px 10px; }
+.dc .dl { font-size: 9px; color: var(--dimtx); letter-spacing: 1.5px; margin-bottom: 4px; }
+.dc .dv { font-size: 16px; font-weight: bold; color: var(--cyan); }
+.dc .du { font-size: 9px; color: var(--dimtx); margin-left: 2px; }
+.dc.g .dv { color: var(--green); }
+.dc.r .dv { color: var(--red); }
+.dc.y .dv { color: var(--yellow); }
+.dc.p .dv { color: var(--purple); }
+
+.status-section { padding: 12px 18px; background: rgba(0,0,0,0.2); border-top: 1px solid var(--bc); }
+.status-box { border-radius: 4px; padding: 9px 13px; font-size: 11px; letter-spacing: 0.5px; line-height: 1.7; transition: all 0.4s; border: 1px solid; }
+.status-box.info { border-color: rgba(0,240,255,0.3); background: rgba(0,240,255,0.05); color: var(--cyan); }
+.status-box.ok { border-color: rgba(0,255,159,0.35); background: rgba(0,255,159,0.06); color: var(--green); }
+.status-box.warn { border-color: rgba(255,0,85,0.4); background: rgba(255,0,85,0.07); color: var(--red); animation: warn-pulse 1.2s infinite; }
+@keyframes warn-pulse { 0%,100% { border-color: rgba(255,0,85,0.35); } 50% { border-color: rgba(255,0,85,0.9); box-shadow: var(--glow-r); } }
+
+.unlock-section { padding: 14px 18px; background: rgba(8,17,42,0.7); border-top: 1px solid var(--bc); }
+.cond-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 3px; font-size: 11px; margin: 4px 0; border: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2); transition: all 0.3s; }
+.cond-item.ok { border-color: rgba(0,255,159,0.28); background: rgba(0,255,159,0.05); }
+.cond-icon { font-size: 11px; min-width: 14px; }
+.cond-text { color: var(--dimtx); flex: 1; }
+.cond-val  { font-size: 11px; font-weight: bold; min-width: 80px; text-align: right; }
+
+.unlock-btn { width: 100%; padding: 12px; margin-top: 12px; border: 1.5px solid var(--green); background: rgba(0,255,159,0.07); color: var(--green); font-family: inherit; font-size: 11px; letter-spacing: 2px; border-radius: 4px; cursor: pointer; transition: all 0.25s; text-transform: uppercase; box-shadow: var(--glow-g); }
+.unlock-btn:disabled { border-color: var(--dimtx); color: var(--dimtx); background: transparent; box-shadow: none; cursor: not-allowed; opacity: 0.4; }
+.unlock-btn:not(:disabled):hover { background: rgba(0,255,159,0.16); transform: translateY(-1px); }
+.pass-msg { display: none; margin-top: 8px; padding: 7px 11px; border-radius: 4px; font-size: 11px; letter-spacing: 0.5px; border: 1px solid rgba(0,255,159,0.35); background: rgba(0,255,159,0.07); color: var(--green); }
+.pass-msg.show { display: block; }
+
+.bw { background: rgba(0,0,0,0.5); border: 1px solid rgba(0,240,255,0.1); border-radius: 2px; height: 7px; overflow: hidden; }
+.bf { height: 100%; border-radius: 2px; transition: width 0.5s ease, background 0.4s; }
+.gauge-row { margin: 7px 0; }
+.gauge-label { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; }
+.gn { color: var(--dimtx); }
+.gv { color: var(--cyan); font-weight: bold; }
+
+.sep { height: 1px; background: linear-gradient(to right, transparent, var(--bc), transparent); margin: 10px 0; }
+
+/* ── 登录页 ── */
+#page-login {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 40px 20px;
+  background: var(--bg);
+}
+.login-card {
+  background: var(--panel); border: 1px solid var(--bc);
+  border-radius: 12px; padding: 40px 48px; max-width: 520px; width: 100%;
+  box-shadow: 0 0 40px rgba(0,240,255,0.1);
+}
+.login-title { font-size: 20px; color: var(--cyan); letter-spacing: 3px; text-align: center; margin-bottom: 8px; }
+.login-sub   { font-size: 10px; color: var(--dimtx); text-align: center; letter-spacing: 2px; margin-bottom: 28px; }
+.form-group  { margin: 16px 0; }
+.form-label  { font-size: 10px; color: var(--dimtx); letter-spacing: 2px; display: block; margin-bottom: 6px; }
+.form-input  {
+  width: 100%; padding: 10px 14px;
+  background: rgba(0,0,0,0.4); border: 1px solid var(--bc);
+  border-radius: 4px; color: var(--txt); font-family: inherit; font-size: 13px;
+  outline: none; transition: border-color 0.3s;
+}
+.form-input:focus { border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,240,255,0.2); }
+.login-btn {
+  width: 100%; padding: 14px; margin-top: 24px;
+  border: 1.5px solid var(--cyan); background: rgba(0,240,255,0.08);
+  color: var(--cyan); font-family: inherit; font-size: 13px;
+  letter-spacing: 3px; border-radius: 4px; cursor: pointer;
+  transition: all 0.25s; text-transform: uppercase;
+  box-shadow: var(--glow-c);
+}
+.login-btn:hover { background: rgba(0,240,255,0.16); transform: translateY(-1px); }
+
+/* ── 评测页 & 报告页 ── */
+#page-eval, #page-report {
+  display: none; flex-direction: column;
+  padding: 18px; max-width: 1200px;
+  margin: 0 auto; width: 100%;
+  animation: fadeIn 0.5s ease;
+}
+#page-eval.active, #page-report.active { display: flex; }
+
+.eval-header { text-align: center; margin-bottom: 20px; padding: 16px; background: var(--panel); border: 1px solid var(--bc); border-radius: 6px; }
+.eval-title { font-size: 18px; color: var(--cyan); letter-spacing: 3px; }
+.eval-sub   { font-size: 10px; color: var(--dimtx); letter-spacing: 2px; margin-top: 4px; }
+
+.eval-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.eval-card { background: var(--panel); border: 1px solid var(--bc); border-radius: 6px; padding: 16px; position: relative; }
+.eval-card::before { content: ''; position: absolute; top: -1px; left: 18px; width: 44px; height: 2px; background: var(--cyan); }
+.eval-card.gp::before { background: var(--green); }
+.score-big { font-size: 54px; font-weight: bold; text-align: center; line-height: 1; margin: 10px 0; }
+.grade-txt { text-align: center; font-size: 15px; letter-spacing: 3px; margin: 4px 0; }
+
+/* ── 测试题样式 ── */
+.quiz-page { display: none; padding: 24px; max-width: 860px; margin: 0 auto; width: 100%; animation: fadeIn 0.5s ease; }
+.quiz-page.active { display: block; }
+.quiz-header { text-align: center; margin-bottom: 24px; padding: 16px; background: var(--panel); border: 1px solid var(--bc); border-radius: 6px; }
+.quiz-title { font-size: 18px; color: var(--purple); letter-spacing: 3px; }
+.quiz-sub   { font-size: 10px; color: var(--dimtx); letter-spacing: 2px; margin-top: 4px; }
+.quiz-card  { background: var(--panel); border: 1px solid var(--bc); border-radius: 6px; padding: 20px; margin-bottom: 20px; position: relative; }
+.quiz-card::before { content: ''; position: absolute; top: -1px; left: 18px; width: 44px; height: 2px; background: var(--purple); }
+.q-num  { font-size: 10px; color: var(--purple); letter-spacing: 2px; margin-bottom: 8px; }
+.q-text { font-size: 13px; color: var(--txt); line-height: 1.8; margin-bottom: 16px; }
+.q-opts { display: flex; flex-direction: column; gap: 8px; }
+.q-opt  {
+  padding: 10px 14px; border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--dimtx); background: rgba(0,0,0,0.2);
+  font-size: 12px; color: var(--dimtx); transition: all 0.2s; letter-spacing: 0.5px;
+}
+.q-opt:hover:not(.disabled) { border-color: var(--purple); color: var(--purple); background: rgba(191,95,255,0.08); }
+.q-opt.selected { border-color: var(--cyan); color: var(--cyan); background: rgba(0,240,255,0.08); }
+.q-opt.correct  { border-color: var(--green); color: var(--green); background: rgba(0,255,159,0.1); }
+.q-opt.wrong    { border-color: var(--red); color: var(--red); background: rgba(255,0,85,0.08); }
+.q-opt.disabled { cursor: default; }
+.q-explain { display: none; margin-top: 12px; padding: 10px 14px; border-radius: 4px; font-size: 11px; line-height: 1.8; border: 1px solid var(--gc); background: rgba(0,255,159,0.05); color: var(--green); }
+.q-explain.show { display: block; }
+.quiz-actions { display: flex; gap: 12px; margin-top: 20px; }
+.quiz-btn { flex: 1; padding: 12px; border: 1.5px solid var(--purple); background: rgba(191,95,255,0.07); color: var(--purple); font-family: inherit; font-size: 11px; letter-spacing: 2px; border-radius: 4px; cursor: pointer; transition: all 0.25s; }
+.quiz-btn:hover { background: rgba(191,95,255,0.16); }
+.quiz-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── 打印样式 ── */
+@media print {
+  body { background: #fff !important; color: #111 !important; }
+  #topbar, #step-nav, .unlock-btn, .print-btn, #app, #page-quiz, #page-eval { display: none !important; }
+  #page-login { display: none !important; }
+  #page-report { display: flex !important; background: #fff; color: #111; padding: 20px; }
+  .eval-card, .ctrl-panel, .results-section { background: #f8f8f8 !important; border: 1px solid #ddd !important; color: #111 !important; }
+  * { box-shadow: none !important; text-shadow: none !important; animation: none !important; }
+  .dv, .ctrl-val, .gv { color: #111 !important; }
+  .ptitle, .logo-name, .step-title, .eval-title, .quiz-title { color: #222 !important; }
+  .ptitle .pd, body::before { display: none !important; }
+  .dl, .du, .dimtx { color: #444 !important; }
+  .print-btn { display: none !important; }
+  .print-student-info { display: block !important; }
+}
+
+.print-student-info { display: none; margin-bottom: 16px; padding: 12px 16px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
+.print-student-info table { width: 100%; border-collapse: collapse; }
+.print-student-info td { padding: 4px 8px; }
+
+@keyframes numPop { from { transform: scale(1.12); } to { transform: scale(1); } }
+.pop { animation: numPop 0.18s ease; }
+</style>
+</head>
+<body>
+
+<!-- ════════════ 登录页 ════════════ -->
+<div id="page-login">
+  <div class="login-card">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:36px;margin-bottom:8px">🌊</div>
+    </div>
+    <div class="login-title">RO · 第二定律控制系统</div>
+    <div class="login-sub">RENEWABLE POWERED REVERSE OSMOSIS · 2ND LAW THERMODYNAMICS</div>
+
+    <div class="form-group">
+      <label class="form-label">学生姓名 STUDENT NAME</label>
+      <input type="text" class="form-input" id="inp-name" placeholder="请输入姓名..." maxlength="20">
+    </div>
+    <div class="form-group">
+      <label class="form-label">学号 STUDENT ID</label>
+      <input type="text" class="form-input" id="inp-id" placeholder="请输入学号..." maxlength="20">
+    </div>
+    <div class="form-group">
+      <label class="form-label">班级 CLASS</label>
+      <input type="text" class="form-input" id="inp-class" placeholder="请输入班级..." maxlength="30">
+    </div>
+
+    <div style="margin-top:16px;padding:12px;background:rgba(0,240,255,0.05);border:1px solid var(--bc);border-radius:4px;font-size:10px;color:var(--dimtx);line-height:1.8">
+      ℹ 本系统包含三关仿真实验 + 知识测试 + 五维能力评测<br>
+      完成后可生成打印报告，请填写真实信息以便归档。
+    </div>
+
+    <button class="login-btn" onclick="startSystem()">进入仿真系统 →</button>
+  </div>
+</div>
+
+<!-- ════════════ 顶部栏 ════════════ -->
+<div id="topbar" style="display:none">
+  <div class="logo-wrap">
+    <div class="logo-icon">🌊</div>
+    <div>
+      <div class="logo-name">RENEWABLE RO DESALINATION</div>
+      <div class="logo-sub">风光绿电驱动反渗透海水淡化 · 第二定律控制系统</div>
+    </div>
+  </div>
+
+  <div id="step-nav">
+    <div class="sn-item active" id="sn-1"><div class="sn-num">1</div>渗透压</div>
+    <div style="color:var(--dimtx);font-size:12px">›</div>
+    <div class="sn-item locked" id="sn-2"><div class="sn-num">2</div>反渗透</div>
+    <div style="color:var(--dimtx);font-size:12px">›</div>
+    <div class="sn-item locked" id="sn-3"><div class="sn-num">3</div>风光驱动</div>
+    <div style="color:var(--dimtx);font-size:12px">›</div>
+    <div class="sn-item locked" id="sn-q"><div class="sn-num">Q</div>测试</div>
+    <div style="color:var(--dimtx);font-size:12px">›</div>
+    <div class="sn-item locked" id="sn-4"><div class="sn-num">★</div>评测</div>
+  </div>
+
+  <div class="top-sys">
+    <div id="sys-clock">00:00:00</div>
+    <div id="topbar-student" style="color:var(--cyan);font-size:10px">—</div>
+  </div>
+</div>
+
+<!-- ════════════ 主体区域 ════════════ -->
+<div id="app" style="display:none">
+
+  <!-- 左侧 Canvas -->
+  <div id="left-pane">
+    <div class="step-page active" id="left-1" style="height:100%">
+      <div class="canvas-area" style="height:100%">
+        <canvas id="cv-osmosis"></canvas>
+        <div class="canvas-overlay">
+          <div class="cv-badge" style="top:10px;left:10px">渗透压模拟</div>
+          <div class="cv-badge" style="top:10px;right:10px" id="cv-pi-badge">π = — bar</div>
+          <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,240,255,0.55);letter-spacing:1.5px;text-align:center;pointer-events:none" id="cv-s1-hint">
+            水向高浓度一侧自发流动 &nbsp;|&nbsp; ΔS_total &gt; 0
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-page" id="left-2" style="height:100%">
+      <div class="canvas-area" style="height:100%">
+        <canvas id="cv-ro"></canvas>
+        <div class="canvas-overlay">
+          <div class="cv-badge" style="top:10px;left:10px">反渗透模拟</div>
+          <div class="cv-badge" style="top:10px;right:10px" id="cv-ro-badge">ΔG = — bar</div>
+          <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:1.5px;text-align:center;pointer-events:none" id="cv-s2-hint">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-page" id="left-3" style="height:100%">
+      <div class="canvas-area" style="height:100%">
+        <canvas id="cv-flow"></canvas>
+        <div class="canvas-overlay">
+          <div class="cv-badge" style="top:10px;left:10px">风光驱动能量流</div>
+          <div class="cv-badge" style="top:10px;right:10px" id="cv-eta-badge">η = —</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右侧控制面板 -->
+  <div id="right-pane">
+
+    <!-- Step 1 右侧 -->
+    <div class="step-page active" id="right-1">
+      <div class="ctrl-panel">
+        <div class="step-title">Osmotic Pressure &amp; Chemical Potential</div>
+        <div class="step-subtitle">STEP 1 / 3 · 渗透压与化学势</div>
+        <div class="ctrl">
+          <div class="ctrl-label">
+            <span class="ctrl-name">盐浓度 C</span>
+            <span class="ctrl-val" id="l-C">1.00 mol/L</span>
+          </div>
+          <input type="range" id="s-C" min="0" max="2" value="1" step="0.05" oninput="osmoticUpdate()">
+          <div class="ctrl-sub"><span>0 mol/L</span><span>2 mol/L</span></div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-label">
+            <span class="ctrl-name">温度 T</span>
+            <span class="ctrl-val g" id="l-T1">298 K</span>
+          </div>
+          <input type="range" class="grn" id="s-T1" min="273" max="350" value="298" step="1" oninput="osmoticUpdate()">
+          <div class="ctrl-sub"><span>273 K (0°C)</span><span>350 K (77°C)</span></div>
+        </div>
+      </div>
+
+      <div class="formula-section">
+        <div class="ptitle"><div class="pd"></div>核心公式</div>
+        <div class="fbox">$$\pi = i \cdot C \cdot R \cdot T$$</div>
+        <div class="fbox" style="font-size:11px">$i=2\text{（NaCl）},\quad R=0.08314\ \text{L·bar/(mol·K)}$</div>
+        <div class="fbox" style="font-size:11px">$\Delta\mu = \mu_{\text{高浓}} - \mu_{\text{低浓}} &lt; 0 \Rightarrow \Delta S_{total} &gt; 0$</div>
+      </div>
+
+      <div class="results-section">
+        <div class="ptitle"><div class="pd"></div>实时计算结果</div>
+        <div class="dg">
+          <div class="dc"><div class="dl">渗透压 π</div><div class="dv" id="r-pi">—</div><div class="du">bar</div></div>
+          <div class="dc g"><div class="dl">化学势差 Δμ</div><div class="dv" id="r-dmu">—</div><div class="du">kJ/mol</div></div>
+          <div class="dc y"><div class="dl">渗透流方向</div><div class="dv" id="r-dir" style="font-size:13px">—</div></div>
+          <div class="dc p"><div class="dl">ΔS_total</div><div class="dv" id="r-dS1">—</div><div class="du">&gt; 0</div></div>
+        </div>
+        <div class="sep"></div>
+        <div class="gauge-row">
+          <div class="gauge-label"><span class="gn">渗透压（相对最大值）</span><span class="gv" id="b-pi-l">—%</span></div>
+          <div class="bw"><div class="bf" id="b-pi" style="background:var(--cyan);width:0%"></div></div>
+        </div>
+        <div class="gauge-row">
+          <div class="gauge-label"><span class="gn">温度效应</span><span class="gv" id="b-T-l">—%</span></div>
+          <div class="bw"><div class="bf" id="b-T" style="background:var(--green);width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="status-section">
+        <div class="status-box info" id="status-s1">
+          ⚗ 调节浓度与温度，观察渗透压变化规律。<br>
+          渗透压来源：高浓度侧水的化学势 <em>低于</em> 低浓度侧，水分子自发向高浓侧迁移以平衡化学势（ΔS_total &gt; 0）。
+        </div>
+      </div>
+
+      <div class="unlock-section">
+        <div class="ptitle g"><div class="pd"></div>通关条件</div>
+        <div class="cond-item" id="c1-1">
+          <span class="cond-icon">○</span>
+          <span class="cond-text">渗透压 π &gt; 30 bar</span>
+          <span class="cond-val" id="cv1-1" style="color:var(--red)">— / &gt;30 bar</span>
+        </div>
+        <div class="cond-item" id="c1-2">
+          <span class="cond-icon">○</span>
+          <span class="cond-text">温度 T &gt; 300 K</span>
+          <span class="cond-val" id="cv1-2" style="color:var(--red)">— / &gt;300 K</span>
+        </div>
+        <div class="pass-msg" id="pm-1">
+          💡 <b>渗透压来源于化学势差</b>——高浓侧水分子化学势较低，水自发流向高浓侧以增大系统总熵（ΔS_total &gt; 0）。这是热力学第二定律的自然体现。
+        </div>
+        <button class="unlock-btn" id="btn-s1" disabled onclick="goStep(2)">→ 进入反渗透控制</button>
+      </div>
+    </div>
+
+    <!-- Step 2 右侧 -->
+    <div class="step-page" id="right-2">
+      <div class="ctrl-panel">
+        <div class="step-title">Reverse Osmosis &amp; Minimum Work</div>
+        <div class="step-subtitle">STEP 2 / 3 · 反渗透与最小功</div>
+        <div style="display:flex;gap:10px;margin-bottom:12px">
+          <div class="dc" style="flex:1"><div class="dl">当前渗透压 π</div><div class="dv" id="r2-pi" style="font-size:14px">—</div><div class="du">bar（来自Step 1）</div></div>
+          <div class="dc" style="flex:1"><div class="dl">温度 T</div><div class="dv" id="r2-T" style="font-size:14px">—</div><div class="du">K</div></div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-label"><span class="ctrl-name">外加压力 P</span><span class="ctrl-val" id="l-P">50 bar</span></div>
+          <input type="range" id="s-P" min="0" max="100" value="50" step="1" oninput="roUpdate()">
+          <div class="ctrl-sub"><span>0 bar</span><span style="color:var(--orange)">需 P ≥ π</span><span>100 bar</span></div>
+        </div>
+      </div>
+
+      <div class="formula-section">
+        <div class="ptitle"><div class="pd"></div>核心公式</div>
+        <div class="fbox">$$W_{min} = \pi \cdot V \quad (V=1\text{ L})$$</div>
+        <div class="fbox" style="font-size:11px">$$\Delta G = P - \pi$$</div>
+        <div class="fbox" style="font-size:11px">$$\Delta S_{total} = \frac{\Delta G}{T}$$</div>
+      </div>
+
+      <div class="results-section">
+        <div class="ptitle"><div class="pd"></div>实时计算结果</div>
+        <div class="dg">
+          <div class="dc g"><div class="dl">最小功 W_min</div><div class="dv" id="r-Wmin">—</div><div class="du">L·bar</div></div>
+          <div class="dc y"><div class="dl">驱动力 ΔG</div><div class="dv" id="r-dG">—</div><div class="du">bar</div></div>
+          <div class="dc"><div class="dl">ΔS_total</div><div class="dv" id="r-dS2">—</div><div class="du">L·bar/K</div></div>
+          <div class="dc p"><div class="dl">热力学判断</div><div class="dv" id="r-judge" style="font-size:11px">—</div></div>
+        </div>
+        <div class="sep"></div>
+        <div class="gauge-row">
+          <div class="gauge-label"><span class="gn">外加压力 P vs 渗透压 π</span><span class="gv" id="b-Ppi-l">—%</span></div>
+          <div class="bw"><div class="bf" id="b-Ppi" style="width:50%;background:var(--cyan)"></div></div>
+        </div>
+        <div class="gauge-row">
+          <div class="gauge-label"><span class="gn">能量超额（P−π）/P_max</span><span class="gv" id="b-excess-l">—%</span></div>
+          <div class="bw"><div class="bf" id="b-excess" style="width:0%;background:var(--green)"></div></div>
+        </div>
+      </div>
+
+      <div class="status-section">
+        <div class="status-box info" id="status-s2">⚡ 调节外加压力，使其超过渗透压，即可驱动反渗透过程。</div>
+      </div>
+
+      <div class="unlock-section">
+        <div class="ptitle g"><div class="pd"></div>通关条件</div>
+        <div class="cond-item" id="c2-1">
+          <span class="cond-icon">○</span>
+          <span class="cond-text">P ≥ π（反渗透成立）</span>
+          <span class="cond-val" id="cv2-1" style="color:var(--red)">— / 需≥π</span>
+        </div>
+        <div class="cond-item" id="c2-2">
+          <span class="cond-icon">○</span>
+          <span class="cond-text">ΔG &gt; 0（热力学允许）</span>
+          <span class="cond-val" id="cv2-2" style="color:var(--red)">— / &gt;0</span>
+        </div>
+        <div class="pass-msg" id="pm-2">
+          💡 <b>最小功由 ΔG 决定</b>——反渗透必须对系统做功（W_min = πV），这是克服化学势差、逆热力学自发方向所必须付出的代价。实际功 &gt; W_min（不可逆损失）。
+        </div>
+        <button class="unlock-btn" id="btn-s2" disabled onclick="goStep(3)">→ 进入风光驱动系统</button>
+      </div>
+    </div>
+
+    <!-- Step 3 右侧 -->
+    <div class="step-page" id="right-3">
+      <div class="ctrl-panel">
+        <div class="step-title">Renewable Powered RO System</div>
+        <div class="step-subtitle">STEP 3 / 3 · 风光绿电驱动</div>
+        <div class="ctrl">
+          <div class="ctrl-label"><span class="ctrl-name">☀ 太阳能输入</span><span class="ctrl-val y" id="l-Psolar">100 kW</span></div>
+          <input type="range" class="ylw" id="s-Psolar" min="0" max="200" value="100" step="5" oninput="renewableUpdate()">
+          <div class="ctrl-sub"><span>0</span><span>200 kW</span></div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-label"><span class="ctrl-name">🌬 风能输入</span><span class="ctrl-val g" id="l-Pwind">100 kW</span></div>
+          <input type="range" class="grn" id="s-Pwind" min="0" max="200" value="100" step="5" oninput="renewableUpdate()">
+          <div class="ctrl-sub"><span>0</span><span>200 kW</span></div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-label"><span class="ctrl-name">⚙ 系统效率 η</span><span class="ctrl-val" id="l-eta">0.70</span></div>
+          <input type="range" id="s-eta" min="0" max="1" value="0.7" step="0.01" oninput="renewableUpdate()">
+          <div class="ctrl-sub"><span>0（全损失）</span><span style="color:var(--green)">目标 ≥ 0.6</span><span>1.0</span></div>
+        </div>
+      </div>
+
+      <div class="formula-section">
+        <div class="ptitle"><div class="pd"></div>核心公式</div>
+        <div class="fbox" style="font-size:11px">$$P_{total} = P_{solar} + P_{wind}$$</div>
+        <div class="fbox" style="font-size:11px">$$W_{eff} = P_{total}\cdot\eta,\quad Q_{loss}=P_{total}(1-\eta)$$</div>
+        <div class="fbox" style="font-size:11px">$$\dot{S}_{gen}=\frac{Q_{loss}}{T}\quad\left[\frac{\text{kW}}{\text{K}}\right]$$</div>
+      </div>
+
+      <div class="results-section">
+        <div class="ptitle"><div class="pd"></div>实时计算结果</div>
+        <div class="dg dg3">
+          <div class="dc"><div class="dl">总输入功率</div><div class="dv" id="r-Ptot">—</div><div class="du">kW</div></div>
+          <div class="dc g"><div class="dl">有效功率</div><div class="dv" id="r-Weff">—</div><div class="du">kW</div></div>
+          <div class="dc r"><div class="dl">热损失</div><div class="dv" id="r-Qloss">—</div><div class="du">kW</div></div>
+        </div>
+        <div class="dg" style="margin-top:8px">
+          <div class="dc p"><div class="dl">熵产生率 Ṡ_gen</div><div class="dv" id="r-Sgen">—</div><div class="du">kW/K</div></div>
+          <div class="dc y"><div class="dl">淡水流量估算</div><div class="dv" id="r-flow">—</div><div class="du">m³/h</div></div>
+        </div>
+        <div class="sep"></div>
+        <div class="gauge-row">
+          <div class="gauge-label"><span class="gn">系统效率 η</span><span class="gv" id="b-eta-l">—%</span></div>
+          <div class="bw"><div class="bf" id="b-eta" style="width:70%;background:var(--cyan)"></div></div>
+        </div>
+        <div class="gauge-row">
+          <div class="gauge-label"><span class="gn">有效功 / 总输入</span><span class="gv" id="b-eff-l">—%</span></div>
+          <div class="bw"><div class="bf" id="b-eff" style="width:70%;background:var(--green)"></div></div>
+        </div>
+        <div class="gauge-row">
+          <div class="gauge-label"><span class="gn">损失比例（熵产生贡献）</span><span class="gv" id="b-loss-l">—%</span></div>
+          <div class="bw"><div class="bf" id="b-loss" style="width:30%;background:var(--red)"></div></div>
+        </div>
+      </div>
+
+      <div class="status-section">
+        <div class="status-box info" id="status-s3">🌱 调节风光输入与系统效率，观察熵产生变化。效率越高，红色损失粒子越少，不可逆性越小。</div>
+      </div>
+
+      <div class="unlock-section">
+        <div class="ptitle g"><div class="pd"></div>通关条件</div>
+        <div class="cond-item" id="c3-1">
+          <span class="cond-icon">○</span>
+          <span class="cond-text">系统效率 η ≥ 0.6</span>
+          <span class="cond-val" id="cv3-1" style="color:var(--red)">— / ≥0.6</span>
+        </div>
+        <div class="cond-item" id="c3-2">
+          <span class="cond-icon">○</span>
+          <span class="cond-text">总输入功率 ≥ 100 kW</span>
+          <span class="cond-val" id="cv3-2" style="color:var(--red)">— / ≥100kW</span>
+        </div>
+        <div class="cond-item" id="c3-3">
+          <span class="cond-icon">○</span>
+          <span class="cond-text">淡水流量 ≥ 3 m³/h</span>
+          <span class="cond-val" id="cv3-3" style="color:var(--red)">— / ≥3m³/h</span>
+        </div>
+        <div class="pass-msg" id="pm-3">
+          💡 <b>绿电驱动的本质</b>——风光能量转化为高压功，克服化学势差推动反渗透。η 越高，熵产生越少，越接近热力学最优过程（可逆极限）。
+        </div>
+        <button class="unlock-btn" id="btn-s3" disabled onclick="goQuiz()">→ 进入知识测试</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════ 知识测试页 ════════════ -->
+<div id="page-quiz" class="quiz-page">
+  <div class="quiz-header">
+    <div class="quiz-title">🧠 热力学知识测试</div>
+    <div class="quiz-sub">THERMODYNAMIC KNOWLEDGE QUIZ · 3道题 · 完成后进入综合评测</div>
+    <div style="margin-top:10px;font-size:10px;color:var(--dimtx)">每题选择后点击"确认答案"，答对得满分，答错可查看解析</div>
+  </div>
+
+  <!-- 题目1 -->
+  <div class="quiz-card">
+    <div class="q-num">QUESTION 01 / 03</div>
+    <div class="q-text">
+      在反渗透海水淡化系统中，若海水盐浓度为 1.5 mol/L（NaCl），温度为 300 K，则海水的渗透压π约为多少？<br>
+      <small style="color:var(--dimtx)">（i = 2，R = 0.08314 L·bar/(mol·K)）</small>
+    </div>
+    <div class="q-opts" id="opts-1">
+      <div class="q-opt" onclick="selectOpt(1,'A')">A. 约 37.4 bar</div>
+      <div class="q-opt" onclick="selectOpt(1,'B')">B. 约 74.8 bar</div>
+      <div class="q-opt" onclick="selectOpt(1,'C')">C. 约 24.9 bar</div>
+      <div class="q-opt" onclick="selectOpt(1,'D')">D. 约 149.6 bar</div>
+    </div>
+    <div class="q-explain" id="exp-1">
+      ✓ <b>正确答案：B（约 74.8 bar）</b><br>
+      计算：π = i × C × R × T = 2 × 1.5 × 0.08314 × 300 ≈ 74.83 bar<br>
+      这是驱动反渗透所需的<b>最低外加压力</b>。实际操作中通常施加 75~80 bar 的压力，超过渗透压才能使淡水从膜的另一侧产出。
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="quiz-btn" id="confirm-1" onclick="confirmOpt(1,'B')" disabled>确认答案</button>
+      <button class="quiz-btn" id="next-1" onclick="showNext(2)" disabled style="border-color:var(--green);color:var(--green)">下一题 →</button>
+    </div>
+  </div>
+
+  <!-- 题目2 -->
+  <div class="quiz-card" id="qcard-2" style="opacity:0.4;pointer-events:none">
+    <div class="q-num">QUESTION 02 / 03</div>
+    <div class="q-text">
+      以下关于热力学第二定律与反渗透系统的表述，<b>正确</b>的是？
+    </div>
+    <div class="q-opts" id="opts-2">
+      <div class="q-opt" onclick="selectOpt(2,'A')">A. 反渗透过程使盐水侧的熵减少，违反了热力学第二定律</div>
+      <div class="q-opt" onclick="selectOpt(2,'B')">B. 反渗透系统中，总熵（系统+环境）一定增加，符合第二定律</div>
+      <div class="q-opt" onclick="selectOpt(2,'C')">C. 提高系统效率η可使熵产生率为零，实现完全可逆过程</div>
+      <div class="q-opt" onclick="selectOpt(2,'D')">D. 渗透压越低，所需最小功越大，熵产生也越多</div>
+    </div>
+    <div class="q-explain" id="exp-2">
+      ✓ <b>正确答案：B</b><br>
+      虽然反渗透过程使盐水侧局部熵减少（水分子有序化），但<b>外部做功（高压泵）向系统输入能量，整个系统+环境的总熵仍然增加</b>（Ṡ_gen &gt; 0），符合热力学第二定律。<br>
+      A错：局部熵减少不违反第二定律，全局熵仍增加；<br>
+      C错：实际过程不可逆，η趋于1时Ṡ_gen趋于最小但不为零；<br>
+      D错：渗透压越低，最小功W_min = πV 也越小。
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="quiz-btn" id="confirm-2" onclick="confirmOpt(2,'B')" disabled>确认答案</button>
+      <button class="quiz-btn" id="next-2" onclick="showNext(3)" disabled style="border-color:var(--green);color:var(--green)">下一题 →</button>
+    </div>
+  </div>
+
+  <!-- 题目3 -->
+  <div class="quiz-card" id="qcard-3" style="opacity:0.4;pointer-events:none">
+    <div class="q-num">QUESTION 03 / 03</div>
+    <div class="q-text">
+      某风光互补RO系统，太阳能输入 120 kW，风能输入 80 kW，系统效率 η = 0.75，环境温度 T = 300 K。<br>
+      则该系统的熵产生率 Ṡ_gen 约为多少 kW/K？
+    </div>
+    <div class="q-opts" id="opts-3">
+      <div class="q-opt" onclick="selectOpt(3,'A')">A. 约 0.50 kW/K</div>
+      <div class="q-opt" onclick="selectOpt(3,'B')">B. 约 0.167 kW/K</div>
+      <div class="q-opt" onclick="selectOpt(3,'C')">C. 约 0.667 kW/K</div>
+      <div class="q-opt" onclick="selectOpt(3,'D')">D. 约 1.50 kW/K</div>
+    </div>
+    <div class="q-explain" id="exp-3">
+      ✓ <b>正确答案：B（约 0.167 kW/K）</b><br>
+      计算步骤：<br>
+      • 总输入：P_total = 120 + 80 = 200 kW<br>
+      • 热损失：Q_loss = P_total × (1−η) = 200 × 0.25 = 50 kW<br>
+      • 熵产生率：Ṡ_gen = Q_loss / T = 50 / 300 ≈ 0.167 kW/K<br>
+      这体现了：提高效率（η↑）可降低热损失（Q_loss↓），从而减少不可逆熵产生，使系统更接近热力学可逆极限。
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="quiz-btn" id="confirm-3" onclick="confirmOpt(3,'B')" disabled>确认答案</button>
+      <button class="quiz-btn" id="finish-quiz" onclick="finishQuiz()" disabled style="border-color:var(--yellow);color:var(--yellow)">完成测试 → 进入评测</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ 评测页 ════════════ -->
+<div id="page-eval">
+  <div class="eval-header">
+    <div class="eval-title">Thermodynamic System Evaluation</div>
+    <div class="eval-sub">热力学系统综合评测报告 · 第二定律控制系统</div>
+  </div>
+
+  <div class="eval-grid">
+    <div class="eval-card">
+      <div class="ptitle"><div class="pd"></div>综合评分</div>
+      <div class="score-big" id="ev-score" style="color:var(--green)">—</div>
+      <div class="grade-txt" id="ev-grade" style="color:var(--green)">— 级</div>
+      <div class="sep"></div>
+      <div style="font-size:11px;color:var(--dimtx);line-height:2">
+        <div>① 化学势理解：<span style="color:var(--cyan)" id="s-dim1">—</span>/20</div>
+        <div>② 渗透压计算：<span style="color:var(--cyan)" id="s-dim2">—</span>/20</div>
+        <div>③ 热力学判断：<span style="color:var(--cyan)" id="s-dim3">—</span>/20</div>
+        <div>④ 能量利用效率：<span style="color:var(--cyan)" id="s-dim4">—</span>/20</div>
+        <div>⑤ 第二定律认知：<span style="color:var(--cyan)" id="s-dim5">—</span>/20</div>
+      </div>
+      <div class="sep"></div>
+      <div style="font-size:11px;color:var(--dimtx)">
+        测试得分：<span id="ev-quiz-score" style="color:var(--yellow);font-weight:bold">—</span> / 30 分
+      </div>
+    </div>
+
+    <div class="eval-card">
+      <div class="ptitle"><div class="pd"></div>五维能力雷达图</div>
+      <canvas id="cv-radar" width="260" height="230" style="display:block;margin:0 auto"></canvas>
+    </div>
+
+    <div class="eval-card gp">
+      <div class="ptitle g"><div class="pd"></div>关键参数汇总</div>
+      <div class="dg">
+        <div class="dc"><div class="dl">渗透压 π</div><div class="dv" id="ev-pi">—</div><div class="du">bar</div></div>
+        <div class="dc g"><div class="dl">最小功 W_min</div><div class="dv" id="ev-Wmin">—</div><div class="du">L·bar</div></div>
+        <div class="dc y"><div class="dl">总输入功率</div><div class="dv" id="ev-Ptot">—</div><div class="du">kW</div></div>
+        <div class="dc r"><div class="dl">熵产生率</div><div class="dv" id="ev-Sgen">—</div><div class="du">kW/K</div></div>
+        <div class="dc"><div class="dl">系统效率</div><div class="dv" id="ev-eta">—</div><div class="du">%</div></div>
+        <div class="dc g"><div class="dl">淡水流量</div><div class="dv" id="ev-flow">—</div><div class="du">m³/h</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="eval-grid" style="margin-top:14px">
+    <div class="eval-card" style="grid-column:1/3">
+      <div class="ptitle"><div class="pd"></div>教学反馈建议</div>
+      <div id="ev-feedback" style="font-size:11px;color:var(--dimtx);line-height:2.1">—</div>
+    </div>
+    <div class="eval-card">
+      <div class="ptitle g"><div class="pd"></div>报告操作</div>
+      <button class="unlock-btn" onclick="showReport()">📄 生成完整评测报告</button>
+      <button class="unlock-btn" onclick="goStep(1)" style="margin-top:8px;border-color:var(--cyan);color:var(--cyan)">↺ 重新开始仿真</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ 打印报告页 ════════════ -->
+<div id="page-report">
+  <!-- 打印时显示学生信息 -->
+  <div class="print-student-info">
+    <table>
+      <tr>
+        <td><b>姓名：</b><span id="rpt-name">—</span></td>
+        <td><b>学号：</b><span id="rpt-sid">—</span></td>
+        <td><b>班级：</b><span id="rpt-class">—</span></td>
+        <td><b>日期：</b><span id="rpt-date2">—</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <div style="text-align:center;margin-bottom:22px">
+    <div style="font-size:20px;font-weight:bold;color:var(--cyan);letter-spacing:3px">
+      风光绿电反渗透系统 · 热力学评估报告
+    </div>
+    <div style="font-size:11px;color:var(--dimtx);margin-top:6px;letter-spacing:2px">
+      Renewable Powered RO Desalination · 2nd Law Thermodynamic Analysis
+    </div>
+    <div style="font-size:10px;color:var(--cyan);margin-top:6px;font-weight:bold" id="rpt-student-show">—</div>
+    <div style="font-size:10px;color:var(--dimtx);margin-top:4px" id="rpt-date">生成时间：—</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="eval-card">
+      <div class="ptitle"><div class="pd"></div>全部参数记录</div>
+      <table style="width:100%;font-size:11px;border-collapse:collapse">
+        <tr><td style="padding:5px;color:var(--dimtx)">盐浓度 C</td><td id="rpt-C" style="color:var(--cyan);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">温度 T</td><td id="rpt-T" style="color:var(--cyan);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">渗透压 π</td><td id="rpt-pi" style="color:var(--green);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">外加压力 P</td><td id="rpt-P" style="color:var(--cyan);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">最小功 W_min</td><td id="rpt-Wmin" style="color:var(--yellow);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">ΔG = P−π</td><td id="rpt-dG" style="color:var(--cyan);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">太阳能输入</td><td id="rpt-Psolar" style="color:var(--yellow);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">风能输入</td><td id="rpt-Pwind" style="color:var(--green);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">总输入功率</td><td id="rpt-Ptot" style="color:var(--cyan);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">系统效率 η</td><td id="rpt-eta" style="color:var(--cyan);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">有效功率</td><td id="rpt-Weff" style="color:var(--green);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">热损失</td><td id="rpt-Qloss" style="color:var(--red);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">熵产生率 Ṡ_gen</td><td id="rpt-Sgen" style="color:var(--red);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">淡水流量</td><td id="rpt-flow" style="color:var(--green);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">测试得分</td><td id="rpt-quiz" style="color:var(--yellow);font-weight:bold"></td></tr>
+        <tr><td style="padding:5px;color:var(--dimtx)">综合评分</td><td id="rpt-score" style="color:var(--green);font-weight:bold;font-size:15px"></td></tr>
+      </table>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="eval-card">
+        <div class="ptitle"><div class="pd"></div>五维能力雷达图</div>
+        <canvas id="cv-radar-rpt" width="230" height="200" style="display:block;margin:0 auto"></canvas>
+      </div>
+      <div class="eval-card">
+        <div class="ptitle"><div class="pd"></div>学习建议</div>
+        <div id="rpt-feedback" style="font-size:11px;color:var(--dimtx);line-height:2">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:16px">
+    <button class="unlock-btn print-btn" onclick="window.print()" style="flex:1;font-size:12px">🖨 打印报告（白底格式）</button>
+    <button class="unlock-btn print-btn" onclick="backToEval()" style="flex:1;border-color:var(--cyan);color:var(--cyan);font-size:12px">← 返回评测</button>
+  </div>
+</div>
+
+<!-- ════════════ JavaScript ════════════ -->
+<script>
+'use strict';
+
+const State = {
+  C: 1.0, T1: 298, pi: 0,
+  P: 50, Wmin: 0, dG: 0, dS2: 0,
+  Psolar: 100, Pwind: 100, eta: 0.70,
+  Ptot: 0, Weff: 0, Qloss: 0, Sgen: 0, flow: 0,
+  s1Done: false, s2Done: false, s3Done: false,
+  dims: [0,0,0,0,0], totalScore: 0, currentStep: 1,
+  quizScore: 0, quizAnswers: {},
+  studentName: '', studentId: '', studentClass: '',
+};
+
+const R_OSMO = 0.08314;
+const i_VH   = 2;
+
+// Clock
+setInterval(() => {
+  const el = document.getElementById('sys-clock');
+  if (el) el.textContent = new Date().toTimeString().split(' ')[0];
+}, 1000);
+
+/* ── 登录 ── */
+function startSystem() {
+  const name  = document.getElementById('inp-name').value.trim();
+  const sid   = document.getElementById('inp-id').value.trim();
+  const cls   = document.getElementById('inp-class').value.trim();
+  if (!name || !sid || !cls) {
+    alert('请填写完整的姓名、学号和班级信息！');
+    return;
+  }
+  State.studentName  = name;
+  State.studentId    = sid;
+  State.studentClass = cls;
+
+  document.getElementById('page-login').style.display = 'none';
+  document.getElementById('topbar').style.display = 'flex';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('topbar-student').textContent = name + ' · ' + cls;
+
+  osmoticUpdate();
+  renewableUpdate();
+  initOsmoParticles(600, 500);
+  drawOsmosisFrame();
+  drawFlowFrame();
+  if (window.MathJax && MathJax.typeset) setTimeout(() => MathJax.typeset(), 600);
+}
+
+/* ── 辅助 ── */
+function setVal(id, txt) { const el = document.getElementById(id); if (el) el.textContent = txt; }
+function setBar(id, pct, color) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.width = Math.min(100, Math.max(0, pct)) + '%';
+  if (color) el.style.background = color;
+}
+function syncRange(id, val, min, max, col) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const pct = (val - min) / (max - min) * 100;
+  el.style.background = `linear-gradient(to right,${col} ${pct}%,#1a2a44 ${pct}%)`;
+}
+function setCond(itemId, valId, current, target, ok) {
+  const item = document.getElementById(itemId);
+  const valEl = document.getElementById(valId);
+  if (!item || !valEl) return;
+  item.classList.toggle('ok', ok);
+  item.querySelector('.cond-icon').textContent = ok ? '✓' : '○';
+  valEl.textContent = current + ' / ' + target;
+  valEl.style.color = ok ? 'var(--green)' : 'var(--red)';
+}
+
+/* ── Step 1 ── */
+function osmoticUpdate() {
+  const sC = document.getElementById('s-C');
+  const sT = document.getElementById('s-T1');
+  if (!sC || !sT) return;
+  State.C  = parseFloat(sC.value);
+  State.T1 = parseInt(sT.value);
+  State.pi = i_VH * State.C * R_OSMO * State.T1;
+  const dmu = -(R_OSMO * State.T1 * Math.log(1 + i_VH * State.C / 55.5)) * 0.1;
+
+  setVal('l-C',  State.C.toFixed(2) + ' mol/L');
+  setVal('l-T1', State.T1 + ' K');
+  setVal('r-pi', State.pi.toFixed(2));
+  setVal('r-dmu', dmu.toFixed(4));
+  setVal('r-dir', '→ 高浓侧');
+  setVal('r-dS1', '> 0');
+  setVal('cv-pi-badge', 'π = ' + State.pi.toFixed(1) + ' bar');
+
+  const piPct = Math.min(100, State.pi / 100 * 100);
+  setBar('b-pi', piPct, State.pi >= 50 ? 'var(--green)' : 'var(--cyan)');
+  setVal('b-pi-l', piPct.toFixed(0) + '%');
+  const Tpct = (State.T1 - 273) / (350 - 273) * 100;
+  setBar('b-T', Tpct, 'var(--green)');
+  setVal('b-T-l', Tpct.toFixed(0) + '%');
+
+  syncRange('s-C',  State.C, 0, 2, '#00f0ff');
+  syncRange('s-T1', State.T1, 273, 350, '#00ff9f');
+
+  const ok1 = State.pi > 30, ok2 = State.T1 > 300;
+  setCond('c1-1', 'cv1-1', State.pi.toFixed(1) + ' bar', '> 30 bar', ok1);
+  setCond('c1-2', 'cv1-2', State.T1 + ' K', '> 300 K', ok2);
+  State.s1Done = ok1 && ok2;
+  document.getElementById('btn-s1').disabled = !State.s1Done;
+  document.getElementById('pm-1').classList.toggle('show', State.s1Done);
+
+  setVal('r2-pi', State.pi.toFixed(2));
+  setVal('r2-T',  State.T1.toString());
+}
+
+/* ── Step 2 ── */
+function roUpdate() {
+  const sP = document.getElementById('s-P');
+  if (!sP) return;
+  State.P = parseFloat(sP.value);
+  setVal('l-P', State.P.toFixed(0) + ' bar');
+  syncRange('s-P', State.P, 0, 100, '#00f0ff');
+
+  State.Wmin = State.pi * 1;
+  State.dG   = State.P - State.pi;
+  State.dS2  = State.dG / State.T1;
+
+  setVal('r-Wmin', State.Wmin.toFixed(2));
+  setVal('r-dG',   State.dG.toFixed(2));
+  setVal('r-dS2',  State.dS2.toFixed(4));
+  setVal('cv-ro-badge', 'ΔG = ' + State.dG.toFixed(1) + ' bar');
+
+  const ro_possible = State.P >= State.pi;
+  const judgeEl = document.getElementById('r-judge');
+  if (judgeEl) {
+    judgeEl.textContent = ro_possible ? '✓ 可脱盐' : '✗ 不可行';
+    judgeEl.style.color = ro_possible ? 'var(--green)' : 'var(--red)';
+  }
+
+  const s2Box = document.getElementById('status-s2');
+  if (s2Box) {
+    if (State.P < State.pi) {
+      s2Box.className = 'status-box warn';
+      s2Box.innerHTML = '⚠ <b>热力学不允许！</b> P（'+State.P.toFixed(0)+'bar）&lt; π（'+State.pi.toFixed(1)+'bar）<br>水分子仍向高浓侧自发流动，外加压力不足以驱动反渗透。必须 P ≥ π 才能脱盐。';
+      const hint = document.getElementById('cv-s2-hint');
+      if (hint) { hint.style.color = '#ff0055'; hint.textContent = '⚠ P < π：水向高浓侧流动（无法脱盐）'; }
+    } else {
+      s2Box.className = 'status-box ok';
+      s2Box.innerHTML = '✓ <b>反渗透成立！</b> P（'+State.P.toFixed(0)+'bar）≥ π（'+State.pi.toFixed(1)+'bar）<br>水分子被强制穿过半透膜（ΔG = '+State.dG.toFixed(1)+' bar）。<b>反渗透必须做功</b>，这是克服熵减少的代价。';
+      const hint = document.getElementById('cv-s2-hint');
+      if (hint) { hint.style.color = '#00ff9f'; hint.textContent = '✓ P ≥ π：水穿膜向淡水侧 → 脱盐成功'; }
+    }
+  }
+
+  const ppi = Math.min(100, State.P / 100 * 100);
+  setBar('b-Ppi', ppi, ro_possible ? 'var(--green)' : 'var(--red)');
+  setVal('b-Ppi-l', ppi.toFixed(0) + '%');
+  const excess = Math.max(0, State.dG / 100 * 100);
+  setBar('b-excess', excess, 'var(--green)');
+  setVal('b-excess-l', excess.toFixed(0) + '%');
+
+  const ok1 = ro_possible, ok2 = State.dG > 0;
+  setCond('c2-1', 'cv2-1', State.P.toFixed(0)+'bar', '≥'+State.pi.toFixed(1)+'bar', ok1);
+  setCond('c2-2', 'cv2-2', State.dG.toFixed(2), '> 0', ok2);
+  State.s2Done = ok1 && ok2;
+  document.getElementById('btn-s2').disabled = !State.s2Done;
+  document.getElementById('pm-2').classList.toggle('show', State.s2Done);
+}
+
+/* ── Step 3 ── */
+function renewableUpdate() {
+  const sPs = document.getElementById('s-Psolar');
+  const sPw = document.getElementById('s-Pwind');
+  const sE  = document.getElementById('s-eta');
+  if (!sPs || !sPw || !sE) return;
+
+  State.Psolar = parseFloat(sPs.value);
+  State.Pwind  = parseFloat(sPw.value);
+  State.eta    = parseFloat(sE.value);
+
+  setVal('l-Psolar', State.Psolar.toFixed(0) + ' kW');
+  setVal('l-Pwind',  State.Pwind.toFixed(0)  + ' kW');
+  setVal('l-eta',    State.eta.toFixed(2));
+  setVal('cv-eta-badge', 'η = ' + State.eta.toFixed(2));
+
+  State.Ptot  = State.Psolar + State.Pwind;
+  State.Weff  = State.Ptot * State.eta;
+  State.Qloss = State.Ptot * (1 - State.eta);
+  State.Sgen  = State.Qloss / (State.T1 || 298);
+  State.flow  = State.Weff / 3.5;
+
+  setVal('r-Ptot',  State.Ptot.toFixed(0));
+  setVal('r-Weff',  State.Weff.toFixed(0));
+  setVal('r-Qloss', State.Qloss.toFixed(0));
+  setVal('r-Sgen',  State.Sgen.toFixed(3));
+  setVal('r-flow',  State.flow.toFixed(2));
+
+  const etaPct = State.eta * 100;
+  setBar('b-eta', etaPct, State.eta >= 0.6 ? 'var(--green)' : 'var(--cyan)');
+  setVal('b-eta-l', etaPct.toFixed(0) + '%');
+  setBar('b-eff', etaPct, 'var(--green)');
+  setVal('b-eff-l', etaPct.toFixed(0) + '%');
+  const lossPct = (1 - State.eta) * 100;
+  setBar('b-loss', lossPct, lossPct > 40 ? 'var(--red)' : 'var(--orange)');
+  setVal('b-loss-l', lossPct.toFixed(0) + '%');
+
+  syncRange('s-Psolar', State.Psolar, 0, 200, '#ffd700');
+  syncRange('s-Pwind',  State.Pwind,  0, 200, '#00ff9f');
+  syncRange('s-eta',    State.eta,    0, 1,   '#00f0ff');
+
+  const s3Box = document.getElementById('status-s3');
+  if (s3Box) {
+    if (State.eta >= 0.6 && State.Ptot >= 100) {
+      s3Box.className = 'status-box ok';
+      s3Box.innerHTML = '✓ <b>系统运行良好！</b> η=' + (State.eta*100).toFixed(0) + '% 熵产生率=' + State.Sgen.toFixed(3) + ' kW/K，淡水产量=' + State.flow.toFixed(2) + ' m³/h。';
+    } else if (State.eta < 0.6) {
+      s3Box.className = 'status-box warn';
+      s3Box.innerHTML = '⚠ 效率不足（η=' + (State.eta*100).toFixed(0) + '% < 60%），大量能量以热损失形式散失，熵产生率=' + State.Sgen.toFixed(3) + ' kW/K（高）。';
+    } else {
+      s3Box.className = 'status-box info';
+      s3Box.innerHTML = '⚡ 增加风光输入，使总功率 ≥ 100 kW，提高淡水产量。';
+    }
+  }
+
+  const ok1 = State.eta >= 0.6, ok2 = State.Ptot >= 100, ok3 = State.flow >= 3;
+  setCond('c3-1', 'cv3-1', (State.eta*100).toFixed(0)+'%', '≥60%', ok1);
+  setCond('c3-2', 'cv3-2', State.Ptot.toFixed(0)+'kW', '≥100kW', ok2);
+  setCond('c3-3', 'cv3-3', State.flow.toFixed(2)+'m³/h', '≥3m³/h', ok3);
+  State.s3Done = ok1 && ok2 && ok3;
+  document.getElementById('btn-s3').disabled = !State.s3Done;
+  document.getElementById('pm-3').classList.toggle('show', State.s3Done);
+}
+
+/* ── 页面跳转 ── */
+function goStep(n) {
+  hideAllPages();
+  document.getElementById('app').style.display = 'flex';
+  document.querySelectorAll('.step-page').forEach(p => p.classList.remove('active'));
+  document.getElementById('left-' + n).classList.add('active');
+  document.getElementById('right-' + n).classList.add('active');
+  State.currentStep = n;
+  updateStepNav(n);
+  if (n === 2) { roUpdate(); setTimeout(() => { initRoParticles(600,500); drawRoFrame(); }, 100); }
+  if (n === 3) { renewableUpdate(); }
+  window.scrollTo(0, 0);
+}
+
+function hideAllPages() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('page-quiz').classList.remove('active');
+  document.getElementById('page-eval').classList.remove('active');
+  document.getElementById('page-report').classList.remove('active');
+}
+
+function goQuiz() {
+  hideAllPages();
+  document.getElementById('page-quiz').classList.add('active');
+  updateStepNav('quiz');
+  window.scrollTo(0, 0);
+}
+
+function goEval() {
+  hideAllPages();
+  document.getElementById('page-eval').classList.add('active');
+  updateStepNav('eval');
+  generateEval();
+  window.scrollTo(0, 0);
+}
+
+function showReport() {
+  document.getElementById('page-eval').classList.remove('active');
+  document.getElementById('page-report').classList.add('active');
+  fillReport();
+}
+
+function backToEval() {
+  document.getElementById('page-report').classList.remove('active');
+  document.getElementById('page-eval').classList.add('active');
+}
+
+function updateStepNav(active) {
+  const items = { '1':'sn-1', '2':'sn-2', '3':'sn-3', 'quiz':'sn-q', 'eval':'sn-4' };
+  Object.entries(items).forEach(([key, elId]) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.classList.remove('active','done','locked');
+    if (key === String(active)) {
+      el.classList.add('active');
+    } else if (
+      (active === 'eval') ||
+      (active === 'quiz' && (key === '1' || key === '2' || key === '3')) ||
+      (typeof active === 'number' && parseInt(key) < active)
+    ) {
+      el.classList.add('done');
+    } else {
+      el.classList.add('locked');
+    }
+  });
+}
+
+/* ── 测试题逻辑 ── */
+let quizState = { q1: null, q2: null, q3: null };
+
+function selectOpt(qNum, choice) {
+  const opts = document.querySelectorAll(`#opts-${qNum} .q-opt`);
+  opts.forEach(o => o.classList.remove('selected'));
+  const idx = ['A','B','C','D'].indexOf(choice);
+  if (opts[idx]) opts[idx].classList.add('selected');
+  quizState['q'+qNum] = choice;
+  document.getElementById('confirm-' + qNum).disabled = false;
+}
+
+function confirmOpt(qNum, correctAns) {
+  const chosen = quizState['q'+qNum];
+  if (!chosen) { alert('请先选择一个答案！'); return; }
+
+  const opts = document.querySelectorAll(`#opts-${qNum} .q-opt`);
+  opts.forEach((o, i) => {
+    const letter = ['A','B','C','D'][i];
+    o.classList.add('disabled');
+    o.onclick = null;
+    if (letter === correctAns) o.classList.add('correct');
+    else if (letter === chosen && chosen !== correctAns) o.classList.add('wrong');
+  });
+
+  document.getElementById('exp-' + qNum).classList.add('show');
+  document.getElementById('confirm-' + qNum).disabled = true;
+
+  const isCorrect = chosen === correctAns;
+  if (isCorrect) State.quizScore += 10;
+  State.quizAnswers['q'+qNum] = { chosen, correct: correctAns, isCorrect };
+
+  const nextBtn = document.getElementById('next-' + qNum);
+  const finBtn  = document.getElementById('finish-quiz');
+  if (qNum < 3 && nextBtn) nextBtn.disabled = false;
+  if (qNum === 3 && finBtn) finBtn.disabled = false;
+}
+
+function showNext(qNum) {
+  const card = document.getElementById('qcard-' + qNum);
+  if (card) { card.style.opacity = '1'; card.style.pointerEvents = 'auto'; }
+  card && card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function finishQuiz() {
+  goEval();
+}
+
+/* ── 评测生成 ── */
+function generateEval() {
+  const d1 = Math.min(20, Math.round(State.C / 2 * 12 + (State.T1 > 300 ? 8 : 4)));
+  const d2 = Math.min(20, Math.round(State.pi / 83 * 16 + (State.pi > 30 ? 4 : 0)));
+  const d3 = Math.min(20, Math.round((State.s2Done ? 16 : 6) + (State.dG > 0 ? 4 : 0)));
+  const d4 = Math.min(20, Math.round(State.eta * 14 + (State.Ptot >= 100 ? 6 : 2)));
+  const d5 = Math.min(20, Math.round(State.Sgen < 0.1 ? 20 : State.Sgen < 0.3 ? 15 : State.Sgen < 0.6 ? 10 : 5));
+
+  // 测试题加分（满分30分映射到10分额外加分）
+  const quizBonus = Math.round(State.quizScore / 30 * 10);
+  const d5Bonus = Math.min(20, d5 + quizBonus);
+  State.dims = [d1, d2, d3, d4, d5Bonus];
+  State.totalScore = d1 + d2 + d3 + d4 + d5Bonus;
+
+  setVal('ev-score', State.totalScore);
+  const grade =
+    State.totalScore >= 90 ? 'S（卓越）' :
+    State.totalScore >= 80 ? 'A（优秀）' :
+    State.totalScore >= 70 ? 'B（良好）' :
+    State.totalScore >= 60 ? 'C（达标）' : 'D（待改进）';
+  setVal('ev-grade', grade);
+  const scoreColor = State.totalScore >= 80 ? 'var(--green)' : State.totalScore >= 60 ? 'var(--cyan)' : 'var(--orange)';
+  const scoreEl = document.getElementById('ev-score');
+  const gradeEl = document.getElementById('ev-grade');
+  if (scoreEl) scoreEl.style.color = scoreColor;
+  if (gradeEl) gradeEl.style.color = scoreColor;
+
+  setVal('s-dim1', State.dims[0]); setVal('s-dim2', State.dims[1]); setVal('s-dim3', State.dims[2]);
+  setVal('s-dim4', State.dims[3]); setVal('s-dim5', State.dims[4]);
+  setVal('ev-quiz-score', State.quizScore);
+
+  setVal('ev-pi',   State.pi.toFixed(2) + ' bar');
+  setVal('ev-Wmin', State.Wmin.toFixed(2) + ' L·bar');
+  setVal('ev-Ptot', State.Ptot.toFixed(0) + ' kW');
+  setVal('ev-Sgen', State.Sgen.toFixed(3) + ' kW/K');
+  setVal('ev-eta',  (State.eta*100).toFixed(0) + '%');
+  setVal('ev-flow', State.flow.toFixed(2) + ' m³/h');
+
+  let fb = [];
+  fb.push('【渗透压理解】' + (State.pi < 30
+    ? '渗透压偏低（π='+State.pi.toFixed(1)+'bar）：建议将盐浓度提高至1.5 mol/L以上，深入理解化学势差驱动力。'
+    : '渗透压计算正确（π='+State.pi.toFixed(1)+'bar），充分理解了 π=iCRT 的物理意义。'));
+  fb.push('【反渗透判断】' + (!State.s2Done
+    ? '需确保外加压力P≥渗透压π，理解克服化学势差必须做功（W_min=πV）。'
+    : '判断正确（P='+State.P+'bar ≥ π='+State.pi.toFixed(1)+'bar），W_min='+State.Wmin.toFixed(1)+'L·bar。'));
+  fb.push('【能量效率】' + (State.eta < 0.6
+    ? '系统效率偏低（η='+State.eta.toFixed(2)+'），大量能量转化为不可逆热损失，需提升到η≥0.6。'
+    : '系统效率达标（η='+State.eta.toFixed(2)+'），熵产生率='+State.Sgen.toFixed(3)+'kW/K，较好体现了第二定律最优化。'));
+  fb.push('【测试表现】' + (State.quizScore === 30 ? '知识测试全部答对！对核心概念掌握扎实。' : State.quizScore >= 20 ? '测试得'+State.quizScore+'分，基本概念较好，建议复习错题解析。' : '测试得'+State.quizScore+'分，建议加强对渗透压计算和第二定律本质的理解。'));
+  fb.push('【核心认知】风光绿电的本质是提供高品质能量（电功），克服化学势差（πV）来实现熵减少的局部过程，代价是向环境输出更多的熵（Ṡ_gen&gt;0），符合第二定律。');
+  document.getElementById('ev-feedback').innerHTML = fb.map(s => '• ' + s).join('<br>');
+
+  setTimeout(() => drawRadar('cv-radar', State.dims), 80);
+}
+
+function fillReport() {
+  document.getElementById('rpt-date').textContent  = '生成时间：' + new Date().toLocaleString('zh-CN');
+  document.getElementById('rpt-date2').textContent = new Date().toLocaleDateString('zh-CN');
+  document.getElementById('rpt-name').textContent  = State.studentName;
+  document.getElementById('rpt-sid').textContent   = State.studentId;
+  document.getElementById('rpt-class').textContent = State.studentClass;
+  document.getElementById('rpt-student-show').textContent =
+    '姓名：' + State.studentName + '　学号：' + State.studentId + '　班级：' + State.studentClass;
+
+  setVal('rpt-C',      State.C.toFixed(2) + ' mol/L');
+  setVal('rpt-T',      State.T1 + ' K');
+  setVal('rpt-pi',     State.pi.toFixed(2) + ' bar');
+  setVal('rpt-P',      State.P.toFixed(0) + ' bar');
+  setVal('rpt-Wmin',   State.Wmin.toFixed(2) + ' L·bar');
+  setVal('rpt-dG',     State.dG.toFixed(2) + ' bar');
+  setVal('rpt-Psolar', State.Psolar.toFixed(0) + ' kW');
+  setVal('rpt-Pwind',  State.Pwind.toFixed(0)  + ' kW');
+  setVal('rpt-Ptot',   State.Ptot.toFixed(0)   + ' kW');
+  setVal('rpt-eta',    (State.eta*100).toFixed(0) + '%');
+  setVal('rpt-Weff',   State.Weff.toFixed(0)   + ' kW');
+  setVal('rpt-Qloss',  State.Qloss.toFixed(0)  + ' kW');
+  setVal('rpt-Sgen',   State.Sgen.toFixed(3)   + ' kW/K');
+  setVal('rpt-flow',   State.flow.toFixed(2)    + ' m³/h');
+  setVal('rpt-quiz',   State.quizScore + ' / 30');
+  const grade = State.totalScore>=90?'S':State.totalScore>=80?'A':State.totalScore>=70?'B':State.totalScore>=60?'C':'D';
+  setVal('rpt-score',  State.totalScore + ' / 100 · ' + grade + '级');
+  document.getElementById('rpt-feedback').innerHTML = document.getElementById('ev-feedback').innerHTML;
+
+  setTimeout(() => drawRadar('cv-radar-rpt', State.dims), 80);
+}
+
+/* ── 雷达图 ── */
+function drawRadar(cvId, dims) {
+  const cv = document.getElementById(cvId);
+  if (!cv) return;
+  const W = cv.width, H = cv.height;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W / 2, cy = H / 2 - 5;
+  const r  = Math.min(W, H) * 0.33;
+  const n  = 5;
+  const step = Math.PI * 2 / n;
+  const start = -Math.PI / 2;
+  const colors  = ['#00f0ff','#00ff9f','#ff8800','#bf5fff','#ffd700'];
+  const labels  = ['化学势\n理解','渗透压\n计算','热力学\n判断','能量\n利用','第二定律\n认知'];
+
+  for (let lv = 1; lv <= 5; lv++) {
+    ctx.beginPath(); ctx.strokeStyle = `rgba(0,240,255,${0.05 + lv*0.03})`; ctx.lineWidth = 1;
+    for (let i = 0; i < n; i++) {
+      const a = start + i * step, rr = lv / 5 * r;
+      i === 0 ? ctx.moveTo(cx + rr*Math.cos(a), cy + rr*Math.sin(a))
+              : ctx.lineTo(cx + rr*Math.cos(a), cy + rr*Math.sin(a));
+    }
+    ctx.closePath(); ctx.stroke();
+    ctx.fillStyle = 'rgba(0,240,255,0.3)'; ctx.font = '8px Courier New';
+    ctx.fillText(lv * 4, cx + 3, cy - lv/5*r + 3);
+  }
+  for (let i = 0; i < n; i++) {
+    const a = start + i * step;
+    ctx.strokeStyle = 'rgba(0,240,255,0.12)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx+r*Math.cos(a), cy+r*Math.sin(a)); ctx.stroke();
+  }
+
+  ctx.beginPath();
+  dims.forEach((v, i) => {
+    const a = start + i * step;
+    const rv = (v / 20) * r;
+    i===0 ? ctx.moveTo(cx+rv*Math.cos(a), cy+rv*Math.sin(a))
+          : ctx.lineTo(cx+rv*Math.cos(a), cy+rv*Math.sin(a));
+  });
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(0,255,159,0.12)'; ctx.fill();
+  ctx.strokeStyle = '#00ff9f'; ctx.lineWidth = 2; ctx.stroke();
+
+  dims.forEach((v, i) => {
+    const a = start + i * step, rv = (v/20)*r;
+    ctx.beginPath(); ctx.arc(cx+rv*Math.cos(a), cy+rv*Math.sin(a), 3.5, 0, Math.PI*2);
+    ctx.fillStyle = colors[i]; ctx.fill();
+  });
+
+  ctx.textAlign = 'center';
+  labels.forEach((lb, i) => {
+    const a = start + i * step;
+    const lx = cx + (r+22)*Math.cos(a), ly = cy + (r+22)*Math.sin(a);
+    ctx.fillStyle = colors[i]; ctx.font = '9px Courier New';
+    lb.split('\n').forEach((line, li) => ctx.fillText(line, lx, ly + li*11));
+  });
+  ctx.textAlign = 'left';
+}
+
+/* ════════════ Canvas 动画 ════════════ */
+
+/* Step 1 渗透压粒子动画 */
+let osmoParticles = [], osmoRaf = null;
+
+function initOsmoParticles(W, H) {
+  osmoParticles = [];
+  const mid = W / 2;
+  for (let i = 0; i < 120; i++) {
+    const isRight = Math.random() < 0.5 + State.C * 0.2;
+    const side    = isRight ? 'right' : 'left';
+    osmoParticles.push({
+      x: isRight ? mid + 15 + Math.random() * (W/2 - 35) : 10 + Math.random() * (W/2 - 25),
+      y: 20 + Math.random() * (H - 40),
+      vx: (Math.random() - 0.5) * (0.5 + State.T1/200),
+      vy: (Math.random() - 0.5) * (0.5 + State.T1/200),
+      r:  2 + Math.random() * 2,
+      type: side === 'right' && Math.random() < 0.45 ? 'ion' : 'water',
+      side, phase: Math.random() * Math.PI * 2,
+    });
+  }
+}
+
+function drawOsmosisFrame() {
+  const cv = document.getElementById('cv-osmosis');
+  if (!cv) return;
+  const W = cv.offsetWidth || 600, H = cv.offsetHeight || 500;
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; initOsmoParticles(W, H); }
+  const ctx = cv.getContext('2d');
+  const mid = W / 2;
+  const speed = 0.3 + State.T1 / 300;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0a0f1f'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(0,240,255,0.03)'; ctx.fillRect(0, 0, mid - 4, H);
+  const densityAlpha = 0.03 + State.C * 0.04;
+  ctx.fillStyle = `rgba(0,150,255,${densityAlpha})`; ctx.fillRect(mid + 4, 0, W - mid - 4, H);
+
+  ctx.strokeStyle = 'rgba(0,240,255,0.7)'; ctx.lineWidth = 2; ctx.setLineDash([8, 5]);
+  ctx.beginPath(); ctx.moveTo(mid, 0); ctx.lineTo(mid, H); ctx.stroke();
+  ctx.setLineDash([]);
+  for (let y = 20; y < H; y += 22) {
+    ctx.beginPath(); ctx.arc(mid, y, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,240,255,0.5)'; ctx.fill();
+  }
+
+  ctx.font = '11px Courier New'; ctx.fillStyle = 'rgba(0,240,255,0.55)'; ctx.textAlign = 'center';
+  ctx.fillText('低浓度侧', mid / 2, H - 10);
+  ctx.fillText('C_low = 0', mid / 2, H - 26);
+  ctx.fillText('高浓度侧', mid + (W - mid) / 2, H - 10);
+  ctx.fillText('C = ' + State.C.toFixed(2) + ' M', mid + (W - mid) / 2, H - 26);
+  ctx.textAlign = 'left';
+
+  osmoParticles.forEach(p => {
+    p.x += p.vx * speed;
+    p.y += p.vy * speed;
+    if (p.side === 'left') {
+      if (p.x < 5) { p.x = 5; p.vx = Math.abs(p.vx); }
+      if (p.x > mid - 8) { p.x = mid - 8; p.vx = -Math.abs(p.vx); }
+    } else {
+      if (p.x < mid + 8) { p.x = mid + 8; p.vx = Math.abs(p.vx); }
+      if (p.x > W - 5)   { p.x = W - 5;   p.vx = -Math.abs(p.vx); }
+    }
+    if (p.y < 5)    { p.y = 5;    p.vy = Math.abs(p.vy); }
+    if (p.y > H - 5){ p.y = H - 5; p.vy = -Math.abs(p.vy); }
+
+    if (p.type === 'water' && p.side === 'right' && Math.random() < 0.0008 + State.C * 0.001) {
+      p.side = 'left'; p.x = mid - 15; p.vx = -Math.abs(p.vx);
+    }
+
+    const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3);
+    if (p.type === 'ion') {
+      grd.addColorStop(0, 'rgba(255,100,50,0.9)'); grd.addColorStop(1, 'transparent');
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2);
+      ctx.fillStyle = grd; ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff6432cc'; ctx.fill();
+      ctx.font = '7px Arial'; ctx.fillStyle = 'white'; ctx.textAlign = 'center';
+      ctx.fillText('+', p.x, p.y + 3); ctx.textAlign = 'left';
+    } else {
+      grd.addColorStop(0, 'rgba(0,220,255,0.7)'); grd.addColorStop(1, 'transparent');
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2);
+      ctx.fillStyle = grd; ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = '#00c8ffcc'; ctx.fill();
+    }
+  });
+
+  const arrowAlpha = Math.min(0.8, State.C * 0.4 + 0.1);
+  ctx.strokeStyle = `rgba(0,240,255,${arrowAlpha})`; ctx.lineWidth = 2;
+  for (let y = 60; y < H - 60; y += 50) {
+    const ax = mid + 20, ay = y;
+    ctx.beginPath(); ctx.moveTo(ax + 30, ay); ctx.lineTo(ax, ay);
+    ctx.lineTo(ax + 8, ay - 6); ctx.moveTo(ax, ay); ctx.lineTo(ax + 8, ay + 6);
+    ctx.stroke();
+  }
+
+  ctx.font = 'bold 13px Courier New'; ctx.fillStyle = 'rgba(0,240,255,0.75)'; ctx.textAlign = 'center';
+  ctx.fillText('π = ' + State.pi.toFixed(1) + ' bar', mid, 30); ctx.textAlign = 'left';
+
+  osmoRaf = requestAnimationFrame(drawOsmosisFrame);
+}
+
+/* Step 2 反渗透动画 */
+let roParticles = [], roRaf = null;
+
+function initRoParticles(W, H) {
+  roParticles = [];
+  const mid = W / 2;
+  for (let i = 0; i < 100; i++) {
+    roParticles.push({
+      x: Math.random() > 0.5 ? mid + 15 + Math.random() * (W/2 - 30) : 10 + Math.random() * (W/2 - 20),
+      y: 20 + Math.random() * (H - 40),
+      vx: (Math.random() - 0.5) * 1.2,
+      vy: (Math.random() - 0.5) * 1.2,
+      r:  2.5 + Math.random() * 1.5,
+      type: Math.random() < 0.35 ? 'ion' : 'water',
+      side: Math.random() > 0.5 ? 'right' : 'left',
+      crossing: false, crossProgress: 0,
+    });
+  }
+}
+
+function drawRoFrame() {
+  const cv = document.getElementById('cv-ro');
+  if (!cv) return;
+  const W = cv.offsetWidth || 600, H = cv.offsetHeight || 500;
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const ctx = cv.getContext('2d');
+  const mid = W / 2;
+  const ro_ok = State.P >= State.pi;
+  const speed = 0.8;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0a0f1f'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = ro_ok ? 'rgba(0,255,159,0.04)' : 'rgba(0,240,255,0.04)';
+  ctx.fillRect(mid + 4, 0, W - mid - 4, H);
+  ctx.fillStyle = 'rgba(0,180,255,0.03)'; ctx.fillRect(0, 0, mid - 4, H);
+
+  const arrowColor = ro_ok ? 'rgba(0,255,159,0.6)' : 'rgba(255,0,85,0.4)';
+  ctx.strokeStyle = arrowColor; ctx.lineWidth = 2.5;
+  for (let y = 40; y < H - 30; y += 60) {
+    ctx.beginPath(); ctx.moveTo(W - 20, y); ctx.lineTo(mid + 20, y);
+    ctx.lineTo(mid + 28, y - 7); ctx.moveTo(mid + 20, y); ctx.lineTo(mid + 28, y + 7);
+    ctx.stroke();
+  }
+  ctx.font = '11px Courier New'; ctx.fillStyle = arrowColor; ctx.textAlign = 'center';
+  ctx.fillText('P = ' + State.P.toFixed(0) + ' bar', W * 0.75, 18);
+  ctx.fillText(ro_ok ? '> π ✓' : '< π ✗', W * 0.75, 32); ctx.textAlign = 'left';
+
+  ctx.strokeStyle = ro_ok ? 'rgba(0,255,159,0.8)' : 'rgba(255,0,85,0.7)';
+  ctx.lineWidth = 2.5; ctx.setLineDash([8, 5]);
+  ctx.beginPath(); ctx.moveTo(mid, 0); ctx.lineTo(mid, H); ctx.stroke();
+  ctx.setLineDash([]);
+  for (let y = 20; y < H; y += 22) {
+    ctx.beginPath(); ctx.arc(mid, y, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = ro_ok ? 'rgba(0,255,159,0.6)' : 'rgba(255,0,85,0.5)'; ctx.fill();
+  }
+
+  roParticles.forEach(p => {
+    if (p.crossing) {
+      p.crossProgress += 0.04;
+      p.x = mid - (p.side === 'right' ? -1 : 1) * (p.crossProgress * 60 - 30);
+      if (p.crossProgress >= 1) {
+        p.crossing = false; p.side = p.side === 'right' ? 'left' : 'right'; p.crossProgress = 0;
+      }
+    } else {
+      p.x += p.vx * speed; p.y += p.vy * speed;
+      if (p.side === 'left') {
+        if (p.x < 5)      { p.x = 5;      p.vx = Math.abs(p.vx); }
+        if (p.x > mid - 8){ p.x = mid - 8; p.vx = -Math.abs(p.vx); }
+      } else {
+        if (p.x > W - 5)  { p.x = W - 5;  p.vx = -Math.abs(p.vx); }
+        if (p.x < mid + 8){ p.x = mid + 8; p.vx = Math.abs(p.vx); }
+      }
+      if (p.y < 5)    { p.y = 5;    p.vy = Math.abs(p.vy); }
+      if (p.y > H - 5){ p.y = H - 5; p.vy = -Math.abs(p.vy); }
+      if (p.type === 'water' && p.side === 'right') {
+        if (Math.random() < (ro_ok ? 0.003 : 0.0001) && !p.crossing) { p.crossing = true; p.crossProgress = 0; }
+      }
+      if (p.type === 'water' && p.side === 'left' && !ro_ok) {
+        if (Math.random() < 0.001) { p.crossing = true; p.crossProgress = 0; }
+      }
+    }
+
+    if (p.type === 'ion') {
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,80,40,0.12)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff5028bb'; ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,200,255,0.12)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = ro_ok ? '#00ff9fbb' : '#00c8ffbb'; ctx.fill();
+    }
+  });
+
+  ctx.font = '10px Courier New'; ctx.fillStyle = 'rgba(0,240,255,0.5)'; ctx.textAlign = 'center';
+  ctx.fillText('淡水侧（低浓）', mid / 2, H - 14);
+  ctx.fillText('进料侧（高浓+高压）', mid + (W - mid) / 2, H - 14);
+  ctx.font = 'bold 12px Courier New';
+  ctx.fillStyle = ro_ok ? '#00ff9f' : '#ff0055';
+  ctx.fillText('π = ' + State.pi.toFixed(1) + ' bar', mid, H - 28); ctx.textAlign = 'left';
+
+  roRaf = requestAnimationFrame(drawRoFrame);
+}
+
+/* Step 3 能量流动画 */
+const FLOW_NODES = [
+  { id:'solar', icon:'\u2600',  label:'太阳能', x:.06, y:.25, col:'#ffd700' },
+  { id:'wind',  icon:'\uD83C\uDF2C', label:'风能',   x:.06, y:.72, col:'#00ff9f' },
+  { id:'motor', icon:'\u26A1', label:'电机',   x:.33, y:.50, col:'#00f0ff' },
+  { id:'pump',  icon:'\uD83D\uDD27', label:'高压泵', x:.58, y:.50, col:'#bf5fff' },
+  { id:'mem',   icon:'\uD83D\uDDD2', label:'膜组件', x:.78, y:.50, col:'#00f0ff' },
+  { id:'fresh', icon:'\uD83D\uDCA7', label:'淡水',   x:.95, y:.30, col:'#00ff9f' },
+  { id:'brine', icon:'\uD83C\uDF0A', label:'浓盐水', x:.95, y:.70, col:'#ff8800' },
+];
+const FLOW_EDGES = [
+  { f:'solar',t:'motor' }, { f:'wind',t:'motor' },
+  { f:'motor',t:'pump' }, { f:'pump',t:'mem' },
+  { f:'mem',t:'fresh' }, { f:'mem',t:'brine' },
+];
+let flowPtcs = [], lossPtcs = [], flowRaf = null;
+
+function initFlowPtcs() {
+  flowPtcs = [];
+  FLOW_EDGES.forEach(e => {
+    const fn = FLOW_NODES.find(n => n.id === e.f);
+    const tn = FLOW_NODES.find(n => n.id === e.t);
+    for (let i = 0; i < 8; i++) {
+      flowPtcs.push({ from:fn, to:tn, t:Math.random(), speed: 0.006 + Math.random() * 0.004, r: 2.5 + Math.random() * 1.5, col: fn.col });
+    }
+  });
+  lossPtcs = [];
+  for (let i = 0; i < 60; i++) lossPtcs.push(makeLossPtc(600, 300));
+}
+
+function makeLossPtc(W, H) {
+  return { x: W * 0.2 + Math.random() * W * 0.6, y: H * 0.5 + Math.random() * 10, vx: (Math.random() - 0.5) * 1.5, vy: -0.5 - Math.random() * 1.5, r: 1.5 + Math.random() * 2, alpha: 0.7 + Math.random() * 0.3, phase: Math.random() * Math.PI * 2 };
+}
+
+function drawFlowFrame() {
+  const cv = document.getElementById('cv-flow');
+  if (!cv) return;
+  const W = cv.offsetWidth || 600, H = cv.offsetHeight || 400;
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; initFlowPtcs(); }
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0a0f1f'; ctx.fillRect(0, 0, W, H);
+
+  const speedMult = 0.5 + State.eta * 2 + State.Ptot / 200;
+  const lossRatio = 1 - State.eta;
+
+  FLOW_EDGES.forEach(e => {
+    const fn = FLOW_NODES.find(n => n.id === e.f);
+    const tn = FLOW_NODES.find(n => n.id === e.t);
+    const x1 = fn.x * W, y1 = fn.y * H, x2 = tn.x * W, y2 = tn.y * H;
+    const g = ctx.createLinearGradient(x1, y1, x2, y2);
+    g.addColorStop(0, fn.col + '44'); g.addColorStop(1, tn.col + '44');
+    ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.setLineDash([8, 5]);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  FLOW_NODES.forEach(n => {
+    const x = n.x * W, y = n.y * H;
+    const grd = ctx.createRadialGradient(x, y, 3, x, y, 26);
+    grd.addColorStop(0, n.col + '55'); grd.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.arc(x, y, 26, 0, Math.PI * 2);
+    ctx.fillStyle = grd; ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, 17, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(10,15,31,0.9)'; ctx.fill();
+    ctx.strokeStyle = n.col; ctx.lineWidth = 1.8; ctx.stroke();
+    ctx.font = '13px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = n.col; ctx.fillText(n.icon, x, y);
+    ctx.font = '8px Courier New'; ctx.fillStyle = n.col + '99';
+    ctx.fillText(n.label, x, y + 26);
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  });
+
+  flowPtcs.forEach(p => {
+    p.t += p.speed * speedMult;
+    if (p.t > 1) p.t = 0;
+    const x = p.from.x * W + (p.to.x - p.from.x) * W * p.t;
+    const y = p.from.y * H + (p.to.y - p.from.y) * H * p.t;
+    ctx.beginPath(); ctx.arc(x, y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.col + 'cc'; ctx.fill();
+    const xt = p.from.x * W + (p.to.x - p.from.x) * W * Math.max(0, p.t - 0.07);
+    const yt = p.from.y * H + (p.to.y - p.from.y) * H * Math.max(0, p.t - 0.07);
+    ctx.strokeStyle = p.col + '44'; ctx.lineWidth = p.r;
+    ctx.beginPath(); ctx.moveTo(xt, yt); ctx.lineTo(x, y); ctx.stroke();
+  });
+
+  const activeLoss = Math.round(lossRatio * 50) + 2;
+  lossPtcs.forEach((p, idx) => {
+    if (idx >= activeLoss) return;
+    p.x += p.vx + Math.sin(Date.now() / 500 + p.phase) * 0.4;
+    p.y += p.vy;
+    p.alpha -= 0.008;
+    if (p.alpha <= 0 || p.y < 0) Object.assign(p, makeLossPtc(W, H));
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff0055' + Math.round(p.alpha * 255).toString(16).padStart(2, '0');
+    ctx.fill();
+  });
+
+  ctx.font = '11px Courier New'; ctx.fillStyle = 'rgba(0,240,255,0.6)'; ctx.textAlign = 'center';
+  ctx.fillText('W_eff = ' + State.Weff.toFixed(0) + ' kW', W / 2, H - 30);
+  ctx.fillStyle = 'rgba(255,0,85,0.6)';
+  ctx.fillText('Ṡ_gen = ' + State.Sgen.toFixed(3) + ' kW/K', W / 2, H - 15);
+  ctx.textAlign = 'left';
+
+  flowRaf = requestAnimationFrame(drawFlowFrame);
+}
+
+/* ── Resize ── */
+let rzTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(rzTimer);
+  rzTimer = setTimeout(() => {
+    const cv1 = document.getElementById('cv-osmosis');
+    if (cv1) initOsmoParticles(cv1.offsetWidth, cv1.offsetHeight);
+    initFlowPtcs();
+  }, 200);
+});
+</script>
+</body>
+</html>
