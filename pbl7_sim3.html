@@ -1,0 +1,3144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+<title>电极浆料分散与质量危机 | 工艺工程师模拟系统</title>
+<style>
+  @import url('data:text/css,');
+  :root {
+    --bg-primary: #020b14;
+    --bg-secondary: #041525;
+    --bg-panel: rgba(4, 28, 50, 0.85);
+    --bg-panel2: rgba(2, 18, 35, 0.9);
+    --cyan: #00d4ff;
+    --cyan2: #00a8cc;
+    --teal: #00ffcc;
+    --teal2: #00cc9e;
+    --amber: #ffb300;
+    --red: #ff3355;
+    --red2: #cc1133;
+    --green: #00ff88;
+    --green2: #00cc66;
+    --purple: #7b2fff;
+    --text-primary: #c8e8f8;
+    --text-secondary: #6babc8;
+    --text-dim: #3a6a88;
+    --border: rgba(0, 212, 255, 0.25);
+    --border-bright: rgba(0, 212, 255, 0.7);
+    --glow-cyan: 0 0 12px rgba(0, 212, 255, 0.6), 0 0 30px rgba(0, 212, 255, 0.2);
+    --glow-teal: 0 0 12px rgba(0, 255, 204, 0.6), 0 0 30px rgba(0, 255, 204, 0.2);
+    --glow-red: 0 0 12px rgba(255, 51, 85, 0.8), 0 0 30px rgba(255, 51, 85, 0.4);
+    --glow-green: 0 0 12px rgba(0, 255, 136, 0.6), 0 0 30px rgba(0, 255, 136, 0.2);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Courier New', 'Consolas', monospace;
+    overflow: auto;
+    width: 100vw;
+    height: 100vh;
+    cursor: default;
+    user-select: none;
+  }
+
+  /* SCANLINE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* GRID BG */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .app-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: auto;
+    z-index: 10;
+  }
+
+  /* ===== TOP BAR ===== */
+  .top-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: linear-gradient(135deg, rgba(2,15,30,0.98), rgba(4,28,50,0.98));
+    border-bottom: 1px solid var(--border-bright);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,212,255,0.15);
+  }
+
+  .top-bar-logo {
+    font-size: 11px;
+    color: var(--cyan);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: var(--glow-cyan);
+    flex-shrink: 0;
+  }
+
+  .top-bar-title {
+    flex: 1;
+    text-align: center;
+    font-size: 16px;
+    color: var(--text-primary);
+    letter-spacing: 2px;
+  }
+
+  .top-bar-clock {
+    font-size: 11px;
+    color: var(--teal);
+    letter-spacing: 2px;
+    text-shadow: var(--glow-teal);
+    flex-shrink: 0;
+  }
+
+  /* PROGRESS BAR */
+  .progress-bar-container {
+    position: fixed;
+    top: 56px; left: 0; right: 0;
+    height: 36px;
+    background: rgba(2,12,24,0.95);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    z-index: 99;
+    gap: 8px;
+  }
+
+  .progress-stage {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    transition: all 0.4s;
+  }
+
+  .progress-stage.active {
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+  }
+
+  .progress-stage.done {
+    color: var(--green);
+  }
+
+  .stage-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: all 0.4s;
+  }
+
+  .progress-stage.active .stage-dot {
+    background: var(--cyan);
+    box-shadow: var(--glow-cyan);
+    animation: pulse-dot 1.5s infinite;
+  }
+
+  .progress-stage.done .stage-dot {
+    background: var(--green);
+    box-shadow: var(--glow-green);
+  }
+
+  .stage-connector {
+    flex: 1;
+    height: 1px;
+    background: var(--text-dim);
+    max-width: 80px;
+    transition: background 0.4s;
+  }
+
+  .stage-connector.done { background: var(--green); box-shadow: var(--glow-green); }
+  .stage-connector.active { background: var(--cyan); }
+
+  @keyframes pulse-dot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5); opacity: 0.7; }
+  }
+
+  /* ===== PAGES ===== */
+  .page {
+    position: absolute;
+    top: 92px; left: 0; right: 0; bottom: 0;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    pointer-events: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px 24px;
+  }
+
+  .page.active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+  }
+
+  .page.exiting {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  /* ===== PANELS ===== */
+  .panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.6;
+  }
+
+  .panel-title {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    text-shadow: var(--glow-cyan);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title::before {
+    content: '▶';
+    font-size: 8px;
+  }
+
+  .panel.danger { border-color: rgba(255,51,85,0.5); }
+  .panel.danger::before { background: linear-gradient(90deg, transparent, var(--red), transparent); }
+  .panel.success { border-color: rgba(0,255,136,0.5); }
+  .panel.success::before { background: linear-gradient(90deg, transparent, var(--green), transparent); }
+  .panel.warning { border-color: rgba(255,179,0,0.5); }
+  .panel.warning::before { background: linear-gradient(90deg, transparent, var(--amber), transparent); }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border: 1px solid var(--cyan);
+    background: rgba(0,212,255,0.08);
+    color: var(--cyan);
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-shadow: var(--glow-cyan);
+    box-shadow: var(--glow-cyan);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 40%, rgba(0,212,255,0.1));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .btn:hover {
+    background: rgba(0,212,255,0.18);
+    box-shadow: 0 0 20px rgba(0,212,255,0.8), 0 0 50px rgba(0,212,255,0.3);
+    transform: translateY(-1px);
+  }
+
+  .btn:hover::after { opacity: 1; }
+  .btn:active { transform: translateY(0); }
+
+  .btn-danger {
+    border-color: var(--red);
+    color: var(--red);
+    background: rgba(255,51,85,0.08);
+    text-shadow: var(--glow-red);
+    box-shadow: var(--glow-red);
+  }
+
+  .btn-danger:hover {
+    background: rgba(255,51,85,0.18);
+    box-shadow: 0 0 20px rgba(255,51,85,0.8), 0 0 50px rgba(255,51,85,0.3);
+  }
+
+  .btn-success {
+    border-color: var(--green);
+    color: var(--green);
+    background: rgba(0,255,136,0.08);
+    text-shadow: var(--glow-green);
+    box-shadow: var(--glow-green);
+  }
+
+  .btn-success:hover {
+    background: rgba(0,255,136,0.18);
+    box-shadow: 0 0 20px rgba(0,255,136,0.8), 0 0 50px rgba(0,255,136,0.3);
+  }
+
+  .btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    transform: none;
+    pointer-events: none;
+  }
+
+  /* ===== SLIDERS ===== */
+  .slider-group {
+    margin-bottom: 14px;
+  }
+
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    letter-spacing: 1.5px;
+  }
+
+  .slider-value {
+    color: var(--cyan);
+    font-weight: bold;
+    text-shadow: var(--glow-cyan);
+    min-width: 50px;
+    text-align: right;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--cyan) var(--pct, 50%), rgba(0,212,255,0.15) var(--pct, 50%));
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: var(--glow-cyan);
+    border: 2px solid var(--bg-primary);
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.3);
+  }
+
+  /* ===== DATA VALUES ===== */
+  .data-value {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--teal);
+    text-shadow: var(--glow-teal);
+    letter-spacing: 1px;
+  }
+
+  .data-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .data-unit {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-left: 4px;
+  }
+
+  .data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0,212,255,0.08);
+    font-size: 11px;
+  }
+
+  .data-row:last-child { border-bottom: none; }
+
+  .data-row .key { color: var(--text-secondary); letter-spacing: 1px; }
+
+  .data-row .val {
+    color: var(--teal);
+    font-weight: bold;
+    text-shadow: var(--glow-teal);
+  }
+
+  .data-row .val.bad { color: var(--red); text-shadow: var(--glow-red); }
+  .data-row .val.warn { color: var(--amber); }
+  .data-row .val.good { color: var(--green); text-shadow: var(--glow-green); }
+
+  /* ===== ALERT BOX ===== */
+  .alert-box {
+    border: 1px solid var(--red);
+    background: rgba(255,51,85,0.08);
+    border-radius: 2px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--red);
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    position: relative;
+    animation: alert-flash 2s infinite;
+  }
+
+  @keyframes alert-flash {
+    0%, 100% { border-color: rgba(255,51,85,0.5); box-shadow: none; }
+    50% { border-color: var(--red); box-shadow: var(--glow-red); }
+  }
+
+  .alert-box::before {
+    content: '⚠ ALERT: ';
+    font-weight: bold;
+  }
+
+  /* ===== CHOICE OPTIONS ===== */
+  .choice-btn {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(0,212,255,0.3);
+    background: rgba(4,28,50,0.7);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.3s;
+    border-radius: 2px;
+    position: relative;
+  }
+
+  .choice-btn:hover {
+    border-color: var(--cyan);
+    background: rgba(0,212,255,0.1);
+    color: var(--cyan);
+    box-shadow: var(--glow-cyan);
+    transform: translateX(4px);
+  }
+
+  .choice-btn.correct {
+    border-color: var(--green);
+    background: rgba(0,255,136,0.1);
+    color: var(--green);
+    box-shadow: var(--glow-green);
+  }
+
+  .choice-btn.wrong {
+    border-color: var(--red);
+    background: rgba(255,51,85,0.1);
+    color: var(--red);
+    box-shadow: var(--glow-red);
+    animation: shake 0.4s;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  /* ===== GRID LAYOUTS ===== */
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .grid-2-1 {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+  }
+
+  .grid-1-2 {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 16px;
+  }
+
+  /* ===== STATUS BADGES ===== */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 1px;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .badge-warn { background: rgba(255,179,0,0.15); color: var(--amber); border: 1px solid var(--amber); }
+  .badge-danger { background: rgba(255,51,85,0.15); color: var(--red); border: 1px solid var(--red); }
+  .badge-ok { background: rgba(0,255,136,0.12); color: var(--green); border: 1px solid var(--green); }
+  .badge-info { background: rgba(0,212,255,0.12); color: var(--cyan); border: 1px solid var(--cyan); }
+
+  /* ===== RISK COUNTER ===== */
+  .risk-counter {
+    position: fixed;
+    top: 100px;
+    right: 24px;
+    z-index: 98;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 9px;
+  }
+
+  .risk-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  .risk-item .rv {
+    color: var(--amber);
+    min-width: 40px;
+    text-align: right;
+  }
+
+  .risk-item .rv.high { color: var(--red); text-shadow: var(--glow-red); }
+  .risk-item .rv.good { color: var(--green); }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--cyan2); border-radius: 2px; }
+
+  /* ===== INTRO PAGE ===== */
+  .intro-hero {
+    text-align: center;
+    padding: 30px 0 20px;
+  }
+
+  .intro-hero h1 {
+    font-size: 28px;
+    letter-spacing: 6px;
+    background: linear-gradient(135deg, var(--cyan), var(--teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .intro-hero .subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .incident-panel {
+    background: rgba(255,51,85,0.06);
+    border: 1px solid rgba(255,51,85,0.4);
+    border-radius: 4px;
+    padding: 20px;
+    margin: 0 auto 20px;
+    max-width: 700px;
+    position: relative;
+  }
+
+  .incident-panel::before {
+    content: '[ 事故预警 ]';
+    position: absolute;
+    top: -9px;
+    left: 20px;
+    background: var(--bg-primary);
+    padding: 0 8px;
+    font-size: 10px;
+    color: var(--red);
+    letter-spacing: 2px;
+  }
+
+  .incident-items {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .incident-item {
+    text-align: center;
+    padding: 12px;
+    background: rgba(255,51,85,0.06);
+    border: 1px solid rgba(255,51,85,0.2);
+    border-radius: 2px;
+  }
+
+  .incident-item .val {
+    font-size: 20px;
+    color: var(--red);
+    text-shadow: var(--glow-red);
+    font-weight: bold;
+  }
+
+  .incident-item .lbl {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    margin-top: 4px;
+  }
+
+  .role-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 20px;
+    max-width: 700px;
+    margin: 0 auto 20px;
+  }
+
+  .role-card h3 {
+    font-size: 10px;
+    color: var(--cyan);
+    letter-spacing: 3px;
+    margin-bottom: 10px;
+  }
+
+  .role-card p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    letter-spacing: 0.5px;
+  }
+
+  /* ===== STAGE 1 ===== */
+  .s1-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr 280px;
+    gap: 16px;
+    height: calc(100vh - 92px - 40px);
+    max-height: 700px;
+  }
+
+  /* ===== STAGE 2 ===== */
+  .s2-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr 240px;
+    gap: 16px;
+    height: calc(100vh - 92px - 40px);
+    max-height: 700px;
+  }
+
+  /* ===== FLASH OVERLAY ===== */
+  .flash-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9998;
+    background: rgba(255,51,85,0);
+    transition: background 0.1s;
+  }
+
+  .flash-overlay.flash-red {
+    animation: flash-red-anim 0.6s;
+  }
+
+  .flash-overlay.flash-green {
+    animation: flash-green-anim 0.6s;
+  }
+
+  @keyframes flash-red-anim {
+    0% { background: rgba(255,51,85,0); }
+    20% { background: rgba(255,51,85,0.25); }
+    100% { background: rgba(255,51,85,0); }
+  }
+
+  @keyframes flash-green-anim {
+    0% { background: rgba(0,255,136,0); }
+    20% { background: rgba(0,255,136,0.15); }
+    100% { background: rgba(0,255,136,0); }
+  }
+
+  /* ===== SECTION HEADER ===== */
+  .section-h {
+    font-size: 16px;
+    letter-spacing: 4px;
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-h span.tag {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    padding: 2px 6px;
+    border: 1px solid var(--text-dim);
+  }
+
+  /* ===== METRIC CARD ===== */
+  .metric-card {
+    background: var(--bg-panel2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 12px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .metric-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--cyan);
+    transform: scaleX(0);
+    transition: transform 0.6s ease;
+    transform-origin: left;
+  }
+
+  .metric-card.loaded::after { transform: scaleX(1); }
+
+  /* ===== RESULT PAGE ===== */
+  .result-big {
+    font-size: 28px;
+    font-weight: bold;
+    letter-spacing: 4px;
+    text-align: center;
+    margin: 16px 0 8px;
+  }
+
+  .result-big.pass {
+    color: var(--green);
+    text-shadow: var(--glow-green);
+  }
+
+  .result-big.fail {
+    color: var(--red);
+    text-shadow: var(--glow-red);
+  }
+
+  /* Number animation */
+  @keyframes count-up {
+    from { opacity: 0.3; }
+    to { opacity: 1; }
+  }
+
+  .animated-val { animation: count-up 0.3s ease; }
+
+  /* ===== SCROLLABLE PANEL ===== */
+  .scroll-panel {
+    overflow-y: auto;
+    max-height: 100%;
+  }
+
+  /* Stage 3 grid */
+  .s3-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .final-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  /* Tag glow blink */
+  @keyframes blink-danger {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .blink-danger {
+    animation: blink-danger 1.2s infinite;
+    color: var(--red) !important;
+    text-shadow: var(--glow-red) !important;
+  }
+
+  /* ===== Separator line ===== */
+  .sep { height: 1px; background: var(--border); margin: 12px 0; }
+
+  /* ===== tooltip ===== */
+  .tooltip-hint {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    font-style: italic;
+    margin-top: 4px;
+  }
+
+  /* Stage score display */
+  .score-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: rgba(0,212,255,0.1);
+    border: 1px solid var(--cyan);
+    border-radius: 2px;
+    font-size: 11px;
+    color: var(--cyan);
+    letter-spacing: 2px;
+  }
+
+  .mission-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    font-size: 9px;
+    letter-spacing: 2px;
+    border: 1px solid;
+    margin: 3px 4px 3px 0;
+  }
+
+  /* particle animation for intro */
+  .particle-field {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  canvas#intro-particle-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0.35;
+    z-index: 0;
+  }
+
+  /* ===== FOOTER ===== */
+  .footer {
+    text-align: center;
+    padding: 24px 16px 16px;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+    background: rgba(2,15,30,0.65);
+    backdrop-filter: blur(2px);
+    width: 100%;
+    position: relative;
+    z-index: 2;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 -4px 12px rgba(0,212,255,0.1);
+  }
+
+  /* ===== 全局画布响应式 ===== */
+  canvas {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* ===== 响应式媒体查询 ===== */
+  @media (max-width: 1024px) {
+    .s1-layout, .s2-layout {
+      grid-template-columns: 1fr;
+      height: auto;
+      max-height: none;
+      gap: 20px;
+    }
+    .s3-layout, .final-layout {
+      grid-template-columns: 1fr;
+    }
+    .grid-3, .grid-2, .grid-2-1, .grid-1-2 {
+      grid-template-columns: 1fr;
+    }
+    .page {
+      padding: 16px;
+    }
+    .top-bar-title {
+      font-size: 11px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .intro-hero h1 {
+      font-size: 22px;
+      letter-spacing: 4px;
+    }
+    .intro-hero .subtitle {
+      font-size: 10px;
+      letter-spacing: 3px;
+    }
+    .incident-items {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .role-card p {
+      font-size: 11px;
+    }
+    .btn {
+      padding: 8px 16px;
+      font-size: 10px;
+    }
+    .mission-tag {
+      font-size: 8px;
+      padding: 2px 6px;
+    }
+    .progress-stage {
+      font-size: 8px;
+      letter-spacing: 1px;
+    }
+    .stage-connector {
+      max-width: 30px;
+    }
+    .panel-title {
+      font-size: 9px;
+    }
+    .footer {
+      font-size: 9px;
+      padding: 16px 12px;
+    }
+    .top-bar-logo {
+      font-size: 9px;
+    }
+    .top-bar-clock {
+      font-size: 9px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .top-bar {
+      padding: 0 10px;
+    }
+    .top-bar-logo, .top-bar-title, .top-bar-clock {
+      font-size: 7px;
+      letter-spacing: 1px;
+    }
+    .progress-bar-container {
+      padding: 0 8px;
+      gap: 4px;
+    }
+    .progress-stage {
+      font-size: 7px;
+    }
+    .stage-dot {
+      width: 6px;
+      height: 6px;
+    }
+    .btn {
+      width: 100%;
+      padding: 10px 12px;
+    }
+    .intro-hero h1 {
+      font-size: 18px;
+      letter-spacing: 3px;
+    }
+    .incident-panel {
+      padding: 12px;
+    }
+    .footer {
+      font-size: 8px;
+      padding: 12px 8px;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+    body {
+      background: white;
+      color: black;
+    }
+    .top-bar, .progress-bar-container, .flash-overlay, canvas, .footer, .btn, .slider-group, input {
+      display: none !important;
+    }
+    .page {
+      position: relative;
+      top: 0;
+      overflow: visible;
+      padding: 0;
+      opacity: 1;
+      transform: none;
+    }
+    #print-report {
+      display: block !important;
+      color: black;
+    }
+    .panel, .role-card {
+      background: white;
+      border: 1px solid black;
+      color: black;
+    }
+    .val.good { color: green; }
+    .val.bad { color: red; }
+    .val.warn { color: orange; }
+  }
+
+  /* Student input form */
+  .student-form {
+    max-width: 700px;
+    margin: 20px auto;
+    padding: 15px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .student-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .student-form input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-family: inherit;
+  }
+
+  .student-form .btn {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  #print-report {
+    display: none;
+    padding: 20px;
+    background: white;
+    color: black;
+  }
+</style>
+</head>
+<body>
+<div class="flash-overlay" id="flash"></div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="top-bar-logo">◈ EMS-BATTERY-SIM v2.1</div>
+  <div class="top-bar-title">物理化学课程 · 分散工艺工程师模拟系统</div>
+  <div class="top-bar-clock" id="clock">00:00:00</div>
+</div>
+
+<!-- PROGRESS BAR -->
+<div class="progress-bar-container">
+  <div class="progress-stage active" id="prog-0"><div class="stage-dot"></div>情境引入</div>
+  <div class="stage-connector" id="conn-0"></div>
+  <div class="progress-stage" id="prog-1"><div class="stage-dot"></div>阶段一: 事故诊断</div>
+  <div class="stage-connector" id="conn-1"></div>
+  <div class="progress-stage" id="prog-2"><div class="stage-dot"></div>阶段二: 工艺调控</div>
+  <div class="stage-connector" id="conn-2"></div>
+  <div class="progress-stage" id="prog-3"><div class="stage-dot"></div>阶段三: 质量审核</div>
+  <div class="stage-connector" id="conn-3"></div>
+  <div class="progress-stage" id="prog-4"><div class="stage-dot"></div>综合评测</div>
+  <div style="flex:1"></div>
+  <div class="score-pill" id="score-display">💥 风险指数: <span id="risk-global">0</span>%</div>
+</div>
+
+<!-- APP CONTAINER -->
+<div class="app-container">
+
+  <!-- ===== PAGE 0: INTRO (修正版，带footer & 响应式) ===== -->
+  <div class="page active" id="page-0" style="position:relative; display:flex; flex-direction:column; overflow-y:auto;">
+    <canvas id="intro-particle-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; opacity:0.35; z-index:0;"></canvas>
+    <div class="intro-hero" style="position:relative; z-index:1; flex:1 0 auto;">
+      <h1>电极浆料分散与质量危机</h1>
+      <div class="subtitle">动力电池工艺工程师 · PBL教学模拟系统<br>（本探索只阐述研发思路，所有数据经过脱密，仿真未经严格工程推导，不建议过度解读）</div>
+
+      <div class="incident-panel">
+        <div style="font-size:11px; color:var(--text-secondary); margin-bottom:12px; letter-spacing:1.5px;">
+          ⚡ 质量事故预警 — 某批次正极极片出现严重质量偏差，工厂停线，客户索赔压力升级
+        </div>
+        <div class="incident-items">
+          <div class="incident-item">
+            <div class="val blink-danger">±8.3%</div>
+            <div class="lbl">容量偏差</div>
+          </div>
+          <div class="incident-item">
+            <div class="val blink-danger">↑142%</div>
+            <div class="lbl">内阻升高</div>
+          </div>
+          <div class="incident-item">
+            <div class="val blink-danger">37只</div>
+            <div class="lbl">电芯鼓胀</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="role-card">
+        <h3>▶ 任务背景</h3>
+        <p>
+          你是公司工艺部门的高级工程师。产线上批次编号<span style="color:var(--amber)">LOT-2024-0847</span>的正极极片
+          在生产后检测中出现严重异常。初步判断与浆料<strong style="color:var(--cyan)">分散工艺</strong>相关，
+          但具体根因尚不明确。公司面临来自主机厂的<span class="blink-danger" style="font-size:11px">¥2,400万</span>潜在索赔。
+          你需要快速定位问题根源，调整工艺参数，并提出系统性改进方案，通过最终质量审核，避免重大质量事故。
+        </p>
+      </div>
+
+      <div style="margin-bottom:16px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+        <span class="mission-tag" style="color:var(--cyan); border-color:rgba(0,212,255,0.4)">胶体分散原理</span>
+        <span class="mission-tag" style="color:var(--teal); border-color:rgba(0,255,204,0.4)">DLVO理论</span>
+        <span class="mission-tag" style="color:var(--amber); border-color:rgba(255,179,0,0.4)">浆料流变学</span>
+        <span class="mission-tag" style="color:var(--purple); border-color:rgba(123,47,255,0.4)">工艺参数优化</span>
+        <span class="mission-tag" style="color:var(--red); border-color:rgba(255,51,85,0.4)">质量风险管控</span>
+      </div>
+
+      <!-- Student Input Form -->
+      <div class="student-form">
+        <label for="student-name">姓名:</label>
+        <input type="text" id="student-name" placeholder="请输入姓名">
+        
+        <label for="student-id">学号:</label>
+        <input type="text" id="student-id" placeholder="请输入学号">
+        
+        <label for="student-class">班级:</label>
+        <input type="text" id="student-class" placeholder="请输入班级">
+        
+        <button class="btn btn-success" onclick="submitStudentInfo()">登入并开始</button>
+        <button class="btn btn-danger" onclick="skipLogin()">暂不登入 · 直接开始</button>
+      </div>
+    </div><!-- end intro-hero -->
+    
+    <!-- 新增的 FOOTER (仅首页可见) -->
+    <div class="footer" style="position:relative; z-index:2;">
+      © 2025 电极浆料工艺模拟系统 · 教学PBL v2.1 · 基于DLVO理论仿真 | 数据仅用于教学模拟
+    </div>
+  </div><!-- end page-0 -->
+
+  <!-- ===== PAGE 1: STAGE 1 ===== -->
+  <div class="page" id="page-1">
+    <div class="section-h">第一阶段：事故诊断分析 <span class="tag">ACCIDENT DIAGNOSIS</span></div>
+    <div class="s1-layout">
+      <!-- LEFT: detection data -->
+      <div class="scroll-panel" style="display:flex; flex-direction:column; gap:12px;">
+        <div class="panel">
+          <div class="panel-title">检测数据面板</div>
+          <div class="data-row">
+            <span class="key">固含量</span>
+            <span class="val warn">68.5 %</span>
+          </div>
+          <div class="data-row">
+            <span class="key">粘度 @10rpm</span>
+            <span class="val bad">18,400 mPa·s</span>
+          </div>
+          <div class="data-row">
+            <span class="key">Zeta电位</span>
+            <span class="val bad">-18.2 mV</span>
+          </div>
+          <div class="data-row">
+            <span class="key">D50</span>
+            <span class="val warn">4.8 μm</span>
+          </div>
+          <div class="data-row">
+            <span class="key">D90</span>
+            <span class="val bad">32.6 μm</span>
+          </div>
+          <div class="data-row">
+            <span class="key">D90/D50</span>
+            <span class="val bad">6.79 (异常)</span>
+          </div>
+          <div class="data-row">
+            <span class="key">pH值</span>
+            <span class="val">7.2</span>
+          </div>
+          <div class="data-row">
+            <span class="key">温度</span>
+            <span class="val">23 °C</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">浆料外观特征</div>
+          <div style="font-size:10px; color:var(--text-secondary); line-height:1.8; letter-spacing:0.5px;">
+            ⬩ 目视可见<span style="color:var(--amber)">团聚颗粒</span>，粒径在50-100μm范围<br>
+            ⬩ 涂布后出现<span style="color:var(--red)">针孔缺陷</span>与条纹<br>
+            ⬩ 浆料静置1h后出现<span style="color:var(--amber)">分层迹象</span><br>
+            ⬩ 湿膜厚度偏差<span style="color:var(--red)">±12%</span>（正常应≤±3%）
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">粒径分布曲线</div>
+          <canvas id="psd-canvas" width="228" height="120" style="display:block;"></canvas>
+          <div class="tooltip-hint" style="margin-top:6px;">橙色: 当前批次 ｜ 蓝色: 正常参考</div>
+        </div>
+      </div>
+
+      <!-- MIDDLE: anomaly + canvas -->
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="panel danger">
+          <div class="panel-title" style="color:var(--red)">异常警报</div>
+          <div class="alert-box">D90超出阈值 — D90 = 32.6μm，正常应 ≤ 12μm，超标171%</div>
+          <div class="alert-box">Zeta电位不足 — -18.2mV，稳定临界值为 |ζ| ≥ 30mV，存在严重团聚风险</div>
+          <div class="alert-box">粘度异常偏高 — 18,400 mPa·s，超出涂布工艺窗口上限(≤12,000 mPa·s)</div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">分散机理示意图</div>
+<canvas id="dispersion-canvas" width="500" height="220" 
+        style="display: block; margin: 0 auto; max-width: 100%;"></canvas>
+          <div class="tooltip-hint" style="margin-top:4px;">DLVO理论: 总势能 = 范德华引力势能 + 双电层静电排斥势能</div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Zeta电位与稳定性关系</div>
+          <canvas id="zeta-canvas" width="400" height="100" style="display:block; width:100%;"></canvas>
+          <div style="display:flex; justify-content:space-between; font-size:9px; color:var(--text-dim); margin-top:4px; letter-spacing:1px;">
+            <span>不稳定(团聚)</span>
+            <span>过渡区</span>
+            <span style="color:var(--green)">稳定分散</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: question panel -->
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="panel">
+          <div class="panel-title">根因诊断 · 判断选择</div>
+          <div style="font-size:11px; color:var(--text-secondary); margin-bottom:14px; letter-spacing:0.5px; line-height:1.6;">
+            根据以上检测数据，该批次浆料质量异常的<span style="color:var(--cyan)">主要根因</span>最可能是：
+          </div>
+          <button class="choice-btn" id="choice-0" onclick="checkChoice(0)">
+            A. 固含量设定过高，导致颗粒间距过小，产生位阻效应失效
+          </button>
+          <button class="choice-btn" id="choice-1" onclick="checkChoice(1)">
+            B. 分散剂用量不足，且搅拌工艺参数不当，导致团聚严重（颗粒表面吸附层不完整，DLVO排斥势能不足）
+          </button>
+          <button class="choice-btn" id="choice-2" onclick="checkChoice(2)">
+            C. pH偏差导致溶剂极性变化，降低了NMP对活性物质的溶剂化能力
+          </button>
+          <button class="choice-btn" id="choice-3" onclick="checkChoice(3)">
+            D. 温度偏低导致粘结剂PVDF溶解不完全，形成凝胶团聚体
+          </button>
+          <div id="s1-feedback" style="display:none;" class="panel" style="margin-top:10px;"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">知识参考</div>
+          <div style="font-size:10px; color:var(--text-secondary); line-height:1.8; letter-spacing:0.5px;">
+            <span style="color:var(--cyan)">DLVO理论</span>认为，分散稳定性取决于颗粒间<span style="color:var(--teal)">静电排斥势能</span>与<span style="color:var(--amber)">范德华引力</span>的平衡。<br><br>
+            Zeta电位反映双电层厚度，|ζ| &gt; 30mV 通常被认为是稳定临界值。<br><br>
+            D90/D50 &gt; 3 通常意味着粒径分布过宽，存在大粒径团聚体。<br><br>
+            <span style="color:var(--red)">团聚颗粒</span>会导致极片面密度不均，进而引发内阻差异与容量衰减。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE 2: STAGE 2 ===== -->
+  <div class="page" id="page-2">
+    <div class="section-h">第二阶段：工艺调控决策 <span class="tag">PROCESS CONTROL</span></div>
+    <div class="s2-layout">
+      <!-- LEFT: sliders -->
+      <div class="scroll-panel" style="display:flex; flex-direction:column; gap:12px;">
+        <div class="panel">
+          <div class="panel-title">工艺参数调节</div>
+
+          <div class="slider-group">
+            <div class="slider-label">
+              <span>分散剂比例 (Dispersant/AM)</span>
+              <span class="slider-value" id="v-dispersant">1.5%</span>
+            </div>
+            <input type="range" id="s-dispersant" min="0.5" max="4.0" step="0.1" value="1.5"
+              oninput="updateSlider(this,'v-dispersant', x=>x.toFixed(1)+'%'); recalcStability()">
+            <div class="tooltip-hint">推荐范围: 2.0%~3.0% | 过高会增加内阻</div>
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-label">
+              <span>超声功率</span>
+              <span class="slider-value" id="v-sonic">200 W</span>
+            </div>
+            <input type="range" id="s-sonic" min="50" max="600" step="10" value="200"
+              oninput="updateSlider(this,'v-sonic', x=>Math.round(x)+' W'); recalcStability()">
+            <div class="tooltip-hint">推荐: 300~450W | 过高导致过剪切降解</div>
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-label">
+              <span>搅拌时间</span>
+              <span class="slider-value" id="v-time">45 min</span>
+            </div>
+            <input type="range" id="s-time" min="15" max="120" step="5" value="45"
+              oninput="updateSlider(this,'v-time', x=>Math.round(x)+' min'); recalcStability()">
+            <div class="tooltip-hint">推荐: 60~90min | 过长增加成本</div>
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-label">
+              <span>固含量</span>
+              <span class="slider-value" id="v-solid">68.5%</span>
+            </div>
+            <input type="range" id="s-solid" min="55" max="75" step="0.5" value="68.5"
+              oninput="updateSlider(this,'v-solid', x=>x.toFixed(1)+'%'); recalcStability()">
+            <div class="tooltip-hint">推荐: 60%~65% | 过高影响流动性</div>
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-label">
+              <span>离子强度</span>
+              <span class="slider-value" id="v-ionic">15 mmol/L</span>
+            </div>
+            <input type="range" id="s-ionic" min="1" max="50" step="1" value="15"
+              oninput="updateSlider(this,'v-ionic', x=>Math.round(x)+' mmol/L'); recalcStability()">
+            <div class="tooltip-hint">推荐: ≤5mmol/L | 高离子强度压缩双电层</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">计算参数输出</div>
+          <div class="data-row">
+            <span class="key">Zeta电位 (估算)</span>
+            <span class="val" id="calc-zeta">-18.2 mV</span>
+          </div>
+          <div class="data-row">
+            <span class="key">D90 (估算)</span>
+            <span class="val" id="calc-d90">32.6 μm</span>
+          </div>
+          <div class="data-row">
+            <span class="key">粘度 (估算)</span>
+            <span class="val" id="calc-visc">18400 mPa·s</span>
+          </div>
+          <div class="data-row">
+            <span class="key">DLVO稳定性指数</span>
+            <span class="val" id="calc-dlvo" style="font-size:16px;">23.4</span>
+          </div>
+          <div class="data-row">
+            <span class="key">成本增量</span>
+            <span class="val" id="calc-cost">+0.0%</span>
+          </div>
+        </div>
+
+        <button class="btn btn-success" id="s2-submit-btn" onclick="submitStage2()" disabled style="margin-top:4px;">
+          提交方案 · 进入质量审核
+        </button>
+        <div id="s2-msg" style="font-size:10px; color:var(--text-dim); letter-spacing:1px; text-align:center; margin-top:4px;"></div>
+      </div>
+
+      <!-- MIDDLE: live graphs -->
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="panel">
+          <div class="panel-title">DLVO势能曲线 (实时更新)</div>
+          <canvas id="dlvo-canvas" width="500" height="180" style="display:block; width:100%;"></canvas>
+          <div class="tooltip-hint" style="margin-top:4px;">
+            蓝线: 静电排斥 | 橙线: 范德华引力 | 绿线: 总势能
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">粒径分布变化 (实时)</div>
+          <canvas id="psd2-canvas" width="500" height="130" style="display:block; width:100%;"></canvas>
+          <div class="tooltip-hint" style="margin-top:4px;">灰色: 初始状态 | 彩色: 调整后预测</div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">参数调整轨迹</div>
+          <canvas id="trail-canvas" width="500" height="80" style="display:block; width:100%;"></canvas>
+          <div style="display:flex; gap:12px; margin-top:4px; flex-wrap:wrap;">
+            <div style="font-size:9px; color:var(--cyan); letter-spacing:1px;">■ 稳定性指数</div>
+            <div style="font-size:9px; color:var(--amber); letter-spacing:1px;">■ 成本指数</div>
+            <div style="font-size:9px; color:var(--red); letter-spacing:1px;">■ 风险指数</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: gauges -->
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="panel">
+          <div class="panel-title">风险仪表盘</div>
+          <canvas id="gauge-canvas" width="220" height="300" style="display:block; margin:0 auto;"></canvas>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">过关条件</div>
+          <div class="data-row">
+            <span class="key">稳定性指数</span>
+            <span class="val" id="cond-stab">❌ &lt;75</span>
+          </div>
+          <div class="data-row">
+            <span class="key">成本控制</span>
+            <span class="val" id="cond-cost">✓ 正常</span>
+          </div>
+          <div class="data-row">
+            <span class="key">风险指数</span>
+            <span class="val" id="cond-risk">❌ &gt;30%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE 3: STAGE 3 ===== -->
+  <div class="page" id="page-3">
+    <div class="section-h">第三阶段：质量审核 <span class="tag">QUALITY AUDIT</span></div>
+    <div class="s3-layout">
+      <div class="panel" id="audit-result-panel">
+        <div class="panel-title">审核结论</div>
+        <div id="audit-verdict" class="result-big">审核中...</div>
+        <div id="audit-detail" style="font-size:11px; color:var(--text-secondary); line-height:1.7;"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">改进后性能指标</div>
+        <div class="data-row">
+          <span class="key">批次一致性</span>
+          <span class="val" id="s3-consistency">N/A</span>
+        </div>
+        <div class="data-row">
+          <span class="key">内阻波动</span>
+          <span class="val" id="s3-resistance">N/A</span>
+        </div>
+        <div class="data-row">
+          <span class="key">安全等级</span>
+          <span class="val" id="s3-safety">N/A</span>
+        </div>
+        <div class="data-row">
+          <span class="key">索赔风险</span>
+          <span class="val" id="s3-claim">N/A</span>
+        </div>
+        <div class="data-row">
+          <span class="key">稳定性指数</span>
+          <span class="val" id="s3-stab">N/A</span>
+        </div>
+        <div class="data-row">
+          <span class="key">Zeta电位</span>
+          <span class="val" id="s3-zeta">N/A</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">方案摘要</div>
+        <div id="solution-summary" style="font-size:10px; color:var(--text-secondary); line-height:1.8;"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">工程改进建议</div>
+        <div id="s3-suggestions" style="font-size:10px; color:var(--text-secondary); line-height:1.8;"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">批次一致性预测</div>
+        <canvas id="s3-canvas" width="400" height="200" style="display:block; width:100%;"></canvas>
+        <div class="tooltip-hint">红线: 问题批次 | 绿线: 改进后</div>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:20px;">
+      <button class="btn btn-success" onclick="goToPage(4)">进入综合评测 →</button>
+    </div>
+  </div>
+
+  <!-- ===== PAGE 4: FINAL ===== -->
+  <div class="page" id="page-4">
+    <div class="section-h">综合评测报告 <span class="tag">FINAL EVALUATION</span></div>
+    <div class="final-layout">
+      <div class="panel">
+        <div class="panel-title">整体得分</div>
+        <div id="final-score" class="result-big">N/A</div>
+        <div id="eval-text" style="font-size:11px; color:var(--text-secondary); line-height:1.7;"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">维度评分</div>
+        <div class="data-row">
+          <span class="key">诊断准确性</span>
+          <span class="val" id="ev-diag">N/A</span>
+        </div>
+        <div class="data-row">
+          <span class="key">参数优化</span>
+          <span class="val" id="ev-param">N/A</span>
+        </div>
+        <div class="data-row">
+          <span class="key">成本控制</span>
+          <span class="val" id="ev-cost">N/A</span>
+        </div>
+        <div class="data-row">
+          <span class="key">风险管理</span>
+          <span class="val" id="ev-risk">N/A</span>
+        </div>
+        <div class="data-row">
+          <span class="key">决策能力</span>
+          <span class="val" id="ev-dec">N/A</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">能力雷达图</div>
+    <canvas id="radar-canvas" width="450" height="450" style="display: block; margin: 0 auto; max-width: 100%;"></canvas>
+        <div id="radar-legend" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:20px;">
+      <button class="btn btn-danger" onclick="restartAll()">重新开始</button>
+      <button class="btn btn-success" onclick="printReport()">打印报告</button>
+    </div>
+  </div>
+</div>
+
+<!-- Print Report Section -->
+<div id="print-report">
+  <h1>电极浆料分散与质量危机 模拟报告</h1>
+  <div id="print-student-info"style="display:none;"></div>
+  <div id="print-results"></div>
+  <img id="print-radar-img" src="" alt="雷达图">
+  <div id="print-suggestions"></div>
+</div>
+
+<script>
+// STATE OBJECT
+const STATE = {
+  currentPage: 0,
+  riskIndex: 0,
+  costDelta: 0,
+  wrongChoices: 0,
+  correctChoice: false,
+  stabilityIndex: 23.4,
+  zetaPot: -18.2,
+  d90: 32.6,
+  viscosity: 18400,
+  trailData: { stab: [], cost: [], risk: [] },
+  s2Passed: false,
+  s2StabVal: 23.4,
+  s2RiskVal: 100,
+  s2CostVal: 0,
+  finalScore: 0,
+  startTime: Date.now(),
+  studentName: '',
+  studentId: '',
+  studentClass: ''
+};
+
+// ================================================================
+//  CLOCK
+// ================================================================
+function updateClock() {
+  const elapsed = (Date.now() - STATE.startTime) / 1000;
+  const h = Math.floor(elapsed / 3600).toString().padStart(2,'0');
+  const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2,'0');
+  const s = Math.floor(elapsed % 60).toString().padStart(2,'0');
+  document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+  requestAnimationFrame(updateClock);
+}
+updateClock();
+
+// ================================================================
+//  PAGE NAVIGATION
+// ================================================================
+function goToPage(page) {
+  const current = document.getElementById('page-' + STATE.currentPage);
+  const next = document.getElementById('page-' + page);
+  if(current) current.classList.add('exiting');
+  setTimeout(() => {
+    if(current) current.classList.remove('active', 'exiting');
+    if(next) next.classList.add('active');
+    STATE.currentPage = page;
+    updateProgress();
+    if(page === 1) drawPage1Canvases();
+    if(page === 2) recalcStability();
+    if(page === 3) buildStage3();
+    if(page === 4) buildFinal();
+  }, 300);
+}
+
+// ================================================================
+//  PROGRESS UPDATE
+// ================================================================
+function updateProgress() {
+  for(let i=0; i<5; i++) {
+    const prog = document.getElementById('prog-' + i);
+    const conn = document.getElementById('conn-' + i);
+    if(i < STATE.currentPage) {
+      prog.classList.add('done');
+      prog.classList.remove('active');
+      if(conn) conn.classList.add('done');
+    } else if(i === STATE.currentPage) {
+      prog.classList.add('active');
+      prog.classList.remove('done');
+      if(conn) conn.classList.add('active');
+    } else {
+      prog.classList.remove('active', 'done');
+      if(conn) conn.classList.remove('done', 'active');
+    }
+  }
+}
+
+// ================================================================
+//  FLASH SCREEN
+// ================================================================
+function flashScreen(color) {
+  const flash = document.getElementById('flash');
+  flash.classList.add('flash-' + color);
+  setTimeout(() => flash.classList.remove('flash-' + color), 600);
+}
+
+// ================================================================
+//  SLIDER UPDATE
+// ================================================================
+function updateSlider(inp, valId, fmt) {
+  const v = parseFloat(inp.value);
+  const min = parseFloat(inp.min);
+  const max = parseFloat(inp.max);
+  const pct = ((v-min)/(max-min))*100;
+  inp.style.setProperty('--pct', pct+'%');
+  document.getElementById(valId).textContent = fmt(v);
+}
+
+// ================================================================
+//  STAGE 1: PSD CURVE
+// ================================================================
+function drawPSD() {
+  const canvas = document.getElementById('psd-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = 'rgba(2,15,30,0.9)';
+  ctx.fillRect(0,0,W,H);
+
+  const mx = 20, my = 10, pw = W-mx-10, ph = H-my-22;
+
+  // Axes
+  ctx.strokeStyle = 'rgba(0,212,255,0.25)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(mx, my); ctx.lineTo(mx, my+ph); ctx.lineTo(mx+pw, my+ph);
+  ctx.stroke();
+
+  // Normal PSD (blue)
+  ctx.strokeStyle = 'rgba(0,212,255,0.7)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for(let i=0; i<=pw; i++) {
+    const xFrac = i/pw;
+    const xVal = Math.exp(xFrac * Math.log(50));
+    const s = 0.3;
+    const y = Math.exp(-0.5*Math.pow((Math.log(xVal)-Math.log(4))/s, 2)) * 0.9 * ph;
+    const py = my + ph - y;
+    if(i===0) ctx.moveTo(mx+i, py); else ctx.lineTo(mx+i, py);
+  }
+  ctx.stroke();
+
+  // Abnormal PSD (orange, with bump)
+  ctx.strokeStyle = 'rgba(255,179,0,0.9)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for(let i=0; i<=pw; i++) {
+    const xFrac = i/pw;
+    const xVal = Math.exp(xFrac * Math.log(50));
+    const s1 = 0.3;
+    const y1 = Math.exp(-0.5*Math.pow((Math.log(xVal)-Math.log(4))/s1, 2)) * 0.9 * ph * 0.7;
+    const s2 = 0.4;
+    const y2 = Math.exp(-0.5*Math.pow((Math.log(xVal)-Math.log(32))/s2, 2)) * 0.9 * ph * 0.35;
+    const py = my + ph - (y1 + y2);
+    if(i===0) ctx.moveTo(mx+i, py); else ctx.lineTo(mx+i, py);
+  }
+  ctx.stroke();
+
+  // Labels
+  ctx.fillStyle = 'rgba(0,212,255,0.5)';
+  ctx.font = '8px Courier New';
+  ctx.fillText('粒径分布 (μm)', mx+pw/2-30, my+ph+18);
+}
+
+// ================================================================
+//  STAGE 1: DISPERSION SCHEMATIC
+// ================================================================
+function drawDispersion() {
+const canvas = document.getElementById('dispersion-canvas');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+
+  // 高 DPI 适配（解决模糊问题）
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+
+  const W = rect.width;   // 实际显示宽度（CSS 像素）
+  const H = rect.height;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(2,15,30,0.9)';
+  ctx.fillRect(0, 0, W, H);
+
+  // ──────────────────────────────────────────────
+  // 核心：以 canvas 宽度中心为基准，自动计算颗粒位置
+  // ──────────────────────────────────────────────
+  const centerX = W / 2;           // 水平中心
+  const centerY = H / 2;           // 垂直中心
+  const particleR = 18;            // 颗粒半径
+  const separation = 140;          // 两个颗粒之间的中心距离（可调）
+
+  const leftX  = centerX - separation / 2;   // 左边颗粒中心 x
+  const rightX = centerX + separation / 2;   // 右边颗粒中心 x
+
+  // 颗粒1（左）
+  ctx.beginPath();
+  ctx.arc(leftX, centerY, particleR, 0, Math.PI * 2);
+  ctx.fillStyle = '#00a8cc';
+  ctx.fill();
+  ctx.strokeStyle = '#00d4ff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 颗粒2（右）
+  ctx.beginPath();
+  ctx.arc(rightX, centerY, particleR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 双电层虚线
+  ctx.setLineDash([4, 2]);
+  ctx.strokeStyle = 'rgba(255,51,85,0.6)';
+  ctx.beginPath();
+  ctx.arc(leftX, centerY, particleR + 10, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(rightX, centerY, particleR + 10, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 静电排斥箭头
+  ctx.fillStyle = '#ff3355';
+  ctx.font = 'bold 14px Courier New';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('←', centerX - 15, centerY);
+  ctx.fillText('→', centerX + 15, centerY);
+
+  // 范德华引力波浪（放在两个颗粒中间下方）
+  ctx.strokeStyle = 'rgba(255,179,0,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  const waveStartX = centerX - 40;
+  for (let i = 0; i < 6; i++) {
+    const x = waveStartX + i * 15;
+    ctx.moveTo(x, centerY + 20);
+    ctx.quadraticCurveTo(x + 7.5, centerY + 32, x + 15, centerY + 20);
+  }
+  ctx.stroke();
+
+  // 文字标签（也以中心对齐）
+  ctx.fillStyle = 'rgba(0,212,255,0.9)';
+  ctx.font = 'bold 11px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('颗粒1', leftX, centerY - 35);
+  ctx.fillText('颗粒2', rightX, centerY - 35);
+
+  ctx.fillStyle = 'rgba(255,51,85,0.9)';
+  ctx.fillText('静电排斥', centerX, centerY - 55);
+
+  ctx.fillStyle = 'rgba(255,179,0,0.9)';
+  ctx.fillText('范德华引力', centerX, centerY + 55);
+
+  ctx.fillStyle = 'rgba(255,51,85,0.7)';
+  ctx.font = '9px Courier New';
+  ctx.fillText('双电层', centerX - 80, centerY + 35);}
+
+// ================================================================
+//  STAGE 1: ZETA BAR
+// ================================================================
+function drawZeta() {
+  const canvas = document.getElementById('zeta-canvas');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+
+  // ─── 高DPI适配（解决模糊核心） ───
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  
+  // 设置 canvas 内部高分辨率
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  
+  // 缩放上下文，后续所有坐标按 CSS 像素写
+  ctx.scale(dpr, dpr);
+
+  const W = rect.width;
+  const H = rect.height;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(2,15,30,0.9)';
+  ctx.fillRect(0, 0, W, H);
+
+  const margin = 30;              // 左右边距加大一点，更好看
+  const barW = W - margin * 2;
+  const barH = 14;                // 条粗一点，更清晰
+  const barY = H / 2 + 10;
+
+  // 渐变条（颜色更分明）
+  const grd = ctx.createLinearGradient(margin, 0, margin + barW, 0);
+  grd.addColorStop(0.00, 'rgba(255,51,85,0.9)');     // 红色 - 不稳定
+  grd.addColorStop(0.25, 'rgba(255,51,85,0.7)');
+  grd.addColorStop(0.30, 'rgba(255,179,0,0.9)');     // 橙色 - 过渡开始
+  grd.addColorStop(0.50, 'rgba(0,212,255,0.6)');     // 青色 - 中间
+  grd.addColorStop(0.70, 'rgba(255,179,0,0.9)');     // 橙色 - 过渡结束
+  grd.addColorStop(1.00, 'rgba(0,255,136,0.9)');     // 绿色 - 稳定
+  ctx.fillStyle = grd;
+  ctx.fillRect(margin, barY - barH/2, barW, barH);
+
+  // 刻度线（更清晰）
+  ctx.strokeStyle = 'rgba(200,232,248,0.6)';
+  ctx.lineWidth = 1;
+  const labels = ['-100mV', '-60mV', '-30mV', '0mV', '+30mV', '+60mV', '+100mV'];
+  labels.forEach((lbl, i) => {
+    const x = margin + (i / 6) * barW;
+    ctx.beginPath();
+    ctx.moveTo(x, barY - barH/2 - 4);
+    ctx.lineTo(x, barY + barH/2 + 4);
+    ctx.stroke();
+
+    // 文字（字体加大 + 加粗）
+    ctx.fillStyle = 'rgba(200,232,248,0.9)';
+    ctx.font = 'bold 10px Courier New';   // 原 8px → 10px，更清晰
+    ctx.textAlign = 'center';
+    ctx.fillText(lbl, x, barY + 22);
+  });
+
+  // 稳定性文字区域（字体加大，位置更居中）
+  ctx.font = 'bold 11px Courier New';     // 加大字号
+  ctx.textAlign = 'center';
+
+  ctx.fillStyle = 'rgba(255,51,85,0.9)';
+  ctx.fillText('不稳定 (团聚)', margin + barW * 0.15, barY - barH/2 - 12);
+
+  ctx.fillStyle = 'rgba(255,179,0,0.95)';
+  ctx.fillText('过渡区', margin + barW * 0.5, barY - barH/2 - 12);
+
+  ctx.fillStyle = 'rgba(0,255,136,0.95)';
+  ctx.fillText('稳定分散', margin + barW * 0.85, barY - barH/2 - 12);
+
+  // 当前 Zeta 指针（更醒目）
+  const curZeta = -18.2;
+  const curPct = (curZeta + 100) / 200;
+  const curX = margin + curPct * barW;
+
+  // 红色三角指针
+  ctx.fillStyle = '#ff3355';
+  ctx.beginPath();
+  ctx.moveTo(curX, barY - barH/2 - 18);
+  ctx.lineTo(curX - 8, barY - barH/2 - 4);
+  ctx.lineTo(curX + 8, barY - barH/2 - 4);
+  ctx.closePath();
+  ctx.fill();
+
+  // 值标签（白色底 + 红字，更清晰）
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(curX - 30, barY - barH/2 - 32, 60, 20);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 11px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('-18.2mV', curX, barY - barH/2 - 22);
+}
+
+// ================================================================
+//  PAGE 1 CANVASES
+// ================================================================
+function drawPage1Canvases() {
+  drawPSD();
+  drawDispersion();
+  drawZeta();
+}
+
+// ================================================================
+//  STAGE 1: CHOICE CHECKING
+// ================================================================
+function checkChoice(idx) {
+  if (document.getElementById('choice-0').disabled) return;
+  const correct = 1; // index 1 (B) is correct
+  ['choice-0','choice-1','choice-2','choice-3'].forEach(id => {
+    document.getElementById(id).disabled = true;
+  });
+
+  const fb = document.getElementById('s1-feedback');
+  fb.style.display = 'block';
+
+  if (idx === correct) {
+    document.getElementById('choice-' + idx).classList.add('correct');
+    STATE.correctChoice = true;
+    flashScreen('green');
+    fb.className = 'panel success';
+    fb.innerHTML = `<div class="panel-title" style="color:var(--green)">✓ 诊断正确</div>
+      <div style="font-size:11px; color:var(--text-secondary); line-height:1.7; letter-spacing:0.5px;">
+        正确！根本原因是<strong style="color:var(--cyan)">分散剂用量不足</strong>与<strong style="color:var(--cyan)">搅拌工艺不当</strong>的复合因素。
+        分散剂吸附不足导致颗粒表面ζ电位绝对值偏低（-18.2mV << -30mV临界值），
+        DLVO静电排斥势能不足以克服范德华引力，颗粒发生<span style="color:var(--amber)">不可逆团聚</span>。
+        同时搅拌能量不足，无法有效解团聚，导致D90严重超标。
+      </div>`;
+    setTimeout(() => {
+      document.getElementById('s1-feedback').insertAdjacentHTML('beforeend',
+        `<div style="margin-top:12px; text-align:right;">
+          <button class="btn btn-success" onclick="goToPage(2)">进入工艺调控阶段 →</button>
+        </div>`);
+    }, 600);
+  } else {
+    document.getElementById('choice-' + idx).classList.add('wrong');
+    STATE.wrongChoices++;
+    STATE.riskIndex = Math.min(100, STATE.riskIndex + 15);
+    updateRiskDisplay();
+    flashScreen('red');
+    fb.className = 'panel danger';
+    const explanations = [
+      '固含量68.5%虽然偏高，但不是主因。关键证据在于Zeta电位仅-18.2mV（远低于-30mV稳定阈值），这直接指向双电层弱化，即分散剂吸附不足的问题。',
+      '',
+      'pH=7.2属于正常范围，NMP作为非质子型极性溶剂，其溶解能力受pH影响有限。关键异常数据是D90高达32.6μm与Zeta电位偏低，这才是核心矛盾。',
+      'PVDF溶解温度约23°C时已可正常溶解，且溶解不完全的表现通常是粘度骤升而非D90偏大。当前23°C的温度不足以构成主因。'
+    ];
+    fb.innerHTML = `<div class="panel-title" style="color:var(--red)">✗ 判断有误 — 风险指数 +15%</div>
+      <div style="font-size:11px; color:var(--text-secondary); line-height:1.7; letter-spacing:0.5px;">
+        ${explanations[idx]}<br><br>
+        <span style="color:var(--amber)">提示：</span>重新分析检测数据，重点关注Zeta电位与D90/D50比值的含义。
+      </div>
+      <div style="margin-top:10px; text-align:right;">
+        <button class="btn btn-danger" onclick="resetChoices()">重新分析</button>
+      </div>`;
+  }
+}
+
+function resetChoices() {
+  ['choice-0','choice-1','choice-2','choice-3'].forEach(id => {
+    const el = document.getElementById(id);
+    el.disabled = false;
+    el.classList.remove('correct','wrong');
+  });
+  document.getElementById('s1-feedback').style.display = 'none';
+}
+
+// ================================================================
+//  RISK DISPLAY UPDATE
+// ================================================================
+function updateRiskDisplay() {
+  const el = document.getElementById('risk-global');
+  if(el) el.textContent = Math.round(STATE.riskIndex);
+  const scoreEl = document.getElementById('score-display');
+  if(!scoreEl) return;
+  if(STATE.riskIndex >= 60) scoreEl.style.borderColor = 'var(--red)';
+  else if(STATE.riskIndex >= 30) scoreEl.style.borderColor = 'var(--amber)';
+  else scoreEl.style.borderColor = 'var(--cyan)';
+}
+
+// ================================================================
+//  STAGE 2: STABILITY CALCULATION (调整为商业成熟范围能通过)
+// ================================================================
+function recalcStability() {
+  const dispersant = parseFloat(document.getElementById('s-dispersant').value);
+  const sonic = parseFloat(document.getElementById('s-sonic').value);
+  const mixTime = parseFloat(document.getElementById('s-time').value);
+  const solid = parseFloat(document.getElementById('s-solid').value);
+  const ionic = parseFloat(document.getElementById('s-ionic').value);
+
+  // 调整公式，确保推荐范围能通过
+  // Zeta potential: 基础 -18.2, 分散剂每增加0.5% Zeta -5mV, 离子每mmol +1mV
+  const zetaBase = -18.2;
+  const zetaDisp = (dispersant - 1.5) * -10; // 分散剂贡献
+  const zetaIonic = ionic * 0.5; // 离子压缩
+  const zeta = zetaBase + zetaDisp + zetaIonic;
+  const zetaClamped = Math.max(-60, Math.min(-15, zeta));
+
+  // D90: 基础32.6, 超声每100W -5μm, 时间每10min -2μm, 分散剂每0.5% -3μm
+  const sonicEff = (sonic - 200) / 100 * -5;
+  const timeEff = (mixTime - 45) / 10 * -2;
+  const dispEff = (dispersant - 1.5) / 0.5 * -3;
+  const d90 = Math.max(8, 32.6 + sonicEff + timeEff + dispEff + ionic * 0.5);
+
+  // Viscosity: 基础18400, 固含量每% +500 mPa·s, 分散剂每% -300
+  const viscBase = 18400;
+  const viscSolid = (solid - 68.5) * 500;
+  const viscDisp = (dispersant - 1.5) * -300;
+  const viscosity = Math.max(5000, viscBase + viscSolid + viscDisp);
+
+  // Stability Index (0-100): Zeta贡献 ( |zeta| -15 )*3, D90贡献 50 - d90*2, 其他
+  const zetaContrib = Math.max(0, (Math.abs(zetaClamped) - 15) * 3);
+  const d90Contrib = Math.max(0, 50 - d90 * 2);
+  const solidBonus = solid <= 65 ? 10 : 0;
+  const ionicPenalty = ionic > 5 ? (ionic - 5) * -2 : 0;
+  const stability = Math.max(0, Math.min(100, zetaContrib + d90Contrib + solidBonus + ionicPenalty + 20));
+
+  // Cost delta: 分散剂每% +5%, 超声每100W +2%, 时间每10min +1%, 固含量每-1% +0.5%
+  const costDisp = (dispersant - 1.5) * 5;
+  const costSonic = (sonic - 200) / 100 * 2;
+  const costTime = (mixTime - 45) / 10 * 1;
+  const costSolid = (68.5 - solid) * 0.5;
+  const costDelta = costDisp + costSonic + costTime + costSolid;
+  STATE.costDelta = costDelta;
+
+  // Risk index: 100 - stability
+  const riskBase = Math.max(0, 100 - stability * 1.2);
+  STATE.stabilityIndex = stability;
+  STATE.zetaPot = zetaClamped;
+  STATE.d90 = d90;
+  STATE.viscosity = viscosity;
+  STATE.s2StabVal = stability;
+  STATE.s2RiskVal = riskBase;
+  STATE.s2CostVal = costDelta;
+
+  if (STATE.currentPage === 2) {
+    STATE.riskIndex = Math.min(100, Math.max(STATE.riskIndex - 2, riskBase * 0.8));
+    updateRiskDisplay();
+  }
+
+  // Update displays (same as before)
+  const zetaEl = document.getElementById('calc-zeta');
+  if(zetaEl) {
+    zetaEl.textContent = zetaClamped.toFixed(1) + ' mV';
+    zetaEl.className = 'val ' + (Math.abs(zetaClamped) >= 30 ? 'good' : 'bad');
+  }
+  const d90El = document.getElementById('calc-d90');
+  if(d90El) {
+    d90El.textContent = d90.toFixed(1) + ' μm';
+    d90El.className = 'val ' + (d90 <= 15 ? 'good' : d90 <= 25 ? 'warn' : 'bad');
+  }
+  const viscEl = document.getElementById('calc-visc');
+  if(viscEl) {
+    viscEl.textContent = Math.round(viscosity).toLocaleString() + ' mPa·s';
+    viscEl.className = 'val ' + (viscosity <= 12000 ? 'good' : viscosity <= 16000 ? 'warn' : 'bad');
+  }
+  const dlvoEl = document.getElementById('calc-dlvo');
+  if(dlvoEl) {
+    dlvoEl.textContent = stability.toFixed(1);
+    dlvoEl.className = 'val ' + (stability >= 75 ? 'good' : stability >= 50 ? 'warn' : 'bad');
+    dlvoEl.style.fontSize = '18px';
+  }
+  const costEl = document.getElementById('calc-cost');
+  if(costEl) {
+    costEl.textContent = (costDelta >= 0 ? '+' : '') + costDelta.toFixed(1) + '%';
+    costEl.className = 'val ' + (costDelta > 30 ? 'bad' : costDelta > 15 ? 'warn' : 'good');
+  }
+
+  // Pass conditions
+  const passStab = stability >= 75;
+  const passCost = costDelta <= 30;
+  const passRisk = riskBase <= 30; // 调整为 <=30%
+
+  const condStabEl = document.getElementById('cond-stab');
+  const condCostEl = document.getElementById('cond-cost');
+  const condRiskEl = document.getElementById('cond-risk');
+  if(condStabEl) {
+    condStabEl.textContent = passStab ? '✓ ≥75 达标' : '❌ <75 不足';
+    condStabEl.className = 'val ' + (passStab ? 'good' : 'bad');
+  }
+  if(condCostEl) {
+    condCostEl.textContent = passCost ? '✓ 预算内' : '❌ 超出预算';
+    condCostEl.className = 'val ' + (passCost ? 'good' : 'bad');
+  }
+  if(condRiskEl) {
+    condRiskEl.textContent = passRisk ? '✓ ≤30%' : '❌ >30%';
+    condRiskEl.className = 'val ' + (passRisk ? 'good' : 'bad');
+  }
+
+  const canSubmit = passStab && passCost && passRisk;
+  const submitBtn = document.getElementById('s2-submit-btn');
+  if(submitBtn) {
+    submitBtn.disabled = !canSubmit;
+  }
+  const msgEl = document.getElementById('s2-msg');
+  if(msgEl) {
+    if(!canSubmit) {
+      let missing = [];
+      if(!passStab) missing.push('稳定性指数不足(需≥75)');
+      if(!passCost) missing.push('成本超出预算(≤30%)');
+      if(!passRisk) missing.push('风险指数过高(≤30%)');
+      msgEl.textContent = '尚需达标: ' + missing.join(' · ');
+      msgEl.style.color = 'var(--red)';
+    } else {
+      msgEl.textContent = '所有条件已满足，可提交方案！';
+      msgEl.style.color = 'var(--green)';
+    }
+  }
+
+  // Record trail
+  STATE.trailData.stab.push(stability);
+  STATE.trailData.cost.push(Math.min(100, Math.max(0, 50 + costDelta)));
+  STATE.trailData.risk.push(riskBase);
+  if(STATE.trailData.stab.length > 40) {
+    STATE.trailData.stab.shift();
+    STATE.trailData.cost.shift();
+    STATE.trailData.risk.shift();
+  }
+
+  // Redraw canvases
+  drawDLVO(zetaClamped, ionic, d90);
+  drawPSD2(d90);
+  drawTrail();
+  drawGauges(stability, costDelta, riskBase);
+}
+
+// ================================================================
+//  STAGE 2: DLVO CURVE (same as before)
+// ================================================================
+function drawDLVO(zeta, ionic, d90) {
+  const canvas = document.getElementById('dlvo-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = 'rgba(2,15,30,0.9)';
+  ctx.fillRect(0,0,W,H);
+
+  const margin = {l:35, r:15, t:15, b:30};
+  const pw = W - margin.l - margin.r;
+  const ph = H - margin.t - margin.b;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(0,212,255,0.08)';
+  ctx.lineWidth = 0.5;
+  for(let i=0;i<5;i++){
+    const y = margin.t + i*ph/4;
+    ctx.beginPath(); ctx.moveTo(margin.l,y); ctx.lineTo(margin.l+pw,y); ctx.stroke();
+  }
+  for(let i=0;i<5;i++){
+    const x = margin.l + i*pw/4;
+    ctx.beginPath(); ctx.moveTo(x,margin.t); ctx.lineTo(x,margin.t+ph); ctx.stroke();
+  }
+
+  // Zero line
+  ctx.strokeStyle = 'rgba(0,212,255,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(margin.l, margin.t + ph/2);
+  ctx.lineTo(margin.l + pw, margin.t + ph/2);
+  ctx.stroke();
+
+  // Parameters for curves
+  const kappaFactor = Math.sqrt(ionic); // Debye length inverse ~ sqrt(ionic strength)
+  const zetaAbs = Math.abs(zeta);
+
+  // Draw curves
+  function drawCurve(color, fn) {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    let first = true;
+    for(let i=0; i<=pw; i++) {
+      const r = 1 + (i/pw)*9; // separation 1~10 nm normalized
+      const val = fn(r);
+      const clamp = Math.max(-100, Math.min(100, val));
+      const x = margin.l + i;
+      const y = margin.t + ph/2 - clamp * (ph/2) / 100;
+      if(first) { ctx.moveTo(x,y); first = false; } else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+
+  // Repulsion (electrostatic)
+  drawCurve('rgba(0,212,255,0.9)', r => {
+    return zetaAbs * 0.8 * Math.exp(-kappaFactor * r * 0.4);
+  });
+
+  // Attraction (Van der Waals)
+  drawCurve('rgba(255,150,0,0.9)', r => {
+    const A = 1.5;
+    return -A / Math.pow(r * 0.3, 2) * 60;
+  });
+
+  // Total
+  drawCurve('rgba(0,255,136,0.9)', r => {
+    const repulsion = zetaAbs * 0.8 * Math.exp(-kappaFactor * r * 0.4);
+    const attraction = -(1.5 / Math.pow(r * 0.3, 2)) * 60;
+    return repulsion + attraction;
+  });
+
+  // Axes labels
+  ctx.fillStyle = 'rgba(0,212,255,0.6)';
+  ctx.font = '8px Courier New';
+  ctx.fillText('势能', 2, margin.t + 4);
+  ctx.fillText('粒间距', margin.l + pw - 28, H-4);
+  ctx.fillText('+', 2, margin.t + 4);
+  ctx.fillText('−', 2, margin.t + ph - 4);
+
+  // Current zeta label
+  ctx.fillStyle = 'rgba(0,212,255,0.8)';
+  ctx.font = '9px Courier New';
+  ctx.fillText(`ζ = ${zeta.toFixed(1)}mV`, margin.l + 4, margin.t + 12);
+  ctx.fillStyle = 'rgba(255,150,0,0.8)';
+  ctx.fillText(`I = ${ionic}mmol/L`, margin.l + 4, margin.t + 24);
+}
+
+// ================================================================
+//  STAGE 2: PSD CANVAS 2
+// ================================================================
+function drawPSD2(d90) {
+  const canvas = document.getElementById('psd2-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = 'rgba(2,15,30,0.9)';
+  ctx.fillRect(0,0,W,H);
+
+  const mx = 30, my = 10, pw = W-mx-10, ph = H-my-22;
+
+  ctx.strokeStyle = 'rgba(0,212,255,0.25)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(mx, my); ctx.lineTo(mx, my+ph); ctx.lineTo(mx+pw, my+ph);
+  ctx.stroke();
+
+  function drawPSDCurve(d90val, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const logd50 = Math.log(4.0);
+    const logd90 = Math.log(d90val);
+    for(let i=0; i<=pw; i++) {
+      const xFrac = i/pw;
+      const xVal = Math.exp(xFrac * Math.log(100));
+      const s1 = (logd90 - logd50) / 1.28;
+      const y1 = 0.7 * Math.exp(-0.5*Math.pow((Math.log(xVal)-logd50)/s1, 2));
+      const y2 = (d90val > 15) ? 0.28*Math.exp(-0.5*Math.pow((Math.log(xVal)-logd90+0.3)/0.4,2)) : 0;
+      const sv = Math.max(0, (y1+y2)*ph);
+      const y = my + ph - sv;
+      if(i===0) ctx.moveTo(mx+i, y); else ctx.lineTo(mx+i, y);
+    }
+    ctx.stroke();
+  }
+
+  // Initial (gray)
+  ctx.globalAlpha = 0.3;
+  drawPSDCurve(32.6, '#888');
+  ctx.globalAlpha = 1;
+
+  // Current
+  const hue = d90 <= 12 ? 140 : d90 <= 20 ? 45 : 0;
+  drawPSDCurve(d90, `hsl(${hue}, 100%, 65%)`);
+
+  // D90 marker
+  const d90x = mx + (Math.log(d90)/Math.log(100))*pw;
+  ctx.strokeStyle = 'rgba(255,51,85,0.7)';
+  ctx.setLineDash([4,3]);
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(d90x, my); ctx.lineTo(d90x, my+ph); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#ff3355';
+  ctx.font = '8px Courier New';
+  ctx.fillText('D90=' + d90.toFixed(1)+'μm', d90x+2, my+10);
+
+  ctx.fillStyle = 'rgba(0,212,255,0.5)';
+  ctx.font = '8px Courier New';
+  ctx.fillText('粒径分布 (μm)', mx+pw/2-30, my+ph+18);
+}
+
+// ================================================================
+//  STAGE 2: TRAIL CANVAS
+// ================================================================
+function drawTrail() {
+  const canvas = document.getElementById('trail-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = 'rgba(2,15,30,0.9)';
+  ctx.fillRect(0,0,W,H);
+
+  const mx = 30, my = 5, pw = W-mx-10, ph = H-my-20;
+  ctx.strokeStyle = 'rgba(0,212,255,0.2)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(mx,my); ctx.lineTo(mx,my+ph); ctx.lineTo(mx+pw,my+ph);
+  ctx.stroke();
+
+  function drawLine(data, color) {
+    if(data.length < 2) return;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    data.forEach((v, i) => {
+      const x = mx + (i/(data.length-1)) * pw;
+      const y = my + ph - (v/100)*ph;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  }
+
+  drawLine(STATE.trailData.stab, '#00d4ff');
+  drawLine(STATE.trailData.cost, '#ffb300');
+  drawLine(STATE.trailData.risk, '#ff3355');
+
+  // Pass line for stability
+  ctx.strokeStyle = 'rgba(0,255,136,0.4)';
+  ctx.setLineDash([4,3]);
+  ctx.lineWidth = 1;
+  const passY = my + ph - 0.75*ph;
+  ctx.beginPath(); ctx.moveTo(mx, passY); ctx.lineTo(mx+pw, passY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(0,255,136,0.5)';
+  ctx.font = '7px Courier New';
+  ctx.fillText('75', 0, passY+3);
+}
+
+// ================================================================
+//  STAGE 2: GAUGE CANVAS
+// ================================================================
+function drawGauges(stability, costDelta, riskBase) {
+  const canvas = document.getElementById('gauge-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = 'rgba(2,15,30,0)';
+  ctx.fillRect(0,0,W,H);
+
+  function drawGauge(cx, cy, r, value, maxVal, label, sublabel, goodAbove) {
+    const startAngle = Math.PI * 0.75;
+    const endAngle = Math.PI * 2.25;
+    const arcRange = endAngle - startAngle;
+    const valFrac = Math.min(1, Math.max(0, value / maxVal));
+    const valAngle = startAngle + valFrac * arcRange;
+
+    // Determine color
+    let color;
+    if (goodAbove) {
+      color = value >= 75 ? '#00ff88' : value >= 50 ? '#ffb300' : '#ff3355';
+    } else {
+      color = value <= 30 ? '#00ff88' : value <= 50 ? '#ffb300' : '#ff3355';
+    }
+
+    // Background arc
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.strokeStyle = 'rgba(0,212,255,0.12)';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Value arc
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, valAngle);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 10;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Tick marks
+    for(let t=0; t<=10; t++) {
+      const angle = startAngle + (t/10)*arcRange;
+      const ir = r - 14;
+      const or = r - 6;
+      ctx.beginPath();
+      ctx.moveTo(cx + ir*Math.cos(angle), cy + ir*Math.sin(angle));
+      ctx.lineTo(cx + or*Math.cos(angle), cy + or*Math.sin(angle));
+      ctx.strokeStyle = 'rgba(0,212,255,0.3)';
+      ctx.lineWidth = t%5===0 ? 1.5 : 0.5;
+      ctx.stroke();
+    }
+
+    // Value text
+    ctx.fillStyle = color;
+    ctx.font = `bold 16px Courier New`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 8;
+    ctx.fillText(value.toFixed(1), cx, cy);
+    ctx.shadowBlur = 0;
+
+    // Label
+    ctx.fillStyle = 'rgba(198,232,248,0.7)';
+    ctx.font = '9px Courier New';
+    ctx.shadowBlur = 0;
+    ctx.fillText(label, cx, cy + 18);
+    ctx.fillStyle = 'rgba(106,171,200,0.5)';
+    ctx.font = '8px Courier New';
+    ctx.fillText(sublabel, cx, cy + 30);
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  drawGauge(60, 78, 48, stability, 100, '稳定性', 'STABILITY', true);
+  drawGauge(160, 78, 48, Math.min(100,Math.max(0,costDelta+50)), 100, '成本', 'COST IDX', false);
+  drawGauge(110, 210, 48, Math.min(100, riskBase), 100, '风险', 'RISK IDX', false);
+}
+
+// ================================================================
+//  STAGE 2: SUBMIT
+// ================================================================
+function submitStage2() {
+  STATE.s2Passed = true;
+  STATE.riskIndex = Math.max(5, STATE.s2RiskVal * 0.5);
+  updateRiskDisplay();
+  flashScreen('green');
+  goToPage(3);
+}
+
+// ================================================================
+//  STAGE 3: BUILD PAGE
+// ================================================================
+function buildStage3() {
+  const stab = STATE.s2StabVal;
+  const risk = STATE.s2RiskVal;
+  const zeta = STATE.zetaPot;
+  const d90 = STATE.d90;
+
+  // Batch consistency
+  const consistency = Math.min(99, 60 + stab * 0.4);
+  const resistVariance = Math.max(1, 20 - stab * 0.2);
+  const safetyLevel = risk <= 20 ? 'A级 (优秀)' : risk <= 35 ? 'B级 (合格)' : 'C级 (警告)';
+  const claimRisk = risk <= 20 ? '极低 (<5%)' : risk <= 35 ? '低 (5-15%)' : '中高 (>25%)';
+
+  const setVal = (id, val, cls) => {
+    const el = document.getElementById(id);
+    if(el) { el.textContent = val; if(cls) el.className = 'val ' + cls; }
+  };
+
+  setVal('s3-consistency', consistency.toFixed(1) + '%', consistency >= 90 ? 'good' : consistency >= 80 ? 'warn' : 'bad');
+  setVal('s3-resistance', '±' + resistVariance.toFixed(1) + ' mΩ', resistVariance <= 5 ? 'good' : 'warn');
+  setVal('s3-safety', safetyLevel, risk <= 35 ? 'good' : 'bad');
+  setVal('s3-claim', claimRisk, risk <= 35 ? 'good' : 'bad');
+  setVal('s3-stab', stab.toFixed(1), stab >= 75 ? 'good' : 'warn');
+  setVal('s3-zeta', zeta.toFixed(1) + ' mV', Math.abs(zeta) >= 30 ? 'good' : 'warn');
+
+  const passed = stab >= 75 && risk <= 30;
+  const verdictEl = document.getElementById('audit-verdict');
+  const detailEl = document.getElementById('audit-detail');
+  const panel = document.getElementById('audit-result-panel');
+
+  if(passed) {
+    verdictEl.textContent = '✓ 审核通过';
+    verdictEl.className = 'result-big pass';
+    panel.className = 'panel success';
+    detailEl.innerHTML = `
+      该批次经工艺调整后，浆料分散稳定性指数达到<strong style="color:var(--green)">${stab.toFixed(1)}</strong>，
+      Zeta电位提升至<strong style="color:var(--green)">${zeta.toFixed(1)}mV</strong>，
+      满足生产放行条件。预计批次一致性<strong style="color:var(--cyan)">${consistency.toFixed(1)}%</strong>，
+      内阻波动降至<strong style="color:var(--cyan)">±${resistVariance.toFixed(1)}mΩ</strong>，
+      <span style="color:var(--green)">成功避免重大质量事故</span>，索赔风险大幅降低。`;
+    flashScreen('green');
+  } else {
+    verdictEl.textContent = '✗ 审核未通过';
+    verdictEl.className = 'result-big fail';
+    panel.className = 'panel danger';
+    detailEl.innerHTML = `
+      浆料分散稳定性指数<strong style="color:var(--red)">${stab.toFixed(1)}</strong>
+      <span style="color:var(--red)">未达到75的合格线</span>，或风险指数仍然偏高。
+      建议重新审视分散剂配比与搅拌工艺，特别关注Zeta电位调控，
+      确保|ζ| ≥ 30mV以建立足够的静电排斥势垒。`;
+    flashScreen('red');
+    STATE.riskIndex = Math.min(100, STATE.riskIndex + 20);
+    updateRiskDisplay();
+  }
+
+  // Solution summary
+  const dispersant = parseFloat(document.getElementById('s-dispersant').value);
+  const sonic = parseFloat(document.getElementById('s-sonic').value);
+  const mixTime = parseFloat(document.getElementById('s-time').value);
+  const solid = parseFloat(document.getElementById('s-solid').value);
+  const ionic = parseFloat(document.getElementById('s-ionic').value);
+
+  document.getElementById('solution-summary').innerHTML = `
+      <span style="color:var(--cyan)">▸ 分散剂比例</span>: ${dispersant.toFixed(1)}%（调整自1.5%）<br>
+    <span style="color:var(--cyan)">▸ 超声功率</span>: ${Math.round(sonic)} W<br>
+    <span style="color:var(--cyan)">▸ 搅拌时间</span>: ${Math.round(mixTime)} min<br>
+    <span style="color:var(--cyan)">▸ 固含量</span>: ${solid.toFixed(1)}%<br>
+    <span style="color:var(--cyan)">▸ 离子强度</span>: ${Math.round(ionic)} mmol/L<br>
+    <span style="color:var(--amber)">▸ 成本变化</span>: ${STATE.s2CostVal >= 0 ? '+' : ''}${STATE.s2CostVal.toFixed(1)}%<br>
+  `;
+
+  // Engineering suggestions
+  document.getElementById('s3-suggestions').innerHTML = `
+    <span style="color:var(--teal)">① SOP标准化</span>：将调整后的分散工艺参数纳入正式SOP，设定在线Zeta电位监控预警阈值（|ζ|≤25mV触发停机）。<br><br>
+    <span style="color:var(--teal)">② 在线检测</span>：增加浆料管道在线激光粒度仪，实时监控D90，超过设定值自动反馈调节分散功率。<br><br>
+    <span style="color:var(--teal)">③ 供应链管控</span>：对导电剂炭黑批次进行DBP吸收值及BET比表面积入厂检验，防止原料变异引发分散失效。<br><br>
+    <span style="color:var(--teal)">④ 工艺窗口研究</span>：通过DOE实验建立分散剂–超声功率–时间的三因素响应曲面模型，确立稳健的工艺窗口。<br><br>
+    <span style="color:var(--teal)">⑤ 预防性维护</span>：制定高速分散搅拌桨的定期检测与更换计划，避免机械磨损导致剪切力下降。
+  `;
+
+  // Draw stage3 canvas
+  drawStage3Canvas(stab, risk);
+}
+
+function drawStage3Canvas(stab, risk) {
+ const canvas = document.getElementById('s3-canvas');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+
+  // 高DPI适配（解决模糊核心）
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+
+  const W = rect.width;
+  const H = rect.height;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(2,15,30,0.9)';
+  ctx.fillRect(0, 0, W, H);
+
+  const mx = 50;               // 边距加大
+  const my = 20;
+  const pw = W - mx * 2;
+  const ph = H - my * 2 - 40;  // 留出底部标签空间
+
+  // 网格线（更淡、更细）
+  ctx.strokeStyle = 'rgba(0,212,255,0.12)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = my + (i / 5) * ph;
+    ctx.beginPath();
+    ctx.moveTo(mx, y);
+    ctx.lineTo(mx + pw, y);
+    ctx.stroke();
+  }
+
+  // 坐标轴
+  ctx.strokeStyle = 'rgba(0,212,255,0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(mx, my);
+  ctx.lineTo(mx, my + ph);
+  ctx.lineTo(mx + pw, my + ph);
+  ctx.stroke();
+
+  // 问题批次曲线（红色，波动更大）
+  ctx.strokeStyle = 'rgba(255,51,85,0.9)';
+  ctx.lineWidth = 2;           
+  ctx.beginPath();
+  for (let i = 0; i <= pw; i++) {
+    const xFrac = i / pw;
+    const noise = Math.sin(i * 0.25) * 0.18 + Math.sin(i * 0.08) * 0.12;
+    const trend = 0.45 + 0.4 * xFrac + noise;
+    const y = my + ph - trend * ph;
+    if (i === 0) ctx.moveTo(mx + i, y);
+    else ctx.lineTo(mx + i, y);
+  }
+  ctx.stroke();
+
+  // 改进后曲线（绿色，平滑）
+  const improvedLevel = 0.45 + stab / 100 * 0.5;
+  ctx.strokeStyle = 'rgba(0,255,136,0.95)';
+  ctx.lineWidth = 2;          
+  ctx.beginPath();
+  for (let i = 0; i <= pw; i++) {
+    const xFrac = i / pw;
+    const noise = Math.sin(i * 0.35) * 0.03 * (1 - stab / 100);
+    const y = my + ph - (improvedLevel + noise) * ph;
+    if (i === 0) ctx.moveTo(mx + i, y);
+    else ctx.lineTo(mx + i, y);
+  }
+  ctx.stroke();
+
+  // 合格线（虚线更明显）
+  ctx.strokeStyle = 'rgba(0,212,255,0.6)';
+  ctx.setLineDash([8, 4]);
+  ctx.lineWidth = 2;
+  const passY = my + ph - 0.7 * ph;
+  ctx.beginPath();
+  ctx.moveTo(mx, passY);
+  ctx.lineTo(mx + pw, passY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 文字标签（字体加大 + 背景半透明增强可读性）
+  ctx.font = 'bold 12px Courier New';  // 原 8px → 12px
+  ctx.fillStyle = 'rgba(0,212,255,0.7)';
+  ctx.fillText('合格线', mx + 10, passY - 8);
+
+  ctx.fillStyle = 'rgba(255,51,85,0.95)';
+  ctx.fillText('▲ 问题批次', mx + pw - 110, my + ph - 10);
+
+  ctx.fillStyle = 'rgba(0,255,136,0.95)';
+  ctx.fillText('▲ 改进后预测', mx + pw / 2 - 60, my + 20);
+
+  ctx.fillStyle = 'rgba(0,212,255,0.6)';
+  ctx.font = '11px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('批次序号 →', mx + pw / 2, my + ph + 30);
+  ctx.textAlign = 'left';
+  ctx.fillText('一致性', mx - 45, my + ph / 2 + 5);
+}
+
+// ================================================================
+//  STAGE 4: FINAL EVALUATION
+// ================================================================
+function buildFinal() {
+  const stab = STATE.s2StabVal;
+  const risk = STATE.s2RiskVal;
+  const cost = STATE.s2CostVal;
+
+  // Scoring dimensions (0-100 each)
+  const diagScore = STATE.correctChoice ? (100 - STATE.wrongChoices * 20) : 30;
+  const paramScore = Math.min(100, stab * 1.1);
+  const costScore = Math.max(0, 100 - Math.abs(cost) * 2);
+  const riskScore = Math.max(0, 100 - risk * 0.8);
+  const decisionScore = (diagScore + paramScore + costScore + riskScore) / 4 * 1.1;
+
+  const overall = Math.round((diagScore + paramScore + costScore + riskScore + decisionScore) / 5);
+  STATE.finalScore = overall;
+
+  const scoreEl = document.getElementById('final-score');
+  if(scoreEl) {
+    scoreEl.textContent = overall;
+    scoreEl.className = 'result-big ' + (overall >= 80 ? 'pass' : 'fail');
+  }
+
+  const setEval = (id, val) => {
+    const el = document.getElementById(id);
+    if(el) {
+      el.textContent = val.toFixed(0) + ' / 100';
+      el.className = 'val ' + (val >= 80 ? 'good' : val >= 60 ? 'warn' : 'bad');
+    }
+  };
+
+  setEval('ev-diag', diagScore);
+  setEval('ev-param', paramScore);
+  setEval('ev-cost', costScore);
+  setEval('ev-risk', riskScore);
+  setEval('ev-dec', decisionScore);
+
+  // Eval text
+  const evalEl = document.getElementById('eval-text');
+  if(evalEl) {
+    let msg = '';
+    if(overall >= 85) msg = `<span style="color:var(--green)">优秀工程师！</span>你展现出扎实的胶体化学理论基础与出色的工程决策能力。对DLVO机理的深刻理解使你能快速定位根因，参数调控精准有效，成功将质量风险控制在可接受范围内。`;
+    else if(overall >= 70) msg = `<span style="color:var(--cyan)">良好表现。</span>你对分散工艺有较好的掌握，能够识别主要质量风险并进行有效调控。建议进一步深化DLVO理论在工程参数设计中的定量应用。`;
+    else if(overall >= 55) msg = `<span style="color:var(--amber)">基本合格。</span>完成了主要任务流程，但在参数优化路径和成本控制方面有提升空间。建议重点学习浆料流变学与胶体稳定性的定量关系。`;
+    else msg = `<span style="color:var(--red)">需要提升。</span>对胶体分散机理的理解有待加强，建议重新学习DLVO理论基础，特别是Zeta电位、双电层厚度与离子强度之间的定量关系。`;
+    evalEl.innerHTML = msg;
+  }
+
+  // Radar chart
+  drawRadar([diagScore, paramScore, costScore, riskScore, decisionScore]);
+}
+
+// ================================================================
+//  RADAR CHART
+// ================================================================
+function drawRadar(scores) {
+  const canvas = document.getElementById('radar-canvas');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+
+  // ─── 高DPI适配（核心解决模糊） ───
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+
+  ctx.scale(dpr, dpr);
+
+  const W = rect.width;
+  const H = rect.height;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(2,15,30,0.9)';
+  ctx.fillRect(0, 0, W, H);
+
+  const cx = W / 2;
+  const cy = H / 2 + 5;
+  const maxR = Math.min(W, H) * 0.30;
+  const N = 5;
+  const labels = ['胶体分散\n机理', 'DLVO\n应用', '工艺调控\n能力', '质量风险\n管理', '工程决策\n能力'];
+  const colors = ['#00d4ff', '#00ffcc', '#7b2fff', '#ffb300', '#00ff88'];
+
+  // 背景环（加粗一点，更清晰）
+  ctx.lineWidth = 1.2;  // 原 0.5 → 1.2
+  for (let r = 1; r <= 5; r++) {
+    const rad = (r / 5) * maxR;
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const angle = (i / N) * Math.PI * 2 - Math.PI / 2;
+      const x = cx + rad * Math.cos(angle);
+      const y = cy + rad * Math.sin(angle);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = `rgba(0,212,255,${0.08 + r * 0.05})`;  // 颜色更明显
+    ctx.stroke();
+    if (r === 5) {
+      ctx.strokeStyle = 'rgba(0,212,255,0.4)';
+      ctx.lineWidth = 2;  // 最外圈更粗
+      ctx.stroke();
+    }
+  }
+
+ // 轴线（加粗）
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'rgba(0,212,255,0.35)';
+  for (let i = 0; i < N; i++) {
+    const angle = (i / N) * Math.PI * 2 - Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + maxR * Math.cos(angle), cy + maxR * Math.sin(angle));
+    ctx.stroke();
+  }
+
+  // 分数多边形（加粗 + 阴影增强立体感）
+  ctx.beginPath();
+  scores.forEach((s, i) => {
+    const angle = (i / N) * Math.PI * 2 - Math.PI / 2;
+    const r = (s / 100) * maxR;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+
+  ctx.fillStyle = 'rgba(0,212,255,0.18)';
+  ctx.fill();
+
+  ctx.strokeStyle = '#00d4ff';
+  ctx.lineWidth = 3;           // 原 2 → 3，更清晰
+  ctx.shadowColor = '#00d4ff';
+  ctx.shadowBlur = 12;         // 加大光晕
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // 分数点（圆点加大 + 更强发光）
+  scores.forEach((s, i) => {
+    const angle = (i / N) * Math.PI * 2 - Math.PI / 2;
+    const r = (s / 100) * maxR;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+
+    ctx.beginPath();
+    ctx.arc(x, y, 7, 0, Math.PI * 2);  // 原 5 → 7
+    ctx.fillStyle = colors[i];
+    ctx.shadowColor = colors[i];
+    ctx.shadowBlur = 15;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+
+  // 标签文字（字体加大 + 行高优化）
+  scores.forEach((s, i) => {
+    const angle = (i / N) * Math.PI * 2 - Math.PI / 2;
+    const r = maxR + 40;  // 外移一点，避免重叠
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+
+    ctx.fillStyle = colors[i];
+    ctx.font = 'bold 13px Courier New';  // 原 9px → 13px，更清晰
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const parts = labels[i].split('\n');
+    parts.forEach((p, pi) => {
+      ctx.fillText(p, x, y + (pi - (parts.length - 1) / 2) * 16 +10);
+    });
+
+    // 分数小圆泡（加大 + 白色底）
+    ctx.fillStyle = 'rgba(2,15,30,0.9)';
+    ctx.beginPath();
+    ctx.arc(x, y - parts.length * 12 - 6, 18, 0, Math.PI * 2);  // 原 12 → 18
+    ctx.fill();
+    ctx.strokeStyle = colors[i];
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = colors[i];
+    ctx.font = 'bold 12px Courier New';  // 原 8px → 12px
+    ctx.fillText(Math.round(s), x, y - parts.length * 12 - 6);
+  });
+
+  // 图例（字体加大）
+  const legendEl = document.getElementById('radar-legend');
+  if (legendEl) {
+    legendEl.innerHTML = labels.map((l, i) =>
+      `<span style="font-size:11px; color:${colors[i]}; letter-spacing:1px; padding:4px 8px; border:1px solid ${colors[i]}30; background:${colors[i]}15; border-radius:3px;">
+        ${l.replace('\n', ' ')} · ${Math.round(scores[i])}
+      </span>`
+    ).join(' ');
+  }
+}
+
+// ================================================================
+//  RESTART
+// ================================================================
+function restartAll() {
+  STATE.currentPage = 0;
+  STATE.riskIndex = 0;
+  STATE.costDelta = 0;
+  STATE.wrongChoices = 0;
+  STATE.correctChoice = false;
+  STATE.stabilityIndex = 23.4;
+  STATE.zetaPot = -18.2;
+  STATE.d90 = 32.6;
+  STATE.viscosity = 18400;
+  STATE.trailData = { stab: [], cost: [], risk: [] };
+  STATE.s2Passed = false;
+  STATE.s2StabVal = 23.4;
+  STATE.s2RiskVal = 100;
+  STATE.s2CostVal = 0;
+  STATE.finalScore = 0;
+  STATE.startTime = Date.now();
+
+  // Reset sliders
+  document.getElementById('s-dispersant').value = 1.5;
+  document.getElementById('s-sonic').value = 200;
+  document.getElementById('s-time').value = 45;
+  document.getElementById('s-solid').value = 68.5;
+  document.getElementById('s-ionic').value = 15;
+  document.querySelectorAll('input[type=range]').forEach(inp => {
+    const v = parseFloat(inp.value);
+    const min = parseFloat(inp.min);
+    const max = parseFloat(inp.max);
+    const pct = ((v-min)/(max-min))*100;
+    inp.style.setProperty('--pct', pct+'%');
+  });
+
+  // Reset label displays
+  document.getElementById('v-dispersant').textContent = '1.5%';
+  document.getElementById('v-sonic').textContent = '200 W';
+  document.getElementById('v-time').textContent = '45 min';
+  document.getElementById('v-solid').textContent = '68.5%';
+  document.getElementById('v-ionic').textContent = '15 mmol/L';
+
+  // Reset choices
+  ['choice-0','choice-1','choice-2','choice-3'].forEach(id => {
+    const el = document.getElementById(id);
+    el.disabled = false;
+    el.classList.remove('correct','wrong');
+  });
+  document.getElementById('s1-feedback').style.display = 'none';
+
+  updateRiskDisplay();
+
+  // Navigate
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active','exiting');
+  });
+  document.getElementById('page-0').classList.add('active');
+  updateProgress();
+}
+
+// ================================================================
+//  PRINT REPORT
+// ================================================================
+
+// ================================================================
+//  PRINT REPORT（改进版：先克隆内容再打印）
+// ================================================================
+function printReport() {
+ const printArea = document.getElementById('print-report');
+  printArea.innerHTML = ''; // 清空旧内容
+
+  // ─── 1. 学生信息 ─── 一行横向排列
+  const studentSection = document.createElement('div');
+  studentSection.innerHTML = `
+    <h2 style="color:black; margin-bottom:16px; border-bottom:2px solid #0066cc; padding-bottom:8px;">
+      电极浆料胶体分散与质量危机实践报告
+    </h2>
+    <table style="width:100%; border-collapse:collapse; font-size:14px; margin-bottom:30px;">
+      <tr style="background:#f0f8ff;">
+        <th style="border:1px solid #ccc; padding:10px; text-align:left; width:20%;">姓名</th>
+        <td style="border:1px solid #ccc; padding:10px;">${STATE.studentName || '匿名'}</td>
+        
+        <th style="border:1px solid #ccc; padding:10px; text-align:left; width:20%;">学号</th>
+        <td style="border:1px solid #ccc; padding:10px;">${STATE.studentId || '无'}</td>
+        
+        <th style="border:1px solid #ccc; padding:10px; text-align:left; width:20%;">班级</th>
+        <td style="border:1px solid #ccc; padding:10px;">${STATE.studentClass || '无'}</td>
+      </tr>
+    </table>
+  `;
+  printArea.appendChild(studentSection);
+
+  // ─── 2. 实践结果与评测 ─── 第一页主要内容
+  const resultSection = document.createElement('div');
+  resultSection.innerHTML = `
+    <h2 style="color:black; margin:40px 0 16px; border-bottom:2px solid #0066cc; padding-bottom:8px;">
+      实践结果与评测
+    </h2>
+    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:20px; margin-bottom:30px;">
+      <div style="flex:1; min-width:280px;">
+        <p><strong>整体得分：</strong> ${STATE.finalScore} 分</p>
+        <p><strong>诊断准确性：</strong> ${document.getElementById('ev-diag')?.textContent || 'N/A'}</p>
+        <p><strong>参数优化：</strong> ${document.getElementById('ev-param')?.textContent || 'N/A'}</p>
+        <p><strong>成本控制：</strong> ${document.getElementById('ev-cost')?.textContent || 'N/A'}</p>
+        <p><strong>风险管理：</strong> ${document.getElementById('ev-risk')?.textContent || 'N/A'}</p>
+        <p><strong>决策能力：</strong> ${document.getElementById('ev-dec')?.textContent || 'N/A'}</p>
+      </div>
+      <div style="flex:1; min-width:280px;">
+        <p style="margin-top:0;"><strong>评测评语：</strong></p>
+        <div style="border-left:4px solid #0066cc; padding:12px 16px; background:#f8f9fa; line-height:1.6;">
+          ${document.getElementById('eval-text')?.innerHTML || '无评语'}
+        </div>
+      </div>
+    </div>
+
+     <h2 style="color:black; margin:20px 0 20px; text-align:center; color:#0066cc;">
+      能力雷达图
+    </h2>
+  `;
+  printArea.appendChild(resultSection);
+
+  // ─── 3. 雷达图 ─── 放在第二页（或第三页，如果内容很多）
+  const radarCanvas = document.getElementById('radar-canvas');
+  if (radarCanvas) {
+    const img = document.createElement('img');
+    img.src = radarCanvas.toDataURL('image/png');
+    img.style.width = '60%';              // 控制大小，建议 80%～100%
+    img.style.maxWidth = '700px';         // 防止过大
+    img.style.display = 'block';
+    img.style.margin = '30px auto';
+    img.style.border = '1px solid #ccc';
+    img.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    img.alt = '能力雷达图';
+
+    const radarSection = document.createElement('div');
+    radarSection.style.textAlign = 'center';
+    radarSection.style.margin = '40px 0';
+    radarSection.appendChild(img);
+    printArea.appendChild(radarSection);
+  }
+
+  // ─── 4. 工程改进建议 ─── 放在雷达图后面（同一页或自动换页）
+  const suggestionSection = document.createElement('div');
+  suggestionSection.innerHTML = `
+    <h2 style="color:black; margin:60px 0 20px; border-bottom:2px solid #0066cc; padding-bottom:8px;">
+      工程改进建议
+    </h2>
+    <div style="line-height:1.8; color:#333; font-size:14px; padding-left:20px;">
+      ${document.getElementById('s3-suggestions')?.innerHTML || '暂无建议'}
+    </div>
+  `;
+  printArea.appendChild(suggestionSection);
+
+  // ─── 5. 页脚 ───
+  const footer = document.createElement('div');
+  footer.innerHTML = `
+    <!-- 如果内容很多，可再强制新页 -->
+    <hr style="border:1px solid #ccc; margin:50px 0 20px;">
+    <p style="text-align:center; color:#666; font-size:12px;">
+      生成时间：${new Date().toLocaleString()}　｜　© 2025 电极浆料工艺模拟系统
+    </p>
+  `;
+  printArea.appendChild(footer);
+
+  // ─── 打印准备 ───
+  printArea.style.display = 'block';
+  printArea.style.position = 'absolute';
+  printArea.style.left = '0';
+  printArea.style.top = '0';
+  printArea.style.width = '100%';
+  printArea.style.minHeight = '100vh';
+  printArea.style.background = 'white';
+  printArea.style.color = 'black';
+  printArea.style.padding = '40px 60px';   // 加大页边距，更美观
+  printArea.style.boxSizing = 'border-box';
+  printArea.style.fontFamily = 'SimSun, "Microsoft YaHei", sans-serif'; // 中文更友好
+  printArea.style.zIndex = '999999';
+
+  // 隐藏主界面
+  document.querySelector('.app-container').style.display = 'none';
+
+  setTimeout(() => {
+    window.print();
+
+    // 打印完成后恢复
+    setTimeout(() => {
+      printArea.style.display = 'none';
+      document.querySelector('.app-container').style.display = 'block';
+    }, 800);
+  }, 400);
+}
+
+
+
+
+// ================================================================
+//  STUDENT INFO
+// ================================================================
+function submitStudentInfo() {
+  STATE.studentName = document.getElementById('student-name').value;
+  STATE.studentId = document.getElementById('student-id').value;
+  STATE.studentClass = document.getElementById('student-class').value;
+  goToPage(1);
+}
+
+function skipLogin() {
+  STATE.studentName = '匿名';
+  STATE.studentId = '无';
+  STATE.studentClass = '无';
+  goToPage(1);
+}
+
+// ================================================================
+//  INTRO PARTICLE ANIMATION
+// ================================================================
+function initParticleCanvas() {
+  const canvas = document.getElementById('intro-particle-canvas');
+  if (!canvas) return;
+  const parent = canvas.parentElement;
+  canvas.width = parent.offsetWidth || 800;
+  canvas.height = parent.offsetHeight || 600;
+  const ctx = canvas.getContext('2d');
+
+  const particles = [];
+  const N = 60;
+
+  for(let i=0; i<N; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: 2 + Math.random() * 5,
+      vx: (Math.random()-0.5) * 0.6,
+      vy: (Math.random()-0.5) * 0.6,
+      alpha: 0.2 + Math.random() * 0.6,
+      color: Math.random() > 0.7 ? '#00ffcc' : Math.random() > 0.5 ? '#ff3355' : '#00d4ff',
+      connected: []
+    });
+  }
+
+  function animateParticles() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // Update
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
+      if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
+    });
+
+    // Draw connections
+    particles.forEach((p, i) => {
+      particles.slice(i+1).forEach(q => {
+        const dx = p.x - q.x, dy = p.y - q.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if(dist < 80) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(q.x, q.y);
+          ctx.strokeStyle = `rgba(0,212,255,${0.15 * (1 - dist/80)})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      });
+    });
+
+    // Draw particles
+    particles.forEach(p => {
+      // Outer glow
+      const grd = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*2.5);
+      grd.addColorStop(0, p.color + 'aa');
+      grd.addColorStop(1, p.color + '00');
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r*2.5,0,Math.PI*2);
+      ctx.fillStyle = grd;
+      ctx.fill();
+      // Core
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = p.alpha;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+
+    requestAnimationFrame(animateParticles);
+  }
+
+  animateParticles();
+}
+
+// Initialize animations on load
+window.addEventListener('load', () => {
+  initParticleCanvas();
+  drawPage1Canvases();
+});
+
+// Animated counters for intro incident values (optional, but included for completeness)
+function animateCounter(el, target, suffix, duration) {
+  const start = Date.now();
+  const startVal = 0;
+  function update() {
+    const elapsed = Date.now() - start;
+    const progress = Math.min(1, elapsed / duration);
+    const eased = 1 - Math.pow(1-progress, 3);
+    const current = startVal + (target - startVal) * eased;
+    el.textContent = (current >= 0 ? '+' : '') + current.toFixed(1) + suffix;
+    if(progress < 1) requestAnimationFrame(update);
+    else el.textContent = (target >= 0 ? '+' : '') + target.toFixed(1) + suffix;
+  }
+  update();
+}
+
+animateCounter(document.querySelector('.incident-items .val:nth-child(1)'), 8.3, '%', 1500);
+animateCounter(document.querySelector('.incident-items .val:nth-child(2)'), 142, '%', 1500);
+animateCounter(document.querySelector('.incident-items .val:nth-child(3)'), 37, '', 1500);
+
+</script>
+</body>
+</html>
