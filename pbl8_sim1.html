@@ -1,532 +1,1230 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>0–3级反应动力学调控模拟器 | Reaction Kinetics Simulator</title>
-    <!-- TailwindCSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 字体: Montserrat / Roboto -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome 图标库 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js 绘图 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <!-- MathJax 公式渲染 -->
-    <script>
-        MathJax = {
-            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
-            svg: { fontCache: 'global' }
-        };
-    </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
-    <style>
-        /* 未来科技视觉定制 */
-        body {
-            background-color: #020617;
-            color: #f8fafc;
-            font-family: 'Roboto', sans-serif;
-            overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(13, 148, 136, 0.05) 0%, transparent 30%),
-                radial-gradient(circle at 90% 70%, rgba(13, 148, 136, 0.07) 0%, transparent 35%),
-                repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 2px, transparent 2px, transparent 8px);
-        }
-        h1, h2, h3, .font-title {
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 700;
-        }
-        .teal-highlight {
-            color: #0d9488;
-            text-shadow: 0 0 8px rgba(13, 148, 136, 0.3);
-        }
-        .yellow-bullet {
-            color: #facc15;
-            margin-right: 6px;
-            font-size: 0.9rem;
-        }
-        .glass-panel {
-            background: rgba(2, 6, 23, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(13, 148, 136, 0.3);
-            box-shadow: 0 0 30px rgba(13, 148, 136, 0.15);
-            transition: all 0.3s ease;
-            border-radius: 1.2rem;
-        }
-        .glass-panel:hover {
-            border-color: #0d9488;
-            box-shadow: 0 0 45px rgba(13, 148, 136, 0.3);
-        }
-        .btn-glow {
-            background: rgba(13, 148, 136, 0.1);
-            border: 1px solid #0d9488;
-            color: #f8fafc;
-            padding: 0.75rem 2rem;
-            border-radius: 2rem;
-            font-weight: 500;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            backdrop-filter: blur(5px);
-            font-size: 1rem;
-        }
-        .btn-glow:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px #0d9488;
-            background: rgba(13, 148, 136, 0.25);
-            border-color: #0d9488;
-        }
-        .tooltip-icon {
-            position: relative;
-            cursor: help;
-            border-bottom: 1px dashed #0d9488;
-        }
-        .tooltip-icon .tooltip-text {
-            visibility: hidden;
-            width: 220px;
-            background: #0f172a;
-            border-left: 4px solid #0d9488;
-            color: #f1f5f9;
-            text-align: left;
-            padding: 10px;
-            border-radius: 8px;
-            position: absolute;
-            z-index: 60;
-            bottom: 150%;
-            left: 50%;
-            transform: translateX(-50%);
-            opacity: 0;
-            transition: opacity 0.2s;
-            font-size: 0.8rem;
-            box-shadow: 0 0 20px black;
-            pointer-events: none;
-        }
-        .tooltip-icon:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-        .modal-overlay {
-            background: rgba(2, 6, 23, 0.95);
-            backdrop-filter: blur(12px);
-        }
-        .fade-in {
-            animation: fadeIn 0.8s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        /* 自定义滑块 */
-        .slider-teal::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            background: #0d9488;
-            border-radius: 50%;
-            box-shadow: 0 0 15px #0d9488;
-            cursor: pointer;
-        }
-        .slider-teal::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            background: #0d9488;
-            border-radius: 50%;
-            box-shadow: 0 0 15px #0d9488;
-            cursor: pointer;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reaction Order Dynamics Simulator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+window.MathJax={tex:{inlineMath:[['$','$']],displayMath:[['$$','$$']]},svg:{fontCache:'global'}};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Exo+2:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<style>
+/* ══════════════════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════════════════ */
+:root{
+  --bg0:#010c16; --bg1:#04141f; --bg2:#071b2a; --bg3:#0b2236; --bg4:#0f2a42;
+  --c:#00d4ff;  --cg:rgba(0,212,255,.35); --cd:rgba(0,212,255,.12);
+  --gr:#00ff88; --grg:rgba(0,255,136,.35); --grd:rgba(0,255,136,.1);
+  --am:#ffaa00; --amg:rgba(255,170,0,.35); --amd:rgba(255,170,0,.1);
+  --vl:#aa55ff; --vlg:rgba(170,85,255,.35); --vld:rgba(170,85,255,.1);
+  --rs:#ff3366; --rsg:rgba(255,51,102,.35);
+  --t1:#d0eeff; --t2:#7ab8d8; --t3:#3a7090; --t4:#1e4060;
+  --bd:rgba(0,180,255,.15); --bd2:rgba(0,180,255,.38);
+  --Ea:30000; --R:8.314; --T0:298;
+
+  /* Column widths */
+  --lw:270px; --rw:340px;
+
+  /* Font sizes scale with viewport */
+  --fs-xs:clamp(12px,0.7vw,14px);
+  --fs-sm:clamp(13px,0.8vw,15px);
+  --fs-md:clamp(14px,0.9vw,16px);
+  --fs-lg:clamp(16px,1vw,18px);
+  --fs-xl:clamp(18px,1.2vw,20px);
+}
+
+/* ══════════════════════════════════════════════════
+   RESET + BASE
+══════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;font-size:16px}
+body{
+  font-family:'Exo 2',sans-serif;
+  background:var(--bg0);color:var(--t1);
+  height:100vh;width:100vw;
+  display:flex;flex-direction:column;
+  overflow:hidden; /* desktop: no scroll — everything fits in viewport */
+}
+
+/* CRT scanline */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,
+    rgba(0,15,35,.14) 3px,rgba(0,15,35,.14) 4px);
+}
+/* Dot grid */
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(rgba(0,180,255,.028) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,180,255,.028) 1px,transparent 1px);
+  background-size:44px 44px;
+}
+
+/* ══════════════════════════════════════════════════
+   TOP HEADER BAR
+══════════════════════════════════════════════════ */
+#topbar{
+  position:relative;z-index:20;flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;height:52px;
+  background:linear-gradient(180deg,var(--bg3) 0%,var(--bg2) 100%);
+  border-bottom:1px solid var(--bd2);
+}
+#topbar::after{
+  content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--c),var(--gr),var(--c),transparent);
+  background-size:300%;animation:flowBar 5s linear infinite;
+}
+@keyframes flowBar{0%{background-position:0%}100%{background-position:300%}}
+
+.tb-l{display:flex;align-items:center;gap:10px}
+.tb-icon{
+  width:36px;height:36px;border-radius:8px;flex-shrink:0;
+  border:1.5px solid var(--c);background:var(--cd);
+  display:flex;align-items:center;justify-content:center;font-size:24px;
+  box-shadow:0 0 14px var(--cg);
+}
+.tb-title{
+  font-family:'Orbitron',monospace;font-size:var(--fs-xl);font-weight:700;
+  letter-spacing:.09em;color:var(--t1);text-shadow:0 0 26px var(--cg);
+}
+.tb-title em{color:var(--c);font-style:normal}
+.tb-sub{
+  font-family:'Share Tech Mono',monospace;font-size:var(--fs-xs);
+  color:var(--t3);letter-spacing:.15em;text-transform:uppercase;margin-top:2px;
+}
+.tb-r{display:flex;align-items:center;gap:8px}
+.status-pill{
+  display:flex;align-items:center;gap:6px;
+  font-family:'Share Tech Mono',monospace;font-size:var(--fs-xs);color:var(--t2);
+  border:1px solid var(--bd);padding:4px 11px;border-radius:20px;background:var(--bg2);
+}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--gr);
+  box-shadow:0 0 8px var(--grg);animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.order-badge{
+  font-family:'Orbitron',monospace;font-size:var(--fs-sm);font-weight:700;
+  padding:4px 13px;border-radius:6px;border:1px solid var(--c);
+  background:var(--cd);color:var(--c);letter-spacing:.1em;
+}
+
+/* ══════════════════════════════════════════════════
+   THREE-COLUMN BODY
+   LEFT = params | CENTER = particle box | RIGHT = graphs
+══════════════════════════════════════════════════ */
+#body{
+  flex:1;min-height:0;
+  display:grid;
+  grid-template-columns:var(--lw) 1fr var(--rw);
+  position:relative;z-index:1;
+  overflow:hidden;
+}
+
+/* ─── Shared panel styling ─── */
+.col{display:flex;flex-direction:column;overflow:hidden}
+.col-left {background:var(--bg1);border-right:1px solid var(--bd)}
+.col-right{background:var(--bg1);border-left:1px solid var(--bd)}
+
+.col-hdr{
+  flex-shrink:0;display:flex;align-items:center;gap:8px;
+  padding:8px 13px;border-bottom:1px solid var(--bd);
+  background:var(--bg2);
+}
+.col-hdr-ico{
+  width:24px;height:24px;border-radius:5px;background:var(--bg3);
+  border:1px solid var(--bd2);display:flex;align-items:center;justify-content:center;
+  font-size:12px;flex-shrink:0;
+}
+.col-hdr-ttl{
+  font-family:'Orbitron',monospace;font-size:var(--fs-xs);font-weight:600;
+  letter-spacing:.16em;color:var(--c);text-transform:uppercase;
+}
+.col-hdr-sub{
+  font-family:'Share Tech Mono',monospace;font-size:var(--fs-xs);
+  color:var(--t3);letter-spacing:.08em;margin-left:auto;
+}
+
+/* ─── LEFT scrollable body ─── */
+#left-body{
+  flex:1;overflow-y:auto;padding:10px 11px;
+  display:flex;flex-direction:column;gap:10px;
+}
+#left-body::-webkit-scrollbar{width:3px}
+#left-body::-webkit-scrollbar-thumb{background:var(--c);border-radius:2px}
+
+/* ─── Control section card ─── */
+.csec{
+  background:var(--bg3);border:1px solid var(--bd);border-radius:9px;
+  padding:11px;display:flex;flex-direction:column;gap:9px;
+}
+.csec-ttl{
+  font-family:'Orbitron',monospace;font-size:var(--fs-xs);letter-spacing:.15em;
+  color:var(--t3);text-transform:uppercase;
+  border-bottom:1px solid var(--bd);padding-bottom:6px;
+}
+
+/* Order buttons */
+.order-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.ob{
+  padding:9px 2px;border-radius:7px;border:1px solid var(--bd);
+  background:var(--bg4);color:var(--t3);
+  font-family:'Orbitron',monospace;font-size:var(--fs-lg);font-weight:700;
+  cursor:pointer;transition:all .2s;text-align:center;line-height:1.1;
+}
+.ob small{display:block;font-size:var(--fs-xs);font-family:'Share Tech Mono',monospace;
+  font-weight:400;margin-top:2px;opacity:.7;letter-spacing:0}
+.ob:hover{border-color:var(--c);color:var(--c)}
+.ob.on{background:var(--cd);border-color:var(--c);color:var(--c);box-shadow:0 0 12px var(--cg)}
+
+/* Slider group */
+.sg{display:flex;flex-direction:column;gap:5px}
+.sl-row{display:flex;justify-content:space-between;align-items:center}
+.sl-name{font-size:var(--fs-sm);font-weight:600;color:var(--t2);
+  letter-spacing:.06em;text-transform:uppercase}
+.sl-val{font-family:'Share Tech Mono',monospace;font-size:var(--fs-md);color:var(--c)}
+.sl-hint{font-family:'Share Tech Mono',monospace;font-size:var(--fs-xs);color:var(--t4)}
+
+input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:4px;border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range].rc {background:linear-gradient(90deg,var(--c)  var(--p,50%),var(--bg0) var(--p,50%))}
+input[type=range].rg {background:linear-gradient(90deg,var(--gr) var(--p,50%),var(--bg0) var(--p,50%))}
+input[type=range].ra {background:linear-gradient(90deg,var(--am) var(--p,50%),var(--bg0) var(--p,50%))}
+input[type=range].rv {background:linear-gradient(90deg,var(--vl) var(--p,50%),var(--bg0) var(--p,50%))}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  border:2px solid var(--bg0);cursor:pointer;transition:transform .15s;
+}
+input[type=range].rc::-webkit-slider-thumb{background:var(--c); box-shadow:0 0 7px var(--cg)}
+input[type=range].rg::-webkit-slider-thumb{background:var(--gr);box-shadow:0 0 7px var(--grg)}
+input[type=range].ra::-webkit-slider-thumb{background:var(--am);box-shadow:0 0 7px var(--amg)}
+input[type=range].rv::-webkit-slider-thumb{background:var(--vl);box-shadow:0 0 7px var(--vlg)}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.3)}
+
+/* Arrhenius box */
+.arrh{
+  background:var(--vld);border:1px solid rgba(170,85,255,.22);border-radius:8px;
+  padding:9px 11px;font-size:var(--fs-sm);color:var(--t2);line-height:1.75;
+}
+.arrh strong{color:var(--vl);font-family:'Share Tech Mono',monospace;font-size:var(--fs-md)}
+
+/* Order hint */
+.ohint{
+  background:var(--cd);border:1px solid rgba(0,200,255,.18);border-radius:7px;
+  padding:8px 10px;font-family:'Share Tech Mono',monospace;
+  font-size:var(--fs-xs);color:var(--t2);line-height:1.7;
+}
+
+/* Buttons */
+.bstack{display:flex;flex-direction:column;gap:6px}
+.btn{
+  padding:9px 12px;border-radius:8px;border:none;
+  font-family:'Orbitron',monospace;font-size:var(--fs-xs);font-weight:700;
+  letter-spacing:.12em;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  transition:all .22s;position:relative;overflow:hidden;
+}
+.btn::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.07),transparent);
+  opacity:0;transition:opacity .2s}
+.btn:hover::after{opacity:1}
+.btn-s{background:linear-gradient(135deg,#003d1e,#002914);color:var(--gr);border:1px solid rgba(0,255,136,.28)}
+.btn-s:hover{box-shadow:0 0 18px var(--grg);transform:translateY(-1px)}
+.btn-p{background:linear-gradient(135deg,var(--bg3),var(--bg4));color:var(--c);border:1px solid var(--bd2)}
+.btn-p:hover{box-shadow:0 0 16px var(--cg);transform:translateY(-1px)}
+.btn-r{background:linear-gradient(135deg,#280812,#180508);color:var(--rs);border:1px solid rgba(255,51,102,.26)}
+.btn-r:hover{box-shadow:0 0 16px var(--rsg);transform:translateY(-1px)}
+.btn-h{background:linear-gradient(135deg,#281900,#180f00);color:var(--am);border:1px solid rgba(255,170,0,.32)}
+.btn-h:hover{box-shadow:0 0 18px var(--amg);transform:translateY(-1px)}
+
+/* Rate change chip */
+#rcc{
+  font-family:'Share Tech Mono',monospace;font-size:var(--fs-sm);
+  padding:5px 12px;border-radius:6px;display:none;
+  animation:popin .3s ease;
+}
+@keyframes popin{from{opacity:0;transform:scale(.82)}to{opacity:1;transform:scale(1)}}
+
+/* ══════════════════════════════════════════════════
+   CENTER COLUMN — Particle Reaction Box
+══════════════════════════════════════════════════ */
+.col-center{background:var(--bg0)}
+
+/* Sub-header of center */
+#cx-hdr{
+  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  padding:7px 13px;border-bottom:1px solid var(--bd);background:var(--bg2);
+}
+.cx-title{
+  font-family:'Orbitron',monospace;font-size:var(--fs-xs);
+  letter-spacing:.14em;color:var(--c);text-transform:uppercase;
+}
+.cx-stats{display:flex;gap:14px}
+.cxs{
+  font-family:'Share Tech Mono',monospace;font-size:var(--fs-sm);
+  display:flex;align-items:center;gap:4px;
+}
+.cxs-dot{width:6px;height:6px;border-radius:50%}
+
+/* Canvas wrapper — takes all remaining height */
+#cwrap{
+  flex:1;position:relative;overflow:hidden;min-height:0;
+  background:radial-gradient(ellipse at 50% 50%,#020f1c 0%,#010810 100%);
+}
+#pCanvas{display:block} /* sized by JS */
+
+/* Corner brackets */
+#cwrap::before,#cwrap::after{
+  content:'';position:absolute;width:16px;height:16px;z-index:2;pointer-events:none;
+  border-color:rgba(0,180,255,.4);border-style:solid;
+}
+#cwrap::before{top:7px;left:7px;border-width:2px 0 0 2px;border-radius:3px 0 0 0}
+#cwrap::after{bottom:7px;right:7px;border-width:0 2px 2px 0;border-radius:0 0 3px 0}
+
+/* Mechanism tag overlay */
+#mechTag{
+  position:absolute;top:9px;right:9px;z-index:3;
+  background:rgba(3,12,20,.9);border:1px solid var(--bd2);border-radius:7px;
+  padding:7px 12px;font-family:'Share Tech Mono',monospace;font-size:var(--fs-xs);
+  color:var(--gr);line-height:1.8;white-space:pre;letter-spacing:.04em;
+}
+
+/* Canvas stat overlays (bottom-left) */
+#cstats{
+  position:absolute;bottom:9px;left:9px;z-index:3;display:flex;gap:7px;flex-wrap:wrap;
+}
+.csb{
+  background:rgba(3,12,20,.88);border:1px solid var(--bd);border-radius:6px;
+  padding:4px 9px;font-family:'Share Tech Mono',monospace;font-size:var(--fs-xs);
+}
+.csb-l{color:var(--t4);margin-bottom:1px}
+.csb-v{font-size:var(--fs-md);font-weight:700}
+
+/* Halve notification */
+#hn{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.5);
+  border-radius:10px;padding:11px 22px;
+  font-family:'Orbitron',monospace;font-size:var(--fs-md);color:var(--am);
+  text-align:center;z-index:10;display:none;pointer-events:none;
+}
+@keyframes hnAnim{
+  0%{opacity:0;transform:translate(-50%,-65%)}
+  15%{opacity:1;transform:translate(-50%,-50%)}
+  75%{opacity:1;transform:translate(-50%,-50%)}
+  100%{opacity:0;transform:translate(-50%,-50%)}
+}
+
+/* ── EQUATION BAR (bottom of center) ── */
+#eqbar{
+  flex-shrink:0;background:var(--bg2);border-top:1px solid var(--bd2);
+  padding:9px 18px;display:flex;align-items:center;gap:20px;
+  position:relative;overflow:hidden;min-height:58px;
+}
+#eqbar::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--c),var(--gr),var(--c),transparent);
+  background-size:300%;animation:flowBar 5s linear infinite;
+}
+.eq-formula{font-size:clamp(13px,1.4vw,19px);color:var(--t1);min-width:140px}
+.eq-lbl{font-family:'Share Tech Mono',monospace;font-size:var(--fs-xs);
+  color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+.eq-sep{width:1px;height:34px;background:var(--bd);flex-shrink:0}
+.rdout{display:flex;flex-direction:column;align-items:center;min-width:82px}
+.rd-l{font-family:'Share Tech Mono',monospace;font-size:var(--fs-xs);
+  color:var(--t3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
+.rd-v{font-family:'Orbitron',monospace;font-size:clamp(15px,1.6vw,21px);
+  font-weight:700;line-height:1}
+.rd-u{font-family:'Share Tech Mono',monospace;font-size:var(--fs-xs);color:var(--t3);margin-top:2px}
+.rva{color:var(--c); text-shadow:0 0 10px var(--cg)}
+.rvr{color:var(--gr);text-shadow:0 0 10px var(--grg)}
+.rvt{color:var(--am);text-shadow:0 0 10px var(--amg)}
+
+/* ══════════════════════════════════════════════════
+   RIGHT COLUMN — Graphs
+══════════════════════════════════════════════════ */
+#graphs-body{
+  flex:1;overflow-y:auto;padding:9px;
+  display:flex;flex-direction:column;gap:8px;min-height:0;
+}
+#graphs-body::-webkit-scrollbar{width:3px}
+#graphs-body::-webkit-scrollbar-thumb{background:var(--c);border-radius:2px}
+
+.chart-card{
+  flex:1;min-height:0;
+  background:rgba(1,9,17,.88);border:1px solid var(--bd);border-radius:9px;
+  padding:7px 9px 5px;display:flex;flex-direction:column;
+}
+.chart-card::before{
+  content:'';display:block;height:1px;margin-bottom:5px;
+  background:linear-gradient(90deg,transparent,var(--c),transparent);opacity:.3;
+}
+.chart-ttl{
+  font-family:'Share Tech Mono',monospace;font-size:var(--fs-xs);
+  display:flex;justify-content:space-between;margin-bottom:4px;
+}
+.chart-name{color:var(--c);letter-spacing:.06em;font-size:var(--fs-sm)}
+.chart-sub{color:var(--t3)}
+.chart-wrap{flex:1;position:relative;min-height:0}
+.chart-wrap canvas{position:absolute!important;inset:0;width:100%!important;height:100%!important}
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+══════════════════════════════════════════════════ */
+/* Tablet landscape (≤1100px): shrink columns */
+@media(max-width:1100px){
+  :root{--lw:230px;--rw:290px}
+  .tb-sub{display:none}
+}
+
+/* Tablet portrait (≤900px): left panel collapses to top row,
+   center + right stack below */
+@media(max-width:900px){
+  html,body{height:auto;overflow:auto}
+  #body{
+    grid-template-columns:1fr;
+    grid-template-rows:auto 1fr auto;
+    height:auto;overflow:visible;
+  }
+  .col-left{
+    width:100%;border-right:none;border-bottom:1px solid var(--bd);
+  }
+  #left-body{
+    display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;
+    max-height:none;overflow:visible;
+  }
+  .col-center{
+    order:-1; /* center goes top */
+    height:55vw;min-height:260px;
+  }
+  .col-right{
+    width:100%;border-left:none;border-top:1px solid var(--bd);
+    height:auto;
+  }
+  #graphs-body{
+    flex-direction:row;flex-wrap:wrap;overflow:visible;
+    height:auto;padding-bottom:14px;
+  }
+  .chart-card{flex:1;min-width:calc(50% - 8px);min-height:190px}
+}
+
+/* Phone (≤580px): full single column */
+@media(max-width:580px){
+  :root{--lw:100%;--rw:100%}
+  #left-body{grid-template-columns:1fr}
+  .col-center{height:68vw;min-height:220px}
+  .chart-card{min-width:100%;min-height:170px}
+  .tb-r .status-pill{display:none}
+  #eqbar{gap:12px;flex-wrap:wrap;padding:8px 12px}
+  .eq-sep{display:none}
+  .rdout{min-width:64px}
+  .rd-v{font-size:15px}
+}
+</style>
 </head>
-<body class="p-4 md:p-6 fade-in">
+<body>
 
-    <!-- ==================== 顶部核心理论区 ==================== -->
-    <div class="max-w-7xl mx-auto mb-8">
-        <div class="glass-panel p-6">
-            <div class="flex items-center gap-3 mb-5">
-                <i class="fa-solid fa-lightbulb text-yellow-400 text-2xl drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]"></i>
-                <h2 class="text-2xl font-bold text-white">核心理论</h2>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
-                <!-- 1. 反应级数 -->
-                <div class="flex items-start gap-2">
-                    <span class="yellow-bullet">▶</span>
-                    <div class="tooltip-icon">
-                        <span class="font-bold text-base">反应级数</span><br>
-                        反应速率：<span class="text-teal-300">$ r = k[A]^n $</span>
-                        <span class="tooltip-text">r：速率，k：常数，n：级数 (0,1,2,3)</span>
-                    </div>
-                </div>
-                <!-- 2. LiPF₆水解副反应 -->
-                <div class="flex items-start gap-2">
-                    <span class="yellow-bullet">▶</span>
-                    <div class="tooltip-icon">
-                        <span class="font-bold text-base">LiPF₆ 水解</span><br>
-                        <span class="text-teal-300">$ \text{LiPF}_6 + \text{H}_2\text{O} \rightarrow \text{POF}_3 + 2\text{HF} + \text{LiF} $</span>
-                        <span class="tooltip-text">生成HF腐蚀电极，常近似一级动力学</span>
-                    </div>
-                </div>
-                <!-- 3. Arrhenius公式 -->
-                <div class="flex items-start gap-2">
-                    <span class="yellow-bullet">▶</span>
-                    <div class="tooltip-icon">
-                        <span class="font-bold text-base">Arrhenius</span><br>
-                        <span class="text-teal-300">$ k = A e^{-E_a/(RT)} $</span>
-                        <span class="tooltip-text">温度升高，k指数增大</span>
-                    </div>
-                </div>
-                <!-- 4. 水含量影响 -->
-                <div class="flex items-start gap-2">
-                    <span class="yellow-bullet">▶</span>
-                    <div class="tooltip-icon">
-                        <span class="font-bold text-base">水含量影响</span><br>
-                        ppm级水分即可触发副反应，控制水含量是关键。
-                        <span class="tooltip-text">水含量升高，有效速率增加</span>
-                    </div>
-                </div>
-                <!-- 5. 动力学调控手段 -->
-                <div class="flex items-start gap-2">
-                    <span class="yellow-bullet">▶</span>
-                    <div class="tooltip-icon">
-                        <span class="font-bold text-base">动力学调控</span><br>
-                        降低水含量、降温、添加稳定剂。
-                        <span class="tooltip-text">调控手段减缓副反应</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- ══════════ HEADER ══════════ -->
+<div id="topbar">
+  <div class="tb-l">
+    <div class="tb-icon">⚗</div>
+    <div>
+      <div class="tb-title"><em>反应级数</em> 动力学模拟器</div>
+      <div class="tb-sub">Reaction Order Dynamics Simulator· Kinetics Teaching System v2.0</div>
+    </div>
+  </div>
+  <div class="tb-r">
+    <div class="status-pill">
+      <div class="status-dot" id="sDot"></div>
+      <span id="sTxt">READY</span>
+    </div>
+    <div class="order-badge" id="oBadge">ORDER n = 1</div>
+  </div>
+</div>
+
+<!-- ══════════ THREE-COLUMN BODY ══════════ -->
+<div id="body">
+
+  <!-- ════ LEFT: Parameter Control Panel ════ -->
+  <div class="col col-left">
+    <div class="col-hdr">
+      <div class="col-hdr-ico">⚙</div>
+      <div>
+        <div class="col-hdr-ttl">参数控制台</div>
+      </div>
+      <div class="col-hdr-sub">Control Panel</div>
     </div>
 
-    <!-- ==================== 中部模拟器启动区 ==================== -->
-    <div class="max-w-4xl mx-auto mb-12">
-        <div class="glass-panel p-8 text-center relative overflow-hidden">
-            <i class="fa-solid fa-flask absolute -right-6 -bottom-6 text-8xl text-teal-500/10"></i>
-            <i class="fa-solid fa-code-branch absolute -left-8 top-0 text-7xl text-teal-500/5"></i>
-            <div class="flex justify-center items-center gap-4 mb-3">
-                <i class="fa-solid fa-flask-vial text-3xl teal-highlight"></i>
-                <h1 class="text-3xl md:text-4xl font-title font-bold text-white tracking-wide">0–3级反应动力学调控模拟器</h1>
-            </div>
-            <span class="inline-block bg-teal-900/30 text-teal-400 border border-teal-500 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-6">基础 · 动力学模拟</span>
-            <div class="flex flex-col sm:flex-row justify-center gap-5">
-                <button onclick="openModal('simulatorModal')" class="btn-glow">
-                    <i class="fa-solid fa-play"></i> 启动模拟器
-                </button>
-                <button onclick="openModal('theoryModal')" class="btn-glow">
-                    <i class="fa-solid fa-book"></i> 理论背景
-                </button>
-            </div>
+    <div id="left-body">
+
+      <!-- ① Reaction Order -->
+      <div class="csec">
+        <div class="csec-ttl">① n级反应</div>
+        <div class="order-grid">
+          <button class="ob"    data-n="0" onclick="setOrder(0)">0级<small>zero</small></button>
+          <button class="ob on" data-n="1" onclick="setOrder(1)">1级<small>first</small></button>
+          <button class="ob"    data-n="2" onclick="setOrder(2)">2级<small>second</small></button>
+          <button class="ob"    data-n="3" onclick="setOrder(3)">3级<small>third</small></button>
         </div>
+        <div class="ohint" id="ohint">
+          r = k·[A]¹ — First order: each molecule reacts independently. [A] decays exponentially.
+        </div>
+      </div>
+
+      <!-- ② Rate Constant k -->
+      <div class="csec">
+        <div class="csec-ttl">② 速率常数 k</div>
+        <div class="sg">
+          <div class="sl-row">
+            <span class="sl-name">k (基)</span>
+            <span class="sl-val" id="kDisp">1.0</span>
+          </div>
+          <input type="range" class="rc" id="kSlider" min="0.1" max="5" step="0.1" value="1.0"
+                 oninput="onK(this)">
+          <div class="sl-hint">Range 0.1–5.0 · units vary by order</div>
+        </div>
+      </div>
+
+      <!-- ③ Initial Concentration -->
+      <div class="csec">
+        <div class="csec-ttl">③ 初始浓度 [A]₀</div>
+        <div class="sg">
+          <div class="sl-row">
+            <span class="sl-name">粒子数</span>
+            <span class="sl-val" id="nDisp">120</span>
+          </div>
+          <input type="range" class="rg" id="nSlider" min="40" max="600" step="10" value="120"
+                 oninput="onN(this)">
+          <div class="sl-hint">40–300 · count ≡ relative [A]</div>
+        </div>
+      </div>
+
+      <!-- ④ Temperature -->
+      <div class="csec">
+        <div class="csec-ttl">④ 温度 — 阿伦尼乌斯</div>
+        <div class="sg">
+          <div class="sl-row">
+            <span class="sl-name">T</span>
+            <span class="sl-val" id="tDisp">298 K</span>
+          </div>
+          <input type="range" class="ra" id="tSlider" min="200" max="600" step="5" value="298"
+                 oninput="onT(this)">
+          <div class="sl-hint">200–600 K · k_eff via Arrhenius eqn</div>
+        </div>
+        <div class="arrh">
+          <strong id="keffDisp">k_eff = 1.000</strong><br>
+          k(T) = k₀·exp(−Eₐ/RT)<br>
+          Eₐ = 30 kJ/mol · T₀ = 298 K
+        </div>
+      </div>
+
+      <!-- ⑤ Simulation Buttons -->
+      <div class="csec">
+        <div class="csec-ttl">⑤ 模拟控制</div>
+        <div class="bstack">
+          <button class="btn btn-s" id="btnStart" onclick="startSim()">▶ &nbsp;开始模拟</button>
+          <button class="btn btn-p" id="btnPause" onclick="pauseSim()">⏸ &nbsp;暂停</button>
+          <button class="btn btn-r" onclick="resetSim()">↺ &nbsp;重置</button>
+        </div>
+      </div>
+
+      <!-- ⑥ Halve Concentration -->
+      <div class="csec">
+        <div class="csec-ttl">⑥ 浓度梯度测试</div>
+        <button class="btn btn-h" onclick="halveConc()">½ &nbsp;HALVE [A] → ½[A]</button>
+        <div class="sl-hint" style="text-align:center;line-height:1.9;margin-top:2px">
+          Demonstrates r ∝ [A]ⁿ<br>
+          n=0 → rate ×1 (unchanged)<br>
+          n=1 → rate ×½<br>
+          n=2 → rate ×¼<br>
+          n=3 → rate ×⅛
+        </div>
+        <div id="rcc"></div>
+      </div>
+
+    </div><!-- /left-body -->
+  </div><!-- /col-left -->
+
+  <!-- ════ CENTER: Particle Reaction Box ════ -->
+  <div class="col col-center">
+    <!-- Mini header -->
+    <div id="cx-hdr">
+      <span class="cx-title">⚛ &nbsp;粒子反应区 &nbsp;·&nbsp;Particle Reaction Box </span>
+      <div class="cx-stats">
+        <div class="cxs">
+          <div class="cxs-dot" style="background:var(--c)"></div>
+          <span style="color:var(--t3)">A:</span>
+          <span style="color:var(--c);font-family:'Share Tech Mono',monospace" id="hA">—</span>
+        </div>
+        <div class="cxs">
+          <div class="cxs-dot" style="background:var(--gr)"></div>
+          <span style="color:var(--t3)">P:</span>
+          <span style="color:var(--gr);font-family:'Share Tech Mono',monospace" id="hP">—</span>
+        </div>
+        <div class="cxs">
+          <div class="cxs-dot" style="background:var(--am)"></div>
+          <span style="color:var(--t3)">rxn/s:</span>
+          <span style="color:var(--am);font-family:'Share Tech Mono',monospace" id="hR">—</span>
+        </div>
+      </div>
     </div>
 
-    <!-- ==================== 模拟器模态窗口 ==================== -->
-    <div id="simulatorModal" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50 p-4" style="backdrop-filter: blur(12px);">
-        <div class="glass-panel w-full max-w-7xl max-h-[95vh] overflow-y-auto p-6">
-            <div class="flex justify-between items-center border-b border-teal-800 pb-3 mb-5">
-                <h2 class="text-2xl font-bold teal-highlight"><i class="fa-solid fa-microscope mr-2"></i>动力学控制台</h2>
-                <button onclick="closeModal('simulatorModal')" class="text-slate-400 hover:text-white text-3xl">&times;</button>
-            </div>
-            <!-- 参数区域 + 图表 -->
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <!-- 左侧控制面板 -->
-                <div class="lg:col-span-1 space-y-4">
-                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
-                        <h3 class="text-white font-bold mb-3 border-l-4 border-teal-500 pl-2">环境与动力学参数</h3>
-                        <div class="space-y-3 text-sm">
-                            <div>
-                                <label class="block text-slate-300 mb-1">反应级数 n</label>
-                                <select id="orderSelect" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
-                                    <option value="0">0 级反应</option>
-                                    <option value="1" selected>1 级反应</option>
-                                    <option value="2">2 级反应</option>
-                                    <option value="3">3 级反应</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-slate-300 mb-1">初始浓度 [A]₀ (mol/L)</label>
-                                <input type="number" id="conc0" value="1.0" min="0.01" step="0.1" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
-                            </div>
-                            <div>
-                                <label class="block text-slate-300 mb-1">速率常数 k (298K)</label>
-                                <input type="number" id="rateConst" value="0.05" min="0.001" step="0.01" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
-                            </div>
-                            <div>
-                                <label class="block text-slate-300 mb-1">温度 T (K) <span id="tempVal" class="text-teal-400 float-right">298</span></label>
-                                <input type="range" id="tempSlider" min="250" max="400" value="298" step="1" class="w-full slider-teal" oninput="document.getElementById('tempVal').innerText=this.value">
-                            </div>
-                            <div>
-                                <label class="block text-slate-300 mb-1">活化能 Ea (kJ/mol)</label>
-                                <input type="number" id="eaInput" value="50" min="1" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
-                            </div>
-                            <div>
-                                <label class="block text-slate-300 mb-1">水含量 (ppm) <span id="waterVal" class="text-blue-400 float-right">20</span></label>
-                                <input type="range" id="waterSlider" min="0" max="1000" value="20" step="10" class="w-full slider-teal" oninput="document.getElementById('waterVal').innerText=this.value">
-                            </div>
-                            <div>
-                                <label class="block text-slate-300 mb-1">反应时间 (s)</label>
-                                <input type="number" id="timeMax" value="100" min="5" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
-                            </div>
-                            <div class="pt-2 border-t border-slate-700">
-                                <label class="flex items-center gap-2 text-slate-300">
-                                    <input type="checkbox" id="lipf6Mode" class="form-checkbox text-teal-500 rounded bg-slate-900 border-slate-600">
-                                    <span class="text-sm">开启 LiPF₆ 副反应模式 (HF显示)</span>
-                                </label>
-                            </div>
-                            <button onclick="runSimulation()" class="w-full bg-teal-600 hover:bg-teal-500 text-white py-2 rounded font-bold transition-colors mt-2">计算 / 模拟</button>
-                        </div>
-                    </div>
+    <!-- Canvas -->
+    <div id="cwrap">
+      <canvas id="pCanvas"></canvas>
 
-                    <!-- 教学游戏卡片 -->
-                    <div class="bg-slate-900/70 p-4 rounded-xl border border-yellow-600/40">
-                        <div class="flex items-center gap-2 text-yellow-400 text-xs uppercase tracking-wider mb-2"><i class="fa-solid fa-gamepad"></i> 教学判断实验</div>
-                        <p class="text-xs text-slate-400 mb-2">系统生成一组实验数据，根据 [A]-t 曲线判断反应级数。</p>
-                        <button onclick="generateGameData()" class="w-full bg-slate-700 hover:bg-slate-600 text-white text-xs py-1.5 rounded mb-2">🎲 生成实验数据</button>
-                        <div id="gamePanel" class="hidden">
-                            <p class="text-xs text-teal-300 mb-1">请选择级数：</p>
-                            <div class="flex gap-1">
-                                <button onclick="checkGame(0)" class="flex-1 bg-blue-600/80 text-xs py-1 rounded">0级</button>
-                                <button onclick="checkGame(1)" class="flex-1 bg-blue-600/80 text-xs py-1 rounded">1级</button>
-                                <button onclick="checkGame(2)" class="flex-1 bg-blue-600/80 text-xs py-1 rounded">2级</button>
-                            </div>
-                            <div id="gameFeedback" class="mt-2 text-xs p-2 bg-slate-800 rounded hidden"></div>
-                        </div>
-                    </div>
-                </div>
+      <!-- Reaction mechanism floating tag -->
+      <div id="mechTag">1st ORDER&#10;─────────&#10;r = k·[A]¹&#10;Unimolecular decay</div>
 
-                <!-- 右侧图表区 (3个图) -->
-                <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700 md:col-span-2 h-64">
-                        <canvas id="chartConc"></canvas>
-                    </div>
-                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700 h-60">
-                        <canvas id="chartLn"></canvas>
-                    </div>
-                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700 h-60">
-                        <canvas id="chartArrhenius"></canvas>
-                    </div>
-                </div>
-            </div>
+      <!-- Live stats overlay -->
+      <div id="cstats">
+        <div class="csb">
+          <div class="csb-l">反应物 [A]</div>
+          <div class="csb-v rva" id="csA">—</div>
         </div>
+        <div class="csb">
+          <div class="csb-l">产物 [P]</div>
+          <div class="csb-v rvr" id="csP">—</div>
+        </div>
+        <div class="csb">
+          <div class="csb-l">转化</div>
+          <div class="csb-v" style="color:var(--vl)" id="csConv">—</div>
+        </div>
+        <div class="csb">
+          <div class="csb-l">反应速率 r</div>
+          <div class="csb-v rvt" id="csRate">—</div>
+        </div>
+      </div>
+
+      <!-- Halve notification -->
+      <div id="hn"></div>
+    </div><!-- /cwrap -->
+
+    <!-- Equation bar (bottom of center) -->
+    <div id="eqbar">
+      <div>
+        <div class="eq-formula" id="eqDisp">$$r = k[A]^1$$</div>
+        <div class="eq-lbl">当前速率方程 · Current Rate Law</div>
+      </div>
+      <div class="eq-sep"></div>
+      <div class="rdout">
+        <div class="rd-l">浓度</div>
+        <div class="rd-v rva" id="rdA">—</div>
+        <div class="rd-u">particles</div>
+      </div>
+      <div class="rdout">
+        <div class="rd-l">速率 r</div>
+        <div class="rd-v rvr" id="rdR">—</div>
+        <div class="rd-u">rxn/s</div>
+      </div>
+      <div class="rdout">
+        <div class="rd-l">消失</div>
+        <div class="rd-v rvt" id="rdT">0.0</div>
+        <div class="rd-u">seconds</div>
+      </div>
     </div>
 
-    <!-- ==================== 理论背景模态窗口 ==================== -->
-    <div id="theoryModal" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50 p-4">
-        <div class="glass-panel w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">
-            <div class="flex justify-between items-center border-b border-teal-800 pb-3 mb-4">
-                <h2 class="text-2xl font-bold teal-highlight"><i class="fa-regular fa-file-lines mr-2"></i>动力学理论背景</h2>
-                <button onclick="closeModal('theoryModal')" class="text-slate-400 hover:text-white text-3xl">&times;</button>
-            </div>
-            <div class="space-y-4 text-sm text-slate-300">
-                <section>
-                    <h3 class="text-lg font-bold text-white mb-2">1. 积分速率方程推导</h3>
-                    <p>$ r = -\frac{d[A]}{dt} = k[A]^n $</p>
-                    <ul class="list-disc list-inside ml-2 mt-1 space-y-1">
-                        <li><b>0级：</b>$[A] = [A]_0 - kt$ （直线）</li>
-                        <li><b>1级：</b>$ \ln[A] = \ln[A]_0 - kt$ （半对数直线）</li>
-                        <li><b>2级：</b>$ \frac{1}{[A]} = \frac{1}{[A]_0} + kt $</li>
-                        <li><b>3级：</b>$ \frac{1}{2[A]^2} = \frac{1}{2[A]_0^2} + kt $</li>
-                    </ul>
-                </section>
-                <section>
-                    <h3 class="text-lg font-bold text-white mb-2">2. Arrhenius 方程</h3>
-                    <p>$k(T) = k_{298} \exp\left[ \frac{E_a}{R} \left( \frac{1}{298} - \frac{1}{T} \right) \right]$，其中 $R=8.314\,\text{J/mol·K}$。</p>
-                </section>
-                <section>
-                    <h3 class="text-lg font-bold text-white mb-2">3. LiPF₆ 水解与 HF 生成</h3>
-                    <p>$\text{LiPF}_6 + \text{H}_2\text{O} \rightarrow \text{POF}_3 + 2\text{HF} + \text{LiF}$，HF 腐蚀电极。模拟中水含量增加使有效 k 增大：$k_{eff} = k (1 + 0.002 \times \text{ppm})$。</p>
-                </section>
-                <section>
-                    <h3 class="text-lg font-bold text-white mb-2">4. 工程案例</h3>
-                    <p>锂电电解液注液工序露点控制 -40℃以下（水<20 ppm）；正极浆料分散需调控pH与吸附。</p>
-                </section>
-            </div>
-        </div>
+  </div><!-- /col-center -->
+
+  <!-- ════ RIGHT: Real-time Graphs ════ -->
+  <div class="col col-right">
+    <div class="col-hdr">
+      <div class="col-hdr-ico">📈</div>
+      <div>
+        <div class="col-hdr-ttl">实时动力学图</div>
+      </div>
+      <div class="col-hdr-sub" id="gTime">t = 0.0 s</div>
     </div>
 
-    <script>
-        // ========== 模块化模拟器 (整合 kinetics_model, charts, game) ==========
-        // 全局变量
-        let chartConc, chartLn, chartArr;
-        let gameActualOrder = 1; // 随机生成的目标级数
-        let gameData = []; // 生成的模拟点
-        
-        function openModal(id) {
-            document.getElementById(id).style.display = 'flex';
-            if (id === 'simulatorModal') setTimeout(runSimulation, 150);
+    <div id="graphs-body">
+
+      <!-- Chart 1: [A] vs t -->
+      <div class="chart-card">
+        <div class="chart-ttl">
+          <span class="chart-name">① 浓度 vs 时间</span>
+          <span class="chart-sub">[A] – t</span>
+        </div>
+        <div class="chart-wrap"><canvas id="ch1"></canvas></div>
+      </div>
+
+      <!-- Chart 2: Rate vs [A] -->
+      <div class="chart-card">
+        <div class="chart-ttl">
+          <span class="chart-name">② 速率 vs 浓度</span>
+          <span class="chart-sub">r – [A]</span>
+        </div>
+        <div class="chart-wrap"><canvas id="ch2"></canvas></div>
+      </div>
+
+      <!-- Chart 3: Linearised -->
+      <div class="chart-card">
+        <div class="chart-ttl">
+          <span class="chart-name">③ 线性动力学</span>
+          <span class="chart-sub" id="linLbl">ln[A] – t</span>
+        </div>
+        <div class="chart-wrap"><canvas id="ch3"></canvas></div>
+      </div>
+
+    </div>
+  </div><!-- /col-right -->
+
+</div><!-- /body -->
+
+<!-- ══════════════════════════════════════════════════════════════
+     JAVASCRIPT — Simulation Engine
+     ──────────────────────────────────────────────────────────────
+     Physics model:
+       Rate law:  r = k_eff · [A]^n
+       Arrhenius: k_eff(T) = k₀ · exp(−Eₐ / R·T)  (normalised to T₀=298K)
+
+     Particle mechanics:
+       • 0th order – fixed # particles convert per second (surface catalysis)
+       • 1st order – each particle has probability P = k_eff·dt per frame
+       • 2nd order – two particles must collide (within RRAD pixels) to react
+       • 3rd order – three particles must be simultaneously within RRAD
+══════════════════════════════════════════════════════════════════ -->
+<script>
+// ─── Physical / simulation constants ───────────────────────────
+const R_GAS  = 8.314;     // J mol⁻¹ K⁻¹
+const Ea     = 30000;     // activation energy J/mol
+const T_REF  = 298;       // reference temperature K
+const RRAD   = 25;        // reaction neighbourhood radius px
+const MAX_H  = 240;       // max history points
+
+// ─── Global state ───────────────────────────────────────────────
+const S = {
+  n:1, k:1.0, keff:1.0, T:298, N0:120,
+  running:false, paused:false,
+  time:0, lastTs:null, frameN:0, rateSmooth:0,
+};
+
+// ─── Data history for charts ────────────────────────────────────
+const H = {t:[], A:[], rate:[]};
+
+// ─── Particle and effect arrays ─────────────────────────────────
+let particles = [];
+let flashes   = [];
+
+// ─── Canvas ─────────────────────────────────────────────────────
+const canvas = document.getElementById('pCanvas');
+const ctx    = canvas.getContext('2d');
+let CW = 0, CH = 0;
+
+function resizeCanvas(){
+  const wrap = document.getElementById('cwrap');
+  CW = wrap.clientWidth;
+  CH = wrap.clientHeight;
+  canvas.width  = CW;
+  canvas.height = CH;
+}
+// ResizeObserver keeps canvas size synced when layout changes
+const ro = new ResizeObserver(() => { resizeCanvas(); if(!S.running) drawIdle(); });
+ro.observe(document.getElementById('cwrap'));
+
+// ─── Particle ────────────────────────────────────────────────────
+/*
+  Each Particle represents one molecule of reactant A (cyan) or
+  product P (green). Brownian motion is simulated via random velocity
+  kicks each frame. Speed is slightly faster at higher temperatures.
+*/
+class Particle {
+  constructor(isProd=false){
+    this.x  = Math.random()*CW;
+    this.y  = Math.random()*CH;
+    this.vx = (Math.random()-.5)*2.2;
+    this.vy = (Math.random()-.5)*2.2;
+    this.r  = 5;
+    this.isProd  = isProd;
+    this.flash   = 0;
+    this.reacted = false;
+  }
+  update(){
+    // Brownian random velocity kick
+    this.vx += (Math.random()-.5)*.42;
+    this.vy += (Math.random()-.5)*.42;
+    // Speed cap (faster at high T)
+    const maxV = 2.1 + (S.T-200)/400*1.4;
+    const spd  = Math.hypot(this.vx,this.vy);
+    if(spd > maxV){ this.vx*=maxV/spd; this.vy*=maxV/spd; }
+    this.x += this.vx; this.y += this.vy;
+    // Wall bounce
+    if(this.x<this.r){  this.x=this.r;    this.vx*=-1;}
+    if(this.x>CW-this.r){this.x=CW-this.r;this.vx*=-1;}
+    if(this.y<this.r){  this.y=this.r;    this.vy*=-1;}
+    if(this.y>CH-this.r){this.y=CH-this.r;this.vy*=-1;}
+    if(this.flash>0) this.flash--;
+  }
+  draw(){
+    ctx.save();
+    const fa = this.flash/15;
+    if(this.isProd){
+      // Product: bright green glow
+      ctx.shadowColor='#00ff88'; ctx.shadowBlur=9+fa*14;
+      ctx.fillStyle=`rgba(0,220,110,${.7+fa*.3})`;
+    } else {
+      // Reactant A: cyan glow; white flash on reaction
+      ctx.shadowColor=this.flash>0?'#fff':'#00d4ff';
+      ctx.shadowBlur =this.flash>0?24:11;
+      ctx.fillStyle  =this.flash>0?`rgba(255,255,255,${.85+fa})`:'#00aac8';
+    }
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r+(this.flash>0?3:0), 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ─── Convert reactant → product ─────────────────────────────────
+function convert(p){
+  if(p.isProd||p.reacted) return false;
+  p.isProd=true; p.reacted=true; p.flash=15;
+  flashes.push({x:p.x, y:p.y, age:0, max:20});
+  return true;
+}
+
+// ─── Reaction Mechanics ─────────────────────────────────────────
+/*
+  0th order: Rate = k (constant). Randomly convert a fixed number per dt.
+             Physical model: catalyst surface fully occupied; reactant excess.
+
+  1st order: Rate = k·[A]. Each molecule independently has probability
+             P = k_eff·dt·scale of reacting this frame. Gives exponential decay.
+
+  2nd order: Rate = k·[A]². Two reactant molecules must collide.
+             Detected by pairwise distance < RRAD pixels.
+
+  3rd order: Rate = k·[A]³. Three molecules must be simultaneously close.
+             Extremely rare; termolecular process like 2NO + O₂.
+*/
+function applyReactions(dt){
+  const Ra = particles.filter(p=>!p.isProd);
+  const N  = Ra.length;
+  if(N===0) return 0;
+  let cnt=0;
+
+  if(S.n===0){
+    // Fixed rate independent of N
+    const nRxn = Math.min(Math.round(S.keff*dt*2.8 + Math.random()-.5), N);
+    const sh = [...Ra].sort(()=>Math.random()-.5);
+    for(let i=0;i<nRxn;i++) if(convert(sh[i])) cnt++;
+
+  } else if(S.n===1){
+    // Per-molecule probability
+    const p = Math.min(S.keff*dt*0.095, 0.5);
+    for(const m of Ra) if(Math.random()<p && convert(m)) cnt++;
+
+  } else if(S.n===2){
+    // Pairwise collision check (sampled subset for performance)
+    const lim  = Math.min(N,45);
+    const step = Math.max(1, Math.floor(N/lim));
+    for(let i=0;i<N-1;i+=step){
+      if(Ra[i].reacted) continue;
+      for(let j=i+1; j<Math.min(i+14,N); j++){
+        if(Ra[j].reacted) continue;
+        const dx=Ra[i].x-Ra[j].x, dy=Ra[i].y-Ra[j].y;
+        if(dx*dx+dy*dy < RRAD*RRAD){
+          const pc=Math.min(S.keff*dt*0.2, 0.88);
+          if(Math.random()<pc){ if(convert(Ra[i]))cnt++; if(convert(Ra[j]))cnt++; break; }
         }
-        function closeModal(id) {
-            document.getElementById(id).style.display = 'none';
+      }
+    }
+
+  } else if(S.n===3){
+    // Triplet proximity check
+    const lim  = Math.min(N,22);
+    const step = Math.max(1, Math.floor(N/lim));
+    for(let i=0;i<N-2;i+=step){
+      if(Ra[i].reacted) continue;
+      const nb = Ra.filter((m,k)=>k!==i&&!m.reacted&&
+        Math.hypot(m.x-Ra[i].x,m.y-Ra[i].y)<RRAD);
+      if(nb.length>=2){
+        const pt=Math.min(S.keff*dt*0.35,0.94);
+        if(Math.random()<pt){
+          if(convert(Ra[i]))  cnt++;
+          if(convert(nb[0]))  cnt++;
+          if(convert(nb[1]))  cnt++;
         }
+      }
+    }
+  }
 
-        // 参数校验
-        function validateInputs() {
-            const c0 = parseFloat(document.getElementById('conc0').value);
-            const k = parseFloat(document.getElementById('rateConst').value);
-            const t = parseFloat(document.getElementById('tempSlider').value);
-            const time = parseFloat(document.getElementById('timeMax').value);
-            if (c0 <= 0) return '初始浓度必须 > 0';
-            if (k <= 0) return '速率常数 > 0';
-            if (t <= 0) return '温度 > 0';
-            if (time < 0) return '反应时间 ≥ 0';
-            return '';
-        }
+  particles.forEach(p=>p.reacted=false);
+  return cnt;
+}
 
-        // 计算有效 k 基于温度和活化能 (简化)
-        function computeK(T, k298, Ea) {
-            const R = 8.314; // J/mol·K
-            const EaJ = Ea * 1000;
-            return k298 * Math.exp((EaJ / R) * (1/298 - 1/T));
-        }
+// ─── Draw flash burst rings ──────────────────────────────────────
+function drawFlashes(){
+  flashes = flashes.filter(f=>f.age<f.max);
+  for(const f of flashes){
+    const pr=f.age/f.max, alpha=(1-pr)*.65;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(f.x,f.y,7+pr*22,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(255,255,255,${alpha})`; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.restore();
+    f.age++;
+  }
+}
 
-        // 运行主模拟
-        function runSimulation() {
-            const warn = validateInputs();
-            if (warn) { alert(warn); return; }
+// ─── Draw neighbourhood circles (teaching aid for 2nd/3rd order) ─
+function drawNeighbourhoods(){
+  if(S.n<2) return;
+  const Ra=particles.filter(p=>!p.isProd);
+  ctx.save(); ctx.setLineDash([2,6]);
+  ctx.strokeStyle='rgba(0,180,255,.055)'; ctx.lineWidth=1;
+  for(const p of Ra){ ctx.beginPath(); ctx.arc(p.x,p.y,RRAD,0,Math.PI*2); ctx.stroke(); }
+  ctx.restore();
+}
 
-            const n = parseInt(document.getElementById('orderSelect').value);
-            const A0 = parseFloat(document.getElementById('conc0').value);
-            const k298 = parseFloat(document.getElementById('rateConst').value);
-            const T = parseFloat(document.getElementById('tempSlider').value);
-            const Ea = parseFloat(document.getElementById('eaInput').value);
-            const water = parseFloat(document.getElementById('waterSlider').value);
-            const timeMax = parseFloat(document.getElementById('timeMax').value);
-            const lipf6Mode = document.getElementById('lipf6Mode').checked;
+// ─── Idle state drawing ──────────────────────────────────────────
+function drawIdle(){
+  if(!CW||!CH) return;
+  ctx.clearRect(0,0,CW,CH);
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(0,212,255,.07)';
+  ctx.font=`${Math.min(11,CW/36)}px Share Tech Mono`;
+  ctx.fillText('[ CONFIGURE PARAMETERS → PRESS START ]',CW/2,CH/2-10);
+  ctx.fillStyle='rgba(0,212,255,.04)';
+  ctx.fillText('Particle count ≡ relative concentration [A]',CW/2,CH/2+13);
+  ctx.textAlign='left';
+  // Ghost particles preview
+  for(let i=0;i<25;i++){
+    const gx=((i*71+28)%(CW-24))+12;
+    const gy=((i*47+18)%(CH-24))+12;
+    ctx.save(); ctx.shadowColor='#00d4ff'; ctx.shadowBlur=5;
+    ctx.fillStyle='rgba(0,160,200,.13)';
+    ctx.beginPath(); ctx.arc(gx,gy,5,0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+}
 
-            // 修正k: 温度 + 水含量影响 (水因子)
-            let k = computeK(T, k298, Ea);
-            if (lipf6Mode) {
-                k = k * (1 + 0.002 * water); // 水加速因子
-            }
+// ─── Main animation loop ─────────────────────────────────────────
+let rafId=null;
 
-            // 生成时间数组
-            const times = [];
-            const conc = [];
-            const step = timeMax / 60;
-            for (let t = 0; t <= timeMax; t += step) {
-                times.push(t);
-                let ct = A0;
-                if (n === 0) ct = Math.max(0, A0 - k * t);
-                else if (n === 1) ct = A0 * Math.exp(-k * t);
-                else if (n === 2) ct = 1 / (1/A0 + k * t);
-                else if (n === 3) ct = Math.sqrt(1 / (2 * (1/(2*A0*A0) + k * t))); // 1/(2A^2) = 1/(2A0^2) + kt
-                if (ct < 0) ct = 0;
-                conc.push(ct);
-            }
+function animLoop(ts){
+  if(!S.running||S.paused) return;
 
-            // 更新浓度曲线
-            if (chartConc) {
-                chartConc.data.labels = times.map(v => v.toFixed(1));
-                chartConc.data.datasets[0].data = conc;
-                chartConc.update();
-            }
+  const dt = S.lastTs ? Math.min((ts-S.lastTs)/1000, .05) : .016;
+  S.lastTs = ts;
+  S.time  += dt;
+  S.frameN++;
 
-            // 计算 ln[A] 与 1/[A] (用于检测线性)
-            const lnA = [];
-            const invA = [];
-            times.forEach((t,i) => {
-                const c = conc[i];
-                lnA.push(c > 0 ? Math.log(c) : null);
-                invA.push(c > 0 ? 1/c : null);
-            });
-            if (chartLn) {
-                chartLn.data.labels = times.map(v => v.toFixed(1));
-                chartLn.data.datasets[0].data = lnA;  // 一级检验
-                chartLn.data.datasets[1].data = invA; // 二级检验 (右侧轴可忽略)
-                chartLn.update();
-            }
+  // Physics
+  particles.forEach(p=>p.update());
+  const rxns = applyReactions(dt);
 
-            // Arrhenius曲线: 温度范围
-            const temps = [];
-            const ks = [];
-            for (let tt = 260; tt <= 400; tt+=10) {
-                temps.push(tt);
-                ks.push(computeK(tt, k298, Ea));
-            }
-            if (chartArr) {
-                chartArr.data.labels = temps;
-                chartArr.data.datasets[0].data = ks;
-                chartArr.update();
-            }
+  // Smooth rate
+  const A = particles.filter(p=>!p.isProd).length;
+  S.rateSmooth = S.rateSmooth*.88 + (rxns/dt)*.12;
 
-            // 若lipf6模式, 简单显示HF生成(文本提示)
-            if (lipf6Mode && window.gameFeedback) {
-                // 可显示额外信息
-            }
-        }
+  // Render
+  ctx.clearRect(0,0,CW,CH);
+  drawNeighbourhoods();
+  particles.forEach(p=>p.draw());
+  drawFlashes();
 
-        // 生成游戏数据 (随机选择0,1,2级, 并绘制点)
-        function generateGameData() {
-            const possible = [0,1,2];
-            gameActualOrder = possible[Math.floor(Math.random() * possible.length)];
-            const A0 = 1.0;
-            const k_game = 0.04;
-            const tMax = 60;
-            const pts = [];
-            for (let t=0; t<=tMax; t+=3) {
-                let c = A0;
-                if (gameActualOrder === 0) c = Math.max(0, A0 - k_game * t);
-                else if (gameActualOrder === 1) c = A0 * Math.exp(-k_game * t);
-                else if (gameActualOrder === 2) c = 1 / (1/A0 + k_game * t);
-                pts.push({t, c});
-            }
-            gameData = pts;
-            // 把游戏数据绘制到主浓度图上作为散点 (新数据集)
-            if (chartConc) {
-                chartConc.data.datasets[1] = {
-                    label: '实验数据 (未知级数)',
-                    data: pts.map(p => p.c),
-                    borderColor: '#facc15',
-                    backgroundColor: '#facc15',
-                    type: 'scatter',
-                    pointRadius: 5,
-                    showLine: false
-                };
-                chartConc.update();
-            }
-            document.getElementById('gamePanel').classList.remove('hidden');
-            document.getElementById('gameFeedback').classList.add('hidden');
-        }
+  // Charts + HUD every 3 frames (performance)
+  if(S.frameN%3===0){
+    pushHistory(A, S.rateSmooth);
+    refreshCharts();
+    refreshHUD(A);
+  }
 
-        function checkGame(guess) {
-            const fbDiv = document.getElementById('gameFeedback');
-            fbDiv.classList.remove('hidden');
-            let msg = guess === gameActualOrder ? '✅ 正确！' : '❌ 错误，';
-            if (gameActualOrder === 0) msg += '这是0级反应：[A]与t呈线性。';
-            else if (gameActualOrder === 1) msg += '这是一级反应：ln[A]与t呈线性。';
-            else if (gameActualOrder === 2) msg += '这是二级反应：1/[A]与t呈线性。';
-            fbDiv.innerHTML = msg;
-        }
+  if(A===0){ setStatus('COMPLETE',false); return; }
+  rafId = requestAnimationFrame(animLoop);
+}
 
-        // 初始化图表
-        window.onload = function() {
-            const ctx1 = document.getElementById('chartConc').getContext('2d');
-            chartConc = new Chart(ctx1, {
-                type: 'line',
-                data: { labels: [], datasets: [{ label: '浓度 [A] (mol/L)', borderColor: '#0d9488', data: [], pointRadius: 0 }] },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-            const ctx2 = document.getElementById('chartLn').getContext('2d');
-            chartLn = new Chart(ctx2, {
-                type: 'line',
-                data: { labels: [], datasets: [
-                    { label: 'ln[A]', borderColor: '#f43f5e', data: [], pointRadius: 0, yAxisID: 'y' },
-                    { label: '1/[A]', borderColor: '#facc15', data: [], pointRadius: 0, yAxisID: 'y1' }
-                ]},
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { type: 'linear', position: 'left' }, y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } } } }
-            });
-            const ctx3 = document.getElementById('chartArrhenius').getContext('2d');
-            chartArr = new Chart(ctx3, {
-                type: 'line',
-                data: { labels: [], datasets: [{ label: 'k(T)', borderColor: '#0d9488', data: [] }] },
-                options: { responsive: true }
-            });
+// ─── Arrhenius ────────────────────────────────────────────────────
+// k_eff(T) = k₀ · exp(−Eₐ/R · (1/T − 1/T₀))
+// Normalised so k_eff = k₀ at T = T₀ = 298 K
+function computeKeff(T){ return S.k * Math.exp(-Ea/R_GAS*(1/T-1/T_REF)); }
 
-            // 关闭模态点击外部
-            window.onclick = function(e) {
-                if (e.target.classList.contains('modal-overlay')) {
-                    e.target.style.display = 'none';
-                }
-            };
-        };
-    </script>
+// ─── History ──────────────────────────────────────────────────────
+function pushHistory(A,rate){
+  if(H.t.length===0 || S.time-H.t[H.t.length-1]>0.1){
+    H.t.push(+S.time.toFixed(2));
+    H.A.push(A);
+    H.rate.push(+rate.toFixed(3));
+    if(H.t.length>MAX_H){ H.t.shift(); H.A.shift(); H.rate.shift(); }
+  }
+}
+function clearHistory(){ H.t=[]; H.A=[]; H.rate=[]; }
+
+// ─── Linearised transform for Chart 3 ────────────────────────────
+/*
+  Linearisation plots that give straight lines for each order:
+    0th order: [A]   vs t  → slope = −k
+    1st order: ln[A] vs t  → slope = −k
+    2nd order: 1/[A] vs t  → slope = +k
+    3rd order: 1/[A]² vs t → slope = +2k
+*/
+function linY(A){
+  if(A<=0) return null;
+  switch(S.n){
+    case 0: return A;
+    case 1: return Math.log(A);
+    case 2: return 1/A;
+    case 3: return 1/(2*A*A);
+  }
+}
+const LIN_LABELS = ['[A] vs t  (slope=−k)','ln[A] vs t  (slope=−k)',
+                    '1/[A] vs t  (slope=+k)','1/[A]² vs t  (slope=+2k)'];
+const LIN_YLAB   = ['[A]','ln[A]','1/[A]','1/[A]²'];
+
+// ─── Chart.js setup ───────────────────────────────────────────────
+function mkOpts(yLbl,xLbl){
+  return {
+    responsive:true, maintainAspectRatio:false, animation:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:'#0a1e30',borderColor:'rgba(0,180,255,.3)',borderWidth:1,
+        titleColor:'#00d4ff',bodyColor:'#6a9bbf',
+        titleFont:{family:'Share Tech Mono',size:9},
+        bodyFont:{family:'Share Tech Mono',size:9},
+      }
+    },
+    scales:{
+      x:{
+        title:{display:true,text:xLbl,color:'#2a5470',font:{family:'Share Tech Mono',size:8}},
+        ticks:{color:'#2a5470',font:{family:'Share Tech Mono',size:8},maxTicksLimit:6},
+        grid:{color:'rgba(0,100,160,.1)'},border:{color:'rgba(0,100,160,.2)'}
+      },
+      y:{
+        title:{display:true,text:yLbl,color:'#2a5470',font:{family:'Share Tech Mono',size:8}},
+        ticks:{color:'#2a5470',font:{family:'Share Tech Mono',size:8},maxTicksLimit:5},
+        grid:{color:'rgba(0,100,160,.1)'},border:{color:'rgba(0,100,160,.2)'}
+      }
+    }
+  };
+}
+function lineDS(clr,data){
+  return{data,borderColor:clr,
+    backgroundColor:clr.replace('rgb(','rgba(').replace(')',',0.07)'),
+    borderWidth:2,pointRadius:0,fill:true,tension:.35};
+}
+
+const C1 = new Chart(document.getElementById('ch1'),{
+  type:'line',
+  data:{labels:[], datasets:[lineDS('rgb(0,212,255)',[]) ]},
+  options:mkOpts('[A] (particles)','Time (s)')
+});
+const C2 = new Chart(document.getElementById('ch2'),{
+  type:'scatter',
+  data:{datasets:[{data:[],borderColor:'rgb(0,255,136)',
+    backgroundColor:'rgba(0,255,136,.55)',pointRadius:2.2,pointHoverRadius:4}]},
+  options:mkOpts('Rate r (rxn/s)','[A] (particles)')
+});
+const C3 = new Chart(document.getElementById('ch3'),{
+  type:'line',
+  data:{labels:[], datasets:[lineDS('rgb(170,85,255)',[]) ]},
+  options:mkOpts('ln[A]','Time (s)')
+});
+
+function refreshCharts(){
+  // Chart 1
+  C1.data.labels=H.t.map(v=>v.toFixed(1));
+  C1.data.datasets[0].data=H.A;
+  C1.update('none');
+  // Chart 2
+  C2.data.datasets[0].data=H.A.map((a,i)=>({x:a,y:H.rate[i]}));
+  C2.update('none');
+  // Chart 3
+  C3.data.labels=H.t.map(v=>v.toFixed(1));
+  C3.data.datasets[0].data=H.A.map(a=>{
+    const v=linY(a); return (v===null||!isFinite(v))?null:+v.toFixed(5);
+  });
+  C3.options.scales.y.title.text=LIN_YLAB[S.n];
+  C3.update('none');
+}
+function clearCharts(){
+  clearHistory();
+  C1.data.labels=[]; C1.data.datasets[0].data=[]; C1.update('none');
+  C2.data.datasets[0].data=[];                     C2.update('none');
+  C3.data.labels=[]; C3.data.datasets[0].data=[]; C3.update('none');
+}
+
+// ─── HUD refresh ──────────────────────────────────────────────────
+function refreshHUD(A){
+  if(A===undefined) A=particles.filter(p=>!p.isProd).length;
+  const P    = particles.filter(p=>p.isProd).length;
+  const tot  = (A+P)||S.N0;
+  const conv = ((P/tot)*100).toFixed(1);
+  const r    = S.rateSmooth;
+  // Header stats
+  document.getElementById('hA').textContent=A;
+  document.getElementById('hP').textContent=P;
+  document.getElementById('hR').textContent=r.toFixed(1);
+  // Canvas overlays
+  document.getElementById('csA').textContent=A;
+  document.getElementById('csP').textContent=P;
+  document.getElementById('csConv').textContent=conv+'%';
+  document.getElementById('csRate').textContent=r.toFixed(2);
+  // Equation bar
+  document.getElementById('rdA').textContent=A;
+  document.getElementById('rdR').textContent=r.toFixed(2);
+  document.getElementById('rdT').textContent=S.time.toFixed(1);
+  document.getElementById('gTime').textContent='t = '+S.time.toFixed(1)+' s';
+}
+
+function setStatus(txt,active){
+  document.getElementById('sTxt').textContent=txt;
+  const d=document.getElementById('sDot');
+  d.style.background=active?'var(--gr)':'var(--am)';
+  d.style.boxShadow =active?'0 0 8px var(--grg)':'0 0 8px var(--amg)';
+}
+
+// ─── Slider fill progress ─────────────────────────────────────────
+function fill(el){
+  const pct=((el.value-el.min)/(el.max-el.min)*100).toFixed(1)+'%';
+  el.style.setProperty('--p',pct);
+}
+document.querySelectorAll('input[type=range]').forEach(el=>{
+  fill(el); el.addEventListener('input',()=>fill(el));
+});
+
+// ─── Order metadata ────────────────────────────────────────────────
+const ORDER_HINTS=[
+  'r = k·[A]⁰ = k — 零级: 速率与[A]无关，为常数。典型例子是表面催化反应，其中催化剂活性位点完全被占据.',
+  'r = k·[A]¹ — 一级:  每个分子在单位时间内有独立的、固定的反应概率。[A]呈指数衰减。经典例子：放射性衰变y.',
+  'r = k·[A]² — 二级: 需要两个反应物分子发生双分子碰撞。将[A]减半，速率降至四分之一。常见于 A + A → 产物的反应',
+  'r = k·[A]³ — 三级: 三分子过程，需要三个分子同时碰撞——非常罕见。将[A]减半，速率降至八分之一。例子: 2NO + O₂.'
+];
+const MECH_TAGS=[
+  '0th ORDER\n─────────\nRate = k (constant)\nSurface catalysis\nIndep. of [A]',
+  '1st ORDER\n─────────\nRate = k·[A]\nUnimolecular decay\nExponential curve',
+  '2nd ORDER\n─────────\nRate = k·[A]²\nBimolecular collision\nA + A → P',
+  '3rd ORDER\n─────────\nRate = k·[A]³\nTermolecular event\n3A → P (very rare)'
+];
+const EQ_LATEX=['r = k[A]^0 = k','r = k[A]^1','r = k[A]^2','r = k[A]^3'];
+
+// ─── setOrder ─────────────────────────────────────────────────────
+function setOrder(n){
+  S.n=n;
+  document.querySelectorAll('.ob').forEach(b=>b.classList.toggle('on',+b.dataset.n===n));
+  document.getElementById('ohint').textContent=ORDER_HINTS[n];
+  document.getElementById('mechTag').textContent=MECH_TAGS[n];
+  document.getElementById('linLbl').textContent=LIN_LABELS[n];
+  document.getElementById('oBadge').textContent='ORDER n = '+n;
+  // MathJax equation
+  const el=document.getElementById('eqDisp');
+  el.innerHTML='$$'+EQ_LATEX[n]+'$$';
+  if(window.MathJax) MathJax.typesetPromise([el]).catch(()=>{});
+  // Update chart 3 y-axis label
+  C3.options.scales.y.title.text=LIN_YLAB[n];
+  C3.update('none');
+  clearCharts();
+}
+
+// ─── Slider callbacks ─────────────────────────────────────────────
+function onK(el){
+  S.k=parseFloat(el.value);
+  S.keff=computeKeff(S.T);
+  document.getElementById('kDisp').textContent=S.k.toFixed(1);
+  document.getElementById('keffDisp').textContent='k_eff = '+S.keff.toFixed(3);
+}
+function onN(el){
+  S.N0=parseInt(el.value);
+  document.getElementById('nDisp').textContent=el.value;
+}
+function onT(el){
+  S.T=parseInt(el.value);
+  S.keff=computeKeff(S.T);
+  document.getElementById('tDisp').textContent=S.T+' K';
+  document.getElementById('keffDisp').textContent='k_eff = '+S.keff.toFixed(3);
+}
+
+// ─── Simulation buttons ───────────────────────────────────────────
+function startSim(){
+  if(S.running&&!S.paused) return;
+  if(!S.running){
+    particles=[];
+    for(let i=0;i<S.N0;i++) particles.push(new Particle(false));
+    clearCharts();
+    S.time=0; S.lastTs=null; S.frameN=0; S.rateSmooth=0;
+    flashes=[];
+    refreshHUD();
+  }
+  S.running=true; S.paused=false;
+  setStatus('RUNNING',true);
+  document.getElementById('btnPause').textContent='⏸  PAUSE';
+  rafId=requestAnimationFrame(animLoop);
+}
+
+function pauseSim(){
+  if(!S.running) return;
+  S.paused=!S.paused;
+  if(S.paused){
+    setStatus('PAUSED',false);
+    document.getElementById('btnPause').textContent='▶  RESUME';
+  } else {
+    setStatus('RUNNING',true);
+    document.getElementById('btnPause').textContent='⏸  PAUSE';
+    S.lastTs=null;
+    rafId=requestAnimationFrame(animLoop);
+  }
+}
+
+function resetSim(){
+  cancelAnimationFrame(rafId);
+  S.running=false; S.paused=false;
+  S.time=0; S.lastTs=null; S.frameN=0; S.rateSmooth=0;
+  flashes=[]; particles=[];
+  clearCharts();
+  ctx.clearRect(0,0,CW,CH);
+  drawIdle();
+  refreshHUD(0);
+  setStatus('READY',false);
+  document.getElementById('btnPause').textContent='⏸  PAUSE';
+  document.getElementById('rcc').style.display='none';
+}
+
+// ─── Halve Concentration ──────────────────────────────────────────
+/*
+  Suddenly removes half the reactant particles. Then observe how
+  the measured rate changes — it demonstrates r ∝ [A]ⁿ:
+    n=0: rate unchanged (×1)
+    n=1: rate halves    (×½)
+    n=2: rate quarters  (×¼)
+    n=3: rate eighths   (×⅛)
+*/
+function halveConc(){
+  const Ra = particles.filter(p=>!p.isProd);
+  if(Ra.length===0) return;
+  const nRem=Math.floor(Ra.length/2);
+  const sh=[...Ra].sort(()=>Math.random()-.5);
+  for(let i=0;i<nRem;i++){
+    sh[i].isProd=true; sh[i].flash=12;
+    flashes.push({x:sh[i].x, y:sh[i].y, age:0, max:22});
+  }
+  const labels=['×1 (unchanged)','× ½','× ¼','× ⅛'];
+  // Rate chip
+  const chip=document.getElementById('rcc');
+  chip.style.cssText=S.n===0
+    ?'display:block;color:var(--gr);border:1px solid rgba(0,255,136,.4);background:var(--grd);animation:popin .3s ease;padding:5px 12px;border-radius:6px;font-family:Share Tech Mono,monospace;font-size:11px;margin-top:5px'
+    :'display:block;color:var(--am);border:1px solid rgba(255,170,0,.4);background:var(--amd);animation:popin .3s ease;padding:5px 12px;border-radius:6px;font-family:Share Tech Mono,monospace;font-size:11px;margin-top:5px';
+  chip.textContent='[A]→½[A]  Rate expected '+labels[S.n];
+  // Canvas notification
+  const hn=document.getElementById('hn');
+  hn.textContent='½ [A] applied\nRate expected '+labels[S.n];
+  hn.style.cssText='display:block;animation:hnAnim 2.8s ease forwards';
+  setTimeout(()=>{ chip.style.display='none'; hn.style.display='none'; }, 3000);
+}
+
+// ─── Initialise ───────────────────────────────────────────────────
+function init(){
+  S.keff=computeKeff(S.T);
+  document.getElementById('keffDisp').textContent='k_eff = '+S.keff.toFixed(3);
+  setOrder(1);
+  resizeCanvas();
+  drawIdle();
+  refreshHUD(0);
+}
+init();
+</script>
 </body>
 </html>
