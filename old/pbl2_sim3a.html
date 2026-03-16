@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Green Hydrogen Energy Optimization Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600&display=swap');
+
+/* ── Root Variables ─────────────────────────────── */
+:root {
+  --bg0: #020c18;
+  --bg1: #061525;
+  --bg2: #0a1e35;
+  --bg3: #0e2540;
+  --bd:  #163a60;
+  --bd2: #1e4a78;
+  --c1:  #00d4ff;   /* cyan – electric */
+  --c2:  #39ff14;   /* green – hydrogen */
+  --c3:  #ffcc00;   /* gold – ammonia */
+  --c4:  #ff6b35;   /* orange – heat/warn */
+  --c5:  #b060ff;   /* purple – carbon */
+  --c6:  #00ff88;   /* mint – good score */
+  --tm:  #c0dcf8;
+  --td:  #3a6a9a;
+  --fmono: 'Share Tech Mono', monospace;
+  --ftitle:'Orbitron', sans-serif;
+  --fbody: 'Rajdhani', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--bg0);
+  color: var(--tm);
+  font-family: var(--fbody);
+  display: flex;
+  flex-direction: column;
+  background-image:
+    radial-gradient(ellipse 80% 40% at 50% 0%, rgba(0,100,200,.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 60% at 80% 90%, rgba(0,30,80,.1)   0%, transparent 60%);
+}
+
+/* ── Header ────────────────────────────────────── */
+#hdr {
+  flex-shrink: 0;
+  height: 52px;
+  background: linear-gradient(90deg, #020c18, #08203e, #020c18);
+  border-bottom: 1px solid var(--c1);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 22px;
+  box-shadow: 0 3px 30px rgba(0,212,255,.18);
+  position: relative; z-index: 20;
+}
+#hdr::after {
+  content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c1), transparent);
+  animation: hglow 3s linear infinite;
+}
+@keyframes hglow { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+.htitle {
+  font-family: var(--ftitle); font-size: .85rem; font-weight: 900;
+  color: var(--c1); letter-spacing: 3px; text-shadow: 0 0 12px var(--c1);
+}
+.hsub { font-family: var(--fmono); font-size: .55rem; color: var(--td); margin-top: 1px; }
+.hbadge {
+  font-family: var(--fmono); font-size: .58rem;
+  padding: 3px 12px; border-radius: 2px; border: 1px solid;
+  animation: blink 2s step-end infinite;
+}
+.hbadge.run { border-color: var(--c2); color: var(--c2); box-shadow: 0 0 8px rgba(57,255,20,.25); }
+.hbadge.idle{ border-color: var(--td); color: var(--td); }
+@keyframes blink { 50%{opacity:.35} }
+
+/* ── Main layout ────────────────────────────────── */
+#main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 270px 1fr 300px;
+  grid-template-rows: 1fr 90px;
+  gap: 8px; padding: 8px;
+  overflow: hidden;
+}
+
+/* ── Panel base ─────────────────────────────────── */
+.pnl {
+  background: var(--bg1); border: 1px solid var(--bd);
+  border-radius: 6px; position: relative; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.pnl::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--c1), transparent);
+  opacity: .4;
+}
+.pt {
+  font-family: var(--ftitle); font-size: .54rem; letter-spacing: 3px;
+  color: var(--c1); text-transform: uppercase;
+  padding: 9px 13px 7px;
+  border-bottom: 1px solid rgba(0,212,255,.1);
+  display: flex; align-items: center; gap: 7px; flex-shrink: 0;
+}
+.dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--c1); box-shadow: 0 0 5px var(--c1);
+  animation: dp 1.8s ease-in-out infinite; flex-shrink: 0;
+}
+@keyframes dp { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(.6)} }
+.dot.g { background:var(--c2); box-shadow:0 0 5px var(--c2); }
+.dot.y { background:var(--c3); box-shadow:0 0 5px var(--c3); }
+.dot.o { background:var(--c4); box-shadow:0 0 5px var(--c4); }
+.dot.p { background:var(--c5); box-shadow:0 0 5px var(--c5); }
+
+/* ── Left panel ─────────────────────────────────── */
+#lp { grid-column:1; grid-row:1; }
+.lpb { padding: 10px 13px; overflow-y: auto; flex: 1;
+  scrollbar-width: thin; scrollbar-color: var(--bd) transparent; }
+.lpb::-webkit-scrollbar { width: 3px; }
+.lpb::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 2px; }
+
+/* Slider group */
+.sg { margin-bottom: 16px; }
+.sl { font-family: var(--fmono); font-size: .6rem; color: var(--td);
+  display: flex; justify-content: space-between; margin-bottom: 5px; }
+.sv { font-family: var(--fmono); font-size: .75rem; font-weight: bold; color: var(--c1); }
+
+input[type=range] {
+  -webkit-appearance: none; width: 100%; height: 4px;
+  background: var(--bg3); border-radius: 2px; outline: none;
+  border: 1px solid var(--bd); cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%;
+  background: var(--c1); box-shadow: 0 0 7px var(--c1); cursor: pointer; transition: .2s;
+}
+input[type=range]:hover::-webkit-slider-thumb { box-shadow: 0 0 14px var(--c1); }
+
+/* Different slider colors */
+#s-eff::-webkit-slider-thumb  { background:var(--c2); box-shadow:0 0 7px var(--c2); }
+#s-heat::-webkit-slider-thumb { background:var(--c4); box-shadow:0 0 7px var(--c4); }
+#s-drop::-webkit-slider-thumb { background:var(--c4); box-shadow:0 0 7px rgba(255,107,53,.7); }
+#s-green::-webkit-slider-thumb{ background:var(--c2); box-shadow:0 0 7px var(--c2); }
+
+.rl { display:flex; justify-content:space-between;
+  font-family:var(--fmono); font-size:.52rem; color:var(--td); margin-top:2px; }
+
+/* Visual gauge bar */
+.gbar { height: 6px; background: var(--bg3); border-radius: 3px;
+  overflow: hidden; margin-top: 4px; border: 1px solid var(--bd); }
+.gfill { height: 100%; border-radius: 3px; transition: width .4s cubic-bezier(.4,0,.2,1); }
+
+/* Info box */
+.ibox { background: var(--bg2); border: 1px solid var(--bd); border-radius: 4px;
+  padding: 8px 10px; margin-bottom: 12px; }
+.irow { display: flex; justify-content: space-between; padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,.04); }
+.irow:last-child { border: none; }
+.ik { font-family:var(--fmono); font-size:.58rem; color:var(--td); }
+.iv { font-family:var(--fmono); font-size:.64rem; color:var(--c3); }
+
+/* Start button */
+#btn-start {
+  width: 100%; padding: 11px;
+  font-family: var(--ftitle); font-size: .65rem; font-weight: 700;
+  letter-spacing: 3px; color: var(--bg0);
+  background: linear-gradient(135deg, var(--c2), #00cc77);
+  border: none; border-radius: 4px; cursor: pointer;
+  box-shadow: 0 0 20px rgba(57,255,20,.3);
+  transition: all .25s; text-transform: uppercase; margin-top: 4px;
+}
+#btn-start:hover { box-shadow: 0 0 30px rgba(57,255,20,.5); transform: translateY(-1px); }
+#btn-start:active { transform: translateY(0); }
+#btn-start.running {
+  background: linear-gradient(135deg, #ff4444, #cc2222);
+  box-shadow: 0 0 20px rgba(255,68,68,.3); color: white;
+}
+
+/* ── Middle canvas area ─────────────────────────── */
+#mp { grid-column:2; grid-row:1; overflow: hidden; }
+#flow-canvas { display: block; width: 100%; height: 100%; }
+
+/* ── Right panel ────────────────────────────────── */
+#rp { grid-column:3; grid-row:1; overflow: hidden; }
+.rpb { padding: 10px 13px; overflow-y: auto; flex: 1;
+  scrollbar-width: thin; scrollbar-color: var(--bd) transparent; }
+.rpb::-webkit-scrollbar { width: 3px; }
+.rpb::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 2px; }
+
+/* Metric card */
+.mc {
+  background: var(--bg2); border: 1px solid var(--bd);
+  border-radius: 4px; padding: 8px 11px; margin-bottom: 8px;
+  position: relative; overflow: hidden;
+}
+.mc::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: var(--c1); opacity: .15;
+}
+.mn { font-family:var(--fmono); font-size:.55rem; color:var(--td); margin-bottom:2px; }
+.mv { font-family:var(--fmono); font-size:1.1rem; font-weight:bold; color:var(--c1);
+  text-shadow: 0 0 8px rgba(0,212,255,.4); transition: color .4s; }
+.mu { font-family:var(--fmono); font-size:.5rem; color:var(--td); margin-left:2px; }
+.mv.hi { color:var(--c2); text-shadow:0 0 8px rgba(57,255,20,.5); }
+.mv.warn { color:var(--c4); text-shadow:0 0 8px rgba(255,107,53,.5); }
+.mv.danger { color:#ff3d3d; text-shadow:0 0 8px rgba(255,61,61,.5); }
+
+/* Formula display */
+.formula {
+  font-family: var(--fmono); font-size: .55rem; color: rgba(0,212,255,.45);
+  margin-top: 3px; line-height: 1.6;
+}
+
+/* Trend spark */
+.spark-wrap { height: 28px; margin-top: 5px; }
+#spark-canvas { width: 100%; height: 28px; }
+
+/* Carbon bar */
+.cbar-wrap { margin-top: 6px; }
+.cbar-lbl { display:flex; justify-content:space-between;
+  font-family:var(--fmono); font-size:.55rem; color:var(--td); margin-bottom:3px; }
+.cbar-track { height:8px; background:rgba(0,0,0,.5);
+  border-radius:4px; overflow:hidden; border:1px solid var(--bd); }
+.cbar-fill { height:100%; border-radius:4px;
+  transition: width .4s cubic-bezier(.4,0,.2,1), background .4s; }
+
+/* ── Bottom score panel ──────────────────────────── */
+#bp {
+  grid-column: 1 / -1; grid-row: 2;
+  background: var(--bg1); border: 1px solid var(--bd);
+  border-radius: 6px; overflow: hidden;
+  display: flex; align-items: center;
+}
+.score-section {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 8px 20px; position: relative;
+}
+.score-section + .score-section {
+  border-left: 1px solid var(--bd);
+}
+.score-lbl {
+  font-family: var(--ftitle); font-size: .48rem; letter-spacing: 3px;
+  color: var(--td); text-transform: uppercase; margin-bottom: 4px;
+}
+.score-val {
+  font-family: var(--ftitle); font-size: 1.6rem; font-weight: 900;
+  text-shadow: 0 0 15px;
+  transition: all .5s;
+}
+.score-val.es  { color: var(--c2); text-shadow: 0 0 15px rgba(57,255,20,.6); }
+.score-val.cs  { color: var(--c5); text-shadow: 0 0 15px rgba(176,96,255,.6); }
+.score-val.tot { color: var(--c3); text-shadow: 0 0 15px rgba(255,204,0,.6); }
+.score-grade {
+  font-family: var(--fmono); font-size: .58rem; margin-top: 2px;
+}
+.score-bar { width: 100%; height: 4px; background: var(--bg3);
+  border-radius: 2px; overflow: hidden; margin-top: 5px; }
+.score-bar-fill { height: 100%; border-radius: 2px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+
+/* ── Scan overlay ────────────────────────────────── */
+body::after {
+  content: ''; position: fixed; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0,212,255,.07), transparent);
+  animation: scan 6s linear infinite; pointer-events: none; z-index: 9999;
+}
+@keyframes scan { 0%{top:0} 100%{top:100vh} }
+
+/* ── Tooltip / formula overlay ───────────────────── */
+.fbox {
+  background: var(--bg2); border: 1px solid rgba(0,212,255,.2);
+  border-radius: 4px; padding: 7px 10px; margin-bottom: 8px;
+  font-family: var(--fmono); font-size: .56rem; color: var(--td);
+  line-height: 1.7;
+}
+.fbox span { color: var(--c1); }
+.fbox .res { color: var(--c3); font-size: .62rem; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div id="hdr">
+  <div>
+    <div class="htitle">⚡ Green Hydrogen Energy Optimization Simulator</div>
+    <div class="hsub">100 MW 风电制绿氢 → 合成氨厂 · 企业经营决策模拟器 · 工业能效优化教学平台</div>
+  </div>
+  <div class="hbadge idle" id="status-badge">● STANDBY</div>
+</div>
+
+<!-- ── Main ── -->
+<div id="main">
+
+  <!-- ════════ Left: Controls ════════ -->
+  <div class="pnl" id="lp">
+    <div class="pt"><span class="dot g"></span>参数控制台</div>
+    <div class="lpb">
+
+      <!-- 装机参数 -->
+      <div class="fbox">
+        <div>风电装机: <span>100 MW</span></div>
+        <div>年利用小时: <span>2500 h/yr</span></div>
+        <div>年发电量: <span>2.5 × 10⁸ kWh/yr</span></div>
+        <div>理论制氢: <span>33 kWh/kg H₂</span></div>
+      </div>
+
+      <!-- Slider 1: 电解槽效率 -->
+      <div class="sg">
+        <div class="sl">电解槽效率 (η_EL) <span class="sv" id="v-eff">75%</span></div>
+        <input type="range" id="s-eff" min="60" max="90" value="75" step="1">
+        <div class="rl"><span>60%</span><span>75%</span><span>90%</span></div>
+        <div class="gbar"><div class="gfill" id="g-eff"
+          style="background:linear-gradient(90deg,#0a6,var(--c2));width:50%"></div></div>
+      </div>
+
+      <!-- Slider 2: 余热回收率 -->
+      <div class="sg">
+        <div class="sl">余热回收率 (η_HR) <span class="sv" id="v-heat" style="color:var(--c4)">20%</span></div>
+        <input type="range" id="s-heat" min="0" max="40" value="20" step="1">
+        <div class="rl"><span>0%</span><span>20%</span><span>40%</span></div>
+        <div class="gbar"><div class="gfill" id="g-heat"
+          style="background:linear-gradient(90deg,#883300,var(--c4));width:50%"></div></div>
+      </div>
+
+      <!-- Slider 3: 系统压降 -->
+      <div class="sg">
+        <div class="sl">系统压降 (ΔP) <span class="sv" id="v-drop" style="color:var(--c4)">12%</span></div>
+        <input type="range" id="s-drop" min="5" max="20" value="12" step="1">
+        <div class="rl"><span>5%</span><span>12%</span><span>20%</span></div>
+        <div class="gbar"><div class="gfill" id="g-drop"
+          style="background:linear-gradient(90deg,#884400,#ff6b35);width:47%"></div></div>
+      </div>
+
+      <!-- Slider 4: 绿电比例 -->
+      <div class="sg">
+        <div class="sl">绿电比例 (f_RE) <span class="sv" id="v-green">80%</span></div>
+        <input type="range" id="s-green" min="0" max="100" value="80" step="1">
+        <div class="rl"><span>0%</span><span>50%</span><span>100%</span></div>
+        <div class="gbar"><div class="gfill" id="g-green"
+          style="background:linear-gradient(90deg,#555,var(--c2));width:80%"></div></div>
+      </div>
+
+      <!-- Fixed params -->
+      <div class="ibox">
+        <div class="irow"><span class="ik">碳排放系数 (煤电)</span><span class="iv">820 g CO₂/kWh</span></div>
+        <div class="irow"><span class="ik">ΔH 理论能耗</span><span class="iv">33 kWh/kg H₂</span></div>
+        <div class="irow"><span class="ik">合成氨耗氢</span><span class="iv">178 kg H₂/t NH₃</span></div>
+        <div class="irow"><span class="ik">Haber-Bosch 效率</span><span class="iv">≈ 85%</span></div>
+      </div>
+
+      <button id="btn-start" onclick="toggleSim()">▶ 启动模拟器</button>
+    </div>
+  </div>
+
+  <!-- ════════ Middle: Canvas Flow ════════ -->
+  <div class="pnl" id="mp">
+    <div class="pt" style="position:absolute;top:0;left:0;right:0;z-index:5;background:linear-gradient(var(--bg1),transparent)">
+      <span class="dot y"></span>实时能量流动图
+      <span style="font-family:var(--fmono);font-size:.52rem;color:var(--td);margin-left:auto">
+        粒子密度 ∝ 能量损耗
+      </span>
+    </div>
+    <canvas id="flow-canvas"></canvas>
+  </div>
+
+  <!-- ════════ Right: Data Panel ════════ -->
+  <div class="pnl" id="rp">
+    <div class="pt"><span class="dot"></span>实时能效数据</div>
+    <div class="rpb">
+
+      <!-- 1. 理论能耗 -->
+      <div class="mc">
+        <div class="mn">① 理论能耗 ΔH（热力学下限）</div>
+        <div class="mv hi">33.0 <span class="mu">kWh/kg H₂</span></div>
+        <div class="formula">ΔH = 33 kWh/kg H₂ (常数)</div>
+      </div>
+
+      <!-- 2. 实际电解能耗 -->
+      <div class="mc">
+        <div class="mn">② 实际电解能耗</div>
+        <div class="mv" id="v-elec">—<span class="mu"> kWh/kg H₂</span></div>
+        <div class="formula">= ΔH / η_EL = 33 / η_EL</div>
+        <div class="fbox" style="margin:4px 0 0;padding:5px 8px">
+          <span id="f-elec" style="color:var(--c3)">计算中…</span>
+        </div>
+      </div>
+
+      <!-- 3. 系统综合能耗 -->
+      <div class="mc">
+        <div class="mn">③ 系统综合能耗</div>
+        <div class="mv warn" id="v-sys">—<span class="mu"> kWh/kg H₂</span></div>
+        <div class="formula">= E_elec × (1+ΔP) × (1−η_HR)</div>
+        <div class="fbox" style="margin:4px 0 0;padding:5px 8px">
+          <span id="f-sys" style="color:var(--c3)">计算中…</span>
+        </div>
+      </div>
+
+      <!-- 4. 碳排放指数 -->
+      <div class="mc">
+        <div class="mn">④ 碳排放强度</div>
+        <div class="mv danger" id="v-co2">—<span class="mu"> g CO₂/kWh</span></div>
+        <div class="formula">= (1−f_RE) × 820 g CO₂/kWh</div>
+        <div class="cbar-wrap">
+          <div class="cbar-lbl"><span>绿电覆盖</span><span id="co2-pct">—%</span></div>
+          <div class="cbar-track"><div class="cbar-fill" id="co2-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- 5. 产量估算 -->
+      <div class="mc">
+        <div class="mn">⑤ 年产量估算（100 MW 风电）</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:3px;">
+          <div>
+            <div style="font-family:var(--fmono);font-size:.52rem;color:var(--td)">H₂产量</div>
+            <div class="mv" id="v-h2" style="font-size:.85rem">—<span class="mu"> t/yr</span></div>
+          </div>
+          <div>
+            <div style="font-family:var(--fmono);font-size:.52rem;color:var(--td)">NH₃产量</div>
+            <div class="mv" id="v-nh3" style="font-size:.85rem;color:var(--c3)">—<span class="mu"> t/yr</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. 历史趋势 spark -->
+      <div class="mc">
+        <div class="mn">⑥ 系统能耗历史趋势</div>
+        <div class="spark-wrap">
+          <canvas id="spark-canvas"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════ Bottom: Scores ════════ -->
+  <div id="bp">
+    <div class="score-section">
+      <div class="score-lbl">⚡ Energy Score</div>
+      <div class="score-val es" id="s-energy">--</div>
+      <div class="score-grade" id="sg-energy" style="color:var(--td)">等待启动</div>
+      <div class="score-bar"><div class="score-bar-fill" id="sb-energy"
+        style="width:0%;background:var(--c2)"></div></div>
+    </div>
+    <div class="score-section">
+      <div class="score-lbl">🌿 Carbon Score</div>
+      <div class="score-val cs" id="s-carbon">--</div>
+      <div class="score-grade" id="sg-carbon" style="color:var(--td)">等待启动</div>
+      <div class="score-bar"><div class="score-bar-fill" id="sb-carbon"
+        style="width:0%;background:var(--c5)"></div></div>
+    </div>
+    <div class="score-section">
+      <div class="score-lbl">🏆 Total Score</div>
+      <div class="score-val tot" id="s-total">--</div>
+      <div class="score-grade" id="sg-total" style="color:var(--td)">等待启动</div>
+      <div class="score-bar"><div class="score-bar-fill" id="sb-total"
+        style="width:0%;background:var(--c3)"></div></div>
+    </div>
+    <div class="score-section" style="flex:1.6;border-left:1px solid var(--bd);">
+      <div class="score-lbl" style="margin-bottom:6px">💡 优化建议</div>
+      <div id="advice" style="font-family:var(--fmono);font-size:.6rem;color:var(--td);
+        line-height:1.7;text-align:left;padding:0 10px;max-width:400px">
+        调节左侧参数后点击「启动模拟器」开始实时仿真。
+      </div>
+    </div>
+  </div>
+
+</div><!-- #main -->
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   Constants
+═══════════════════════════════════════════════════════ */
+const DH          = 33;      // kWh/kg H2 (理论)
+const WIND_MW     = 100;     // MW
+const HOURS_YR    = 2500;    // h/yr
+const CO2_FACTOR  = 820;     // g CO2/kWh (coal)
+const H2_PER_NH3  = 0.178;   // t H2 / t NH3
+const HB_EFF      = 0.85;    // Haber-Bosch efficiency
+
+/* ═══════════════════════════════════════════════════════
+   State
+═══════════════════════════════════════════════════════ */
+let running = false;
+let animId  = null;
+
+const P = {    // parameters (live)
+  eff:   75,   // %
+  heat:  20,   // %
+  drop:  12,   // %
+  green: 80,   // %
+};
+
+const history = [];   // spark line data
+
+/* ═══════════════════════════════════════════════════════
+   Calculations
+═══════════════════════════════════════════════════════ */
+function calcMetrics() {
+  const eta   = P.eff   / 100;
+  const hr    = P.heat  / 100;
+  const dp    = P.drop  / 100;
+  const fre   = P.green / 100;
+
+  const e_elec = DH / eta;                             // kWh/kg H2
+  const e_sys  = e_elec * (1 + dp) * (1 - hr);         // kWh/kg H2
+  const co2    = (1 - fre) * CO2_FACTOR;               // g/kWh
+
+  // Annual production
+  const e_yr   = WIND_MW * 1000 * HOURS_YR;            // kWh/yr
+  const h2_kg  = e_yr / e_sys;                         // kg H2/yr
+  const h2_t   = h2_kg / 1000;                         // t H2/yr
+  const nh3_t  = h2_t / H2_PER_NH3 * HB_EFF;          // t NH3/yr
+
+  return { e_elec, e_sys, co2, h2_t, nh3_t };
+}
+
+function calcScores(m) {
+  // Energy score: e_sys range ~30(best) ~ 60(worst)
+  const eMin = 30, eMax = 60;
+  const eScore = Math.max(0, Math.min(100,
+    100 - (m.e_sys - eMin) / (eMax - eMin) * 100));
+
+  // Carbon score: co2 range 0(best) ~ 820(worst)
+  const cScore = Math.max(0, Math.min(100,
+    100 - m.co2 / CO2_FACTOR * 100));
+
+  const total = eScore * 0.5 + cScore * 0.5;
+  return { eScore, cScore, total };
+}
+
+function gradeLabel(s) {
+  if (s >= 90) return { lbl:'S 优秀', col:'#39ff14' };
+  if (s >= 75) return { lbl:'A 良好', col:'#00d4ff' };
+  if (s >= 60) return { lbl:'B 合格', col:'#ffcc00' };
+  if (s >= 40) return { lbl:'C 较差', col:'#ff6b35' };
+  return { lbl:'D 不合格', col:'#ff3d3d' };
+}
+
+/* ═══════════════════════════════════════════════════════
+   UI Update
+═══════════════════════════════════════════════════════ */
+function updateUI() {
+  const m = calcMetrics();
+  const sc = calcScores(m);
+
+  /* ─ gauge bars ─ */
+  const eff_w   = (P.eff-60)/30*100;
+  const heat_w  = P.heat/40*100;
+  const drop_w  = (P.drop-5)/15*100;
+  const green_w = P.green;
+
+  g('g-eff').style.width   = eff_w+'%';
+  g('g-heat').style.width  = heat_w+'%';
+  g('g-drop').style.width  = drop_w+'%';
+  g('g-green').style.width = green_w+'%';
+
+  /* ─ right panel metrics ─ */
+  g('v-elec').innerHTML = m.e_elec.toFixed(2)+'<span class="mu"> kWh/kg H₂</span>';
+  g('f-elec').textContent = `33 / ${(P.eff/100).toFixed(2)} = ${m.e_elec.toFixed(2)} kWh/kg`;
+
+  g('v-sys').innerHTML = m.e_sys.toFixed(2)+'<span class="mu"> kWh/kg H₂</span>';
+  g('f-sys').textContent =
+    `${m.e_elec.toFixed(2)} × (1+${P.drop/100}) × (1−${P.heat/100}) = ${m.e_sys.toFixed(2)}`;
+
+  const co2Color = m.co2 > 400 ? 'danger' : m.co2 > 100 ? 'warn' : 'hi';
+  g('v-co2').className = 'mv '+co2Color;
+  g('v-co2').innerHTML = m.co2.toFixed(0)+'<span class="mu"> g CO₂/kWh</span>';
+  g('co2-pct').textContent = P.green+'%';
+  const coBarW = P.green;
+  const coBarCol = P.green > 60 ? `linear-gradient(90deg,#0a6,var(--c2))`
+    : P.green > 30 ? `linear-gradient(90deg,#886600,var(--c3))`
+    : `linear-gradient(90deg,#660000,#ff3d3d)`;
+  g('co2-bar').style.width = coBarW+'%';
+  g('co2-bar').style.background = coBarCol;
+
+  g('v-h2').innerHTML  = (m.h2_t/1000).toFixed(2)+'<span class="mu"> kt/yr</span>';
+  g('v-nh3').innerHTML = (m.nh3_t/1000).toFixed(2)+'<span class="mu"> kt/yr</span>';
+
+  /* ─ scores ─ */
+  if (running) {
+    const eg = gradeLabel(sc.eScore), cg = gradeLabel(sc.cScore), tg = gradeLabel(sc.total);
+    g('s-energy').textContent = sc.eScore.toFixed(0);
+    g('s-carbon').textContent = sc.cScore.toFixed(0);
+    g('s-total').textContent  = sc.total.toFixed(0);
+    g('sg-energy').textContent = eg.lbl; g('sg-energy').style.color = eg.col;
+    g('sg-carbon').textContent = cg.lbl; g('sg-carbon').style.color = cg.col;
+    g('sg-total').textContent  = tg.lbl; g('sg-total').style.color  = tg.col;
+    g('sb-energy').style.width = sc.eScore+'%';
+    g('sb-carbon').style.width = sc.cScore+'%';
+    g('sb-total').style.width  = sc.total+'%';
+
+    // advice
+    const tips = [];
+    if (P.eff < 80)  tips.push('📈 提高电解槽效率 > 80% 可显著降低电解能耗');
+    if (P.heat < 25) tips.push('♻ 增加余热回收率可降低综合能耗');
+    if (P.drop > 12) tips.push('🔧 降低系统压降 < 10% 减少机械损耗');
+    if (P.green < 70)tips.push('🌱 提高绿电比例 > 70% 大幅降低碳排');
+    if (tips.length === 0) tips.push('✅ 参数优化良好！继续保持当前配置。');
+    g('advice').innerHTML = tips.join('<br>');
+
+    // spark history
+    history.push(m.e_sys);
+    if (history.length > 80) history.shift();
+    drawSpark();
+  }
+
+  // update flow canvas params
+  flowViz.setParams(P, m);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Slider bindings
+═══════════════════════════════════════════════════════ */
+function bindSlider(id, valId, key, fmt) {
+  const sl = g(id);
+  sl.addEventListener('input', function() {
+    P[key] = +this.value;
+    g(valId).textContent = fmt(+this.value);
+    updateUI();
+  });
+}
+bindSlider('s-eff',   'v-eff',   'eff',   v => v+'%');
+bindSlider('s-heat',  'v-heat',  'heat',  v => v+'%');
+bindSlider('s-drop',  'v-drop',  'drop',  v => v+'%');
+bindSlider('s-green', 'v-green', 'green', v => v+'%');
+
+/* ═══════════════════════════════════════════════════════
+   Toggle simulation
+═══════════════════════════════════════════════════════ */
+function toggleSim() {
+  running = !running;
+  const btn = g('btn-start');
+  const badge = g('status-badge');
+  if (running) {
+    btn.textContent = '⏹ 停止模拟器';
+    btn.classList.add('running');
+    badge.textContent = '● RUNNING';
+    badge.className = 'hbadge run';
+    flowViz.start();
+  } else {
+    btn.textContent = '▶ 启动模拟器';
+    btn.classList.remove('running');
+    badge.textContent = '● STANDBY';
+    badge.className = 'hbadge idle';
+    flowViz.stop();
+  }
+  flowViz.setParams(P, calcMetrics());
+  updateUI();
+}
+
+/* ═══════════════════════════════════════════════════════
+   Spark line
+═══════════════════════════════════════════════════════ */
+function drawSpark() {
+  const cv = g('spark-canvas');
+  const W  = cv.width  = cv.offsetWidth  || 240;
+  const H  = cv.height = cv.offsetHeight || 28;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  if (history.length < 2) return;
+
+  const minV = 30, maxV = 65;
+  ctx.strokeStyle = '#00d4ff';
+  ctx.lineWidth   = 1.5;
+  ctx.shadowColor = '#00d4ff';
+  ctx.shadowBlur  = 6;
+  ctx.beginPath();
+  history.forEach((v,i) => {
+    const x = (i / (history.length-1)) * W;
+    const y = H - (v - minV) / (maxV - minV) * H;
+    i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // latest value dot
+  const lv = history[history.length-1];
+  const lx = W, ly = H - (lv - minV) / (maxV - minV) * H;
+  ctx.beginPath();
+  ctx.arc(lx, ly, 3, 0, Math.PI*2);
+  ctx.fillStyle = '#ff6b35';
+  ctx.shadowColor = '#ff6b35';
+  ctx.shadowBlur  = 8;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Flow Visualization (Canvas)
+═══════════════════════════════════════════════════════ */
+const flowViz = (() => {
+  const cv = document.getElementById('flow-canvas');
+  const ctx = cv.getContext('2d');
+  let W = 0, H = 0;
+  let particles = [];
+  let animReq   = null;
+  let frame     = 0;
+  let params    = { eff:75, heat:20, drop:12, green:80 };
+  let metrics   = { e_sys:44, co2:164 };
+  let active    = false;
+
+  /* ── Node layout (relative to canvas) ── */
+  function nodes() {
+    const cx = W/2, cy = H/2;
+    const pad = W * 0.07;
+    return {
+      wind:  { x: pad,            y: cy,          r: 38, label:'⚡ 风电', sub:'100 MW', col:'#00d4ff' },
+      elec:  { x: W*0.32,         y: cy,          r: 34, label:'⚗ 电解槽', sub:'H₂O→H₂', col:'#39ff14' },
+      h2:    { x: W*0.57,         y: cy,          r: 30, label:'H₂', sub:'储氢', col:'#c0ff80' },
+      haber: { x: W*0.78,         y: cy,          r: 34, label:'🏭 合成氨', sub:'Haber-Bosch', col:'#ffcc00' },
+      nh3:   { x: W - pad,        y: cy,          r: 28, label:'NH₃', sub:'产品', col:'#ff9900' },
+      heat:  { x: W*0.32,         y: cy - H*0.28, r: 22, label:'♻ 余热', sub:'回收', col:'#ff6b35' },
+      co2:   { x: W*0.18,         y: cy + H*0.28, r: 20, label:'CO₂', sub:'排放', col:'#b060ff' },
+    };
+  }
+
+  /* ── Particle generator ── */
+  function spawnParticle(type) {
+    const nd = nodes();
+    const routes = {
+      main: [nd.wind, nd.elec, nd.h2, nd.haber, nd.nh3],  // main energy flow
+      heat: [nd.elec, nd.heat],                             // heat recovery
+      co2:  [nd.wind, nd.co2],                              // carbon emission
+    };
+    const route = routes[type];
+    return {
+      type, route,
+      seg: 0,              // current segment index
+      t:   Math.random(),  // position on segment [0,1]
+      speed: 0.004 + Math.random() * 0.003,
+      size: type === 'main' ? 3 + Math.random()*2 : 2 + Math.random(),
+      col:  type === 'main' ? nd.wind.col
+          : type === 'heat' ? nd.heat.col : nd.co2.col,
+      trail: [],
+      alpha: 0.8 + Math.random() * 0.2,
+    };
+  }
+
+  function manageParticles() {
+    if (!active) return;
+    const nd = nodes();
+
+    // target counts
+    const mainTarget  = Math.round(8 + metrics.e_sys / 5);
+    const heatTarget  = Math.round(params.heat / 10);
+    const co2Target   = Math.round((100 - params.green) / 15);
+
+    const mainCount  = particles.filter(p=>p.type==='main').length;
+    const heatCount  = particles.filter(p=>p.type==='heat').length;
+    const co2Count   = particles.filter(p=>p.type==='co2').length;
+
+    if (mainCount  < mainTarget)  particles.push(spawnParticle('main'));
+    if (heatCount  < heatTarget)  particles.push(spawnParticle('heat'));
+    if (co2Count   < co2Target)   particles.push(spawnParticle('co2'));
+
+    // trim excess
+    if (mainCount > mainTarget + 2) particles = particles.filter((p,i)=>p.type!=='main'||i<mainTarget+2);
+    if (co2Count  > co2Target  + 1) particles = particles.filter((p,i)=>p.type!=='co2'||i<co2Target+1);
+  }
+
+  /* ── Draw node ── */
+  function drawNode(nd, label, sub, col, active) {
+    // glow ring
+    const grd = ctx.createRadialGradient(nd.x,nd.y,nd.r*.3,nd.x,nd.y,nd.r*1.8);
+    grd.addColorStop(0, col+'44');
+    grd.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.arc(nd.x,nd.y,nd.r*1.8,0,Math.PI*2);
+    ctx.fillStyle = grd; ctx.fill();
+
+    // circle
+    ctx.beginPath(); ctx.arc(nd.x,nd.y,nd.r,0,Math.PI*2);
+    ctx.fillStyle = '#061525';
+    ctx.strokeStyle = col;
+    ctx.lineWidth = active ? 2 : 1.5;
+    ctx.shadowColor = col;
+    ctx.shadowBlur = active ? 18 : 8;
+    ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // labels
+    ctx.fillStyle = col;
+    ctx.font = `bold ${Math.round(nd.r*.35)}px Share Tech Mono`;
+    ctx.textAlign = 'center';
+    ctx.fillText(label, nd.x, nd.y + 4);
+
+    ctx.fillStyle = 'rgba(180,220,255,.55)';
+    ctx.font = `${Math.round(nd.r*.26)}px Share Tech Mono`;
+    ctx.fillText(sub, nd.x, nd.y + nd.r*.55 + 8);
+  }
+
+  /* ── Draw pipe (bezier) ── */
+  function drawPipe(a, b, col, flow) {
+    const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+    const cp1x = a.x + (mx-a.x)*0.5, cp1y = a.y;
+    const cp2x = b.x - (b.x-mx)*0.5, cp2y = b.y;
+
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, b.x, b.y);
+    ctx.strokeStyle = col + (flow ? '80' : '30');
+    ctx.lineWidth = flow ? 2.5 : 1.5;
+    ctx.setLineDash(flow ? [] : [6,6]);
+    ctx.shadowColor = col;
+    ctx.shadowBlur = flow ? 8 : 0;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.shadowBlur = 0;
+  }
+
+  /* ── Interpolate along bezier ── */
+  function bezierPoint(a, b, t) {
+    const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+    const cp1x = a.x+(mx-a.x)*.5, cp1y = a.y;
+    const cp2x = b.x-(b.x-mx)*.5, cp2y = b.y;
+    const mt = 1-t;
+    const x = mt*mt*mt*a.x + 3*mt*mt*t*cp1x + 3*mt*t*t*cp2x + t*t*t*b.x;
+    const y = mt*mt*mt*a.y + 3*mt*mt*t*cp1y + 3*mt*t*t*cp2y + t*t*t*b.y;
+    return {x,y};
+  }
+
+  /* ── Draw particle ── */
+  function drawParticle(p) {
+    if (p.seg >= p.route.length - 1) return;
+    const a = p.route[p.seg], b = p.route[p.seg+1];
+    const pos = bezierPoint(a, b, p.t);
+
+    // trail
+    p.trail.push({...pos});
+    if (p.trail.length > 8) p.trail.shift();
+
+    p.trail.forEach((pt,i) => {
+      const ta = (i/p.trail.length) * 0.5 * p.alpha;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, p.size * (i/p.trail.length), 0, Math.PI*2);
+      ctx.fillStyle = p.col + Math.round(ta*255).toString(16).padStart(2,'0');
+      ctx.fill();
+    });
+
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, p.size, 0, Math.PI*2);
+    ctx.fillStyle = p.col;
+    ctx.shadowColor = p.col;
+    ctx.shadowBlur = 12;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  /* ── Animate labels on pipes ── */
+  function drawPipeLabel(a, b, text, col) {
+    const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+    ctx.fillStyle = col+'bb';
+    ctx.font = '9px Share Tech Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, mx, my - 10);
+  }
+
+  /* ── Main draw loop ── */
+  function draw() {
+    W = cv.width  = cv.offsetWidth  || 800;
+    H = cv.height = cv.offsetHeight || 500;
+
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#020c18';
+    ctx.fillRect(0,0,W,H);
+
+    // grid dots
+    ctx.fillStyle = 'rgba(22,58,96,.3)';
+    for (let gx = 20; gx < W; gx += 28)
+      for (let gy = 20; gy < H; gy += 28) {
+        ctx.beginPath(); ctx.arc(gx,gy,1,0,Math.PI*2); ctx.fill();
+      }
+
+    const nd = nodes();
+
+    // ─ Draw pipes ─
+    drawPipe(nd.wind,  nd.elec,  '#00d4ff', active);
+    drawPipe(nd.elec,  nd.h2,    '#39ff14', active);
+    drawPipe(nd.h2,    nd.haber, '#c0ff80', active);
+    drawPipe(nd.haber, nd.nh3,   '#ffcc00', active);
+    drawPipe(nd.elec,  nd.heat,  '#ff6b35', active && params.heat > 0);
+    drawPipe(nd.wind,  nd.co2,   '#b060ff', active && params.green < 100);
+
+    // ─ Pipe labels ─
+    if (active) {
+      drawPipeLabel(nd.wind,  nd.elec,  `${(100*params.eff/100).toFixed(0)}MW→H₂`, '#00d4ff');
+      drawPipeLabel(nd.elec,  nd.h2,    `${(metrics.e_sys).toFixed(1)} kWh/kg`, '#39ff14');
+      drawPipeLabel(nd.h2,    nd.haber, 'N₂+3H₂→2NH₃', '#c0ff80');
+      drawPipeLabel(nd.haber, nd.nh3,   'Haber-Bosch', '#ffcc00');
+      if (params.heat > 0)
+        drawPipeLabel(nd.elec, nd.heat, `回收 ${params.heat}%`, '#ff6b35');
+      if (params.green < 100)
+        drawPipeLabel(nd.wind, nd.co2, `${(metrics.co2).toFixed(0)}g/kWh`, '#b060ff');
+    }
+
+    // ─ Update + draw particles ─
+    manageParticles();
+    particles = particles.filter(p => {
+      p.t += p.speed * (active ? 1 : 0);
+      if (p.t >= 1) {
+        p.t = 0; p.seg++;
+        if (p.seg >= p.route.length - 1) return false; // done
+      }
+      drawParticle(p);
+      return true;
+    });
+
+    // ─ Draw nodes ─
+    drawNode(nd.wind,  nd.wind.label,  nd.wind.sub,  nd.wind.col,  active);
+    drawNode(nd.elec,  nd.elec.label,  nd.elec.sub,  nd.elec.col,  active);
+    drawNode(nd.h2,    nd.h2.label,    nd.h2.sub,    nd.h2.col,    active);
+    drawNode(nd.haber, nd.haber.label, nd.haber.sub, nd.haber.col, active);
+    drawNode(nd.nh3,   nd.nh3.label,   nd.nh3.sub,   nd.nh3.col,   active);
+    drawNode(nd.heat,  nd.heat.label,  nd.heat.sub,  nd.heat.col,  active && params.heat > 0);
+    drawNode(nd.co2,   nd.co2.label,   nd.co2.sub,   nd.co2.col,   active && params.green < 100);
+
+    // ─ Performance overlay (bottom of canvas) ─
+    if (active) {
+      const eff_rel = (50 - (metrics.e_sys - 30)) / 20 * 100;
+      const barW = Math.min(Math.max(eff_rel, 0), 100) / 100 * (W * 0.5);
+      const bx = W/2 - W*0.25, by = H - 28;
+      ctx.fillStyle = 'rgba(0,0,0,.5)';
+      ctx.fillRect(bx-2, by-2, W*0.5+4, 14);
+      const barCol = eff_rel > 60 ? '#39ff14' : eff_rel > 30 ? '#ffcc00' : '#ff3d3d';
+      ctx.fillStyle = barCol;
+      ctx.shadowColor = barCol; ctx.shadowBlur = 6;
+      ctx.fillRect(bx, by, barW, 10);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(180,220,255,.6)';
+      ctx.font = '9px Share Tech Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText(`系统能耗: ${metrics.e_sys.toFixed(2)} kWh/kg H₂ | 碳强度: ${metrics.co2.toFixed(0)} g CO₂/kWh`, W/2, H-8);
+    } else {
+      ctx.fillStyle = 'rgba(60,120,180,.4)';
+      ctx.font = '13px Orbitron';
+      ctx.textAlign = 'center';
+      ctx.fillText('点击「启动模拟器」开始仿真', W/2, H/2 + H*0.35);
+    }
+
+    // pulse ring on wind node when running
+    if (active) {
+      const nd2 = nodes();
+      const pulse = (Math.sin(frame * 0.06) + 1) / 2;
+      ctx.beginPath();
+      ctx.arc(nd2.wind.x, nd2.wind.y, nd2.wind.r + 8 + pulse * 10, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(0,212,255,${0.15 + pulse*0.25})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    frame++;
+  }
+
+  // Master loop calls draw() every frame
+  function loop() {
+    draw();
+    animReq = requestAnimationFrame(loop);
+  }
+
+  return {
+    start() { active = true;  if (!animReq) { animReq = 1; loop(); } },
+    stop()  { active = false; },
+    setParams(pr, mt) { params = {...pr}; metrics = {...mt}; }
+  };
+})();
+
+/* ═══════════════════════════════════════════════════════
+   Utils
+═══════════════════════════════════════════════════════ */
+function g(id) { return document.getElementById(id); }
+
+/* ═══════════════════════════════════════════════════════
+   Init
+═══════════════════════════════════════════════════════ */
+window.addEventListener('load', () => {
+  /* flowViz handles its own RAF loop internally.
+     active=false → draws static diagram; active=true → particles flow */
+  flowViz.start();   // starts RAF loop, active=false by default → idle view
+  updateUI();        // populate right panel with initial calculated values
+});
+
+window.addEventListener('resize', () => {
+  const cv = document.getElementById('flow-canvas');
+  cv.width  = cv.offsetWidth;
+  cv.height = cv.offsetHeight;
+});
+</script>
+</body>
+</html>
