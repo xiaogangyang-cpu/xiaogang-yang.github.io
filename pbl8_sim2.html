@@ -1,515 +1,1974 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>电解液降解活化能动力学模拟器 | Electrolyte Degradation Ea Simulator</title>
-    <!-- TailwindCSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 字体 Montserrat / Roboto -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome 图标库 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js 绘图 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <!-- MathJax 公式渲染 -->
-    <script>
-        MathJax = {
-            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
-            svg: { fontCache: 'global' }
-        };
-    </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
-    <style>
-        /* 未来科技实验室风格 */
-        body {
-            background-color: #020617;
-            color: #f8fafc;
-            font-family: 'Roboto', sans-serif;
-            overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 15% 30%, rgba(13, 148, 136, 0.06) 0%, transparent 30%),
-                radial-gradient(circle at 85% 70%, rgba(13, 148, 136, 0.05) 0%, transparent 35%),
-                repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 2px, transparent 2px, transparent 8px);
-        }
-        h1, h2, h3, .font-title {
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 700;
-        }
-        .teal-highlight {
-            color: #0d9488;
-            text-shadow: 0 0 8px rgba(13, 148, 136, 0.5);
-        }
-        .yellow-bullet {
-            color: #facc15;
-            margin-right: 8px;
-            font-size: 1rem;
-        }
-        .glass-panel {
-            background: rgba(2, 6, 23, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(13, 148, 136, 0.3);
-            box-shadow: 0 0 30px rgba(13, 148, 136, 0.2);
-            transition: all 0.3s ease;
-            border-radius: 1.5rem;
-        }
-        .glass-panel:hover {
-            border-color: #0d9488;
-            box-shadow: 0 0 50px rgba(13, 148, 136, 0.4);
-        }
-        .btn-glow {
-            background: rgba(13, 148, 136, 0.1);
-            border: 1px solid #0d9488;
-            color: #f8fafc;
-            padding: 0.75rem 2rem;
-            border-radius: 2rem;
-            font-weight: 500;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            backdrop-filter: blur(5px);
-            font-size: 1rem;
-        }
-        .btn-glow:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px #0d9488;
-            background: rgba(13, 148, 136, 0.25);
-            border-color: #0d9488;
-        }
-        .tooltip-icon {
-            position: relative;
-            cursor: help;
-            border-bottom: 1px dashed #0d9488;
-        }
-        .tooltip-icon .tooltip-text {
-            visibility: hidden;
-            width: 220px;
-            background: #0f172a;
-            border-left: 4px solid #0d9488;
-            color: #f1f5f9;
-            text-align: left;
-            padding: 10px;
-            border-radius: 8px;
-            position: absolute;
-            z-index: 60;
-            bottom: 150%;
-            left: 50%;
-            transform: translateX(-50%);
-            opacity: 0;
-            transition: opacity 0.2s;
-            font-size: 0.8rem;
-            box-shadow: 0 0 20px black;
-            pointer-events: none;
-        }
-        .tooltip-icon:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-        .modal-overlay {
-            background: rgba(2, 6, 23, 0.95);
-            backdrop-filter: blur(12px);
-        }
-        .fade-in {
-            animation: fadeIn 0.8s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .slider-teal::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            background: #0d9488;
-            border-radius: 50%;
-            box-shadow: 0 0 15px #0d9488;
-            cursor: pointer;
-        }
-        .slider-teal::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            background: #0d9488;
-            border-radius: 50%;
-            box-shadow: 0 0 15px #0d9488;
-            cursor: pointer;
-        }
-        .prediction-box {
-            background: rgba(13, 148, 136, 0.1);
-            border: 1px solid #0d9488;
-            border-radius: 1rem;
-            padding: 1rem;
-            margin-top: 1rem;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电解液降解活化能动力学模拟器 v3</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+window.MathJax = {
+  tex: { inlineMath:[['$','$'],['\\(','\\)']], displayMath:[['$$','$$'],['\\[','\\]']] },
+  svg: { fontCache:'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════ DESIGN TOKENS ══════════ */
+:root{
+  --bg:#03080f;
+  --bg1:#060d1a;
+  --bg2:#091223;
+  --bg3:#0c1830;
+  --teal:#0d9488;
+  --teal2:#14b8a6;
+  --teal3:#5eead4;
+  --teal-g:rgba(13,148,136,0.22);
+  --teal-gs:rgba(13,148,136,0.07);
+  --amber:#f59e0b;
+  --amber2:#fbbf24;
+  --amber-g:rgba(245,158,11,0.15);
+  --sky:#38bdf8;
+  --rose:#f43f5e;
+  --violet:#8b5cf6;
+  --green:#22c55e;
+  --txt:#f0f6ff;
+  --txt2:#8eacc8;
+  --txt3:#3d5a78;
+  --bdr:rgba(13,148,136,0.16);
+  --bdr2:rgba(13,148,136,0.45);
+  --bdr3:rgba(13,148,136,0.7);
+  --r:8.314;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+
+body{
+  font-family:'Space Grotesk',sans-serif;
+  background:var(--bg);
+  color:var(--txt);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── LAYERED BG ── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 800px 600px at 15% 20%,rgba(13,148,136,0.055) 0%,transparent 70%),
+    radial-gradient(ellipse 600px 500px at 85% 80%,rgba(245,158,11,0.03) 0%,transparent 70%),
+    radial-gradient(ellipse 400px 300px at 50% 50%,rgba(13,148,136,0.03) 0%,transparent 60%);
+  pointer-events:none;z-index:0;
+  animation:bgPulse 18s ease-in-out infinite;
+}
+@keyframes bgPulse{0%,100%{opacity:1}50%{opacity:0.6}}
+
+body::after{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(13,148,136,0.032) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(13,148,136,0.032) 1px,transparent 1px);
+  background-size:52px 52px;
+  pointer-events:none;z-index:0;
+}
+
+/* ── LAYOUT ── */
+.wrap{max-width:1340px;margin:0 auto;padding:0 28px;position:relative;z-index:1}
+
+/* ── HEADER ── */
+.hdr{
+  position:sticky;top:0;z-index:500;
+  background:rgba(3,8,15,0.82);
+  backdrop-filter:blur(16px) saturate(1.4);
+  border-bottom:1px solid var(--bdr);
+  padding:0;
+}
+.hdr-inner{
+  display:flex;align-items:stretch;gap:0;
+  height:58px;
+}
+.hdr-logo{
+  display:flex;align-items:center;gap:14px;
+  padding:0 24px 0 0;
+  border-right:1px solid var(--bdr);
+}
+.hdr-icon{
+  width:36px;height:36px;
+  background:linear-gradient(135deg,var(--teal),#059669);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+  box-shadow:0 0 16px var(--teal-g);
+  flex-shrink:0;
+}
+.hdr-name{font-size:26px;font-weight:700;color:var(--teal2);letter-spacing:0.06em}
+.hdr-eng{font-size:10px;color:var(--txt3);font-family:'JetBrains Mono',monospace;margin-top:1px}
+.hdr-nav{
+  display:flex;align-items:center;gap:2px;
+  padding:0 16px;
+  margin-left:auto;
+}
+.hdr-nav-btn{
+  padding:6px 14px;border-radius:6px;border:none;
+  background:transparent;color:var(--txt2);
+  font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .2s;letter-spacing:0.03em;
+}
+.hdr-nav-btn:hover,.hdr-nav-btn.active{background:rgba(13,148,136,0.12);color:var(--teal2)}
+.hdr-status{
+  display:flex;align-items:center;gap:8px;
+  padding:0 20px;border-left:1px solid var(--bdr);
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--txt3);
+}
+.status-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--teal2);
+  box-shadow:0 0 8px var(--teal2);
+  animation:dotPulse 2s ease-in-out infinite;
+}
+@keyframes dotPulse{0%,100%{opacity:1;box-shadow:0 0 8px var(--teal2)}50%{opacity:0.4;box-shadow:0 0 3px var(--teal2)}}
+
+/* ── SECTION ── */
+section{padding:56px 0}
+.reveal{opacity:0;transform:translateY(32px);transition:opacity .75s ease,transform .75s ease}
+.reveal.in{opacity:1;transform:translateY(0)}
+
+/* ── SECTION TITLE ── */
+.stitle-row{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.stitle-ico{
+  width:40px;height:40px;
+  border:1px solid var(--bdr2);
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+  background:rgba(13,148,136,0.08);
+}
+.stitle{font-size:24px;font-weight:700;letter-spacing:0.01em}
+.stitle em{color:var(--teal2);font-style:normal}
+.sdivider{height:1px;background:linear-gradient(90deg,transparent,var(--bdr2),transparent);margin:10px 0 30px}
+
+/* ── THEORY GRID ── */
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+
+.tcard{
+  background:var(--bg2);
+  border:1px solid var(--bdr);
+  border-radius:14px;
+  padding:22px 24px;
+  position:relative;overflow:hidden;
+  transition:border-color .3s,box-shadow .3s,transform .3s;
+  cursor:default;
+}
+.tcard-glow{
+  position:absolute;top:-30px;right:-30px;
+  width:80px;height:80px;border-radius:50%;
+  background:var(--teal);filter:blur(40px);opacity:0;
+  transition:opacity .4s;pointer-events:none;
+}
+.tcard:hover .tcard-glow{opacity:0.12}
+.tcard::before{
+  content:'';position:absolute;inset:0;
+  border-radius:14px;
+  background:linear-gradient(135deg,rgba(13,148,136,0.04),transparent 60%);
+  opacity:0;transition:opacity .3s;
+}
+.tcard:hover{border-color:var(--bdr2);box-shadow:0 4px 32px rgba(13,148,136,0.1);transform:translateY(-3px)}
+.tcard:hover::before{opacity:1}
+.tcard-top{display:flex;gap:10px;margin-bottom:14px}
+.tcard-num{
+  width:22px;height:22px;border-radius:5px;
+  background:rgba(13,148,136,0.15);
+  border:1px solid rgba(13,148,136,0.3);
+  font-size:11px;font-weight:700;color:var(--teal2);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-family:'JetBrains Mono',monospace;
+}
+.tcard-ttl{font-size:13px;font-weight:700;color:var(--txt);line-height:1.3}
+.tcard-body{font-size:12.5px;color:var(--txt2);line-height:1.75}
+.fml{
+  display:block;
+  background:rgba(13,148,136,0.07);
+  border:1px solid rgba(13,148,136,0.2);
+  border-radius:8px;
+  padding:9px 14px;margin:9px 0;
+  text-align:center;
+  color:var(--teal2);
+  font-size:13px;
+}
+.pill{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:600;
+  padding:2px 9px;border-radius:20px;
+  margin:3px 2px 3px 0;
+}
+.pill-w{background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);color:var(--amber2)}
+.pill-g{background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.28);color:#4ade80}
+.pill-b{background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.28);color:var(--sky)}
+.param-list{list-style:none;margin-top:6px}
+.param-list li{font-size:12px;color:var(--txt3);padding:2px 0;display:flex;gap:6px}
+.param-list li::before{content:'›';color:var(--teal);flex-shrink:0}
+
+/* tooltip */
+[data-tip]{position:relative;cursor:help}
+[data-tip]::after{
+  content:attr(data-tip);
+  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  background:#13233d;border:1px solid var(--bdr2);
+  border-radius:7px;padding:7px 12px;
+  font-size:11px;color:var(--txt);white-space:nowrap;
+  opacity:0;pointer-events:none;transition:opacity .2s;z-index:999;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);
+  font-family:'Space Grotesk',sans-serif;font-weight:400;letter-spacing:0;
+}
+[data-tip]:hover::after{opacity:1}
+
+/* ── SIM HERO ── */
+.sim-hero{
+  background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 40%,var(--bg3) 100%);
+  border:1px solid var(--bdr2);
+  border-radius:20px;
+  padding:0;overflow:hidden;
+  position:relative;
+  box-shadow:0 0 60px rgba(13,148,136,0.07);
+}
+.sim-hero-topbar{
+  height:3px;
+  background:linear-gradient(90deg,var(--teal),var(--teal2),var(--teal3),var(--sky),var(--teal2));
+  background-size:300%;
+  animation:barFlow 4s linear infinite;
+}
+@keyframes barFlow{0%{background-position:0%}100%{background-position:300%}}
+.sim-hero-inner{
+  display:grid;grid-template-columns:1fr auto;gap:0;
+}
+.sim-hero-left{padding:44px 44px 44px 44px}
+.sim-hero-right{
+  width:320px;
+  background:rgba(13,148,136,0.04);
+  border-left:1px solid var(--bdr);
+  padding:32px 28px;
+  display:flex;flex-direction:column;gap:14px;
+}
+@media(max-width:900px){.sim-hero-inner{grid-template-columns:1fr}.sim-hero-right{width:100%;border-left:none;border-top:1px solid var(--bdr)}}
+
+.sim-ttl-row{display:flex;align-items:center;gap:18px;margin-bottom:14px}
+.sim-ico{
+  width:60px;height:60px;
+  background:linear-gradient(135deg,rgba(13,148,136,0.2),rgba(13,148,136,0.05));
+  border:1.5px solid var(--teal);
+  border-radius:15px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:30px;flex-shrink:0;
+  box-shadow:0 0 24px var(--teal-g);
+}
+.sim-ttl{
+  font-size:26px;font-weight:700;
+  background:linear-gradient(100deg,#e2f0ff 0%,var(--teal2) 60%,var(--teal3) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  line-height:1.15;
+}
+.sim-eng{font-size:11px;color:var(--txt3);font-family:'JetBrains Mono',monospace;margin-top:3px}
+
+.badges{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px}
+.badge{
+  font-size:10px;font-weight:700;letter-spacing:0.09em;
+  padding:3px 11px;border-radius:20px;
+  text-transform:uppercase;font-family:'JetBrains Mono',monospace;
+}
+.bt{background:rgba(13,148,136,0.1);border:1px solid var(--teal);color:var(--teal2)}
+.ba{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.4);color:var(--amber2)}
+.bs{background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.3);color:var(--sky)}
+
+.sim-desc{font-size:13.5px;color:var(--txt2);line-height:1.75;margin-bottom:28px;max-width:580px}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap}
+
+.btn{
+  padding:12px 26px;border-radius:9px;border:none;
+  font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;
+  letter-spacing:0.03em;cursor:pointer;
+  display:flex;align-items:center;gap:9px;
+  transition:all .3s;position:relative;overflow:hidden;
+}
+.btn::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.1),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.btn:hover::after{opacity:1}
+.btn-p{
+  background:linear-gradient(135deg,var(--teal) 0%,#059669 100%);
+  color:#fff;
+}
+.btn-p:hover{box-shadow:0 0 28px rgba(13,148,136,0.4),0 6px 20px rgba(13,148,136,0.25);transform:translateY(-2px) scale(1.02)}
+.btn-s{
+  background:rgba(13,148,136,0.08);
+  border:1px solid var(--bdr2);
+  color:var(--teal2);
+}
+.btn-s:hover{background:rgba(13,148,136,0.16);box-shadow:0 0 16px var(--teal-g);transform:translateY(-2px) scale(1.01)}
+.btn-sm{padding:9px 18px;font-size:12px}
+
+/* LIVE PREVIEW PANEL */
+.preview-panel{display:flex;flex-direction:column;gap:14px}
+.preview-ttl{font-size:11px;font-weight:700;color:var(--teal);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:2px}
+.preview-eq{
+  background:rgba(13,148,136,0.07);
+  border:1px solid rgba(13,148,136,0.2);
+  border-radius:8px;
+  padding:12px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:var(--teal2);
+  line-height:1.7;
+}
+.preview-kpi{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+}
+.pkpi{
+  background:rgba(13,148,136,0.06);
+  border:1px solid var(--bdr);
+  border-radius:8px;padding:10px;text-align:center;
+}
+.pkpi-v{font-size:15px;font-weight:700;color:var(--teal2);font-family:'JetBrains Mono',monospace}
+.pkpi-l{font-size:9px;color:var(--txt3);margin-top:2px;letter-spacing:0.06em}
+
+/* ENERGY BARRIER SVG */
+.barrier-wrap{
+  background:rgba(13,148,136,0.04);
+  border:1px solid var(--bdr);
+  border-radius:10px;padding:14px;
+}
+.barrier-ttl{font-size:10px;font-weight:700;color:var(--teal);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px}
+#barrierSVG{width:100%;height:110px;display:block}
+
+/* ── MODAL ── */
+.overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(3,8,15,0.88);backdrop-filter:blur(12px);
+  z-index:600;align-items:flex-start;justify-content:center;
+  padding:24px;overflow-y:auto;
+}
+.overlay.open{display:flex;animation:ovIn .25s ease}
+@keyframes ovIn{from{opacity:0}to{opacity:1}}
+
+.modal{
+  background:var(--bg1);
+  border:1px solid var(--bdr2);
+  border-radius:18px;
+  width:100%;max-width:860px;
+  margin:auto;
+  position:relative;
+  box-shadow:0 0 80px rgba(13,148,136,0.12);
+  animation:modalIn .35s cubic-bezier(.16,1,.3,1);
+  overflow:hidden;
+}
+@keyframes modalIn{from{transform:translateY(48px) scale(0.97);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+
+.modal-topbar{
+  height:3px;
+  background:linear-gradient(90deg,var(--teal),var(--teal2),var(--sky));
+}
+.modal-body{padding:32px;max-height:88vh;overflow-y:auto}
+.modal-body::-webkit-scrollbar{width:4px}
+.modal-body::-webkit-scrollbar-track{background:transparent}
+.modal-body::-webkit-scrollbar-thumb{background:var(--teal);border-radius:2px}
+
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.modal-ttl{font-size:17px;font-weight:700;color:var(--teal2)}
+.mclose{
+  width:32px;height:32px;border-radius:7px;
+  border:1px solid var(--bdr);background:transparent;
+  color:var(--txt2);cursor:pointer;font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.mclose:hover{border-color:var(--rose);color:var(--rose);background:rgba(244,63,94,0.08)}
+
+/* TABS inside modal */
+.modal-tabs{display:flex;gap:2px;background:rgba(13,148,136,0.06);border:1px solid var(--bdr);border-radius:10px;padding:3px;margin-bottom:24px}
+.mtab{
+  flex:1;padding:8px;border-radius:7px;border:none;
+  background:transparent;color:var(--txt2);
+  font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .2s;
+}
+.mtab.active{background:rgba(13,148,136,0.18);color:var(--teal2);box-shadow:0 0 10px rgba(13,148,136,0.15)}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:560px){.form-grid{grid-template-columns:1fr}}
+.fg{display:flex;flex-direction:column;gap:6px}
+.fg.full{grid-column:1/-1}
+.flbl{
+  font-size:11px;font-weight:700;color:var(--txt2);
+  letter-spacing:0.07em;text-transform:uppercase;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.funit{
+  font-size:10px;color:var(--txt3);
+  font-family:'JetBrains Mono',monospace;
+  font-weight:400;text-transform:none;letter-spacing:0;
+}
+.finp,.fsel{
+  background:rgba(13,148,136,0.05);
+  border:1px solid var(--bdr);
+  border-radius:9px;padding:10px 14px;
+  color:var(--txt);
+  font-family:'JetBrains Mono',monospace;font-size:14px;
+  outline:none;transition:border-color .2s,box-shadow .2s;
+  -webkit-appearance:none;width:100%;
+}
+.finp:focus,.fsel:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,0.13)}
+.finp.err{border-color:var(--rose)}
+.ferr{font-size:11px;color:var(--rose);min-height:14px}
+.fsel option{background:#0c1830}
+
+/* slider */
+.sl-row{display:flex;align-items:center;gap:10px}
+.sl-val{
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  color:var(--teal2);min-width:90px;text-align:right;flex-shrink:0;
+}
+input[type=range]{
+  -webkit-appearance:none;flex:1;height:4px;
+  background:var(--bdr);border-radius:2px;outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:16px;height:16px;
+  border-radius:50%;background:var(--teal2);
+  cursor:pointer;box-shadow:0 0 10px var(--teal-g);
+  border:2px solid var(--bg);transition:transform .15s;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+
+/* SEI selector */
+.sei-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sei-opt{
+  padding:10px 8px;border-radius:8px;
+  border:1px solid var(--bdr);background:rgba(13,148,136,0.04);
+  color:var(--txt2);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .2s;text-align:center;
+}
+.sei-opt:hover,.sei-opt.active{border-color:var(--teal);background:rgba(13,148,136,0.14);color:var(--teal2)}
+.sei-opt .sei-ico{font-size:18px;display:block;margin-bottom:4px}
+
+/* water box */
+.water-box{
+  grid-column:1/-1;
+  background:rgba(245,158,11,0.05);
+  border:1px solid rgba(245,158,11,0.22);
+  border-radius:9px;padding:12px 16px;
+  font-size:12px;color:var(--amber2);
+  font-family:'JetBrains Mono',monospace;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+
+.hr{grid-column:1/-1;border:none;border-top:1px solid var(--bdr);margin:2px 0}
+
+/* ── RESULTS ── */
+.res-hdr{
+  font-size:11px;font-weight:700;color:var(--teal);
+  letter-spacing:0.09em;text-transform:uppercase;
+  margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.res-hdr::after{content:'';flex:1;height:1px;background:var(--bdr)}
+
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:560px){.kpi-row{grid-template-columns:1fr 1fr}}
+.kpi{
+  background:var(--bg2);
+  border:1px solid var(--bdr);border-radius:10px;
+  padding:14px 10px;text-align:center;
+  position:relative;overflow:hidden;
+  transition:border-color .3s,box-shadow .3s;
+}
+.kpi::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--teal),transparent);
+}
+.kpi:hover{border-color:var(--bdr2);box-shadow:0 0 16px var(--teal-gs)}
+.kpi-v{font-size:19px;font-weight:700;color:var(--teal2);font-family:'JetBrains Mono',monospace}
+.kpi-l{font-size:10px;color:var(--txt3);margin-top:3px;letter-spacing:0.05em}
+
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:660px){.charts-grid{grid-template-columns:1fr}}
+.chart-box{
+  background:rgba(13,148,136,0.035);
+  border:1px solid var(--bdr);border-radius:11px;
+  padding:14px;
+}
+.chart-ttl{
+  font-size:10px;font-weight:700;color:var(--teal);
+  letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;
+  display:flex;align-items:center;gap:6px;
+}
+
+/* LIFETIME */
+.lifetime-card{
+  background:linear-gradient(135deg,rgba(245,158,11,0.05),rgba(13,148,136,0.04));
+  border:1px solid rgba(245,158,11,0.22);
+  border-radius:12px;padding:22px;
+}
+.lt-ttl{font-size:13px;font-weight:700;color:var(--amber2);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.lt-grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end}
+@media(max-width:600px){.lt-grid{grid-template-columns:1fr 1fr}}
+.lt-res{
+  background:rgba(245,158,11,0.09);
+  border:1px solid rgba(245,158,11,0.3);
+  border-radius:9px;padding:16px;text-align:center;
+  min-width:120px;
+}
+.lt-v{font-size:26px;font-weight:700;color:var(--amber2);font-family:'JetBrains Mono',monospace}
+.lt-u{font-size:11px;color:var(--txt3);margin-top:2px}
+.lt-formula{
+  grid-column:1/-1;
+  background:rgba(245,158,11,0.05);
+  border:1px solid rgba(245,158,11,0.18);
+  border-radius:8px;padding:10px 14px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--amber);
+}
+
+/* ── GAME ── */
+.game-card{
+  background:var(--bg2);
+  border:1px solid var(--bdr);border-radius:18px;
+  overflow:hidden;position:relative;
+}
+.game-topbar{
+  height:3px;
+  background:linear-gradient(90deg,var(--teal),var(--amber2),var(--violet),var(--teal));
+  background-size:200%;animation:gBar 4s linear infinite;
+}
+@keyframes gBar{0%{background-position:0%}100%{background-position:200%}}
+.game-inner{padding:30px}
+
+.game-q{font-size:15px;font-weight:600;line-height:1.6;margin-bottom:4px}
+.game-sub{font-size:12px;color:var(--txt3);margin-bottom:16px}
+
+.game-mats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+@media(max-width:540px){.game-mats{grid-template-columns:1fr}}
+.mat-card{
+  border:2px solid var(--bdr);border-radius:12px;
+  padding:18px;text-align:center;cursor:pointer;
+  transition:all .3s;position:relative;overflow:hidden;
+}
+.mat-card::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s}
+.mat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(13,148,136,0.1)}
+.mat-card.sel-a{border-color:var(--teal2);background:rgba(13,148,136,0.1)}
+.mat-card.sel-b{border-color:var(--amber2);background:rgba(245,158,11,0.08)}
+.mat-card.sel-c{border-color:var(--violet);background:rgba(139,92,246,0.08)}
+.mat-name{font-size:13px;font-weight:700;color:var(--txt2);margin-bottom:6px}
+.mat-ea{font-size:28px;font-weight:700;font-family:'JetBrains Mono',monospace;margin:4px 0}
+.mat-unit{font-size:11px;color:var(--txt3)}
+.mat-bar{height:4px;border-radius:2px;margin-top:12px;transition:width .5s ease}
+
+.game-opts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.g-opt{
+  padding:10px 22px;border-radius:8px;
+  border:1px solid var(--bdr);background:rgba(13,148,136,0.05);
+  color:var(--txt);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;
+  cursor:pointer;transition:all .2s;
+}
+.g-opt:hover{border-color:var(--teal2);background:rgba(13,148,136,0.13);transform:translateY(-1px)}
+
+.game-fb{
+  border-radius:10px;padding:16px 20px;
+  font-size:13px;line-height:1.7;display:none;
+  animation:fbIn .35s ease;
+}
+@keyframes fbIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.game-fb.ok{background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.28);color:#4ade80}
+.game-fb.no{background:rgba(244,63,94,0.07);border:1px solid rgba(244,63,94,0.28);color:#fb7185}
+
+.game-score{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.score-box{
+  background:rgba(13,148,136,0.08);border:1px solid var(--bdr);
+  border-radius:8px;padding:8px 16px;
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--teal2);
+  display:flex;align-items:center;gap:6px;
+}
+.score-label{font-size:10px;color:var(--txt3)}
+
+/* ── THEORY BG ── */
+.theory-bg{font-size:13px;color:var(--txt2);line-height:1.85}
+.theory-bg h3{
+  font-size:14px;color:var(--teal2);
+  margin:22px 0 9px;font-weight:700;
+  display:flex;align-items:center;gap:8px;
+}
+.theory-bg h3::before{content:'';width:3px;height:16px;background:var(--teal2);border-radius:2px}
+.theory-bg p{margin-bottom:10px}
+.theory-bg .hl{color:var(--amber2);font-weight:600}
+.theory-bg .ch{color:var(--sky);font-family:'JetBrains Mono',monospace}
+.fbk{
+  background:rgba(13,148,136,0.07);
+  border:1px solid rgba(13,148,136,0.18);
+  border-left:3px solid var(--teal);
+  border-radius:0 9px 9px 0;
+  padding:12px 16px;margin:12px 0;
+  font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--teal2);
+}
+.theory-bg table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px}
+.theory-bg td,.theory-bg th{
+  padding:8px 12px;border:1px solid var(--bdr);text-align:left;
+}
+.theory-bg th{background:rgba(13,148,136,0.1);color:var(--teal2);font-weight:700}
+.theory-bg tr:hover td{background:rgba(13,148,136,0.04)}
+
+/* spinner */
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.18);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+footer{
+  border-top:1px solid var(--bdr);padding:24px 0;
+  text-align:center;font-size:11px;color:var(--txt3);
+  font-family:'JetBrains Mono',monospace;letter-spacing:0.05em;
+}
+
+/* ── BARRIER HERO (new full-width section) ── */
+.barrier-hero{
+  background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 50%,var(--bg3) 100%);
+  border:1px solid var(--bdr2);border-radius:20px;
+  overflow:hidden;position:relative;
+  box-shadow:0 0 60px rgba(13,148,136,0.06);
+}
+.barrier-hero-topbar{
+  height:3px;
+  background:linear-gradient(90deg,var(--teal),var(--teal2),var(--amber),var(--teal2),var(--teal));
+  background-size:300%;animation:barFlow 5s linear infinite;
+}
+.barrier-hero-inner{
+  display:grid;
+  grid-template-columns:1fr 1.6fr 1fr;
+  gap:0;
+  min-height:280px;
+}
+@media(max-width:900px){
+  .barrier-hero-inner{grid-template-columns:1fr;min-height:auto}
+  .barrier-col-mid{border-left:none!important;border-right:none!important;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr)}
+}
+.barrier-col{padding:28px 28px;display:flex;flex-direction:column;gap:14px}
+.barrier-col-left{border-right:1px solid var(--bdr)}
+.barrier-col-right{border-left:1px solid var(--bdr)}
+.barrier-col-mid{padding:28px 32px;display:flex;flex-direction:column;align-items:center;gap:0}
+
+.bcol-ttl{
+  font-size:18px;font-weight:700;color:var(--teal);
+  letter-spacing:0.1em;text-transform:uppercase;
+  display:flex;align-items:center;gap:7px;margin-bottom:4px;
+}
+.bcol-ttl::before{content:'';width:3px;height:13px;background:var(--teal);border-radius:2px}
+
+/* Additive selector */
+.additive-list{display:flex;flex-direction:column;gap:8px}
+.additive-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:9px;
+  border:1px solid var(--bdr);background:rgba(13,148,136,0.04);
+  cursor:pointer;transition:all .22s;
+  position:relative;
+}
+.additive-item:hover{border-color:var(--bdr2);background:rgba(13,148,136,0.09)}
+.additive-item.active{border-color:var(--teal2);background:rgba(13,148,136,0.13)}
+.additive-item input[type=checkbox]{
+  accent-color:var(--teal2);width:15px;height:15px;cursor:pointer;flex-shrink:0;
+}
+.additive-name{font-size:12px;font-weight:700;color:var(--txt)}
+.additive-boost{
+  font-size:10px;font-family:'JetBrains Mono',monospace;
+  margin-left:auto;flex-shrink:0;
+}
+.boost-pos{color:var(--green)}
+.boost-neg{color:var(--rose)}
+.additive-desc{font-size:10px;color:var(--txt3);line-height:1.4;margin-top:1px}
+
+/* Main barrier SVG */
+#mainBarrierSVG{width:100%;height:190px;display:block}
+.barrier-eq-row{
+  width:100%;
+  background:rgba(13,148,136,0.06);
+  border:1px solid rgba(13,148,136,0.18);
+  border-radius:8px;padding:10px 14px;
+  font-family:'JetBrains Mono',monospace;font-size:11.5px;
+  color:var(--teal2);text-align:center;margin-top:10px;
+}
+
+/* Water + KPI column */
+.water-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.wkpi{
+  background:rgba(13,148,136,0.06);border:1px solid var(--bdr);
+  border-radius:8px;padding:10px 8px;text-align:center;
+}
+.wkpi-v{font-size:16px;font-weight:700;color:var(--teal2);font-family:'JetBrains Mono',monospace}
+.wkpi-l{font-size:9px;color:var(--txt3);margin-top:2px;letter-spacing:0.05em}
+
+/* Degradation detail chart annotation */
+.deg-legend{
+  display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;font-size:11px;
+}
+.deg-leg-item{display:flex;align-items:center;gap:5px;color:var(--txt2)}
+.deg-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+
+/* scroll hint */
+.scroll-hint{
+  position:fixed;bottom:28px;right:28px;z-index:400;
+  width:40px;height:40px;border-radius:50%;
+  background:rgba(13,148,136,0.15);border:1px solid var(--bdr2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;cursor:pointer;
+  transition:all .2s;
+  box-shadow:0 4px 16px rgba(0,0,0,.3);
+}
+.scroll-hint:hover{background:rgba(13,148,136,0.28);transform:translateY(-2px)}
+</style>
 </head>
-<body class="p-4 md:p-6 fade-in">
+<body>
 
-    <!-- ========== 顶部核心理论区 ========== -->
-    <div class="max-w-7xl mx-auto mb-8">
-        <div class="glass-panel p-6">
-            <div class="flex items-center gap-3 mb-5">
-                <i class="fa-solid fa-lightbulb text-yellow-400 text-2xl drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]"></i>
-                <h2 class="text-2xl font-bold text-white">核心理论</h2>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 text-sm">
-                <!-- 1 活化能 -->
-                <div class="flex items-start gap-2">
-                    <span class="yellow-bullet">▶</span>
-                    <div class="tooltip-icon">
-                        <span class="font-bold text-base">活化能 $E_a$</span><br>
-                        反应所需跨越的能垒。<br> $E_a \uparrow$ → 温度敏感性 $\uparrow$
-                        <span class="tooltip-text">活化能越高，反应速率对温度越敏感。</span>
-                    </div>
-                </div>
-                <!-- 2 Arrhenius公式 -->
-                <div class="flex items-start gap-2">
-                    <span class="yellow-bullet">▶</span>
-                    <div class="tooltip-icon">
-                        <span class="font-bold text-base">Arrhenius</span><br>
-                        $k = A e^{-E_a/(RT)}$
-                        <span class="tooltip-text">A:指前因子，R:气体常数，T:温度</span>
-                    </div>
-                </div>
-                <!-- 3 Arrhenius寿命外推 -->
-                <div class="flex items-start gap-2">
-                    <span class="yellow-bullet">▶</span>
-                    <div class="tooltip-icon">
-                        <span class="font-bold text-base">寿命外推</span><br>
-                        $t_f \propto e^{E_a/(RT)}$
-                        <span class="tooltip-text">高温实验加速老化，预测室温寿命</span>
-                    </div>
-                </div>
-                <!-- 4 水分影响降解 -->
-                <div class="flex items-start gap-2">
-                    <span class="yellow-bullet">▶</span>
-                    <div class="tooltip-icon">
-                        <span class="font-bold text-base">水分影响</span><br>
-                        微量水促进LiPF₆分解生成HF，降低有效$E_a$。
-                        <span class="tooltip-text">水分增大 → 活化能降低，降解加快</span>
-                    </div>
-                </div>
-                <!-- 5 SEI膜动力学 -->
-                <div class="flex items-start gap-2">
-                    <span class="yellow-bullet">▶</span>
-                    <div class="tooltip-icon">
-                        <span class="font-bold text-base">SEI膜动力学</span><br>
-                        保护电极，但分解产生CO₂、H₂，影响寿命。
-                        <span class="tooltip-text">SEI稳定性影响气体生成速率</span>
-                    </div>
-                </div>
-            </div>
+<!-- ══════════ HEADER ══════════ -->
+<header class="hdr">
+  <div class="wrap">
+    <div class="hdr-inner">
+      <div class="hdr-logo">
+        <div class="hdr-icon">⚡</div>
+        <div>
+          <div class="hdr-name">电解液降解活化能动力学模拟器</div>
+          <div class="hdr-eng">Electrolyte Degradation · Activation Energy Kinetics · v2.0</div>
         </div>
+      </div>
+      <nav class="hdr-nav">
+        <button class="hdr-nav-btn active" onclick="scrollTo('#theory')">核心理论</button>
+        <button class="hdr-nav-btn" onclick="scrollTo('#simulator')">模拟器</button>
+        <button class="hdr-nav-btn" onclick="scrollTo('#game')">互动游戏</button>
+      </nav>
+      <div class="hdr-status">
+        <div class="status-dot"></div>
+        <span id="sysTime"></span>
+      </div>
     </div>
+  </div>
+</header>
 
-    <!-- ========== 中部模拟器启动区 ========== -->
-    <div class="max-w-4xl mx-auto mb-12">
-        <div class="glass-panel p-8 text-center relative overflow-hidden">
-            <i class="fa-solid fa-bolt absolute -right-6 -bottom-6 text-8xl text-teal-500/10"></i>
-            <i class="fa-solid fa-chart-line absolute -left-8 top-0 text-7xl text-teal-500/5"></i>
-            <div class="flex justify-center items-center gap-4 mb-3">
-                <i class="fa-solid fa-car-battery text-3xl teal-highlight"></i>
-                <i class="fa-solid fa-chart-simple text-3xl teal-highlight"></i>
-                <h1 class="text-3xl md:text-4xl font-title font-bold text-white tracking-wide">电解液降解活化能动力学模拟器</h1>
+<!-- ══════════ BARRIER HERO (能垒图 — 页面核心首屏) ══════════ -->
+<section id="barrier-section" style="padding-bottom:0">
+  <div class="wrap reveal" id="r0">
+    <div class="stitle-row">
+      <div class="stitle-ico">⛰</div>
+      <h2 class="stitle"> <em>能垒交互图</em></h2>
+    </div>
+    <div class="sdivider"></div>
+    <div class="barrier-hero">
+      <div class="barrier-hero-topbar"></div>
+      <div class="barrier-hero-inner">
+
+        <!-- LEFT: Additive Controls -->
+        <div class="barrier-col barrier-col-left">
+          <div class="bcol-ttl">🧪 添加剂调控</div>
+          <p style="font-size:11.5px;color:var(--txt2);line-height:1.65">
+            电解液添加剂通过<strong style="color:var(--green)">提高 LiPF₆ 水解反应活化能</strong>来抑制副反应，
+            而水分则<strong style="color:var(--rose)">降低有效活化能</strong>加速降解。
+          </p>
+          <div class="additive-list">
+            <div class="additive-item active" data-boost="8" onclick="toggleAdditive(this)">
+              <input type="checkbox" checked onchange="toggleAdditive(this.parentElement)">
+              <div style="flex:1">
+                <div class="additive-name">VC（碳酸亚乙烯酯）</div>
+                <div class="additive-desc">优先成膜，消耗水分，保护 LiPF₆</div>
+              </div>
+              <span class="additive-boost boost-pos">+8 kJ/mol</span>
             </div>
-            <span class="inline-block bg-teal-900/30 text-teal-400 border border-teal-500 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-6">基础 · 降解与寿命预测</span>
-            <div class="flex flex-col sm:flex-row justify-center gap-5">
-                <button onclick="openModal('simulatorModal')" class="btn-glow">
-                    <i class="fa-solid fa-play"></i> 启动模拟器
-                </button>
-                <button onclick="openModal('theoryModal')" class="btn-glow">
-                    <i class="fa-solid fa-book"></i> 理论背景
-                </button>
+            <div class="additive-item" data-boost="12" onclick="toggleAdditive(this)">
+              <input type="checkbox" onchange="toggleAdditive(this.parentElement)">
+              <div style="flex:1">
+                <div class="additive-name">FEC（氟代碳酸乙烯酯）</div>
+                <div class="additive-desc">形成富 LiF SEI，提高热稳定性</div>
+              </div>
+              <span class="additive-boost boost-pos">+12 kJ/mol</span>
             </div>
+            <div class="additive-item" data-boost="6" onclick="toggleAdditive(this)">
+              <input type="checkbox" onchange="toggleAdditive(this.parentElement)">
+              <div style="flex:1">
+                <div class="additive-name">LiBOB（草酸硼酸锂）</div>
+                <div class="additive-desc">螯合 PF₅，阻断水解反应路径</div>
+              </div>
+              <span class="additive-boost boost-pos">+6 kJ/mol</span>
+            </div>
+            <div class="additive-item" data-boost="15" onclick="toggleAdditive(this)">
+              <input type="checkbox" onchange="toggleAdditive(this.parentElement)">
+              <div style="flex:1">
+                <div class="additive-name">TMSP（三甲基甲硅烷基磷酸酯）</div>
+                <div class="additive-desc">优先与 HF/H₂O 反应，清除剂</div>
+              </div>
+              <span class="additive-boost boost-pos">+15 kJ/mol</span>
+            </div>
+          </div>
+          <div style="margin-top:4px;padding:10px 12px;background:rgba(244,63,94,0.05);border:1px solid rgba(244,63,94,0.2);border-radius:8px">
+            <div style="font-size:10px;font-weight:700;color:var(--rose);margin-bottom:6px">💧 水分影响（负向）</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="range" min="0" max="500" value="50" id="heroWater" oninput="updateBarrierHero()" style="flex:1">
+              <span style="font-size:11px;color:var(--rose);font-family:'JetBrains Mono',monospace;min-width:70px;text-align:right" id="heroWaterVal">50 ppm</span>
+            </div>
+            <div style="font-size:10px;color:var(--txt3);margin-top:4px">每 100 ppm 水分 → Ea 降低 0.5 kJ/mol</div>
+          </div>
         </div>
-    </div>
 
-    <!-- ========== 模拟器模态窗口 ========== -->
-    <div id="simulatorModal" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50 p-4" style="backdrop-filter: blur(12px);">
-        <div class="glass-panel w-full max-w-7xl max-h-[95vh] overflow-y-auto p-6">
-            <div class="flex justify-between items-center border-b border-teal-800 pb-3 mb-5">
-                <h2 class="text-2xl font-bold teal-highlight"><i class="fa-solid fa-flask mr-2"></i>降解动力学控制台</h2>
-                <button onclick="closeModal('simulatorModal')" class="text-slate-400 hover:text-white text-3xl">&times;</button>
-            </div>
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <!-- 左侧参数面板 -->
-                <div class="lg:col-span-1 space-y-4">
-                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
-                        <h3 class="text-white font-bold mb-3 border-l-4 border-teal-500 pl-2">动力学参数设置</h3>
-                        <div class="space-y-3 text-sm">
-                            <div>
-                                <label class="block text-slate-300 mb-1">活化能 Ea (kJ/mol) <span id="eaVal" class="teal-highlight float-right">60</span></label>
-                                <input type="range" id="eaSlider" min="20" max="120" value="60" step="1" class="w-full slider-teal" oninput="document.getElementById('eaVal').innerText=this.value">
-                            </div>
-                            <div>
-                                <label class="block text-slate-300 mb-1">指前因子 A (s⁻¹)</label>
-                                <input type="number" id="preExp" value="1e12" step="1e11" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
-                            </div>
-                            <div>
-                                <label class="block text-slate-300 mb-1">温度 T (K) <span id="tempVal" class="teal-highlight float-right">298</span></label>
-                                <input type="range" id="tempSlider" min="273" max="400" value="298" step="1" class="w-full slider-teal" oninput="document.getElementById('tempVal').innerText=this.value">
-                            </div>
-                            <div>
-                                <label class="block text-slate-300 mb-1">水含量 (ppm) <span id="waterVal" class="text-blue-400 float-right">0</span></label>
-                                <input type="range" id="waterSlider" min="0" max="1000" value="0" step="10" class="w-full slider-teal" oninput="document.getElementById('waterVal').innerText=this.value">
-                            </div>
-                            <div>
-                                <label class="block text-slate-300 mb-1">SEI稳定性</label>
-                                <select id="seiStability" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
-                                    <option value="stable">稳定</option>
-                                    <option value="medium" selected>中等</option>
-                                    <option value="unstable">不稳定</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-slate-300 mb-1">模拟时间 (h)</label>
-                                <input type="number" id="simTime" value="100" min="1" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-white">
-                            </div>
-                            <div class="pt-2 border-t border-slate-700">
-                                <button onclick="runDegradation()" class="w-full bg-teal-600 hover:bg-teal-500 text-white py-2 rounded font-bold transition-colors mt-2"><i class="fa-regular fa-play"></i> 开始模拟</button>
-                            </div>
-                        </div>
-                    </div>
+        <!-- MID: Main Barrier SVG -->
+        <div class="barrier-col-mid">
+          <div style="font-size:15px;font-weight:700;color:var(--txt3);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px;align-self:flex-start">LiPF₆ + H₂O → HF + POF₃ + LiF</div>
+          <svg id="mainBarrierSVG" viewBox="0 0 500 190" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="mGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.22"/>
+                <stop offset="100%" stop-color="#14b8a6" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="mGradW" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.18"/>
+                <stop offset="100%" stop-color="#f43f5e" stop-opacity="0"/>
+              </linearGradient>
+              <filter id="mGlow">
+                <feGaussianBlur stdDeviation="2.5" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <!-- Base curve (no additive, no water) -->
+            <path id="mPathBase" d="" fill="none" stroke="rgba(13,148,136,0.25)" stroke-width="1.5" stroke-dasharray="6,4"/>
+            <!-- Modified curve -->
+            <path id="mPathMod" d="" fill="url(#mGrad)" stroke="#14b8a6" stroke-width="2.5" stroke-linejoin="round" filter="url(#mGlow)"/>
+            <!-- Water-lowered curve -->
+            <path id="mPathWater" d="" fill="url(#mGradW)" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="5,3" opacity="0"/>
 
-                    <!-- 寿命预测模块 -->
-                    <div class="bg-slate-900/60 p-4 rounded-xl border border-teal-800">
-                        <h4 class="text-sm font-bold text-teal-300 mb-2"><i class="fa-regular fa-clock"></i> 寿命预测 (加速老化)</h4>
-                        <label class="block text-xs text-slate-400">高温测试 T1 (K)</label>
-                        <input type="number" id="T1" value="333" min="300" class="w-full bg-slate-800 border border-slate-600 rounded p-1 mb-2 text-sm">
-                        <label class="block text-xs text-slate-400">预测室温 T2 (K)</label>
-                        <input type="number" id="T2" value="298" min="273" class="w-full bg-slate-800 border border-slate-600 rounded p-1 mb-2 text-sm">
-                        <button onclick="predictLifetime()" class="w-full bg-blue-600/80 hover:bg-blue-600 text-white text-xs py-1.5 rounded">计算寿命外推</button>
-                        <div id="lifetimeResult" class="mt-2 text-xs text-teal-300"></div>
-                    </div>
+            <!-- Ea annotation: base -->
+            <line id="mEaLineBase" x1="250" y1="155" x2="250" y2="30" stroke="rgba(13,148,136,0.3)" stroke-width="1" stroke-dasharray="3,3"/>
 
-                    <!-- 教学游戏卡片 -->
-                    <div class="bg-slate-900/70 p-4 rounded-xl border border-yellow-600/40">
-                        <div class="flex items-center gap-2 text-yellow-400 text-xs uppercase tracking-wider mb-2"><i class="fa-solid fa-gamepad"></i> 活化能判断实验</div>
-                        <p class="text-xs text-slate-400 mb-1">材料A: Ea=40 kJ/mol | 材料B: Ea=80 kJ/mol</p>
-                        <p class="text-xs text-slate-400 mb-2">哪个材料温度稳定性更好？</p>
-                        <div class="flex gap-2">
-                            <button onclick="checkGame('A')" class="flex-1 bg-blue-600/80 text-xs py-1 rounded">材料A</button>
-                            <button onclick="checkGame('B')" class="flex-1 bg-blue-600/80 text-xs py-1 rounded">材料B</button>
-                        </div>
-                        <div id="gameFeedback" class="mt-2 text-xs p-2 bg-slate-800 rounded hidden"></div>
-                    </div>
-                </div>
+            <!-- Ea annotation: modified -->
+            <line id="mEaLineMod" x1="260" y1="155" x2="260" y2="30" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3"/>
+            <text id="mEaTextMod" x="0" y="0" fill="#fbbf24" font-size="11" font-family="JetBrains Mono" font-weight="600">Ea_eff</text>
 
-                <!-- 右侧图表区 (4个图) -->
-                <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700 h-56">
-                        <canvas id="chartArrhenius"></canvas>
-                    </div>
-                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700 h-56">
-                        <canvas id="chartRateTemp"></canvas>
-                    </div>
-                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700 h-56">
-                        <canvas id="chartConc"></canvas>
-                    </div>
-                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700 h-56">
-                        <canvas id="chartGas"></canvas>
-                    </div>
-                </div>
-            </div>
+            <!-- Delta Ea bracket -->
+            <line id="mDeltaLine" x1="0" y1="0" x2="0" y2="0" stroke="#4ade80" stroke-width="1.5"/>
+            <text id="mDeltaText" x="0" y="0" fill="#4ade80" font-size="10" font-family="JetBrains Mono">ΔEa</text>
+
+            <!-- Labels -->
+            <text x="28" y="172" fill="#8eacc8" font-size="15" font-family="JetBrains Mono">反应物</text>
+            <text x="28" y="185" fill="#5eead4" font-size="15" font-family="JetBrains Mono">LiPF₆+H₂O</text>
+            <text x="400" y="172" fill="#4ade80" font-size="15" font-family="JetBrains Mono">产物</text>
+            <text x="400" y="185" fill="#4ade80" font-size="15" font-family="JetBrains Mono">HF+POF₃</text>
+
+            <!-- Legend -->
+            <line x1="18" y1="18" x2="40" y2="18" stroke="rgba(13,148,136,0.4)" stroke-width="1.5" stroke-dasharray="5,3"/>
+            <text x="44" y="22" fill="rgba(13,148,136,0.7)" font-size="14" font-family="JetBrains Mono">基础 Ea (无添加剂)</text>
+            <line x1="18" y1="32" x2="40" y2="32" stroke="#14b8a6" stroke-width="2"/>
+            <text x="44" y="36" fill="#14b8a6" font-size="12" font-family="JetBrains Mono">有效 Ea (添加剂提升)</text>
+            <line x1="18" y1="46" x2="40" y2="46" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="4,3"/>
+            <text x="44" y="50" fill="#f43f5e" font-size="12" font-family="JetBrains Mono">水分降低 Ea</text>
+          </svg>
+          <div class="barrier-eq-row" id="barrierEqRow">
+            Ea_base = 65.0 kJ/mol &nbsp;|&nbsp; ΔEa(添加剂) = +8.0 kJ/mol &nbsp;|&nbsp; ΔEa(水分) = −0.3 kJ/mol &nbsp;|&nbsp; <strong>Ea_eff = 72.8 kJ/mol</strong>
+          </div>
         </div>
-    </div>
 
-    <!-- ========== 理论背景模态窗口 ========== -->
-    <div id="theoryModal" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50 p-4">
-        <div class="glass-panel w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">
-            <div class="flex justify-between items-center border-b border-teal-800 pb-3 mb-4">
-                <h2 class="text-2xl font-bold teal-highlight"><i class="fa-regular fa-file-lines mr-2"></i>动力学理论背景</h2>
-                <button onclick="closeModal('theoryModal')" class="text-slate-400 hover:text-white text-3xl">&times;</button>
+        <!-- RIGHT: Live KPIs -->
+        <div class="barrier-col barrier-col-right">
+          <div class="bcol-ttl">📊 实时参数</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:10px;color:var(--txt3)">基础 Ea</span>
+            <input type="range" min="40" max="100" value="65" id="heroEa" oninput="updateBarrierHero()" style="flex:1">
+            <span style="font-size:11px;color:var(--teal2);font-family:'JetBrains Mono',monospace;min-width:62px;text-align:right" id="heroEaVal">65 kJ/mol</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="font-size:10px;color:var(--txt3)">温度 T</span>
+            <input type="range" min="273" max="400" value="298" id="heroT" oninput="updateBarrierHero()" style="flex:1">
+            <span style="font-size:11px;color:var(--teal2);font-family:'JetBrains Mono',monospace;min-width:62px;text-align:right" id="heroTVal">298 K</span>
+          </div>
+          <div class="water-kpi-grid">
+            <div class="wkpi">
+              <div class="wkpi-v" id="hKpiEaBase">65.0</div>
+              <div class="wkpi-l">基础 Ea (kJ/mol)</div>
             </div>
-            <div class="space-y-4 text-sm text-slate-300">
-                <section>
-                    <h3 class="text-lg font-bold text-white mb-2">📈 Arrhenius理论推导</h3>
-                    <p>$k = A e^{-E_a/(RT)}$，取对数得 $\ln k = \ln A - \frac{E_a}{R}\cdot\frac{1}{T}$，以 $\ln k$ 对 $1/T$ 作图得直线，斜率 $-E_a/R$。</p>
-                </section>
-                <section>
-                    <h3 class="text-lg font-bold text-white mb-2">⚡ 电解液分解机理</h3>
-                    <p>LiPF₆ 水解：$\text{LiPF}_6 + \text{H}_2\text{O} \rightarrow \text{POF}_3 + 2\text{HF} + \text{LiF}$，水分降低有效活化能：$E_{a,eff}=E_a - \beta\cdot\text{Water}$，本模拟取 $\beta = 0.02$。</p>
-                </section>
-                <section>
-                    <h3 class="text-lg font-bold text-white mb-2">🛡️ SEI膜形成与气体生成</h3>
-                    <p>SEI分解产生 CO₂、H₂等。气体生成速率与 SEI 稳定性相关：稳定 → 低速率；不稳定 → 高速率。</p>
-                </section>
-                <section>
-                    <h3 class="text-lg font-bold text-white mb-2">🔋 工程案例：电池寿命预测</h3>
-                    <p>高温存储实验（60℃）加速老化，利用 Arrhenius 外推室温寿命。寿命比 $t_2/t_1 = \exp\left[\frac{E_a}{R}(\frac{1}{T_2}-\frac{1}{T_1})\right]$。</p>
-                </section>
+            <div class="wkpi" style="border-color:rgba(74,222,128,0.3)">
+              <div class="wkpi-v" id="hKpiAddBoost" style="color:var(--green)">+8.0</div>
+              <div class="wkpi-l">添加剂 ΔEa</div>
             </div>
+            <div class="wkpi" style="border-color:rgba(244,63,94,0.3)">
+              <div class="wkpi-v" id="hKpiWaterDrop" style="color:var(--rose)">−0.3</div>
+              <div class="wkpi-l">水分 ΔEa</div>
+            </div>
+            <div class="wkpi" style="border-color:rgba(251,191,36,0.4);background:rgba(245,158,11,0.07)">
+              <div class="wkpi-v" id="hKpiEaEff" style="color:var(--amber2)">72.8</div>
+              <div class="wkpi-l">Ea_eff (kJ/mol)</div>
+            </div>
+            <div class="wkpi">
+              <div class="wkpi-v" id="hKpiK">—</div>
+              <div class="wkpi-l">速率 k (s⁻¹)</div>
+            </div>
+            <div class="wkpi">
+              <div class="wkpi-v" id="hKpiHL">—</div>
+              <div class="wkpi-l">半衰期 (h)</div>
+            </div>
+          </div>
+          <div style="padding:10px 12px;background:rgba(13,148,136,0.06);border:1px solid var(--bdr);border-radius:8px;margin-top:4px">
+            <div style="font-size:10px;font-weight:700;color:var(--teal);margin-bottom:6px">💡 设计原则</div>
+            <div style="font-size:11px;color:var(--txt2);line-height:1.65">
+              添加剂通过与 HF/H₂O 竞争反应、修饰 SEI 成分，将 LiPF₆ 水解的能垒从 <span style="color:var(--teal2)">~50 kJ/mol 提升至 ~70+ kJ/mol</span>，
+              使寿命提升 <span style="color:var(--amber2)" id="hKpiLifeBoost">—</span> 倍。
+            </div>
+          </div>
         </div>
+
+      </div>
     </div>
+  </div>
+</section>
 
-    <script>
-        // ========== 模拟器核心 (整合 arrhenius_model, degradation_model, charts) ==========
-        let chartArr, chartRate, chartConc, chartGas;
-        const R = 8.314; // J/mol·K
+<!-- ══════════ THEORY ══════════ -->
+<section id="theory">
+  <div class="wrap reveal" id="r1">
+    <div class="stitle-row">
+      <div class="stitle-ico">💡</div>
+      <h2 class="stitle"> <em>核心理论</em></h2>
+    </div>
+    <div class="sdivider"></div>
+    <div class="tgrid">
 
-        // 打开/关闭模态
-        function openModal(id) {
-            document.getElementById(id).style.display = 'flex';
-            if (id === 'simulatorModal') setTimeout(initChartsIfNeeded, 150);
+      <div class="tcard">
+        <div class="tcard-glow"></div>
+        <div class="tcard-top">
+          <div class="tcard-num">01</div>
+          <div class="tcard-ttl">活化能与能垒</div>
+        </div>
+        <div class="tcard-body">
+          <span data-tip="反应物必须克服能垒才能转化为产物">反应所需跨越的能量势垒 $E_a$：</span>
+          <span class="fml">$$E_a = E_{TS} - E_{reactants}$$</span>
+          <span class="pill pill-w">⚠ $E_a\uparrow$ → 温度敏感性 $\uparrow$</span>
+          <span class="pill pill-g">✓ $E_a\uparrow$ → 热稳定性 $\uparrow$</span>
+          <ul class="param-list" style="margin-top:8px">
+            <li>$E_a$ 越高，相同温度下降解越慢</li>
+            <li>活化能由实验（Arrhenius图）测定</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tcard">
+        <div class="tcard-glow"></div>
+        <div class="tcard-top">
+          <div class="tcard-num">02</div>
+          <div class="tcard-ttl">Arrhenius 公式</div>
+        </div>
+        <div class="tcard-body">
+          速率常数与温度关系：
+          <span class="fml">$$k = A\,e^{-E_a/(RT)}$$</span>
+          <ul class="param-list">
+            <li><span data-tip="碰撞频率×有效碰撞分数">$A$：指前因子（频率因子）</span></li>
+            <li><span data-tip="R = 8.314 J·mol⁻¹·K⁻¹，普适气体常数">$R$：气体常数 8.314 J/mol·K</span></li>
+            <li><span data-tip="必须使用绝对温度开尔文">$T$：绝对温度 (K)</span></li>
+          </ul>
+          取对数：$\ln k = \ln A - \dfrac{E_a}{RT}$，以 $1/T$ 作图斜率为 $-E_a/R$。
+        </div>
+      </div>
+
+      <div class="tcard">
+        <div class="tcard-glow"></div>
+        <div class="tcard-top">
+          <div class="tcard-num">03</div>
+          <div class="tcard-ttl">Arrhenius 寿命外推</div>
+        </div>
+        <div class="tcard-body">
+          材料失效时间正比于：
+          <span class="fml">$$t_f \propto e^{E_a/RT} \quad \Rightarrow \quad \frac{t_2}{t_1} = e^{\frac{E_a}{R}\left(\frac{1}{T_2}-\frac{1}{T_1}\right)}$$</span>
+          <span class="pill pill-g">✓ 高温加速实验外推室温寿命</span>
+          <p style="margin-top:8px;font-size:12px">加速因子 $AF = e^{E_a/R(1/T_{use}-1/T_{test})}$，典型值 50–200×</p>
+        </div>
+      </div>
+
+      <div class="tcard">
+        <div class="tcard-glow"></div>
+        <div class="tcard-top">
+          <div class="tcard-num">04</div>
+          <div class="tcard-ttl">水分与添加剂对 Eₐ 的影响</div>
+        </div>
+        <div class="tcard-body">
+          综合有效活化能修正模型：
+          <span class="fml">$E_a^{eff} = E_a^{base} - \alpha W + \sum_i \Delta E_a^{(i)}$</span>
+          <span class="pill pill-w">⚠ 水分（W ppm）→ 降低 Ea，加速降解</span>
+          <span class="pill pill-g">✓ 添加剂 VC/FEC/TMSP → 提升 Ea，增强稳定性</span>
+          <ul class="param-list" style="margin-top:6px">
+            <li>VC：+8 kJ/mol，优先成膜消耗水分</li>
+            <li>FEC：+12 kJ/mol，富 LiF SEI，热稳定性强</li>
+            <li>TMSP：+15 kJ/mol，清除 HF/H₂O 最强效</li>
+          </ul>
+          <p style="font-size:11px;margin-top:6px">工业标准：水含量 &lt; 20 ppm（干燥间露点 −40°C）</p>
+        </div>
+      </div>
+
+      <div class="tcard">
+        <div class="tcard-glow"></div>
+        <div class="tcard-top">
+          <div class="tcard-num">05</div>
+          <div class="tcard-ttl">SEI 膜动力学</div>
+        </div>
+        <div class="tcard-body">
+          <span class="pill pill-g">✓ SEI 形成：保护负极，阻止进一步分解</span>
+          <span class="pill pill-w">⚠ SEI 分解：产生气体，影响寿命</span>
+          <span class="fml">$r_{gas} = k_{gas} \cdot C_{elec}$</span>
+          气体产物：<span class="pill pill-b">CO₂</span> <span class="pill pill-b">H₂</span> <span class="pill pill-b">C₂H₄</span>
+          <p style="font-size:11px;margin-top:6px">SEI 分解 $E_a$（稳定）≈ 70–90 kJ/mol；不稳定 SEI ≈ 40–60 kJ/mol</p>
+        </div>
+      </div>
+
+      <div class="tcard" style="background:linear-gradient(135deg,rgba(13,148,136,0.07),rgba(245,158,11,0.03));border-style:dashed;display:flex;align-items:center;justify-content:center">
+        <div style="text-align:center">
+          <div style="font-size:42px;margin-bottom:12px">🔋</div>
+          <div style="font-size:14px;color:var(--teal2);font-weight:700;margin-bottom:4px">实时动力学模拟</div>
+          <div style="font-size:11px;color:var(--txt3);margin-bottom:18px">调整参数，即时观察降解行为</div>
+          <button class="btn btn-p btn-sm" onclick="openSim()">▶ 启动模拟器</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ SIMULATOR HERO ══════════ -->
+<section id="simulator" style="padding-top:0">
+  <div class="wrap reveal" id="r2">
+    <div class="sim-hero">
+      <div class="sim-hero-topbar"></div>
+      <div class="sim-hero-inner">
+        <div class="sim-hero-left">
+          <div class="sim-ttl-row">
+            <div class="sim-ico">🔋</div>
+            <div>
+              <div class="sim-ttl">电解液降解活化能<br>动力学模拟器</div>
+              <div class="sim-eng">ELECTROLYTE DEGRADATION KINETICS · ACTIVATION ENERGY SIMULATOR v2.0</div>
+            </div>
+          </div>
+          <div class="badges">
+            <span class="badge bt">Arrhenius 模型</span>
+            <span class="badge ba">SEI 动力学</span>
+            <span class="badge bs">水分修正</span>
+            <span class="badge bt">寿命预测</span>
+          </div>
+          <p class="sim-desc">
+            基于 Arrhenius 方程，整合 SEI 膜形成/分解动力学与水分影响模型，实时可视化展示电解液降解过程。
+            支持四图并排分析、寿命外推预测与教学互动小游戏，适用于材料科学、电化学与新能源专业课堂。
+          </p>
+          <div class="btn-row">
+            <button class="btn btn-p" onclick="openSim()">▶ 启动模拟器</button>
+            <button class="btn btn-s" onclick="openTheory()">📘 理论背景</button>
+          </div>
+        </div>
+
+        <!-- LIVE PREVIEW -->
+        <div class="sim-hero-right">
+          <div class="preview-ttl">⚡ 实时预览</div>
+          <div class="preview-panel">
+            <div>
+              <div style="font-size:10px;color:var(--txt3);margin-bottom:6px;font-family:'JetBrains Mono',monospace">快速调节 Ea 预览速率变化</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <span style="font-size:10px;color:var(--txt3)">Ea</span>
+                <input type="range" min="20" max="120" value="60" id="prvEa" oninput="updatePreview()" style="flex:1">
+                <span class="sl-val" id="prvEaV" style="min-width:70px">60 kJ/mol</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <span style="font-size:10px;color:var(--txt3)">T</span>
+                <input type="range" min="273" max="400" value="298" id="prvT" oninput="updatePreview()" style="flex:1">
+                <span class="sl-val" id="prvTV" style="min-width:70px">298 K</span>
+              </div>
+            </div>
+
+            <div class="preview-kpi">
+              <div class="pkpi"><div class="pkpi-v" id="prvK">—</div><div class="pkpi-l">k (s⁻¹)</div></div>
+              <div class="pkpi"><div class="pkpi-v" id="prvHL">—</div><div class="pkpi-l">半衰期 (h)</div></div>
+              <div class="pkpi"><div class="pkpi-v" id="prvR">—</div><div class="pkpi-l">ln(k)</div></div>
+              <div class="pkpi"><div class="pkpi-v" id="prvS">—</div><div class="pkpi-l">稳定性评级</div></div>
+            </div>
+
+            <div class="barrier-wrap">
+              <div class="barrier-ttl">⛰ 能垒示意图</div>
+              <svg id="barrierSVG" viewBox="0 0 260 110" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="bg-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.15"/>
+                    <stop offset="100%" stop-color="#14b8a6" stop-opacity="0"/>
+                  </linearGradient>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="2" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
+                <path id="barrierPath" d="" fill="url(#bg-grad)" stroke="#14b8a6" stroke-width="2" stroke-linejoin="round" filter="url(#glow)"/>
+                <line id="eaLine" x1="0" y1="0" x2="0" y2="0" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3"/>
+                <text id="eaText" x="0" y="0" fill="#fbbf24" font-size="9" font-family="JetBrains Mono">Ea</text>
+                <circle id="reactDot" cx="30" cy="80" r="4" fill="#14b8a6"/>
+                <circle id="prodDot" cx="230" cy="90" r="4" fill="#4ade80"/>
+                <text x="12" y="95" fill="#8eacc8" font-size="8" font-family="JetBrains Mono">反应物</text>
+                <text x="198" y="105" fill="#4ade80" font-size="8" font-family="JetBrains Mono">产物</text>
+              </svg>
+            </div>
+
+            <div class="preview-eq" id="prvEq">
+              k = A·e^(−Ea/RT)<br>
+              = 1e8 · e^(−60000/R·298)<br>
+              ≈ <span id="prvEqVal" style="color:var(--amber2)">计算中...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ GAME ══════════ -->
+<section id="game">
+  <div class="wrap reveal" id="r3">
+    <div class="stitle-row">
+      <div class="stitle-ico">🎮</div>
+      <h2 class="stitle">教学互动 <em>Activation Energy Quiz</em></h2>
+    </div>
+    <div class="sdivider"></div>
+    <div class="game-card">
+      <div class="game-topbar"></div>
+      <div class="game-inner">
+        <div class="game-score">
+          <div class="score-box">
+            <div>
+              <div class="score-label">正确</div>
+              <div style="font-weight:700;color:var(--green)" id="scoreOk">0</div>
+            </div>
+          </div>
+          <div class="score-box">
+            <div>
+              <div class="score-label">总题数</div>
+              <div style="font-weight:700" id="scoreTotal">0</div>
+            </div>
+          </div>
+          <div class="score-box">
+            <div>
+              <div class="score-label">正确率</div>
+              <div style="font-weight:700;color:var(--teal2)" id="scoreRate">—</div>
+            </div>
+          </div>
+          <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="newGame()">🔄 换题</button>
+        </div>
+
+        <p class="game-q" id="gameQ">以下三种电解液材料，哪种在<strong style="color:var(--teal2)">相同温度下降解速率最慢（热稳定性最好）</strong>？</p>
+        <p class="game-sub">提示：利用 Arrhenius 方程 $k = Ae^{-E_a/(RT)}$ 分析，Ea 越高则 k 越小。</p>
+
+        <div class="game-mats" id="gameMats"></div>
+
+        <div class="game-opts">
+          <button class="g-opt" onclick="submitGame(0)">材料 A</button>
+          <button class="g-opt" onclick="submitGame(1)">材料 B</button>
+          <button class="g-opt" onclick="submitGame(2)">材料 C</button>
+        </div>
+
+        <div class="game-fb" id="gameFb"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ SIM MODAL ══════════ -->
+<div class="overlay" id="simModal">
+  <div class="modal">
+    <div class="modal-topbar"></div>
+    <div class="modal-body">
+      <div class="modal-hdr">
+        <div class="modal-ttl">⚙ 电解液降解动力学模拟参数</div>
+        <button class="mclose" onclick="closeSim()">✕</button>
+      </div>
+
+      <div class="modal-tabs">
+        <button class="mtab active" onclick="switchTab(0)">📐 参数配置</button>
+        <button class="mtab" onclick="switchTab(1)">📊 寿命预测</button>
+      </div>
+
+      <!-- TAB 0: PARAMS -->
+      <div id="tab0">
+        <div class="form-grid">
+          <div class="fg">
+            <label class="flbl">活化能 Eₐ <span class="funit">kJ/mol [20–120]</span></label>
+            <div class="sl-row">
+              <input type="range" min="20" max="120" value="60" id="slEa" oninput="onSlEa(this.value)">
+              <span class="sl-val" id="vEa">60 kJ/mol</span>
+            </div>
+            <div class="ferr" id="eEa"></div>
+          </div>
+
+          <div class="fg">
+            <label class="flbl">指前因子 A <span class="funit">s⁻¹</span></label>
+            <input type="number" class="finp" id="inpA" value="1e8" placeholder="1e8">
+            <div class="ferr" id="eA"></div>
+          </div>
+
+          <div class="fg">
+            <label class="flbl">温度 T <span class="funit">K [273–400]</span></label>
+            <div class="sl-row">
+              <input type="range" min="273" max="400" value="298" id="slT" oninput="onSlT(this.value)">
+              <span class="sl-val" id="vT">298 K (25°C)</span>
+            </div>
+          </div>
+
+          <div class="fg">
+            <label class="flbl">水含量 <span class="funit">ppm [0–1000]</span></label>
+            <div class="sl-row">
+              <input type="range" min="0" max="1000" value="50" id="slW" oninput="onSlW(this.value)">
+              <span class="sl-val" id="vW">50 ppm</span>
+            </div>
+          </div>
+
+          <div class="water-box">
+            💧 <span>$E_a^{eff} = E_a^{base} - 0.005W + \Delta E_a^{add}$</span>
+            <span style="margin-left:auto;color:var(--amber2)" id="eaEffSpan">Ea_eff = 59.75 kJ/mol</span>
+          </div>
+
+          <div class="fg full">
+            <label class="flbl">添加剂组合 <span class="funit">提高 LiPF₆ 水解活化能</span></label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:rgba(13,148,136,0.04);border:1px solid var(--bdr);border-radius:8px;cursor:pointer;font-size:12px;color:var(--txt2);transition:all .2s" class="add-chk-lbl" data-boost="8">
+                <input type="checkbox" id="addVC" onchange="updateWaterBox()" style="accent-color:var(--teal2)">
+                <span>VC <span style="color:var(--green);font-family:'JetBrains Mono',monospace;font-size:11px">+8 kJ/mol</span></span>
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:rgba(13,148,136,0.04);border:1px solid var(--bdr);border-radius:8px;cursor:pointer;font-size:12px;color:var(--txt2);transition:all .2s" class="add-chk-lbl" data-boost="12">
+                <input type="checkbox" id="addFEC" onchange="updateWaterBox()" style="accent-color:var(--teal2)">
+                <span>FEC <span style="color:var(--green);font-family:'JetBrains Mono',monospace;font-size:11px">+12 kJ/mol</span></span>
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:rgba(13,148,136,0.04);border:1px solid var(--bdr);border-radius:8px;cursor:pointer;font-size:12px;color:var(--txt2);transition:all .2s" class="add-chk-lbl" data-boost="6">
+                <input type="checkbox" id="addLiBOB" onchange="updateWaterBox()" style="accent-color:var(--teal2)">
+                <span>LiBOB <span style="color:var(--green);font-family:'JetBrains Mono',monospace;font-size:11px">+6 kJ/mol</span></span>
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:rgba(13,148,136,0.04);border:1px solid var(--bdr);border-radius:8px;cursor:pointer;font-size:12px;color:var(--txt2);transition:all .2s" class="add-chk-lbl" data-boost="15">
+                <input type="checkbox" id="addTMSP" onchange="updateWaterBox()" style="accent-color:var(--teal2)">
+                <span>TMSP <span style="color:var(--green);font-family:'JetBrains Mono',monospace;font-size:11px">+15 kJ/mol</span></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="fg">
+            <label class="flbl">SEI 稳定性</label>
+            <div class="sei-opts">
+              <div class="sei-opt active" data-sei="0.5" onclick="setSEI(this)">
+                <span class="sei-ico">🛡</span>稳定
+              </div>
+              <div class="sei-opt" data-sei="1.0" onclick="setSEI(this)">
+                <span class="sei-ico">⚖</span>中等
+              </div>
+              <div class="sei-opt" data-sei="2.0" onclick="setSEI(this)">
+                <span class="sei-ico">⚠️</span>不稳定
+              </div>
+            </div>
+          </div>
+
+          <div class="fg">
+            <label class="flbl">模拟时间 <span class="funit">小时</span></label>
+            <input type="number" class="finp" id="inpTime" value="1000" min="1">
+            <div class="ferr" id="eTime"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 1: LIFETIME -->
+      <div id="tab1" style="display:none">
+        <div class="lifetime-card">
+          <div class="lt-ttl">📊 Arrhenius 寿命外推计算</div>
+          <div class="lt-formula">
+            t₂ / t₁ = exp[ Ea_eff / R · (1/T₂ − 1/T₁) ]
+          </div>
+          <div class="lt-grid" style="margin-top:16px">
+            <div class="fg">
+              <label class="flbl">高温测试 T₁ <span class="funit">K</span></label>
+              <input type="number" class="finp" id="inpT1" value="353" min="273" max="450">
+            </div>
+            <div class="fg">
+              <label class="flbl">目标温度 T₂ <span class="funit">K</span></label>
+              <input type="number" class="finp" id="inpT2" value="298" min="200" max="400">
+            </div>
+            <div class="fg">
+              <label class="flbl">测试寿命 t₁ <span class="funit">小时</span></label>
+              <input type="number" class="finp" id="inpT1life" value="200" min="1">
+            </div>
+            <div class="lt-res">
+              <div style="font-size:9px;color:var(--txt3);margin-bottom:4px;letter-spacing:0.08em">预测寿命 t₂</div>
+              <div class="lt-v" id="ltResult">—</div>
+              <div class="lt-u">小时</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:16px;flex-wrap:wrap">
+            <button class="btn btn-s btn-sm" onclick="calcLifetime()">计算外推</button>
+            <span id="ltAccel" style="font-size:12px;color:var(--txt3);font-family:'JetBrains Mono',monospace"></span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:22px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-p" id="btnRun" onclick="runSim()">▶ 开始模拟</button>
+        <button class="btn btn-s btn-sm" onclick="resetSim()">↺ 重置</button>
+        <span id="simStat" style="font-size:11px;color:var(--txt3);font-family:'JetBrains Mono',monospace;margin-left:auto"></span>
+      </div>
+
+      <!-- RESULTS -->
+      <div id="resultSec" style="display:none;margin-top:28px">
+        <div class="res-hdr">计算结果 · Simulation Results</div>
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-v" id="kpiK">—</div><div class="kpi-l">速率常数 k (s⁻¹)</div></div>
+          <div class="kpi"><div class="kpi-v" id="kpiEff">—</div><div class="kpi-l">有效活化能 (kJ/mol)</div></div>
+          <div class="kpi"><div class="kpi-v" id="kpiHL">—</div><div class="kpi-l">半衰期 (小时)</div></div>
+          <div class="kpi"><div class="kpi-v" id="kpiDeg">—</div><div class="kpi-l">100h 降解率</div></div>
+        </div>
+        <div class="charts-grid">
+          <div class="chart-box">
+            <div class="chart-ttl"><span>①</span> Arrhenius 图 · ln(k) vs 1/T</div>
+            <canvas id="cArr" height="180"></canvas>
+          </div>
+          <div class="chart-box">
+            <div class="chart-ttl"><span>②</span> 降解速率 vs 温度</div>
+            <canvas id="cRate" height="180"></canvas>
+          </div>
+        <div class="chart-box" style="grid-column:1/-1">
+            <div class="chart-ttl"><span>③</span> 电解液浓度衰减细节图（关键失效阈值）</div>
+            <div style="font-size:11px;color:var(--txt3);margin-bottom:10px;line-height:1.6">
+              电解液无需大量分解即可导致电池失效：≥5% 降解对应容量明显衰退，≥10% 对应循环寿命显著缩短，≥20% 电池性能不可逆劣化。
+            </div>
+            <canvas id="cConc" height="200"></canvas>
+            <div class="deg-legend" id="degLegend">
+              <div class="deg-leg-item"><div class="deg-leg-dot" style="background:#38bdf8"></div>电解液浓度 C/C₀</div>
+              <div class="deg-leg-item"><div class="deg-leg-dot" style="background:#4ade80;border-radius:2px;width:14px;height:3px"></div>正常范围 (&lt;5%降解)</div>
+              <div class="deg-leg-item"><div class="deg-leg-dot" style="background:#fbbf24;border-radius:2px;width:14px;height:3px"></div>容量衰退 (5–10%)</div>
+              <div class="deg-leg-item"><div class="deg-leg-dot" style="background:#f43f5e;border-radius:2px;width:14px;height:3px"></div>严重失效 (&gt;10%)</div>
+            </div>
+          </div>
+          <div class="chart-box">
+            <div class="chart-ttl"><span>④</span> 气体生成曲线 (SEI 分解)</div>
+            <canvas id="cGas" height="180"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ THEORY MODAL ══════════ -->
+<div class="overlay" id="theoryModal">
+  <div class="modal">
+    <div class="modal-topbar"></div>
+    <div class="modal-body">
+      <div class="modal-hdr">
+        <div class="modal-ttl">📘 理论背景 · Theoretical Background</div>
+        <button class="mclose" onclick="closeTheory()">✕</button>
+      </div>
+      <div class="theory-bg">
+        <h3>1. Arrhenius 方程的推导与意义</h3>
+        <p>1889年，Svante Arrhenius 基于实验数据提出速率常数与温度的定量关系：</p>
+        <div class="fbk">k = A · exp(−Eₐ / RT)</div>
+        <p>两边取自然对数：<span class="hl">ln k = ln A − Eₐ / (RT)</span>。以 1/T 为横轴、ln k 为纵轴，可得一条直线，斜率为 <span class="hl">−Eₐ / R</span>，截距为 ln A。这是实验测定活化能的标准方法。</p>
+
+        <h3>2. 反应速率对温度的敏感性</h3>
+        <p>温度从 T 升高到 T+ΔT 时，速率变化倍率为：</p>
+        <div class="fbk">k(T+ΔT)/k(T) = exp[Eₐ·ΔT / (R·T·(T+ΔT))]</div>
+        <p>室温下（T=298K），每升高 10°C，速率约增大 1.5–4 倍（取决于 Eₐ）。Eₐ = 80 kJ/mol 时，每升 10°C 速率约翻 2.7 倍。</p>
+        <table>
+          <tr><th>Eₐ (kJ/mol)</th><th>速率比 (每+10°C，25→35°C)</th><th>应用场景</th></tr>
+          <tr><td>20–40</td><td>1.3–1.7×</td><td>扩散控制过程</td></tr>
+          <tr><td>40–80</td><td>1.7–2.9×</td><td>大多数电化学副反应</td></tr>
+          <tr><td>80–120</td><td>2.9–5.0×</td><td>高能垒裂解反应</td></tr>
+        </table>
+
+        <h3>3. LiPF₆ 水解机理与电解液稳定性</h3>
+        <p>LiPF₆ 是锂离子电池中最广泛使用的导电盐，但对水极敏感。水解反应分步进行：</p>
+        <div class="fbk">
+          步骤1：LiPF₆ ⇌ LiF + PF₅<br>
+          步骤2：PF₅ + H₂O → POF₃ + 2HF<br>
+          总：LiPF₆ + H₂O → LiF + POF₃ + 2HF
+        </div>
+        <p>生成的 <span class="hl">HF（氢氟酸）</span>腐蚀 LiCoO₂ 等正极材料（溶出 Co²⁺），破坏 SEI 膜完整性，导致容量衰减加速。该反应近似一级动力学，Eₐ ≈ 50–65 kJ/mol，活化能随水含量增加而降低。</p>
+
+        <h3>4. SEI 膜形成与分解机制</h3>
+        <p>固体电解质界面（SEI）膜在首次充电时形成，主要成分：</p>
+        <div class="fbk">
+          无机层：Li₂CO₃、LiF、Li₂O（内层，致密）<br>
+          有机层：ROCO₂Li、(CH₂OCO₂Li)₂（外层，疏松）
+        </div>
+        <p>SEI 分解反应（温度&gt;60°C 显著）：</p>
+        <div class="fbk">ROCO₂Li → Li₂CO₃ + C₂H₄↑ + CO₂↑ + H₂↑</div>
+        <p>稳定 SEI（富 LiF）的 Eₐ ≈ 80–100 kJ/mol；不稳定 SEI（富有机物）的 Eₐ ≈ 40–60 kJ/mol。</p>
+
+        <h3>5. 工程案例：电池寿命预测标准</h3>
+        <p>依据 IEC 62133 与 USABC 标准，通过高温加速老化实验预测室温寿命：</p>
+        <div class="fbk">t₂ = t₁ · exp[Eₐ/R · (1/T₂ − 1/T₁)]</div>
+        <p>示例：Eₐ = 65 kJ/mol，在 60°C（333K）测试 200h → 预测 25°C（298K）寿命约 <span class="hl">40,000 小时（≈4.6年）</span>。加速因子 AF ≈ 200，与业内数据吻合。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="scroll-hint" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">↑</div>
+
+<footer>
+  <div class="wrap">
+    电解液降解活化能动力学模拟器 v2.0 &nbsp;·&nbsp; Electrolyte Degradation Kinetics
+    &nbsp;|&nbsp; 材料科学 · 电化学 · 能源工程教学工具 &nbsp;|&nbsp;
+    <span id="footTime"></span>
+  </div>
+</footer>
+
+<script>
+/* ══════════════════════════════════════
+   CONSTANTS
+══════════════════════════════════════ */
+const R = 8.314;
+const ALPHA = 0.005; // kJ/mol per ppm water
+const A_DEFAULT = 1e8;
+const EA_BASE_DEFAULT = 65; // kJ/mol, LiPF6 hydrolysis baseline
+
+let charts = {};
+let seiMult = 0.5;
+let gameData = {};
+let gameScore = {ok:0, total:0};
+
+/* ══════════════════════════════════════
+   TIME CLOCK
+══════════════════════════════════════ */
+function tickClock(){
+  const now = new Date();
+  document.getElementById('sysTime').textContent = now.toLocaleTimeString('zh',{hour12:false});
+  document.getElementById('footTime').textContent = now.toLocaleDateString('zh');
+}
+tickClock(); setInterval(tickClock,1000);
+
+/* ══════════════════════════════════════
+   SCROLL REVEAL
+══════════════════════════════════════ */
+const revObs = new IntersectionObserver(es=>{
+  es.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in'); });
+},{threshold:0.06});
+document.querySelectorAll('.reveal').forEach(el=>revObs.observe(el));
+
+/* ══════════════════════════════════════
+   NAV
+══════════════════════════════════════ */
+function scrollTo(id){
+  document.querySelector(id)?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ══════════════════════════════════════
+   KINETICS
+══════════════════════════════════════ */
+function calcK(Ea_kJ, A, T){
+  return A * Math.exp(-Ea_kJ * 1000 / (R * T));
+}
+
+/* ══════════════════════════════════════
+   ADDITIVE BOOST (hero panel)
+══════════════════════════════════════ */
+function getHeroAdditiveBoost(){
+  let boost = 0;
+  document.querySelectorAll('.additive-item').forEach(item => {
+    if(item.classList.contains('active')){
+      boost += parseFloat(item.dataset.boost||0);
+    }
+  });
+  return boost;
+}
+
+function toggleAdditive(el){
+  // Handle both clicking the div and the checkbox change
+  const checkbox = el.querySelector('input[type=checkbox]');
+  if(event.target !== checkbox){
+    checkbox.checked = !checkbox.checked;
+  }
+  el.classList.toggle('active', checkbox.checked);
+  updateBarrierHero();
+}
+
+/* ══════════════════════════════════════
+   BARRIER HERO SVG UPDATE
+══════════════════════════════════════ */
+function updateBarrierHero(){
+  const Ea = parseFloat(document.getElementById('heroEa').value);
+  const T  = parseFloat(document.getElementById('heroT').value);
+  const W  = parseFloat(document.getElementById('heroWater').value);
+  const addBoost = getHeroAdditiveBoost();
+  const waterDrop = ALPHA * W;
+  const EaEff = Math.max(1, Ea + addBoost - waterDrop);
+
+  document.getElementById('heroEaVal').textContent = Ea + ' kJ/mol';
+  document.getElementById('heroTVal').textContent = T + ' K';
+  document.getElementById('heroWaterVal').textContent = W + ' ppm';
+
+  // KPIs
+  document.getElementById('hKpiEaBase').textContent = Ea.toFixed(1);
+  document.getElementById('hKpiAddBoost').textContent = '+' + addBoost.toFixed(1);
+  document.getElementById('hKpiWaterDrop').textContent = '−' + waterDrop.toFixed(1);
+  document.getElementById('hKpiEaEff').textContent = EaEff.toFixed(1);
+
+  const k = calcK(EaEff, A_DEFAULT, T);
+  const k_h = k * 3600;
+  const hl = k_h > 0 ? Math.log(2) / k_h : Infinity;
+  document.getElementById('hKpiK').textContent = k.toExponential(2);
+  document.getElementById('hKpiHL').textContent = hl > 1e6 ? '>1M h' : hl.toFixed(1)+'h';
+
+  // Life boost vs baseline (no additives, 50ppm water)
+  const kBase = calcK(Math.max(1, Ea - ALPHA*50), A_DEFAULT, T);
+  const lifeBoost = kBase > 0 ? (kBase / k).toFixed(1) : '—';
+  document.getElementById('hKpiLifeBoost').textContent = lifeBoost + '×';
+
+  // Equation row
+  document.getElementById('barrierEqRow').innerHTML =
+    `Ea_base = ${Ea.toFixed(1)} kJ/mol &nbsp;|&nbsp; ΔEa(添加剂) = <span style="color:#4ade80">+${addBoost.toFixed(1)}</span> kJ/mol &nbsp;|&nbsp; ΔEa(水分) = <span style="color:#f43f5e">−${waterDrop.toFixed(2)}</span> kJ/mol &nbsp;|&nbsp; <strong style="color:#fbbf24">Ea_eff = ${EaEff.toFixed(2)} kJ/mol</strong>`;
+
+  drawMainBarrier(Ea, EaEff, W);
+
+  // Sync with preview sliders
+  document.getElementById('prvEa').value = EaEff;
+  document.getElementById('prvEaV').textContent = EaEff.toFixed(1) + ' kJ/mol';
+  document.getElementById('prvT').value = T;
+  updatePreview();
+}
+
+function drawMainBarrier(EaBase, EaEff, W){
+  const W2 = 500, H2 = 190;
+  const reactY = 155, prodY = 162;
+
+  // Normalize: 40 kJ → shallow peak, 100 kJ → tall peak
+  function normEa(ea){ return Math.min(1, Math.max(0, (ea - 30) / 90)); }
+  const peakBase = reactY - normEa(EaBase) * 120;
+  const peakEff  = reactY - normEa(EaEff)  * 120;
+  const peakWat  = reactY - normEa(Math.max(1, EaBase - ALPHA * W)) * 120;
+
+  const cx = W2 / 2;
+
+  function makePath(peakY, close){
+    const p = `M 40 ${reactY} C 130 ${reactY} 160 ${peakY} ${cx} ${peakY} C ${cx+90} ${peakY} ${W2-130} ${prodY} ${W2-40} ${prodY}`;
+    return close ? p + ` L ${W2-40} ${H2} L 40 ${H2} Z` : p;
+  }
+
+  document.getElementById('mPathBase').setAttribute('d', makePath(peakBase, false));
+  document.getElementById('mPathMod').setAttribute('d', makePath(peakEff, true));
+
+  const waterPath = document.getElementById('mPathWater');
+  if(W > 5){
+    waterPath.setAttribute('d', makePath(peakWat, true));
+    waterPath.setAttribute('opacity','0.6');
+  } else {
+    waterPath.setAttribute('opacity','0');
+  }
+
+  // Ea annotation for modified curve
+  document.getElementById('mEaLineMod').setAttribute('y1', String(reactY));
+  document.getElementById('mEaLineMod').setAttribute('y2', String(peakEff));
+  document.getElementById('mEaLineMod').setAttribute('x1', String(cx + 16));
+  document.getElementById('mEaLineMod').setAttribute('x2', String(cx + 16));
+  document.getElementById('mEaTextMod').setAttribute('x', String(cx + 20));
+  document.getElementById('mEaTextMod').setAttribute('y', String((reactY + peakEff) / 2 + 4));
+  document.getElementById('mEaTextMod').textContent = `Ea_eff=${EaEff.toFixed(0)}`;
+
+  // Delta Ea bracket between base and eff peaks
+  const bracketX = cx - 20;
+  const dl = document.getElementById('mDeltaLine');
+  const dt = document.getElementById('mDeltaText');
+  if(Math.abs(peakEff - peakBase) > 4){
+    dl.setAttribute('x1', String(bracketX)); dl.setAttribute('y1', String(peakBase));
+    dl.setAttribute('x2', String(bracketX)); dl.setAttribute('y2', String(peakEff));
+    dt.setAttribute('x', String(bracketX - 32)); dt.setAttribute('y', String((peakBase + peakEff) / 2 + 4));
+    dt.textContent = `ΔEa=${(EaEff-EaBase).toFixed(0)}`;
+    dl.setAttribute('opacity','1'); dt.setAttribute('opacity','1');
+  } else {
+    dl.setAttribute('opacity','0'); dt.setAttribute('opacity','0');
+  }
+}
+
+/* ══════════════════════════════════════
+   LIVE PREVIEW (sidebar)
+══════════════════════════════════════ */
+function updatePreview(){
+  const Ea = parseFloat(document.getElementById('prvEa').value);
+  const T  = parseFloat(document.getElementById('prvT').value);
+  document.getElementById('prvEaV').textContent = Ea + ' kJ/mol';
+  document.getElementById('prvTV').textContent  = T + ' K';
+
+  const k = calcK(Ea, A_DEFAULT, T);
+  const k_h = k * 3600;
+  const hl = k_h > 0 ? Math.log(2) / k_h : Infinity;
+  const lnk = Math.log(k);
+
+  document.getElementById('prvK').textContent  = k.toExponential(2);
+  document.getElementById('prvHL').textContent = hl > 1e6 ? '>1M h' : hl.toFixed(1)+'h';
+  document.getElementById('prvR').textContent  = lnk.toFixed(2);
+
+  const rating = k_h<1e-8?'★★★★★': k_h<1e-6?'★★★★': k_h<1e-4?'★★★': k_h<1e-2?'★★':'★';
+  document.getElementById('prvS').textContent = rating;
+  document.getElementById('prvS').style.fontSize = '13px';
+  document.getElementById('prvEqVal').textContent = k.toExponential(3);
+
+  // keep barrier SVG in right panel synced (small one)
+  drawBarrierSmall(Ea);
+}
+
+function drawBarrierSmall(Ea){
+  const norm = Math.min(1, Math.max(0, (Ea - 20) / 100));
+  const peakY = 15 + (1 - norm) * 60;
+  const reactY = 80, prodY = 90;
+  const path = `M 10 ${reactY} C 60 ${reactY} 80 ${peakY} 130 ${peakY} C 180 ${peakY} 200 ${prodY} 250 ${prodY} L 250 110 L 10 110 Z`;
+  document.getElementById('barrierPath').setAttribute('d', path);
+  document.getElementById('eaLine').setAttribute('x1','130'); document.getElementById('eaLine').setAttribute('y1',String(reactY));
+  document.getElementById('eaLine').setAttribute('x2','130'); document.getElementById('eaLine').setAttribute('y2',String(peakY));
+  document.getElementById('eaText').setAttribute('x','135'); document.getElementById('eaText').setAttribute('y',String((reactY+peakY)/2+3));
+  document.getElementById('eaText').textContent = `Ea=${Ea}`;
+}
+
+/* ══════════════════════════════════════
+   MODAL CONTROLS
+══════════════════════════════════════ */
+function openSim(){
+  document.getElementById('simModal').classList.add('open');
+  updateWaterBox();
+}
+function closeSim(){ document.getElementById('simModal').classList.remove('open'); }
+function openTheory(){ document.getElementById('theoryModal').classList.add('open'); }
+function closeTheory(){ document.getElementById('theoryModal').classList.remove('open'); }
+
+['simModal','theoryModal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); });
+});
+
+/* ══════════════════════════════════════
+   TABS
+══════════════════════════════════════ */
+function switchTab(n){
+  document.getElementById('tab0').style.display = n===0?'block':'none';
+  document.getElementById('tab1').style.display = n===1?'block':'none';
+  document.querySelectorAll('.mtab').forEach((t,i)=>t.classList.toggle('active',i===n));
+}
+
+/* ══════════════════════════════════════
+   SLIDERS (modal)
+══════════════════════════════════════ */
+function getAdditiveBoostModal(){
+  let b = 0;
+  if(document.getElementById('addVC')?.checked)   b += 8;
+  if(document.getElementById('addFEC')?.checked)  b += 12;
+  if(document.getElementById('addLiBOB')?.checked) b += 6;
+  if(document.getElementById('addTMSP')?.checked) b += 15;
+  return b;
+}
+
+function onSlEa(v){
+  document.getElementById('vEa').textContent = v + ' kJ/mol';
+  updateWaterBox();
+  document.getElementById('prvEa').value = v; updatePreview();
+}
+function onSlT(v){
+  document.getElementById('vT').textContent = v + ' K (' + (v - 273.15).toFixed(0) + '°C)';
+  document.getElementById('prvT').value = v; updatePreview();
+}
+function onSlW(v){
+  document.getElementById('vW').textContent = v + ' ppm';
+  updateWaterBox();
+}
+
+function updateWaterBox(){
+  const Ea  = parseFloat(document.getElementById('slEa').value) || 60;
+  const W   = parseFloat(document.getElementById('slW').value)  || 0;
+  const add = getAdditiveBoostModal();
+  const eff = Math.max(0, Ea - ALPHA * W + add);
+  document.getElementById('eaEffSpan').textContent = 'Ea_eff = ' + eff.toFixed(2) + ' kJ/mol';
+  // Highlight additive labels that are checked
+  document.querySelectorAll('.add-chk-lbl').forEach(lbl=>{
+    const inp = lbl.querySelector('input');
+    lbl.style.borderColor = inp.checked ? 'rgba(13,148,136,0.5)' : '';
+    lbl.style.background  = inp.checked ? 'rgba(13,148,136,0.1)' : '';
+  });
+}
+
+/* ══════════════════════════════════════
+   SEI SELECTOR
+══════════════════════════════════════ */
+function setSEI(el){
+  document.querySelectorAll('.sei-opt').forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+  seiMult = parseFloat(el.dataset.sei);
+}
+
+/* ══════════════════════════════════════
+   VALIDATION
+══════════════════════════════════════ */
+function validate(){
+  let ok = true;
+  const A = parseFloat(document.getElementById('inpA').value);
+  const t = parseFloat(document.getElementById('inpTime').value);
+  if(isNaN(A)||A<=0){ document.getElementById('eA').textContent='A 必须 > 0'; document.getElementById('inpA').classList.add('err'); ok=false; }
+  else { document.getElementById('eA').textContent=''; document.getElementById('inpA').classList.remove('err'); }
+  if(isNaN(t)||t<0){ document.getElementById('eTime').textContent='时间必须 ≥ 0'; document.getElementById('inpTime').classList.add('err'); ok=false; }
+  else { document.getElementById('eTime').textContent=''; document.getElementById('inpTime').classList.remove('err'); }
+  return ok;
+}
+
+/* ══════════════════════════════════════
+   RUN SIMULATION
+══════════════════════════════════════ */
+function runSim(){
+  if(!validate()) return;
+  const btn = document.getElementById('btnRun');
+  btn.innerHTML = '<span class="spin"></span> 计算中...'; btn.disabled = true;
+  setTimeout(()=>{
+    try{
+      const Ea    = parseFloat(document.getElementById('slEa').value);
+      const A     = parseFloat(document.getElementById('inpA').value);
+      const T     = parseFloat(document.getElementById('slT').value);
+      const W     = parseFloat(document.getElementById('slW').value);
+      const totalT = parseFloat(document.getElementById('inpTime').value);
+      const add   = getAdditiveBoostModal();
+
+      const EaEff = Math.max(1, Ea - ALPHA * W + add);
+      const k     = calcK(EaEff, A, T);
+      const k_h   = k * 3600;
+      const hl    = k_h > 0 ? Math.log(2) / k_h : Infinity;
+      const deg100 = (1 - Math.exp(-k_h * 100)) * 100;
+
+      document.getElementById('kpiK').textContent    = k.toExponential(3);
+      document.getElementById('kpiEff').textContent  = EaEff.toFixed(2);
+      document.getElementById('kpiHL').textContent   = hl > 1e6 ? '>1M' : hl.toFixed(1);
+      document.getElementById('kpiDeg').textContent  = deg100.toFixed(3) + '%';
+
+      // Time series
+      const N = 100;
+      const times = Array.from({length:N+1}, (_,i) => i * totalT / N);
+      const concs  = times.map(t => Math.exp(-k_h * t));
+      const co2    = times.map(t => seiMult * 0.08 * (1 - Math.exp(-k_h * t)));
+      const h2     = times.map(t => seiMult * 0.05 * (1 - Math.exp(-k_h * 1.4 * t)));
+
+      // Arrhenius arrays
+      const tR   = Array.from({length:60}, (_,i) => 270 + i * 2.5);
+      const invT = tR.map(t => 1/t);
+      const lnK  = tR.map(t => { const kv = calcK(EaEff,A,t); return kv>0 ? Math.log(kv) : -300; });
+      const rateT = tR.map(t => calcK(EaEff,A,t) * 3600 * 100);
+
+      renderCharts(invT, lnK, tR, rateT, times, concs, co2, h2, T, k_h, totalT, EaEff);
+      document.getElementById('resultSec').style.display = 'block';
+      document.getElementById('simStat').textContent = '✓ 完成 ' + new Date().toLocaleTimeString();
+    }catch(err){
+      document.getElementById('simStat').textContent = '✗ ' + err.message;
+    }
+    btn.innerHTML = '▶ 开始模拟'; btn.disabled = false;
+  }, 550);
+}
+
+/* ══════════════════════════════════════
+   CHARTS
+══════════════════════════════════════ */
+const CO = {
+  responsive:true,
+  animation:{duration:900,easing:'easeInOutQuart'},
+  plugins:{
+    legend:{labels:{color:'#8eacc8',font:{size:10,family:'JetBrains Mono'},boxWidth:12,padding:10}},
+    tooltip:{
+      backgroundColor:'#13233d',borderColor:'rgba(13,148,136,0.4)',borderWidth:1,
+      titleColor:'#14b8a6',bodyColor:'#8eacc8',
+    }
+  },
+  scales:{
+    x:{ticks:{color:'#3d5a78',font:{size:9},maxTicksLimit:7},grid:{color:'rgba(13,148,136,0.06)'},border:{color:'rgba(13,148,136,0.15)'}},
+    y:{ticks:{color:'#3d5a78',font:{size:9}},grid:{color:'rgba(13,148,136,0.06)'},border:{color:'rgba(13,148,136,0.15)'}}
+  }
+};
+
+function mk(id, cfg){
+  const ctx = document.getElementById(id).getContext('2d');
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, cfg);
+}
+
+function renderCharts(invT, lnK, tR, rateT, times, concs, co2, h2, curT, k_h, totalT, EaEff){
+  const curInvT = 1 / curT;
+
+  // Chart 1: Arrhenius
+  mk('cArr',{type:'line',data:{
+    labels:invT.map(v=>(v*1000).toFixed(2)),
+    datasets:[
+      {label:'ln(k)',data:lnK,borderColor:'#0d9488',backgroundColor:'rgba(13,148,136,0.07)',borderWidth:2.5,pointRadius:0,fill:true,tension:0},
+      {label:'当前T',data:invT.map((v,i)=>Math.abs(v-curInvT)<0.0004?lnK[i]:null),
+        borderColor:'#f59e0b',backgroundColor:'#f59e0b',pointRadius:7,pointHoverRadius:9,showLine:false}
+    ]
+  },options:{...CO,scales:{...CO.scales,x:{...CO.scales.x,title:{display:true,text:'1000/T (K⁻¹)',color:'#3d5a78',font:{size:9}}}}}});
+
+  // Chart 2: Rate vs T
+  mk('cRate',{type:'line',data:{
+    labels:tR.map(t=>t.toFixed(0)+'K'),
+    datasets:[{label:'k·3600',data:rateT.map(v=>v>1e18?null:v),borderColor:'#14b8a6',backgroundColor:'rgba(20,184,166,0.07)',borderWidth:2.5,pointRadius:0,fill:true,tension:0.3}]
+  },options:{...CO,scales:{...CO.scales,y:{...CO.scales.y,type:'logarithmic',ticks:{...CO.scales.y.ticks,callback:v=>v.toExponential(0)}}}}});
+
+  // Chart 3: DETAILED concentration — focus on early degradation
+  // Find time to reach 0.8 (20% degraded) or use totalT if slower
+  const t20pct = k_h > 0 ? -Math.log(0.8) / k_h : totalT;
+  const detailEnd = Math.min(totalT, Math.max(t20pct * 2, totalT * 0.15));
+  const Nd = 120;
+  const dtimes = Array.from({length:Nd+1}, (_,i) => i * detailEnd / Nd);
+  const dconcs = dtimes.map(t => Math.exp(-k_h * t));
+
+  // Threshold reference lines
+  const th5  = times.map(() => 0.95);  // 5% degraded
+  const th10 = times.map(() => 0.90);  // 10% degraded
+  const th20 = times.map(() => 0.80);  // 20% degraded
+
+  mk('cConc',{type:'line',data:{
+    labels: dtimes.map(t => t < 100 ? t.toFixed(1)+'h' : t.toFixed(0)+'h'),
+    datasets:[
+      {label:'C/C₀',data:dconcs,borderColor:'#38bdf8',backgroundColor:'rgba(56,189,248,0.07)',borderWidth:2.5,pointRadius:0,fill:true,tension:0.3,order:1},
+      {label:'失效阈值 95% (5%降解)',data:dtimes.map(()=>0.95),borderColor:'rgba(74,222,128,0.7)',backgroundColor:'transparent',borderWidth:1.5,borderDash:[6,4],pointRadius:0,order:2},
+      {label:'失效阈值 90% (10%降解)',data:dtimes.map(()=>0.90),borderColor:'rgba(251,191,36,0.7)',backgroundColor:'transparent',borderWidth:1.5,borderDash:[6,4],pointRadius:0,order:3},
+      {label:'严重失效 80% (20%降解)',data:dtimes.map(()=>0.80),borderColor:'rgba(244,63,94,0.7)',backgroundColor:'rgba(244,63,94,0.03)',borderWidth:1.5,borderDash:[6,4],pointRadius:0,fill:'-1',order:4},
+    ]
+  },options:{
+    ...CO,
+    scales:{
+      ...CO.scales,
+      y:{...CO.scales.y, min: Math.max(0.6, Math.min(...dconcs)-0.05), max:1.01,
+        ticks:{...CO.scales.y.ticks, callback:v=>(v*100).toFixed(0)+'%'}
+      },
+      x:{...CO.scales.x, title:{display:true,text:'时间 (h)',color:'#3d5a78',font:{size:9}}}
+    },
+    plugins:{
+      ...CO.plugins,
+      annotation:{},
+      tooltip:{
+        ...CO.plugins.tooltip,
+        callbacks:{
+          label:function(ctx){
+            const pct = ((1-ctx.parsed.y)*100).toFixed(2);
+            return ctx.dataset.label.startsWith('C/C₀')
+              ? ` C/C₀ = ${(ctx.parsed.y*100).toFixed(2)}%  (降解 ${pct}%)`
+              : ` ${ctx.dataset.label}`;
+          }
         }
-        function closeModal(id) {
-            document.getElementById(id).style.display = 'none';
-        }
+      }
+    }
+  }});
 
-        // 计算有效活化能 (水分降低)
-        function effectiveEa(Ea, water) {
-            const beta = 0.02; // 经验系数
-            return Ea - beta * water;
-        }
+  // Chart 4: Gas
+  mk('cGas',{type:'line',data:{
+    labels:times.map(t=>t.toFixed(0)+'h'),
+    datasets:[
+      {label:'CO₂ (mol/L)',data:co2,borderColor:'#f43f5e',backgroundColor:'rgba(244,63,94,0.06)',borderWidth:2.5,pointRadius:0,fill:true,tension:0.3},
+      {label:'H₂ (mol/L)',data:h2,borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,0.06)',borderWidth:2.5,pointRadius:0,fill:true,tension:0.3}
+    ]
+  },options:{...CO}});
+}
 
-        // 计算速率常数 k
-        function computeK(A, Ea_eff, T) {
-            return A * Math.exp(-Ea_eff * 1000 / (R * T)); // Ea kJ/mol → J/mol
-        }
+/* ══════════════════════════════════════
+   LIFETIME CALC
+══════════════════════════════════════ */
+function calcLifetime(){
+  const Ea  = parseFloat(document.getElementById('slEa').value) * 1000;
+  const W   = parseFloat(document.getElementById('slW').value);
+  const add = getAdditiveBoostModal() * 1000;
+  const EaEff = Math.max(1000, Ea - ALPHA * W * 1000 + add);
+  const T1  = parseFloat(document.getElementById('inpT1').value);
+  const T2  = parseFloat(document.getElementById('inpT2').value);
+  const t1  = parseFloat(document.getElementById('inpT1life').value);
+  if([T1,T2,t1].some(v=>isNaN(v)||v<=0)){ document.getElementById('ltResult').textContent='输入错误'; return; }
+  const AF = Math.exp(EaEff / R * (1/T2 - 1/T1));
+  const t2 = t1 * AF;
+  let disp;
+  if(t2 > 1e7) disp = (t2/8760).toExponential(2) + ' 年';
+  else if(t2 > 8760) disp = (t2/8760).toFixed(1) + ' 年';
+  else if(t2 > 1e4) disp = t2.toFixed(0) + ' h';
+  else disp = t2.toFixed(1) + ' h';
+  document.getElementById('ltResult').textContent = disp;
+  document.getElementById('ltAccel').textContent = '加速因子 AF = ' + AF.toFixed(1) + '×';
+}
 
-        // 运行降解模拟
-        function runDegradation() {
-            // 获取参数
-            const Ea = parseFloat(document.getElementById('eaSlider').value);
-            const A = parseFloat(document.getElementById('preExp').value);
-            const T = parseFloat(document.getElementById('tempSlider').value);
-            const water = parseFloat(document.getElementById('waterSlider').value);
-            const sei = document.getElementById('seiStability').value;
-            const simTime = parseFloat(document.getElementById('simTime').value);
-            
-            // 校验
-            if (Ea <= 0 || T <= 0 || simTime <= 0) { alert('参数必须为正'); return; }
-            
-            const Ea_eff = effectiveEa(Ea, water);
-            const k = computeK(A, Ea_eff, T);
+/* ══════════════════════════════════════
+   RESET
+══════════════════════════════════════ */
+function resetSim(){
+  document.getElementById('slEa').value = 60; onSlEa(60);
+  document.getElementById('inpA').value = '1e8';
+  document.getElementById('slT').value = 298; onSlT(298);
+  document.getElementById('slW').value = 50; onSlW(50);
+  document.getElementById('inpTime').value = 1000;
+  seiMult = 0.5;
+  document.querySelectorAll('.sei-opt').forEach((o,i)=>o.classList.toggle('active',i===0));
+  ['addVC','addFEC','addLiBOB','addTMSP'].forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
+  updateWaterBox();
+  document.getElementById('resultSec').style.display = 'none';
+  document.getElementById('simStat').textContent = '';
+}
 
-            // 降解曲线：假设一级降解 C = C0 * exp(-k * t) , 取C0=1
-            const times = [];
-            const conc = [];
-            const step = simTime / 60;
-            for (let t = 0; t <= simTime; t += step) {
-                times.push(t);
-                conc.push(Math.exp(-k * t));
-            }
-            if (chartConc) {
-                chartConc.data.labels = times.map(v => v.toFixed(1));
-                chartConc.data.datasets[0].data = conc;
-                chartConc.update();
-            }
+/* ══════════════════════════════════════
+   GAME ENGINE
+══════════════════════════════════════ */
+const EaPools = [
+  [25,50,75],[30,55,85],[20,45,70],[35,60,90],[40,65,95],[28,52,78]
+];
+const gameQuestions = [
+  {q:'哪种材料在相同温度下<strong style="color:var(--teal2)">降解速率最慢（热稳定性最好）</strong>？',ans:'max'},
+  {q:'哪种材料在相同温度下<strong style="color:var(--rose)">降解速率最快（最不稳定）</strong>？',ans:'min'},
+  {q:'在加速老化实验中，哪种材料的<strong style="color:var(--amber2)">寿命预测外推倍率最大</strong>？',ans:'max'},
+];
+const colors = ['var(--teal2)','var(--amber2)','var(--violet)'];
+const selCls  = ['sel-a','sel-b','sel-c'];
 
-            // 气体生成：简化模型 气体量 ∝ (1 - exp(-k_gas * t))，根据SEI调节速率
-            let k_gas = k * 0.5; // 基础
-            if (sei === 'stable') k_gas = k * 0.2;
-            else if (sei === 'unstable') k_gas = k * 1.2;
-            const gas = [];
-            for (let t of times) gas.push(1 - Math.exp(-k_gas * t));
-            if (chartGas) {
-                chartGas.data.labels = times.map(v => v.toFixed(1));
-                chartGas.data.datasets[0].data = gas;
-                chartGas.update();
-            }
+function newGame(){
+  document.getElementById('gameFb').style.display = 'none';
+  const pool = EaPools[Math.floor(Math.random() * EaPools.length)];
+  const shuffled = [...pool].sort(() => Math.random() - .5);
+  const qObj = gameQuestions[Math.floor(Math.random() * gameQuestions.length)];
+  const correctIdx = qObj.ans === 'max'
+    ? shuffled.indexOf(Math.max(...shuffled))
+    : shuffled.indexOf(Math.min(...shuffled));
+  gameData = {eas:shuffled, correctIdx, qObj};
+  document.getElementById('gameQ').innerHTML = qObj.q;
+  const mats = document.getElementById('gameMats');
+  mats.innerHTML = '';
+  shuffled.forEach((ea,i)=>{
+    const barW = Math.round((ea/120)*100);
+    mats.innerHTML += `
+      <div class="mat-card" id="mat${i}" onclick="selectMat(${i})">
+        <div class="mat-name" style="color:${colors[i]}">材料 ${['A','B','C'][i]}</div>
+        <div class="mat-ea" style="color:${colors[i]}">${ea}</div>
+        <div class="mat-unit">kJ/mol</div>
+        <div class="mat-bar" style="background:${colors[i]};width:${barW}%;opacity:0.5"></div>
+      </div>`;
+  });
+}
 
-            // 更新Arrhenius图 (lnk vs 1/T 范围)
-            const temps = [];
-            const invT = [];
-            const lnk = [];
-            for (let tt = 260; tt <= 400; tt+=10) {
-                temps.push(tt);
-                invT.push(1000/tt); // 方便显示
-                const kk = computeK(A, Ea_eff, tt);
-                lnk.push(Math.log(kk));
-            }
-            if (chartArr) {
-                chartArr.data.labels = invT.map(v => v.toFixed(3));
-                chartArr.data.datasets[0].data = lnk;
-                chartArr.update();
-            }
+function selectMat(i){
+  document.querySelectorAll('.mat-card').forEach((c,j)=>{
+    c.className = 'mat-card' + (j===i ? ' '+selCls[i] : '');
+  });
+}
 
-            // 速率 vs 温度曲线 (在当前温度附近)
-            const tempRange = [];
-            const rateRange = [];
-            for (let dt = -30; dt <= 30; dt+=2) {
-                const Tt = T + dt;
-                if (Tt < 250) continue;
-                tempRange.push(Tt);
-                rateRange.push(computeK(A, Ea_eff, Tt));
-            }
-            if (chartRate) {
-                chartRate.data.labels = tempRange;
-                chartRate.data.datasets[0].data = rateRange;
-                chartRate.update();
-            }
-        }
+function submitGame(choice){
+  const fb = document.getElementById('gameFb');
+  fb.style.display = 'block';
+  gameScore.total++;
+  const eas = gameData.eas;
+  const labels = ['A','B','C'];
+  if(choice === gameData.correctIdx){
+    gameScore.ok++;
+    fb.className = 'game-fb ok';
+    fb.innerHTML = `✅ <strong>正确！</strong>材料 ${labels[choice]}（Eₐ = ${eas[choice]} kJ/mol）是正确答案。<br><br>
+      <strong>解析：</strong>$k = Ae^{-E_a/(RT)}$，活化能越高 → k 越小 → 降解越慢。<br>
+      三材料速率比较：${eas.map((e,i)=>`${labels[i]}: k∝e^{-${(e*1000/8.314/298).toFixed(0)}}`).join(' | ')}<br>
+      <strong style="color:#4ade80">Eₐ↑ → 能垒↑ → 反应越难 → 材料越稳定</strong>`;
+  } else {
+    fb.className = 'game-fb no';
+    fb.innerHTML = `❌ <strong>不正确</strong>，正确答案是材料 ${labels[gameData.correctIdx]}（Eₐ = ${eas[gameData.correctIdx]} kJ/mol）。<br><br>
+      <strong>解析：</strong>关键公式 $k \propto e^{-E_a/(RT)}$，Eₐ 越大，k 越小。<br>
+      你选的材料 ${labels[choice]}（Eₐ=${eas[choice]}）vs 正确答案（Eₐ=${eas[gameData.correctIdx]}）`;
+  }
+  document.getElementById('scoreOk').textContent = gameScore.ok;
+  document.getElementById('scoreTotal').textContent = gameScore.total;
+  document.getElementById('scoreRate').textContent = (gameScore.ok/gameScore.total*100).toFixed(0) + '%';
+}
 
-        // 寿命预测
-        function predictLifetime() {
-            const Ea = parseFloat(document.getElementById('eaSlider').value);
-            const water = parseFloat(document.getElementById('waterSlider').value);
-            const Ea_eff = effectiveEa(Ea, water);
-            const T1 = parseFloat(document.getElementById('T1').value);
-            const T2 = parseFloat(document.getElementById('T2').value);
-            if (T1 <= 0 || T2 <= 0) return;
-            // 寿命比 t2/t1 = exp((Ea/R)*(1/T2 - 1/T1))
-            const ratio = Math.exp((Ea_eff * 1000 / R) * (1/T2 - 1/T1));
-            const result = `高温 T1=${T1}K 寿命为1单位，预测室温 T2=${T2}K 寿命为 ${ratio.toFixed(1)} 倍。`;
-            document.getElementById('lifetimeResult').innerText = result;
-        }
-
-        // 教学游戏
-        function checkGame(material) {
-            const fb = document.getElementById('gameFeedback');
-            fb.classList.remove('hidden');
-            if (material === 'B') {
-                fb.innerHTML = '✅ 正确！材料B (Ea=80 kJ/mol) 活化能更高，温度稳定性更好（对温度变化更敏感，但高温下更稳定）。';
-            } else {
-                fb.innerHTML = '❌ 错误。活化能更高的材料温度稳定性更好。材料B的Ea更大。';
-            }
-        }
-
-        // 初始化图表 (如果未初始化)
-        function initChartsIfNeeded() {
-            if (chartArr) return;
-            const ctx1 = document.getElementById('chartArrhenius')?.getContext('2d');
-            if (ctx1) {
-                chartArr = new Chart(ctx1, {
-                    type: 'line',
-                    data: { labels: [], datasets: [{ label: 'ln(k)', borderColor: '#0d9488', data: [] }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#ccc' } } } }
-                });
-            }
-            const ctx2 = document.getElementById('chartRateTemp')?.getContext('2d');
-            if (ctx2) {
-                chartRate = new Chart(ctx2, {
-                    type: 'line',
-                    data: { labels: [], datasets: [{ label: 'k (s⁻¹)', borderColor: '#f43f5e', data: [] }] },
-                    options: { responsive: true }
-                });
-            }
-            const ctx3 = document.getElementById('chartConc')?.getContext('2d');
-            if (ctx3) {
-                chartConc = new Chart(ctx3, {
-                    type: 'line',
-                    data: { labels: [], datasets: [{ label: '电解液浓度 C/C₀', borderColor: '#0d9488', data: [] }] },
-                    options: { responsive: true }
-                });
-            }
-            const ctx4 = document.getElementById('chartGas')?.getContext('2d');
-            if (ctx4) {
-                chartGas = new Chart(ctx4, {
-                    type: 'line',
-                    data: { labels: [], datasets: [{ label: '气体生成量 (归一化)', borderColor: '#facc15', data: [] }] },
-                    options: { responsive: true }
-                });
-            }
-        }
-
-        // 模态点击外部关闭
-        window.onclick = function(e) {
-            if (e.target.classList.contains('modal-overlay')) {
-                e.target.style.display = 'none';
-            }
-        };
-    </script>
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
+updateBarrierHero();
+updatePreview();
+newGame();
+updateWaterBox();
+</script>
 </body>
 </html>
