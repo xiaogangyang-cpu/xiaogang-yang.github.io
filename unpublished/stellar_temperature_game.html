@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星温判官 · Stellar Temperature Oracle</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap');
+
+  :root {
+    --bg: #05060f;
+    --bg2: #090b1a;
+    --panel: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+    --text: #c8cfe8;
+    --text-dim: #5a6180;
+    --accent: #7eb8f7;
+    --accent2: #f7c77e;
+    --correct: #6be8a0;
+    --wrong: #f76b6b;
+    --glow: rgba(126,184,247,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Star field background */
+  #starfield {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    overflow: hidden;
+  }
+  .bg-star {
+    position: absolute;
+    border-radius: 50%;
+    background: white;
+    animation: twinkle var(--d, 3s) ease-in-out infinite;
+  }
+  @keyframes twinkle {
+    0%,100% { opacity: var(--min, 0.1); }
+    50% { opacity: var(--max, 0.6); }
+  }
+
+  #app {
+    position: relative; z-index: 1;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px 16px 60px;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    padding: 32px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+  }
+  .logo-title {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(2rem, 4vw, 1.4rem);
+    letter-spacing: 0.3em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .logo-sub {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    font-size: clamp(0.85rem, 3vw, 1rem);
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+
+  /* Score bar */
+  .scorebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 18px;
+    margin-bottom: 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+  .score-val { color: var(--accent2); font-size: 1rem; }
+
+  /* Mode tabs */
+  .mode-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .tab-btn {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 8px;
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .tab-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .tab-btn.active {
+    background: rgba(126,184,247,0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Game panels */
+  .game-panel { display: none; }
+  .game-panel.active { display: block; }
+
+  /* Star display area */
+  .star-arena {
+    background: radial-gradient(ellipse at center, #0a0d20 0%, var(--bg) 80%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    min-height: 220px;
+    margin-bottom: 20px;
+  }
+
+  .star-glow-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .star-circle {
+    border-radius: 50%;
+    position: relative;
+    z-index: 2;
+    transition: all 0.6s ease;
+  }
+
+  .star-halo {
+    position: absolute;
+    border-radius: 50%;
+    z-index: 1;
+    transition: all 0.6s ease;
+    filter: blur(20px);
+    opacity: 0.6;
+  }
+
+  .star-halo2 {
+    position: absolute;
+    border-radius: 50%;
+    z-index: 0;
+    transition: all 0.6s ease;
+    filter: blur(50px);
+    opacity: 0.3;
+  }
+
+  /* Intensity bar */
+  .intensity-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .intensity-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+    min-width: 70px;
+  }
+  .intensity-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .intensity-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease, background 0.6s ease;
+  }
+
+  /* Question area */
+  .question-label {
+    font-size: clamp(0.95rem, 3.5vw, 1.1rem);
+    color: var(--text-dim);
+    text-align: center;
+    margin-bottom: 16px;
+    font-style: italic;
+  }
+
+  /* Choices */
+  .choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .choice-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 10px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    line-height: 1.4;
+  }
+  .choice-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(126,184,247,0.08);
+    transform: translateY(-1px);
+  }
+  .choice-btn.correct {
+    border-color: var(--correct);
+    background: rgba(107,232,160,0.1);
+    color: var(--correct);
+  }
+  .choice-btn.wrong {
+    border-color: var(--wrong);
+    background: rgba(247,107,107,0.08);
+    color: var(--wrong);
+  }
+  .choice-btn:disabled { cursor: default; }
+
+  /* Feedback box */
+  .feedback-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  .feedback-box.show { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+  .feedback-verdict {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+  }
+  .feedback-verdict.ok { color: var(--correct); }
+  .feedback-verdict.bad { color: var(--wrong); }
+
+  .feedback-detail {
+    font-size: 0.92rem;
+    color: var(--text-dim);
+    line-height: 1.55;
+  }
+  .feedback-hint {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+  .feedback-hint b { color: var(--accent2); font-style: normal; }
+
+  /* Next button */
+  .btn-next {
+    width: 100%;
+    background: linear-gradient(135deg, rgba(126,184,247,0.15), rgba(126,184,247,0.05));
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 13px;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.08em;
+  }
+  .btn-next:hover { background: rgba(126,184,247,0.2); }
+
+  /* Sorting mode */
+  .sort-arena {
+    background: radial-gradient(ellipse at center, #0a0d20 0%, var(--bg) 80%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .sort-star-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.03);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 14px;
+    cursor: grab;
+    user-select: none;
+    transition: all 0.2s;
+    min-width: 90px;
+  }
+  .sort-star-card:hover { border-color: var(--accent); transform: scale(1.04); }
+  .sort-star-card.dragging { opacity: 0.4; cursor: grabbing; }
+  .sort-star-card.drag-over { border-color: var(--accent2); background: rgba(247,199,126,0.08); }
+  .sort-star-card.correct-pos { border-color: var(--correct); }
+  .sort-star-card.wrong-pos { border-color: var(--wrong); }
+
+  .sort-star-circle {
+    border-radius: 50%;
+    transition: all 0.4s;
+  }
+  .sort-star-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+  }
+
+  .sort-instruction {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.88rem;
+    font-style: italic;
+    margin-bottom: 14px;
+  }
+
+  .sort-arrow {
+    font-size: 1.1rem;
+    color: var(--text-dim);
+    align-self: center;
+  }
+
+  /* Submit sort */
+  .btn-submit-sort {
+    width: 100%;
+    background: linear-gradient(135deg, rgba(247,199,126,0.15), rgba(247,199,126,0.05));
+    border: 1px solid var(--accent2);
+    border-radius: 8px;
+    padding: 13px;
+    color: var(--accent2);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.08em;
+    margin-bottom: 16px;
+  }
+  .btn-submit-sort:hover { background: rgba(247,199,126,0.2); }
+
+  /* Quiz panel */
+  .quiz-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 20px;
+    margin-bottom: 16px;
+  }
+  .quiz-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .quiz-law {
+    font-size: 1.05rem;
+    color: var(--accent2);
+    margin-bottom: 14px;
+    font-style: italic;
+  }
+  .quiz-q {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 18px;
+    color: var(--text);
+  }
+  .quiz-options {
+    display: grid;
+    gap: 8px;
+  }
+  .quiz-opt {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'Crimson Pro', serif;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+  }
+  .quiz-opt:hover:not(:disabled) { border-color: var(--accent); background: rgba(126,184,247,0.08); }
+  .quiz-opt.correct { border-color: var(--correct); background: rgba(107,232,160,0.1); color: var(--correct); }
+  .quiz-opt.wrong { border-color: var(--wrong); background: rgba(247,107,107,0.08); color: var(--wrong); }
+
+  .quiz-explain {
+    margin-top: 14px;
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+    display: none;
+    padding: 12px;
+    border-left: 2px solid var(--accent2);
+    background: rgba(247,199,126,0.04);
+    border-radius: 0 6px 6px 0;
+  }
+  .quiz-explain.show { display: block; }
+  .quiz-explain b { color: var(--accent2); }
+
+  /* Summary panel */
+  .summary-panel {
+    text-align: center;
+    padding: 32px 16px;
+  }
+  .summary-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 1rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .summary-score {
+    font-size: clamp(2.5rem, 10vw, 4rem);
+    font-family: 'Crimson Pro', serif;
+    color: var(--accent2);
+    margin-bottom: 4px;
+  }
+  .summary-sub {
+    color: var(--text-dim);
+    font-style: italic;
+    margin-bottom: 32px;
+  }
+  .btn-restart {
+    background: linear-gradient(135deg, rgba(126,184,247,0.2), rgba(107,232,160,0.1));
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 32px;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.1em;
+  }
+  .btn-restart:hover { transform: scale(1.03); }
+
+  /* Spectrum bar decoration */
+  .spectrum-bar {
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(to right,
+      #ff0000, #ff4400, #ff8800, #ffbb00,
+      #ffffaa, #ffffff, #aaccff, #6699ff, #4466ff);
+    margin: 20px 0 8px;
+    opacity: 0.35;
+  }
+
+  .temp-scale-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+
+  /* Phase indicator */
+  .phase-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+  .phase-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+  }
+  .phase-dot.done { background: var(--correct); }
+  .phase-dot.current { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .choices { grid-template-columns: 1fr; }
+    .sort-arena { gap: 10px; }
+    .sort-star-card { min-width: 74px; padding: 12px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="starfield"></div>
+
+<div id="app">
+  <header>
+    <div class="logo-title">★ 星温判官</div>
+    <div class="logo-sub">Stellar Temperature Oracle · Wien's Law &amp; Stefan–Boltzmann</div>
+  </header>
+
+  <!-- Score bar -->
+  <div class="scorebar">
+    <span>SCORE</span>
+    <span class="score-val" id="scoreVal">0</span>
+    <span>ROUND <span id="roundVal">1</span> / 8</span>
+    <span>ACC <span id="accVal">—</span></span>
+  </div>
+
+  <!-- Mode tabs -->
+  <div class="mode-tabs">
+    <button class="tab-btn active" id="tab-guess" onclick="switchMode('guess')">🌡 猜温度</button>
+    <button class="tab-btn" id="tab-sort" onclick="switchMode('sort')">⇅ 温度排序</button>
+  </div>
+
+  <!-- === GUESS MODE === -->
+  <div class="game-panel active" id="panel-guess">
+
+    <div class="phase-indicator" id="phaseIndicator"></div>
+
+    <div class="star-arena" id="starArena">
+      <div class="star-glow-container" id="starGlowContainer">
+        <div class="star-halo2" id="starHalo2"></div>
+        <div class="star-halo" id="starHalo"></div>
+        <div class="star-circle" id="starCircle"></div>
+      </div>
+    </div>
+
+    <div class="intensity-row">
+      <span class="intensity-label">辐射强度</span>
+      <div class="intensity-track">
+        <div class="intensity-fill" id="intensityFill"></div>
+      </div>
+      <span style="font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--text-dim);min-width:34px;text-align:right" id="intensityPct"></span>
+    </div>
+
+    <p class="question-label">这颗恒星的表面温度是？</p>
+
+    <div class="choices" id="choicesGrid"></div>
+
+    <div class="feedback-box" id="feedbackBox">
+      <div class="feedback-verdict" id="feedbackVerdict"></div>
+      <div class="feedback-detail" id="feedbackDetail"></div>
+      <div class="feedback-hint" id="feedbackHint"></div>
+    </div>
+
+    <button class="btn-next" id="btnNext" onclick="nextGuessRound()" style="display:none">下一题 →</button>
+  </div>
+
+  <!-- === SORT MODE === -->
+  <div class="game-panel" id="panel-sort">
+    <p class="sort-instruction">拖动星球，从左到右按<b style="color:var(--accent2)">温度由低到高</b>排序</p>
+
+    <div class="sort-arena" id="sortArena"></div>
+
+    <div class="feedback-box" id="sortFeedbackBox">
+      <div class="feedback-verdict" id="sortFeedbackVerdict"></div>
+      <div class="feedback-detail" id="sortFeedbackDetail"></div>
+    </div>
+
+    <button class="btn-submit-sort" id="btnSubmitSort" onclick="checkSort()">✓ 提交排序</button>
+    <button class="btn-next" id="btnNextSort" onclick="nextSortRound()" style="display:none">下一组 →</button>
+  </div>
+
+  <!-- === QUIZ PANEL (shown after 8 rounds) === -->
+  <div class="game-panel" id="panel-quiz">
+    <div class="quiz-panel" id="quiz1Panel">
+      <div class="quiz-title">物理定律考查 · 第一题</div>
+      <div class="quiz-law">维恩位移定律：λ<sub>max</sub> · T = b (≈ 2.898×10⁶ nm·K)</div>
+      <div class="quiz-q" id="quiz1Q"></div>
+      <div class="quiz-options" id="quiz1Options"></div>
+      <div class="quiz-explain" id="quiz1Explain"></div>
+    </div>
+
+    <div class="quiz-panel" id="quiz2Panel" style="display:none">
+      <div class="quiz-title">物理定律考查 · 第二题</div>
+      <div class="quiz-law">斯特藩-玻尔兹曼定律：L ∝ T⁴</div>
+      <div class="quiz-q" id="quiz2Q"></div>
+      <div class="quiz-options" id="quiz2Options"></div>
+      <div class="quiz-explain" id="quiz2Explain"></div>
+    </div>
+
+    <button class="btn-next" id="btnToSummary" onclick="showSummary()" style="display:none">查看最终成绩 →</button>
+  </div>
+
+  <!-- === SUMMARY === -->
+  <div class="game-panel" id="panel-summary">
+    <div class="summary-panel">
+      <div class="summary-title">MISSION COMPLETE</div>
+      <div class="summary-score" id="finalScore">0</div>
+      <div class="summary-sub" id="finalSub">分</div>
+
+      <div class="spectrum-bar"></div>
+      <div class="temp-scale-labels">
+        <span>500K 红矮星</span>
+        <span>2000K 棕矮星</span>
+        <span>5778K ☀ 太阳</span>
+        <span>10000K+ 蓝巨星</span>
+      </div>
+
+      <div id="summaryStats" style="font-size:0.9rem;color:var(--text-dim);margin-bottom:28px;line-height:1.8"></div>
+
+      <button class="btn-restart" onclick="restartGame()">↺ 重新挑战</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+//  Color Science: Blackbody -> sRGB
+// ============================================================
+function blackbodyToRGB(T) {
+  // Approximation of CIE 1931 XYZ from Planckian locus
+  // then convert XYZ -> sRGB
+  T = Math.max(500, Math.min(40000, T));
+
+  // Compute CIE xy chromaticity from temperature (Planckian locus approximation)
+  let x, y;
+  if (T <= 4000) {
+    x = -0.2661239e9/(T*T*T) - 0.2343589e6/(T*T) + 0.8776956e3/T + 0.179910;
+  } else {
+    x = -3.0258469e9/(T*T*T) + 2.1070379e6/(T*T) + 0.2226347e3/T + 0.240390;
+  }
+  if (T <= 2222) {
+    y = -1.1063814*x*x*x - 1.34811020*x*x + 2.18555832*x - 0.20219683;
+  } else if (T <= 4000) {
+    y = -0.9549476*x*x*x - 1.37418593*x*x + 2.09137015*x - 0.16748867;
+  } else {
+    y =  3.0817580*x*x*x - 5.87338670*x*x + 3.75112997*x - 0.37001483;
+  }
+
+  // xyY -> XYZ (Y=1)
+  const Y = 1.0;
+  const X = (Y / y) * x;
+  const Z = (Y / y) * (1 - x - y);
+
+  // XYZ -> linear sRGB (D65 reference)
+  let r =  3.2406*X - 1.5372*Y - 0.4986*Z;
+  let g = -0.9689*X + 1.8758*Y + 0.0415*Z;
+  let b =  0.0557*X - 0.2040*Y + 1.0570*Z;
+
+  // Clamp negatives
+  r = Math.max(0, r);
+  g = Math.max(0, g);
+  b = Math.max(0, b);
+
+  // Normalize so max channel = 1
+  const mx = Math.max(r, g, b, 1e-9);
+  r /= mx; g /= mx; b /= mx;
+
+  // Gamma correction (linear -> sRGB)
+  const gamma = v => v <= 0.0031308 ? 12.92*v : 1.055*Math.pow(v, 1/2.4) - 0.055;
+  r = gamma(r); g = gamma(g); b = gamma(b);
+
+  // Clamp
+  r = Math.min(1, Math.max(0, r));
+  g = Math.min(1, Math.max(0, g));
+  b = Math.min(1, Math.max(0, b));
+
+  return { r: Math.round(r*255), g: Math.round(g*255), b: Math.round(b*255) };
+}
+
+function rgbStr(rgb) { return `rgb(${rgb.r},${rgb.g},${rgb.b})`; }
+
+// T⁴ intensity normalized to [0,1] over 500-10000K
+function intensityNorm(T) {
+  const Tmin = 500, Tmax = 10000;
+  return ((T**4 - Tmin**4) / (Tmax**4 - Tmin**4));
+}
+
+// Star visual size: 40px base + intensity scale
+function starSize(T) {
+  const norm = intensityNorm(T);
+  return Math.round(40 + norm * 60); // 40px to 100px
+}
+
+// ============================================================
+//  Starfield background
+// ============================================================
+(function buildStarfield() {
+  const sf = document.getElementById('starfield');
+  for (let i = 0; i < 120; i++) {
+    const s = document.createElement('div');
+    s.className = 'bg-star';
+    const sz = Math.random() * 1.8 + 0.3;
+    s.style.cssText = `
+      width:${sz}px; height:${sz}px;
+      left:${Math.random()*100}%;
+      top:${Math.random()*100}%;
+      --d:${(Math.random()*4+2).toFixed(1)}s;
+      --min:${(Math.random()*0.15+0.05).toFixed(2)};
+      --max:${(Math.random()*0.5+0.3).toFixed(2)};
+      animation-delay:${(Math.random()*5).toFixed(1)}s;
+    `;
+    sf.appendChild(s);
+  }
+})();
+
+// ============================================================
+//  Game State
+// ============================================================
+let score = 0;
+let totalAnswered = 0;
+let correctAnswered = 0;
+let currentMode = 'guess';
+let currentT = 0;
+let roundCount = 0;
+const MAX_ROUNDS = 8;
+let quizPhase = 0; // 0=not started, 1=q1, 2=q2, 3=done
+let quizScore = 0;
+
+// ============================================================
+//  Mode Switching
+// ============================================================
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.game-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + mode).classList.add('active');
+  document.getElementById('panel-' + mode).classList.add('active');
+
+  if (mode === 'guess') { startGuessRound(); }
+  else if (mode === 'sort') { startSortRound(); }
+}
+
+// ============================================================
+//  GUESS MODE
+// ============================================================
+function randomT(exclude = []) {
+  const T = Math.floor(Math.random() * 9501 + 500);
+  return T;
+}
+
+function updateStarDisplay(T) {
+  const rgb = blackbodyToRGB(T);
+  const color = rgbStr(rgb);
+  const sz = starSize(T);
+  const norm = intensityNorm(T);
+
+  const circle = document.getElementById('starCircle');
+  const halo = document.getElementById('starHalo');
+  const halo2 = document.getElementById('starHalo2');
+
+  circle.style.width = sz + 'px';
+  circle.style.height = sz + 'px';
+  circle.style.background = color;
+  circle.style.boxShadow = `0 0 ${sz*0.4}px ${color}, 0 0 ${sz*0.2}px white`;
+
+  halo.style.width = (sz * 2.2) + 'px';
+  halo.style.height = (sz * 2.2) + 'px';
+  halo.style.background = color;
+
+  halo2.style.width = (sz * 4) + 'px';
+  halo2.style.height = (sz * 4) + 'px';
+  halo2.style.background = color;
+
+  // Intensity bar
+  const fill = document.getElementById('intensityFill');
+  fill.style.width = (norm * 100) + '%';
+  fill.style.background = `linear-gradient(to right, ${color}88, ${color})`;
+  document.getElementById('intensityPct').textContent = Math.round(norm * 100) + '%';
+}
+
+function generateChoices(T) {
+  const choices = [];
+  // Always include correct answer
+  choices.push(T);
+
+  // Generate 3 distractors
+  const ranges = [[500,1200],[1200,2500],[2500,4500],[4500,6500],[6500,10000]];
+  const correctRange = ranges.find(r => T >= r[0] && T <= r[1]) || ranges[ranges.length-1];
+
+  let attempts = 0;
+  while (choices.length < 4 && attempts < 50) {
+    attempts++;
+    let distractor;
+    // Mix: sometimes from same range, sometimes far off
+    if (Math.random() < 0.4) {
+      distractor = Math.floor(Math.random() * (correctRange[1] - correctRange[0]) + correctRange[0]);
+    } else {
+      distractor = Math.floor(Math.random() * 9501 + 500);
+    }
+    // Must be sufficiently different and not duplicate
+    const tooClose = choices.some(c => Math.abs(c - distractor) < 300);
+    if (!tooClose) choices.push(distractor);
+  }
+
+  // Sort ascending
+  choices.sort((a,b) => a-b);
+
+  // Format as labels
+  return choices.map(t => {
+    const rgb = blackbodyToRGB(t);
+    return { t, label: formatT(t), color: rgbStr(rgb) };
+  });
+}
+
+function formatT(T) {
+  if (T < 1000) return T + ' K';
+  return (T/1000).toFixed(1) + ' 千K';
+}
+
+function startGuessRound() {
+  if (roundCount >= MAX_ROUNDS) {
+    startQuiz();
+    return;
+  }
+
+  // Update phase dots
+  updatePhaseDots();
+
+  currentT = Math.floor(Math.random() * 9501 + 500);
+  updateStarDisplay(currentT);
+
+  const choices = generateChoices(currentT);
+  const grid = document.getElementById('choicesGrid');
+  grid.innerHTML = '';
+  choices.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = `<span style="color:${c.color};margin-right:6px">●</span>${c.label}`;
+    btn.onclick = () => answerGuess(c.t, btn, choices);
+    grid.appendChild(btn);
+  });
+
+  document.getElementById('feedbackBox').classList.remove('show');
+  document.getElementById('btnNext').style.display = 'none';
+}
+
+function answerGuess(chosen, btn, choices) {
+  // Disable all
+  document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+
+  const correct = chosen === currentT;
+  const diff = Math.abs(chosen - currentT);
+  const pct = (diff / currentT * 100).toFixed(1);
+
+  // Mark buttons
+  document.querySelectorAll('.choice-btn').forEach(b => {
+    const val = choices.find(c => b.innerHTML.includes(c.label));
+    if (val && val.t === currentT) b.classList.add('correct');
+  });
+  if (!correct) btn.classList.add('wrong');
+
+  totalAnswered++;
+  if (correct) { correctAnswered++; score += 100; }
+  else if (diff < currentT * 0.2) { score += 40; } // close bonus
+  else if (diff < currentT * 0.5) { score += 10; }
+
+  roundCount++;
+  updateScore();
+
+  // Feedback
+  const fb = document.getElementById('feedbackBox');
+  const verdict = document.getElementById('feedbackVerdict');
+  const detail = document.getElementById('feedbackDetail');
+  const hint = document.getElementById('feedbackHint');
+
+  if (correct) {
+    verdict.className = 'feedback-verdict ok';
+    verdict.textContent = '✓ 完全正确！';
+    detail.textContent = `正确温度：${formatT(currentT)}（${starClassName(currentT)}）`;
+  } else {
+    verdict.className = 'feedback-verdict bad';
+    verdict.textContent = chosen > currentT ? `↓ 猜高了 ${pct}%` : `↑ 猜低了 ${pct}%`;
+    detail.textContent = `正确温度：${formatT(currentT)}（${starClassName(currentT)}）你选了 ${formatT(chosen)}`;
+  }
+
+  // Physics hint
+  const lambdaMax = (2.898e6 / currentT).toFixed(0);
+  const intensityRel = (currentT / 5778)**4;
+  hint.innerHTML = `
+    <b>维恩位移：</b>λ<sub>max</sub> = 2.898×10⁶ / ${formatT(currentT)} ≈ <b>${lambdaMax} nm</b>
+    ${lambdaMax < 380 ? '（紫外区，肉眼不可见蓝白星）' : lambdaMax < 700 ? '（可见光区）' : '（红外区，偏红）'}
+    <br><b>辐射功率（∝T⁴）：</b>相当于太阳的 <b>${intensityRel.toFixed(2)}</b> 倍
+  `;
+
+  fb.classList.add('show');
+  document.getElementById('btnNext').style.display = 'block';
+}
+
+function nextGuessRound() {
+  if (roundCount >= MAX_ROUNDS) {
+    switchMode('guess'); // This triggers startGuessRound which checks count
+    return;
+  }
+  startGuessRound();
+}
+
+function starClassName(T) {
+  if (T < 1300) return '极暗红矮星 M';
+  if (T < 2500) return '棕矮星 / 红矮星 M';
+  if (T < 3700) return '红矮星 K–M';
+  if (T < 5200) return 'K型橙矮星';
+  if (T < 6000) return 'G型黄矮星（太阳级）';
+  if (T < 7500) return 'F型黄白星';
+  if (T < 10000) return 'A型白星';
+  return 'B–O型蓝白巨星';
+}
+
+function updateScore() {
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('roundVal').textContent = Math.min(roundCount + 1, MAX_ROUNDS);
+  const acc = totalAnswered > 0 ? Math.round(correctAnswered / totalAnswered * 100) + '%' : '—';
+  document.getElementById('accVal').textContent = acc;
+}
+
+function updatePhaseDots() {
+  const ind = document.getElementById('phaseIndicator');
+  ind.innerHTML = '';
+  for (let i = 0; i < MAX_ROUNDS; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'phase-dot';
+    if (i < roundCount) dot.classList.add('done');
+    else if (i === roundCount) dot.classList.add('current');
+    ind.appendChild(dot);
+  }
+  const lbl = document.createElement('span');
+  lbl.style.marginLeft = '6px';
+  lbl.textContent = `${roundCount + 1} / ${MAX_ROUNDS}`;
+  ind.appendChild(lbl);
+}
+
+// ============================================================
+//  SORT MODE
+// ============================================================
+let sortStars = [];
+let sortOrder = [];
+let sortDragIdx = null;
+
+function startSortRound() {
+  const n = 4;
+  // Generate distinct temperatures
+  const temps = [];
+  while (temps.length < n) {
+    const T = Math.floor(Math.random() * 9501 + 500);
+    if (temps.every(t => Math.abs(t - T) > 600)) temps.push(T);
+  }
+  sortStars = temps.map((T, i) => ({ T, id: i, label: String.fromCharCode(65+i) }));
+  // Shuffle display order
+  sortOrder = [...sortStars].sort(() => Math.random() - 0.5);
+
+  renderSortArena();
+
+  document.getElementById('sortFeedbackBox').classList.remove('show');
+  document.getElementById('btnSubmitSort').style.display = 'block';
+  document.getElementById('btnNextSort').style.display = 'none';
+}
+
+function renderSortArena() {
+  const arena = document.getElementById('sortArena');
+  arena.innerHTML = '';
+
+  sortOrder.forEach((star, idx) => {
+    const rgb = blackbodyToRGB(star.T);
+    const color = rgbStr(rgb);
+    const sz = Math.round(28 + intensityNorm(star.T) * 28);
+
+    const card = document.createElement('div');
+    card.className = 'sort-star-card';
+    card.dataset.idx = idx;
+    card.draggable = true;
+
+    card.innerHTML = `
+      <div class="sort-star-circle" style="
+        width:${sz}px;height:${sz}px;
+        background:${color};
+        box-shadow:0 0 ${sz*0.5}px ${color};
+      "></div>
+      <div class="sort-star-label">星 ${star.label}</div>
+    `;
+
+    // Drag events
+    card.addEventListener('dragstart', e => {
+      sortDragIdx = idx;
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', e => {
+      card.classList.remove('dragging');
+    });
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      card.classList.add('drag-over');
+    });
+    card.addEventListener('dragleave', () => {
+      card.classList.remove('drag-over');
+    });
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      if (sortDragIdx !== null && sortDragIdx !== idx) {
+        // Swap
+        const tmp = sortOrder[sortDragIdx];
+        sortOrder[sortDragIdx] = sortOrder[idx];
+        sortOrder[idx] = tmp;
+        renderSortArena();
+      }
+    });
+
+    // Mobile touch support
+    card.addEventListener('touchstart', e => {
+      sortDragIdx = idx;
+      card.classList.add('dragging');
+    }, {passive:true});
+    card.addEventListener('touchend', e => {
+      card.classList.remove('dragging');
+    });
+
+    arena.appendChild(card);
+
+    // Arrow between cards
+    if (idx < sortOrder.length - 1) {
+      const arrow = document.createElement('div');
+      arrow.className = 'sort-arrow';
+      arrow.textContent = '→';
+      arena.appendChild(arrow);
+    }
+  });
+}
+
+function checkSort() {
+  const userOrder = sortOrder.map(s => s.T);
+  const correct = [...userOrder].sort((a,b) => a-b);
+  const isCorrect = userOrder.every((t, i) => t === correct[i]);
+
+  // Color the cards
+  const cards = document.querySelectorAll('.sort-star-card');
+  cards.forEach((card, i) => {
+    // i-th display position
+    const displayStars = [...document.querySelectorAll('.sort-star-card')];
+  });
+
+  // Simpler: check positions
+  sortOrder.forEach((star, dispIdx) => {
+    const correctPos = [...sortOrder].sort((a,b) => a.T - b.T).indexOf(star);
+    const card = document.querySelectorAll('.sort-star-card')[dispIdx * 2]; // skip arrows
+  });
+
+  // Just check entire order
+  const allCards = document.querySelectorAll('.sort-star-card');
+  allCards.forEach((card, ci) => {
+    card.classList.remove('correct-pos', 'wrong-pos');
+    const star = sortOrder[ci];
+    const sortedT = [...sortOrder].map(s => s.T).sort((a,b) => a-b);
+    if (star.T === sortedT[ci]) card.classList.add('correct-pos');
+    else card.classList.add('wrong-pos');
+  });
+
+  const fb = document.getElementById('sortFeedbackBox');
+  const verdict = document.getElementById('sortFeedbackVerdict');
+  const detail = document.getElementById('sortFeedbackDetail');
+
+  const sortedCorrect = [...sortOrder].sort((a, b) => a.T - b.T);
+
+  if (isCorrect) {
+    verdict.className = 'feedback-verdict ok';
+    verdict.textContent = '✓ 排序完全正确！';
+    score += 150;
+    correctAnswered++;
+    updateScore();
+  } else {
+    verdict.className = 'feedback-verdict bad';
+    verdict.textContent = '✗ 排序有误';
+    score += 20;
+    updateScore();
+  }
+  totalAnswered++;
+
+  detail.innerHTML = `正确顺序（冷→热）：${sortedCorrect.map(s =>
+    `<b style="color:${rgbStr(blackbodyToRGB(s.T))}">星${s.label}</b> ${formatT(s.T)}`
+  ).join(' → ')}`;
+
+  fb.classList.add('show');
+  document.getElementById('btnSubmitSort').style.display = 'none';
+  document.getElementById('btnNextSort').style.display = 'block';
+
+  roundCount++;
+  if (roundCount >= MAX_ROUNDS) {
+    document.getElementById('btnNextSort').textContent = '前往物理定律考查 →';
+    document.getElementById('btnNextSort').onclick = () => {
+      document.querySelectorAll('.game-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('panel-quiz').classList.add('active');
+      startQuiz();
+    };
+  }
+}
+
+function nextSortRound() {
+  startSortRound();
+}
+
+// ============================================================
+//  QUIZ MODE
+// ============================================================
+function startQuiz() {
+  document.querySelectorAll('.game-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-quiz').classList.add('active');
+  quizPhase = 1;
+  renderQuiz1();
+}
+
+function renderQuiz1() {
+  // Wien's law question
+  const T1 = Math.floor(Math.random() * 4000 + 2000); // 2000-6000K
+  const T2 = T1 * 2;
+  const lambdaCorrect = Math.round(2898000 / T1); // in nm
+
+  // Options: correct + 3 wrong
+  const optValues = [
+    { v: lambdaCorrect, correct: true, txt: `${lambdaCorrect} nm` },
+    { v: Math.round(lambdaCorrect * 1.5), txt: `${Math.round(lambdaCorrect * 1.5)} nm` },
+    { v: Math.round(lambdaCorrect * 0.5), txt: `${Math.round(lambdaCorrect * 0.5)} nm` },
+    { v: Math.round(lambdaCorrect * 2), txt: `${Math.round(lambdaCorrect * 2)} nm` },
+  ].sort(() => Math.random() - 0.5);
+
+  document.getElementById('quiz1Q').innerHTML =
+    `一颗温度为 <b style="color:var(--accent2)">${formatT(T1)}</b> 的恒星，其辐射峰值波长 λ<sub>max</sub> 约为多少？（维恩位移常数 b = 2.898×10⁶ nm·K）`;
+
+  const opts = document.getElementById('quiz1Options');
+  opts.innerHTML = '';
+  optValues.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = o.txt;
+    btn.onclick = () => {
+      opts.querySelectorAll('.quiz-opt').forEach(b => b.disabled = true);
+      if (o.correct) {
+        btn.classList.add('correct');
+        quizScore += 50;
+        score += 50;
+      } else {
+        btn.classList.add('wrong');
+        opts.querySelectorAll('.quiz-opt').forEach(b => {
+          if (b.textContent === `${lambdaCorrect} nm`) b.classList.add('correct');
+        });
+      }
+      updateScore();
+      const exp = document.getElementById('quiz1Explain');
+      exp.innerHTML = `λ<sub>max</sub> = b / T = 2,898,000 / ${T1} ≈ <b>${lambdaCorrect} nm</b>
+        ${lambdaCorrect < 380 ? '（紫外区，星呈蓝白色）' : lambdaCorrect < 700 ? '（可见光，橙黄至黄白色）' : '（近红外，星呈红色）'}。
+        温度越高，峰值波长越短，颜色越偏蓝。`;
+      exp.classList.add('show');
+
+      setTimeout(() => {
+        document.getElementById('quiz2Panel').style.display = 'block';
+        renderQuiz2();
+        document.getElementById('quiz1Panel').style.opacity = '0.6';
+      }, 1200);
+    };
+    opts.appendChild(btn);
+  });
+}
+
+function renderQuiz2() {
+  const mult = [2, 3, 4][Math.floor(Math.random() * 3)];
+  const power4 = mult ** 4;
+
+  const optVals = [
+    { v: power4, correct: true, txt: `${power4} 倍` },
+    { v: mult * 4, txt: `${mult * 4} 倍（4×T）` },
+    { v: mult * 2, txt: `${mult * 2} 倍` },
+    { v: mult ** 2, txt: `${mult ** 2} 倍（T²）` },
+  ].sort(() => Math.random() - 0.5);
+
+  document.getElementById('quiz2Q').innerHTML =
+    `若恒星温度从 T 升高到 <b style="color:var(--accent2)">${mult}T</b>，其辐射总功率（光度）变为原来的多少倍？`;
+
+  const opts = document.getElementById('quiz2Options');
+  opts.innerHTML = '';
+  optVals.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = o.txt;
+    btn.onclick = () => {
+      opts.querySelectorAll('.quiz-opt').forEach(b => b.disabled = true);
+      if (o.correct) {
+        btn.classList.add('correct');
+        quizScore += 50;
+        score += 50;
+      } else {
+        btn.classList.add('wrong');
+        opts.querySelectorAll('.quiz-opt').forEach(b => {
+          if (b.textContent === `${power4} 倍`) b.classList.add('correct');
+        });
+      }
+      updateScore();
+      const exp = document.getElementById('quiz2Explain');
+      exp.innerHTML = `L ∝ T⁴，所以 L' / L = (${mult}T)⁴ / T⁴ = <b>${mult}⁴ = ${power4}</b>。
+        这就是为什么热星会比冷星亮得多——温度仅翻倍，亮度就增加16倍！`;
+      exp.classList.add('show');
+
+      document.getElementById('btnToSummary').style.display = 'block';
+    };
+    opts.appendChild(btn);
+  });
+}
+
+function showSummary() {
+  document.querySelectorAll('.game-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-summary').classList.add('active');
+
+  document.getElementById('finalScore').textContent = score;
+  const acc = totalAnswered > 0 ? Math.round(correctAnswered / totalAnswered * 100) : 0;
+
+  let grade = '';
+  if (acc >= 90) grade = '🌟 卓越天文学家';
+  else if (acc >= 70) grade = '⭐ 资深观测者';
+  else if (acc >= 50) grade = '🔭 天文学徒';
+  else grade = '🌑 初识星空';
+
+  document.getElementById('finalSub').textContent = `分 · ${grade}`;
+  document.getElementById('summaryStats').innerHTML = `
+    作答题目：${totalAnswered} 道 &nbsp;|&nbsp; 正确：${correctAnswered} 道 &nbsp;|&nbsp; 准确率：${acc}%<br>
+    物理题加分：${quizScore} 分
+  `;
+}
+
+function restartGame() {
+  score = 0; totalAnswered = 0; correctAnswered = 0;
+  roundCount = 0; quizPhase = 0; quizScore = 0;
+  updateScore();
+  document.querySelectorAll('.game-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-guess').classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-guess').classList.add('active');
+  startGuessRound();
+}
+
+// ============================================================
+//  Init
+// ============================================================
+window.addEventListener('load', () => {
+  updateScore();
+  startGuessRound();
+});
+</script>
+</body>
+</html>
