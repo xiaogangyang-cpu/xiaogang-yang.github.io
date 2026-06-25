@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导热微分方程的三类简化形式</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500&amp;display=swap');
+        
+        :root {
+            --tw-color-primary: #00b4ff;
+        }
+        
+        * {
+            font-family: 'Noto Sans SC', system-ui, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%);
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+            backdrop-filter: blur(16px);
+        }
+        
+        .dark-card {
+            background: linear-gradient(145deg, #1e2937, #334155);
+            color: white;
+            border: 1px solid rgba(0, 180, 255, 0.3);
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 62px;
+            height: 34px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: .3s ease-in-out;
+            border-radius: 9999px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .3s ease-in-out;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #00b4ff;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(28px);
+        }
+        
+        .equation-container {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .mathjax-container {
+            min-height: 110px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        canvas {
+            image-rendering: crisp-edges;
+            border-radius: 16px;
+            box-shadow: inset 0 0 40px rgba(0, 180, 255, 0.3);
+        }
+        
+        .legend {
+            background: linear-gradient(to right, #3b82f6, #f59e0b, #ef4444);
+            height: 12px;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800">
+    <div class="max-w-[1600px] mx-auto p-6">
+        <!-- 标题栏 -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-6xl font-semibold bg-gradient-to-r from-[#00b4ff] to-[#f59e0b] bg-clip-text text-transparent">
+                    导热微分方程的三类简化形式
+                </h1>
+                <p class="text-slate-500 mt-1 text-2xl">交互式教学演示 • 热导率 · 内热源 · 稳态</p>
+            </div>
+            
+            <!-- 控制按钮 -->
+            <div class="flex items-center gap-4">
+                <button onclick="resetSimulation()" 
+                        class="px-6 py-3 bg-white hover:bg-slate-100 text-slate-700 rounded-2xl flex items-center gap-2 shadow-lg transition-all active:scale-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.058 11H1M12 3v2m0 16v2m9-9H15m-6 0a8 8 0 01-7.714-6.314M12 3a8 8 0 00-7.714 6.314" />
+                    </svg>
+                    重置模拟
+                </button>
+                
+                <div class="flex items-center bg-white rounded-3xl shadow-lg px-2 py-1">
+                    <button onclick="setSpeed(1)" id="speed-1"
+                            class="px-5 py-2 rounded-3xl text-lg font-medium transition-all">1×</button>
+                    <button onclick="setSpeed(2)" id="speed-2"
+                            class="px-5 py-2 rounded-3xl text-lg font-medium transition-all">2×</button>
+                    <button onclick="setSpeed(5)" id="speed-5"
+                            class="px-5 py-2 rounded-3xl text-lg font-medium transition-all">5×</button>
+                </div>
+                
+                <button onclick="togglePlay()" id="play-btn"
+                        class="flex items-center gap-3 bg-gradient-to-r from-[#00b4ff] to-[#f59e0b] text-white px-8 py-3 rounded-3xl font-medium shadow-xl hover:shadow-2xl transition-all">
+                    <span id="play-text">暂停</span>
+                    <div id="play-icon" class="w-4 h-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v2m4-2v2m7-5a9 9 0 01-9 9v.5a1.5 1.5 0 01-1.5 1.5h-3a1.5 1.5 0 01-1.5-1.5V20a9 9 0 01-9-9" />
+                        </svg>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-120px)]">
+            
+            <!-- 左上：条件控制区 -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                <div class="dark-card p-8 rounded-3xl flex-1">
+                    <h2 class="text-2xl font-medium mb-6 flex items-center gap-3">
+                        <span class="text-[#00b4ff]">⚙️</span>
+                        条件控制
+                    </h2>
+                    
+                    <div class="space-y-8">
+                        <!-- 开关1：热导率是否为常数 -->
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="font-medium text-lg">热导率 k 是否为常数</div>
+                                <p class="text-slate-400 text-lg mt-1">默认：是（可简化为 a∇²t 形式）</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-k" checked onchange="updateConditions()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <!-- 开关2：是否存在内热源 -->
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="font-medium text-lg">是否存在内热源 q<sub>v</sub></div>
+                                <p class="text-slate-400 text-lg mt-1">默认：是（中心持续发热）</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-qv" checked onchange="updateConditions()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <!-- 开关3：是否为稳态 -->
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="font-medium text-lg">是否为稳态（∂t/∂τ = 0）</div>
+                                <p class="text-slate-400 text-lg mt-1">默认：否（瞬态扩散）</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-steady" onchange="updateConditions()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- 参数滑块 -->
+                    <div class="mt-10 border-t border-slate-600 pt-8">
+                        <h3 class="text-2xl font-medium mb-5 text-slate-300">实时参数调节</h3>
+                        
+                        <div class="space-y-7">
+                            <!-- a 滑块 -->
+                            <div>
+                                <div class="flex justify-between text-lg mb-2">
+                                    <span class="font-medium">热扩散率 a（m²/s）</span>
+                                    <span id="value-a" class="font-mono text-[#00b4ff]">0.50</span>
+                                </div>
+                                <input type="range" id="slider-a" 
+                                       min="0.1" max="1.0" step="0.05" value="0.50"
+                                       oninput="updateSliders()" class="w-full accent-[#00b4ff]">
+                                <div class="flex justify-between text-base text-slate-400">
+                                    <span>0.1（慢）</span>
+                                    <span>1.0（快）</span>
+                                </div>
+                            </div>
+                            
+                            <!-- qv 滑块 -->
+                            <div>
+                                <div class="flex justify-between text-lg mb-2">
+                                    <span class="font-medium">内热源强度 q<sub>v</sub></span>
+                                    <span id="value-qv" class="font-mono text-[#f59e0b]">4.0</span>
+                                </div>
+                                <input type="range" id="slider-qv" 
+                                       min="0" max="10" step="0.5" value="4.0"
+                                       oninput="updateSliders()" class="w-full accent-[#f59e0b]">
+                                <div class="flex justify-between text-base text-slate-400">
+                                    <span>0（无）</span>
+                                    <span>10（强）</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+  
+          <!-- 右上：温度场可视化 -->
+            <div class="lg:col-span-7 flex flex-col">
+                <div class="dark-card p-8 rounded-3xl flex-1 flex flex-col">
+                    <div class="flex justify-between items-baseline mb-6">
+                        <h2 class="text-2xl font-medium flex items-center gap-3">
+                            <span class="text-[#f59e0b]">🌡️</span>
+                            二维温度场可视化
+                        </h2>
+                        <div class="flex items-center text-lg gap-4">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 bg-[#3b82f6] rounded"></div>
+                                <span class="text-slate-300">冷</span>
+                            </div>
+                            <div class="legend flex-1 w-40"></div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-slate-300">热</span>
+                                <div class="w-3 h-3 bg-[#ef4444] rounded"></div>
+                            </div>
+                            <span id="time-display" class="font-mono ml-8 text-[#00b4ff]">t = 0.00 s</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 flex items-center justify-center bg-slate-950 rounded-3xl p-3 relative">
+                        <canvas id="heat-canvas" width="620" height="620" class="max-w-full max-h-full"></canvas>
+                        
+                        <!-- 中心热源提示 -->
+                        <div id="source-label" onclick="this.style.display='none'" 
+                             class="absolute hidden px-5 py-1 bg-orange-500/90 text-white text-sm rounded-3xl shadow-xl top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 cursor-pointer">
+                            <span>🔥</span>
+                            <span>中心持续发热</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+            
+            <!-- 左下：物理意义解释 -->
+            <div class="lg:col-span-5">
+                <div class="dark-card p-8 rounded-3xl h-full">
+                    <h2 class="text-xl font-medium mb-6 flex items-center gap-3">
+                        <span class="text-[#f59e0b]">🔬</span>
+                        物理意义
+                    </h2>
+                    <div id="explanation-text" class="text-slate-200 leading-relaxed text-[17px] min-h-[200px]">
+                        欢迎使用本教学工具！<br>
+                        调整左侧开关与滑块，观察右侧方程与温度场的实时变化。
+                    </div>
+                    
+                    <!-- 教学提示 -->
+                    <div class="mt-auto pt-8 border-t border-slate-600 text-base text-slate-400 flex items-center gap-6">
+                        <div class="flex items-center gap-1">
+                            <span class="inline-block w-2 h-2 bg-[#00b4ff] rounded-full animate-pulse"></span>
+                            鼠标悬停方程关键词可查看解释
+                        </div>
+                        <div>•</div>
+                        <div>温度场为 2D 数值模拟（有限差分）</div>
+                        <div>•</div>
+                        <div>边界条件：四周保持 0℃</div>
+                    </div>
+                </div>
+            </div>
+       
+
+
+          <!-- 右下：方程动态展示 -->
+            <div class="lg:col-span-7 flex flex-col">
+                <div class="dark-card p-8 rounded-3xl flex-1 flex flex-col">
+                    <h2 class="text-xl font-medium mb-6 flex items-center gap-3">
+                        <span class="text-[#f59e0b]">📐</span>
+                        方程动态展示
+                    </h2>
+                    
+                    <div id="equation-container" class="equation-container flex-1 flex flex-col items-center justify-center bg-white/10 rounded-2xl p-8">
+                        <div id="mathjax-equation" class="mathjax-container w-full text-3xl text-center text-white"></div>
+                        
+                        <!-- 辅助说明 -->
+                        <div id="equation-note" class="mt-6 text-lg text-slate-300 text-center max-w-md">
+                            根据左侧条件实时生成对应简化形式
+                        </div>
+                    </div>
+                    
+                    <!-- 关键词高亮提示 -->
+                    <div class="flex flex-wrap gap-3 mt-8 justify-center">
+                        <div onclick="highlightTerm(this)" class="cursor-pointer text-lg px-4 py-1 bg-white/10 hover:bg-white/20 rounded-3xl transition-colors flex items-center gap-1">
+                            <span class="text-[#00b4ff]">a</span>
+                            <span>导温系数</span>
+                        </div>
+                        <div onclick="highlightTerm(this)" class="cursor-pointer text-lg px-4 py-1 bg-white/10 hover:bg-white/20 rounded-3xl transition-colors flex items-center gap-1">
+                            ∇²t
+                            <span>拉普拉斯算子</span>
+                        </div>
+                        <div onclick="highlightTerm(this)" class="cursor-pointer text-lg px-4 py-1 bg-white/10 hover:bg-white/20 rounded-3xl transition-colors flex items-center gap-1">
+                            q<sub>v</sub>
+                            <span>内热源</span>
+                        </div>
+                        <div onclick="highlightTerm(this)" class="cursor-pointer text-lg px-4 py-1 bg-white/10 hover:bg-white/20 rounded-3xl transition-colors flex items-center gap-1">
+                            稳态
+                            <span>时间导数为零</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+     
+  
+
+    <script>
+        // ============== 全局变量 ==============
+        let isKConstant = true
+        let hasQv = true
+        let isSteady = false
+        let aValue = 0.50
+        let qvValue = 4.0
+        let playing = true
+        let speedMultiplier = 1
+        let simTime = 0
+        
+        // 模拟网格
+        const GRID_SIZE = 150
+        let temperature = []
+        let lastTemperature = [] // 用于检测稳态收敛
+        
+        // Canvas
+        let canvas, ctx
+        const CELL_SIZE = 620 / GRID_SIZE
+        
+        // MathJax 配置
+        function initMathJax() {
+            MathJax.Hub = null // 使用 v3
+            return new Promise(resolve => {
+                if (window.MathJax) resolve()
+            })
+        }
+        
+        // ============== 网格初始化 ==============
+        function initGrid() {
+            temperature = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0))
+            // 初始高斯热斑（类似墨水滴）
+            const cx = Math.floor(GRID_SIZE / 2)
+            const cy = Math.floor(GRID_SIZE / 2)
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const dx = i - cx
+                    const dy = j - cy
+                    const dist2 = dx * dx + dy * dy
+                    temperature[i][j] = 85 * Math.exp(-dist2 / (2 * 45))
+                }
+            }
+            // 边界固定为 0℃
+            for (let i = 0; i < GRID_SIZE; i++) {
+                temperature[i][0] = 0
+                temperature[i][GRID_SIZE - 1] = 0
+                temperature[0][i] = 0
+                temperature[GRID_SIZE - 1][i] = 0
+            }
+            lastTemperature = temperature.map(row => [...row])
+        }
+        
+        // ============== 单步更新（瞬态） ==============
+        function updateTransient(steps = 4) {
+            if (isSteady) return
+            
+            const dt = 0.018
+            const sourceTerm = hasQv ? qvValue * 0.8 : 0
+            
+            for (let s = 0; s < steps; s++) {
+                const newTemp = temperature.map(row => [...row])
+                
+                for (let i = 1; i < GRID_SIZE - 1; i++) {
+                    for (let j = 1; j < GRID_SIZE - 1; j++) {
+                        // 拉普拉斯算子
+                        const lap = temperature[i + 1][j] + temperature[i - 1][j] +
+                                   temperature[i][j + 1] + temperature[i][j - 1] - 4 * temperature[i][j]
+                        
+                        let dTdt = aValue * lap + sourceTerm
+                        
+                        // 中心点额外增强热源（更明显的“中心持续发热”）
+                        if (hasQv && Math.abs(i - GRID_SIZE / 2) < 3 && Math.abs(j - GRID_SIZE / 2) < 3) {
+                            dTdt += qvValue * 6
+                        }
+                        
+                        newTemp[i][j] = Math.max(0, Math.min(180, temperature[i][j] + dt * dTdt))
+                    }
+                }
+                
+                // 边界保持 0
+                for (let i = 0; i < GRID_SIZE; i++) {
+                    newTemp[i][0] = 0
+                    newTemp[i][GRID_SIZE - 1] = 0
+                    newTemp[0][i] = 0
+                    newTemp[GRID_SIZE - 1][i] = 0
+                }
+                
+                temperature = newTemp
+                simTime += dt * speedMultiplier
+            }
+        }
+        
+        // ============== 稳态松弛法（Poisson / Laplace） ==============
+        function relaxToSteady(iterations = 280) {
+            const sourceTerm = hasQv ? qvValue * 0.8 : 0
+            
+            for (let it = 0; it < iterations; it++) {
+                const newTemp = temperature.map(row => [...row])
+                
+                for (let i = 1; i < GRID_SIZE - 1; i++) {
+                    for (let j = 1; j < GRID_SIZE - 1; j++) {
+                        const sumNeigh = temperature[i - 1][j] + temperature[i + 1][j] +
+                                        temperature[i][j - 1] + temperature[i][j + 1]
+                        
+                        if (isKConstant) {
+                            // Poisson / Laplace 方程的松弛公式
+                            // ∇²T = -qv/k  →  T = (邻居和)/4 + (qv/(4k))
+                            // 因为 a = k/(ρcp)，此处 sourceTerm 已经归一化
+                            newTemp[i][j] = sumNeigh / 4 + (sourceTerm / (4 * aValue))
+                        } else {
+                            // 非常数 k 时仅演示平均松弛
+                            newTemp[i][j] = sumNeigh / 4
+                        }
+                    }
+                }
+                
+                // 边界
+                for (let i = 0; i < GRID_SIZE; i++) {
+                    newTemp[i][0] = 0
+                    newTemp[i][GRID_SIZE - 1] = 0
+                    newTemp[0][i] = 0
+                    newTemp[GRID_SIZE - 1][i] = 0
+                }
+                
+                temperature = newTemp
+            }
+            simTime = 999 // 稳态显示固定时间
+        }
+        
+        // ============== 绘制温度场 ==============
+        function drawHeatMap() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            
+            const maxTemp = 160
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const t = Math.min(Math.max(temperature[i][j], 0), maxTemp)
+                    // 蓝→红渐变
+                    let hue = 240 - (t / maxTemp) * 240
+                    ctx.fillStyle = `hsl(${hue}, 95%, 58%)`
+                    ctx.fillRect(j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                    
+                    // 轻微网格线（增加立体感）
+                    if (t > 30) {
+                        ctx.strokeStyle = 'rgba(255,255,255,0.15)'
+                        ctx.lineWidth = 0.8
+                        ctx.strokeRect(j * CELL_SIZE + 1, i * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2)
+                    }
+                }
+            }
+            
+            // 时间显示
+            const timeEl = document.getElementById('time-display')
+            if (isSteady) {
+                timeEl.textContent = '稳态平衡'
+                timeEl.classList.add('text-emerald-400')
+            } else {
+                timeEl.textContent = `t = ${simTime.toFixed(1)} s`
+                timeEl.classList.remove('text-emerald-400')
+            }
+            
+            // 中心热源标记
+            const sourceLabel = document.getElementById('source-label')
+            if (hasQv && !isSteady) {
+                sourceLabel.style.display = 'flex'
+            }
+        }
+        
+        // ============== 获取当前 LaTeX 方程 ==============
+        function getLatexEquation() {
+            if (!isKConstant) {
+                if (!isSteady) {
+                    return `\\rho c_p \\frac{\\partial\\ t}{\\partial\\ τ} = \\nabla \\cdot (k \\nabla t) + q_v`
+                } else {
+                    return `\\nabla \\cdot (k \\nabla t) + q_v = 0`
+                }
+            }
+            
+            // 热导率为常数
+            if (!isSteady) {
+                if (hasQv) {
+                    return `\\frac{\\partial\\ t}{\\partial\\ τ} = a \\nabla^{2}t + \\frac{q_v}{\\rho c_p} \\qquad \\color{#00b4ff}{a = \\frac{k}{\\rho c_p}}`
+                } else {
+                    return `\\frac{\\partial\\ t}{\\partial\\ τ} = a \\nabla^{2}t`
+                }
+            } else {
+                if (hasQv) {
+                    return `\\nabla^{2}t = -\\frac{q_v}{k} \\quad \\text{(泊松方程 Poisson)}`
+                } else {
+                    return `\\nabla^{2}t = 0 \\quad \\text{(拉普拉斯方程 Laplace)}`
+                }
+            }
+        }
+        
+        // ============== 更新方程（带动画） ==============
+        async function updateEquation() {
+            const container = document.getElementById('equation-container')
+            const mathDiv = document.getElementById('mathjax-equation')
+            
+            // 淡出
+            container.style.opacity = '0'
+            container.style.transform = 'translateY(12px)'
+            
+            await new Promise(r => setTimeout(r, 220))
+            
+            // 更新内容
+            const latex = getLatexEquation()
+            mathDiv.innerHTML = `\\[${latex}\\]`
+            
+            // 重新渲染 MathJax
+            if (window.MathJax) {
+                await MathJax.typesetPromise([mathDiv])
+            }
+            
+            // 淡入
+            container.style.transitionDuration = '400ms'
+            container.style.opacity = '1'
+            container.style.transform = 'translateY(0)'
+            
+            // 更新说明
+            const note = document.getElementById('equation-note')
+            if (!isKConstant) {
+                note.innerHTML = `🔥 <span class="text-orange-300">完整通用形式</span>（未假设 k 为常数）`
+            } else if (isSteady) {
+                note.innerHTML = `✅ <span class="text-emerald-300">稳态形式</span> — 时间导数消失`
+            } else if (hasQv) {
+                note.innerHTML = `📈 <span class="text-[#00b4ff]">瞬态 + 热源</span> — 扩散 + 持续加热`
+            } else {
+                note.innerHTML = `🌊 <span class="text-sky-300">纯扩散方程</span>`
+            }
+        }
+        
+        // ============== 更新物理解释 ==============
+        function updateExplanation() {
+            const el = document.getElementById('explanation-text')
+            let html = `<strong>当前状态：</strong><br>`
+            
+            if (!isKConstant) {
+                html += `• 热导率 <span class="text-orange-400">非常数</span>，方程无法简化为含 a 的形式<br>`
+            } else {
+                html += `• 热扩散率 <span class="font-mono text-[#00b4ff]">a = ${aValue.toFixed(2)}</span>，数值越大温度传播越快<br>`
+            }
+            
+            if (hasQv) {
+                html += `• 存在内热源 <span class="text-[#f59e0b]">qᵥ = ${qvValue}</span>，中心持续供热<br>`
+            } else {
+                html += `• <span class="text-sky-300">无内热源</span>，温度逐渐向四周扩散并均匀化<br>`
+            }
+            
+            if (isSteady) {
+                html += `• <span class="text-emerald-400">稳态</span>：温度场不再随时间变化，仅由空间分布与热源决定<br>`
+                html += `<span class="text-base mt-4 block opacity-75">物理意义：热扩散与热源达到动态平衡</span>`
+            } else {
+                html += `• <span class="text-amber-400">瞬态</span>：温度随时间演化，类似“墨水在水中扩散”<br>`
+                html += `<span class="text-base mt-4 block opacity-75">物理意义：热量从高温区向低温区自发传递</span>`
+            }
+            
+            el.innerHTML = html
+        }
+        
+        // ============== 统一更新所有 UI ==============
+        async function updateConditions() {
+            isKConstant = document.getElementById('toggle-k').checked
+            hasQv = document.getElementById('toggle-qv').checked
+            isSteady = document.getElementById('toggle-steady').checked
+            
+            await updateEquation()
+            updateExplanation()
+            
+            // 如果切换到稳态，立即计算稳态场
+            if (isSteady) {
+                relaxToSteady(240)
+                drawHeatMap()
+            } else {
+                // 瞬态时恢复初始温度场（防止一直处于稳态残留）
+                if (simTime > 800) initGrid()
+            }
+            
+            // 热源标签
+            document.getElementById('source-label').style.display = hasQv && !isSteady ? 'flex' : 'none'
+        }
+        
+        // ============== 更新滑块 ==============
+        function updateSliders() {
+            aValue = parseFloat(document.getElementById('slider-a').value)
+            qvValue = parseFloat(document.getElementById('slider-qv').value)
+            
+            document.getElementById('value-a').textContent = aValue.toFixed(2)
+            document.getElementById('value-qv').textContent = qvValue.toFixed(1)
+            
+            updateExplanation()
+            
+            // 参数改变时若处于稳态，重新松弛
+            if (isSteady) {
+                relaxToSteady(160)
+                drawHeatMap()
+            }
+        }
+        
+        // ============== 动画循环 ==============
+        function animateLoop() {
+            if (playing) {
+                if (!isSteady) {
+                    const steps = Math.floor(4 * speedMultiplier)
+                    updateTransient(steps)
+                }
+                drawHeatMap()
+            }
+            requestAnimationFrame(animateLoop)
+        }
+        
+        // ============== 播放 / 暂停 ==============
+        function togglePlay() {
+            playing = !playing
+            const btn = document.getElementById('play-btn')
+            const text = document.getElementById('play-text')
+            const iconContainer = document.getElementById('play-icon')
+            
+            if (playing) {
+                text.textContent = '暂停'
+                iconContainer.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v2m4-2v2m7-5a9 9 0 01-9 9v.5a1.5 1.5 0 01-1.5 1.5h-3a1.5 1.5 0 01-1.5-1.5V20a9 9 0 01-9-9" />
+                    </svg>`
+            } else {
+                text.textContent = '播放'
+                iconContainer.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 4.01V8" />
+                    </svg>`
+            }
+        }
+        
+        function setSpeed(n) {
+            speedMultiplier = n
+            // 高亮当前速度
+            document.querySelectorAll('#speed-1, #speed-2, #speed-5').forEach(el => {
+                if (parseFloat(el.textContent) === n) {
+                    el.classList.add('bg-[#00b4ff]', 'text-white')
+                    el.classList.remove('text-slate-700')
+                } else {
+                    el.classList.remove('bg-[#00b4ff]', 'text-white')
+                    el.classList.add('text-slate-700')
+                }
+            })
+        }
+        
+        // ============== 重置模拟 ==============
+        function resetSimulation() {
+            simTime = 0
+            initGrid()
+            drawHeatMap()
+            if (isSteady) relaxToSteady(200)
+        }
+        
+        // ============== 关键词高亮提示 ==============
+        function highlightTerm(el) {
+            const orig = el.style.backgroundColor
+            el.style.transitionDuration = '150ms'
+            el.style.transform = 'scale(1.15)'
+            el.style.backgroundColor = '#00b4ff'
+            el.style.color = 'white'
+            
+            setTimeout(() => {
+                el.style.transform = 'scale(1)'
+                el.style.backgroundColor = orig || ''
+                el.style.color = ''
+            }, 800)
+            
+            // 简单提示
+            const tips = {
+                'a': 'a = k/(ρc_p) 越大，热量扩散速度越快',
+                '∇²T': '拉普拉斯算子表示温度在空间的二阶变化',
+                'qᵥ': '内热源强度，单位 W/m³，代表单位体积发热功率',
+                '稳态': '稳态下 ∂T/∂t = 0，温度仅由空间坐标决定'
+            }
+            
+            const key = el.textContent.trim()
+            if (tips[key]) {
+                const toast = document.createElement('div')
+                toast.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#1e2937; color:#fff; padding:14px 24px; border-radius:9999px; box-shadow:0 10px 15px -3px rgb(0 0 0 / 0.3); white-space:nowrap; z-index:9999; font-size:15px;'
+                toast.textContent = tips[key]
+                document.body.appendChild(toast)
+                setTimeout(() => toast.remove(), 2800)
+            }
+        }
+        
+        // ============== 启动程序 ==============
+        async function launch() {
+            // Tailwind
+            await new Promise(resolve => {
+                const config = () => {
+                    return {
+                        configUser: {
+                            theme: { extend: {} }
+                        }
+                    }
+                }
+                return resolve()
+            })
+            
+            canvas = document.getElementById('heat-canvas')
+            ctx = canvas.getContext('2d')
+            
+            await initMathJax()
+            initGrid()
+            
+            // 初始方程
+            const mathDiv = document.getElementById('mathjax-equation')
+            mathDiv.innerHTML = `\\[ \\frac{\\partial\\  t}{\\partial\\ τ} = a \\nabla^{2}t + \\frac{q_v}{\\rho c_p} \\qquad \\color{#00b4ff}{a = \\frac{k}{\\rho c_p}} \\]`
+            if (window.MathJax) await MathJax.typesetPromise([mathDiv])
+            
+            updateExplanation()
+            drawHeatMap()
+            
+            // 启动动画循环
+            animateLoop()
+            
+            console.log('%c✅ 导热微分方程教学小程序启动成功！', 'color:#00b4ff; font-size:13px; font-weight:500')
+        }
+        
+        // 页面加载完成后启动
+        window.onload = launch
+    </script>
+</body>
+</html>
