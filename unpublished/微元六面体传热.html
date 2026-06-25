@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>三维微元体导热微分方程 · 交互式教学小程序</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', system-ui, sans-serif;
+        }
+        
+        canvas {
+            image-rendering: crisp-edges;
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4);
+        }
+        
+        .slider-thumb {
+            appearance: none;
+            height: 18px;
+            width: 18px;
+            background: #f59e0b;
+            border-radius: 9999px;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3);
+        }
+        
+        .math-container {
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        
+        .step-active {
+            background-color: #f59e0b;
+            color: #000;
+            font-weight: 700;
+        }
+        
+        /* 响应式布局 */
+        @media (max-width: 1024px) {
+            .math-container {
+                font-size: 0.9rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .desktop-layout {
+                flex-direction: column !important;
+                height: auto !important;
+                overflow-y: auto !important;
+            }
+            
+            .desktop-layout > div {
+                width: 100% !important;
+                min-height: auto !important;
+                border-right: none !important;
+                border-left: none !important;
+                border-bottom: 1px solid rgba(63, 63, 70, 0.5) !important;
+            }
+            
+            .math-container {
+                font-size: 0.8rem;
+            }
+            
+            .step-active {
+                font-size: 0.8rem;
+            }
+        }
+        
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1f1f1f;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #f59e0b;
+            border-radius: 10px;
+        }
+        
+        /* Canvas容器自适应 */
+        .canvas-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+        
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 text-white">
+    <!-- 顶部 Title 区 -->
+    <div class="bg-gradient-to-r from-zinc-900 via-zinc-900 to-orange-900/30 border-b border-orange-500/30 sticky top-0 z-10">
+        <div class="max-w-[1600px] mx-auto px-4 py-3 md:py-4">
+            <div class="flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 md:w-10 md:h-10 bg-orange-500 rounded-2xl flex items-center justify-center text-xl shadow-lg">🔥</div>
+                    <div>
+                        <h1 class="text-lg md:text-4xl font-bold tracking-tight">三维微元体导热微分方程</h1>
+                        <p class="text-xs md:text-lg text-zinc-400 mt-0.5">能量守恒 · 傅里叶定律 · 微元分析法 · 交互式教学</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 md:gap-3">
+                    <div class="flex items-center gap-1 md:gap-2">
+                        <div class="w-2 h-2 md:w-3 md:h-3 bg-red-500 rounded-full animate-pulse"></div>
+                        <span class="text-red-400 text-xl md:text-sm">流入</span>
+                        <div class="w-2 h-2 md:w-3 md:h-3 bg-blue-500 rounded-full ml-1 md:ml-2"></div>
+                        <span class="text-blue-400 text-xl md:text-sm">流出</span>
+                    </div>
+                    <div class="text-xs text-zinc-500 hidden sm:block">实时交互 · 工程教学</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主内容区：三栏布局（30:30:40）响应式 -->
+    <div class="desktop-layout flex h-[calc(100vh-80px)] md:h-[calc(100vh-90px)]">
+        
+        <!-- 左侧：参数控制 (30%) -->
+        <div style="width: 30%;" class="bg-zinc-900 border-r border-zinc-700 p-4 md:p-6 flex flex-col overflow-y-auto">
+            <div class="flex items-center gap-3 mb-4 md:mb-6">
+                <div class="w-8 h-8 md:w-9 md:h-9 bg-orange-500 rounded-2xl flex items-center justify-center text-lg md:text-xl">⚙️</div>
+                <h2 class="text-xl md:text-2xl font-bold tracking-tight">参数控制</h2>
+            </div>
+
+            <!-- 核心物性参数 -->
+            <div class="mb-6 md:mb-8">
+                <h3 class="text-orange-400 text-base md:text-base font-medium mb-3 flex items-center gap-2">
+                    <span>🧪 材料物性</span>
+                </h3>
+                
+                <div class="space-y-4 md:space-y-5">
+                    <!-- k -->
+                    <div>
+                        <div class="flex justify-between text-xs md:text-sm mb-1">
+                            <span>导热系数 <span class="font-mono text-orange-400">k</span> (W/m·K)</span>
+                            <span id="val-k" class="font-mono tabular-nums">1.0</span>
+                        </div>
+                        <input type="range" id="slider-k" min="0.1" max="100" step="0.1" value="1" 
+                               class="w-full accent-orange-400">
+                    </div>
+
+                    <!-- ρ -->
+                    <div>
+                        <div class="flex justify-between text-xs md:text-sm mb-1">
+                            <span>密度 <span class="font-mono text-orange-400">ρ</span> (kg/m³)</span>
+                            <span id="val-rho" class="font-mono tabular-nums">2700</span>
+                        </div>
+                        <input type="range" id="slider-rho" min="500" max="10000" step="100" value="2700" 
+                               class="w-full accent-orange-400">
+                    </div>
+
+                    <!-- cp -->
+                    <div>
+                        <div class="flex justify-between text-xs md:text-sm mb-1">
+                            <span>比热容 <span class="font-mono text-orange-400">c_p</span> (J/kg·K)</span>
+                            <span id="val-cp" class="font-mono tabular-nums">900</span>
+                        </div>
+                        <input type="range" id="slider-cp" min="100" max="5000" step="10" value="900" 
+                               class="w-full accent-orange-400">
+                    </div>
+
+                    <!-- qv -->
+                    <div>
+                        <div class="flex justify-between text-xs md:text-sm mb-1">
+                            <span>体积热源 <span class="font-mono text-orange-400">q_v</span> (W/m³)</span>
+                            <span id="val-qv" class="font-mono tabular-nums">0</span>
+                        </div>
+                        <input type="range" id="slider-qv" min="-10000" max="10000" step="100" value="0" 
+                               class="w-full accent-orange-400">
+                        <div class="flex text-[8px] md:text-[16px] text-zinc-400 justify-between mt-px">
+                            <span>吸热</span>
+                            <span class="text-orange-400">无热源</span>
+                            <span>发热</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 温度场梯度控制 -->
+            <div class="mb-6 md:mb-8">
+                <h3 class="text-orange-400 text-xs md:text-lg font-medium mb-3 flex items-center gap-2">
+                    <span>🌡️ 温度场梯度控制</span>
+                    <span class="text-[8px] md:text-[16px] bg-orange-500/10 text-orange-400 px-2 py-px rounded">演示傅里叶定律与泰勒展开</span>
+                </h3>
+                <div class="space-y-4 text-base md:text-sm">
+                    <!-- x方向 -->
+                    <div>
+                        <div class="flex justify-between mb-1"><span class="text-emerald-300">x方向</span></div>
+                        <div class="grid grid-cols-2 gap-2 md:gap-3">
+                            <div>
+                                <label class="text-[12px] md:text-[12px] text-zinc-400">∂T/∂x (K/m)</label>
+                                <input type="range" id="slider-gradx" min="-50" max="50" value="0" class="w-full accent-emerald-400">
+                            </div>
+                            <div>
+                                <label class="text-[12px] md:text-[12px] text-zinc-400">∂²T/∂x² (K/m²)</label>
+                                <input type="range" id="slider-lapx" min="-10" max="10" value="0" class="w-full accent-emerald-400">
+                            </div>
+                        </div>
+                        <div class="text-[12px] md:text-[16px] font-mono text-center text-emerald-300 mt-1" id="qx-display">qₓ = 0</div>
+                    </div>
+                    
+                    <!-- y方向 -->
+                    <div>
+                        <div class="flex justify-between mb-1"><span class="text-blue-300">y方向</span></div>
+                        <div class="grid grid-cols-2 gap-2 md:gap-3">
+                            <div>
+                                <label class="text-[8px] md:text-[10px] text-zinc-400">∂T/∂y (K/m)</label>
+                                <input type="range" id="slider-grady" min="-50" max="50" value="0" class="w-full accent-blue-400">
+                            </div>
+                            <div>
+                                <label class="text-[8px] md:text-[10px] text-zinc-400">∂²T/∂y² (K/m²)</label>
+                                <input type="range" id="slider-lapy" min="-10" max="10" value="0" class="w-full accent-blue-400">
+                            </div>
+                        </div>
+                        <div class="text-[8px] md:text-[16px] font-mono text-center text-blue-300 mt-1" id="qy-display">qᵧ = 0</div>
+                    </div>
+                    
+                    <!-- z方向 -->
+                    <div>
+                        <div class="flex justify-between mb-1"><span class="text-purple-300">z方向</span></div>
+                        <div class="grid grid-cols-2 gap-2 md:gap-3">
+                            <div>
+                                <label class="text-[8px] md:text-[10px] text-zinc-400">∂T/∂z (K/m)</label>
+                                <input type="range" id="slider-gradz" min="-50" max="50" value="0" class="w-full accent-purple-400">
+                            </div>
+                            <div>
+                                <label class="text-[8px] md:text-[10px] text-zinc-400">∂²T/∂z² (K/m²)</label>
+                                <input type="range" id="slider-lapz" min="-10" max="10" value="0" class="w-full accent-purple-400">
+                            </div>
+                        </div>
+                        <div class="text-[8px] md:text-[16px] font-mono text-center text-purple-300 mt-1" id="qz-display">q_z = 0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 微元体尺寸展示 -->
+            <div class="text-[10px] md:text-lg bg-zinc-800/70 rounded-2xl p-3 md:p-4">
+                <div class="flex justify-between mb-2">
+                    <span class="font-medium">微元体尺寸</span>
+                </div>
+                <div class="flex justify-between text-emerald-300 font-mono text-[16px] md:text-lg">
+                    <div>dx = <span id="dx-val" class="text-white">0.1 m</span></div>
+                    <div>dy = <span id="dy-val" class="text-white">0.1 m</span></div>
+                    <div>dz = <span id="dz-val" class="text-white">0.1 m</span></div>
+                </div>
+                <p class="text-[8px] md:text-[16px] text-zinc-400 mt-2">微元体积 = dx·dy·dz = 0.001 m³</p>
+            </div>
+
+            <!-- 教学目标注释 -->
+            <div class="mt-auto pt-12 md:pt-8 text-[16px] md:text-[16px] text-zinc-400 leading-tight">
+                该程序用于：<br>
+                • 理解导热微分方程的物理来源（能量守恒）<br>
+                • 掌握"微元分析法"<br>
+                • 建立从实验现象 → 数学模型 → 工程应用的逻辑
+            </div>
+        </div>
+
+        <!-- 中间：三维微元体可视化 (30%) -->
+        <div style="width: 30%;" class="flex flex-col bg-[#0a0a0a]">
+            <div class="px-3 md:px-6 py-3 md:py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900 flex-wrap gap-2">
+                <div>
+                    <h2 class="text-lg md:text-2xl font-bold flex items-center gap-2">
+                        <span class="text-orange-400">📦</span>
+                        三维微元体
+                    </h2>
+                    <p class="text-[14px] md:text-base text-zinc-400">能量守恒推导 · 傅里叶定律 → 导热微分方程</p>
+                </div>
+                
+                <!-- 状态切换 -->
+                <div class="flex gap-2">
+                    <button onclick="setMode(0)" id="btn-steady"
+                            class="px-3 md:px-5 py-1.5 rounded-2xl font-medium flex items-center gap-1 text-base md:text-sm transition-all hover:scale-105">
+                        <span class="text-emerald-400">⚖️</span>
+                        稳态
+                    </button>
+                    <button onclick="setMode(1)" id="btn-transient"
+                            class="px-3 md:px-5 py-1.5 rounded-2xl font-medium flex items-center gap-1 text-base md:text-sm transition-all hover:scale-105 bg-orange-500 text-black">
+                        <span>⏳</span>
+                        非稳态
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2 text-xs md:text-sm">
+                    <div id="current-dtdt" class="font-mono px-2 md:px-3 py-1 bg-zinc-800 rounded-2xl flex items-center">
+                        ∂T/∂t = <span class="ml-1 text-orange-400" id="dtdt-val">0</span> K/s
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas 核心区域 -->
+            <div class="flex-1 flex items-center justify-center relative overflow-hidden" id="canvas-container">
+                <canvas id="canvas" width="720" height="620" class="bg-transparent" style="max-width: 100%; height: auto;"></canvas>
+                
+                <!-- 叠加信息 -->
+                <div class="absolute top-2 left-2 md:top-4 md:left-4 bg-black/70 backdrop-blur-xl text-[8px] md:text-xs px-2 py-1.5 md:px-3 md:py-2 rounded-2xl font-mono border border-orange-400/30">
+                    当前傅里叶热流：<br>
+                    <span id="fourier-display" class="text-orange-400 text-[9px] md:text-xs">q = -k ∇T</span>
+                </div>
+                
+                <div class="absolute bottom-2 right-2 md:bottom-4 md:right-4 bg-black/70 backdrop-blur-xl rounded-2xl px-2 py-1 md:px-3 md:py-1.5 text-[8px] md:text-xs flex items-center gap-2">
+                    <div>热扩散率 α = <span id="alpha-val" class="font-bold text-orange-400">0.00041</span> m²/s</div>
+                    <div onclick="resetSimulation()" class="cursor-pointer flex items-center gap-1 hover:text-orange-400">
+                        <span class="text-sm">⟳</span> 重置
+                    </div>
+                </div>
+
+                <!-- 模式提示 -->
+                <div id="mode-badge" 
+                     class="absolute top-2 right-2 md:top-4 md:right-4 px-2 py-0.5 md:px-3 md:py-1 text-[9px] md:text-xs font-medium rounded-full shadow-inner flex items-center gap-1">
+                </div>
+            </div>
+
+            <!-- 核心公式展示 -->
+            <div class="bg-zinc-900 border-t border-zinc-700 px-3 md:px-6 py-2 md:py-3 flex flex-wrap items-center justify-center gap-2 md:gap-4 text-[10px] md:text-sm">
+                <div class="flex items-center gap-1 md:gap-2 flex-wrap justify-center">
+                    <span class="font-medium">傅里叶定律：</span>
+                    <span id="fourier1" class="font-mono text-orange-400">q_x = −k ∂T/∂x</span>
+                    <span class="text-zinc-400 hidden sm:inline">（同理 y、z）</span>
+                </div>
+                <div class="hidden md:block h-5 w-px bg-zinc-700"></div>
+                <div class="flex items-center gap-1 md:gap-2 flex-wrap justify-center">
+                    <span class="font-medium">最终方程：</span>
+                    <div id="final-equation" class="font-mono text-orange-400 text-[9px] md:text-xs">
+                        ρcₚ ∂T/∂t = k∇²T + qᵥ
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：推导过程 + 工程解释 (40%) -->
+        <div style="width: 40%;" class="bg-zinc-900 border-l border-zinc-700 flex flex-col overflow-y-auto">
+            <div class="p-4 md:p-6 flex-1">
+                <h2 class="text-lg md:text-xl font-semibold mb-4 flex items-center gap-2">
+                    <span>📐</span> 推导步骤
+                </h2>
+                
+                <div class="space-y-2">
+                    <button onclick="setStep(1)" id="step-btn-1"
+                            class="w-full text-left px-3 md:px-4 py-2 md:py-3 rounded-2xl flex items-center justify-between hover:bg-zinc-800 transition-colors step-active">
+                        <span class="flex items-center gap-2 md:gap-3">
+                            <span class="w-5 h-5 md:w-6 md:h-6 bg-emerald-400 text-black rounded-xl flex items-center justify-center text-xs md:text-sm font-bold">1</span>
+                            热流进入 - 流出（能量守恒）
+                        </span>
+                        <span class="text-[10px] md:text-xs text-emerald-400">净流入</span>
+                    </button>
+                    
+                    <button onclick="setStep(2)" id="step-btn-2"
+                            class="w-full text-left px-3 md:px-4 py-2 md:py-3 rounded-2xl flex items-center justify-between hover:bg-zinc-800 transition-colors">
+                        <span class="flex items-center gap-2 md:gap-3">
+                            <span class="w-5 h-5 md:w-6 md:h-6 bg-amber-400 text-black rounded-xl flex items-center justify-center text-xs md:text-sm font-bold">2</span>
+                            泰勒展开（微分近似）
+                        </span>
+                    </button>
+                    
+                    <button onclick="setStep(3)" id="step-btn-3"
+                            class="w-full text-left px-3 md:px-4 py-2 md:py-3 rounded-2xl flex items-center justify-between hover:bg-zinc-800 transition-colors">
+                        <span class="flex items-center gap-2 md:gap-3">
+                            <span class="w-5 h-5 md:w-6 md:h-6 bg-blue-400 text-black rounded-xl flex items-center justify-center text-xs md:text-sm font-bold">3</span>
+                            代入傅里叶定律
+                        </span>
+                    </button>
+                    
+                    <button onclick="setStep(4)" id="step-btn-4"
+                            class="w-full text-left px-3 md:px-4 py-2 md:py-3 rounded-2xl flex items-center justify-between hover:bg-zinc-800 transition-colors">
+                        <span class="flex items-center gap-2 md:gap-3">
+                            <span class="w-5 h-5 md:w-6 md:h-6 bg-purple-400 text-black rounded-xl flex items-center justify-center text-xs md:text-sm font-bold">4</span>
+                            得到控制方程
+                        </span>
+                    </button>
+                </div>
+                
+                <!-- 步骤内容区 -->
+                <div id="step-content" class="mt-4 md:mt-6 p-3 md:p-5 bg-zinc-950 rounded-2xl math-container min-h-[180px] md:min-h-[220px] border border-zinc-700 overflow-auto">
+                    <!-- JS动态填充 -->
+                </div>
+            </div>
+            
+            <!-- 工程理解提示 -->
+            <div class="px-4 md:px-6 pb-4 md:pb-6 flex flex-col">
+                <h2 class="text-lg md:text-xl font-semibold mb-3 flex items-center gap-2">
+                    <span>🧠</span> 工程理解提示
+                </h2>
+                
+                <div id="insight-box" class="bg-zinc-950 rounded-2xl p-3 md:p-4 text-xs md:text-sm leading-relaxed overflow-auto border border-zinc-700 min-h-[100px] md:min-h-[120px]">
+                    调整左侧参数，实时查看物理意义解读
+                </div>
+                
+                <!-- 工程案例快捷按钮 -->
+                <div class="mt-4">
+                    <h3 class="text-xs md:text-sm font-medium mb-2 text-orange-400">工程案例快速加载</h3>
+                    <div class="grid grid-cols-3 gap-1 md:gap-2">
+                        <button onclick="loadCase(0)" 
+                                class="bg-zinc-800 hover:bg-orange-500 hover:text-black rounded-xl py-2 text-[10px] md:text-xs transition-colors">电池热管理</button>
+                        <button onclick="loadCase(1)" 
+                                class="bg-zinc-800 hover:bg-orange-500 hover:text-black rounded-xl py-2 text-[10px] md:text-xs transition-colors">PEC电极</button>
+                        <button onclick="loadCase(2)" 
+                                class="bg-zinc-800 hover:bg-orange-500 hover:text-black rounded-xl py-2 text-[10px] md:text-xs transition-colors">芯片散热</button>
+                    </div>
+                    <p class="text-[8px] md:text-[10px] text-zinc-400 mt-2 text-center">点击切换典型工程参数组合</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 全局变量 ====================
+        let k = 1.0
+        let rho = 2700
+        let cp = 900
+        let qv = 0
+        let gradX = 0, gradY = 0, gradZ = 0
+        let lapX = 0, lapY = 0, lapZ = 0
+        let dx = 0.1, dy = 0.1, dz = 0.1
+        
+        let T = 300
+        let mode = 1
+        let currentStep = 1
+        
+        let canvas, ctx
+        let lastTime = 0
+        let animationFrame
+        
+        let qx = 0, qx_dx = 0
+        let qy = 0, qy_dy = 0
+        let qz = 0, qz_dz = 0
+        
+        // ==================== Canvas 绘制函数 ====================
+        function drawCanvas() {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            
+            const cx = canvas.width / 2
+            const cy = canvas.height / 2
+            const size = Math.min(canvas.width * 0.35, canvas.height * 0.35, 180)
+            
+            const isoX = size * 0.3
+            const isoY = size * 0.25
+            
+            const tempColor = getTemperatureColor(T)
+            
+            // 前表面 (x-z 平面)
+            ctx.beginPath()
+            ctx.moveTo(cx - size/2, cy - size/2)
+            ctx.lineTo(cx + size/2, cy - size/2)
+            ctx.lineTo(cx + size/2, cy + size/2)
+            ctx.lineTo(cx - size/2, cy + size/2)
+            ctx.closePath()
+            ctx.fillStyle = tempColor
+            ctx.fill()
+            ctx.strokeStyle = '#ddd'
+            ctx.lineWidth = 2
+            ctx.stroke()
+            
+            // 右侧面 (x-y 平面)
+            ctx.beginPath()
+            ctx.moveTo(cx + size/2, cy - size/2)
+            ctx.lineTo(cx + size/2 + isoX, cy - size/2 - isoY)
+            ctx.lineTo(cx + size/2 + isoX, cy + size/2 - isoY)
+            ctx.lineTo(cx + size/2, cy + size/2)
+            ctx.closePath()
+            ctx.fillStyle = tempColor.replace('rgb', 'rgba').replace(')', ', 0.75)')
+            ctx.fill()
+            ctx.stroke()
+            
+            // 顶面 (y-z 平面)
+            ctx.beginPath()
+            ctx.moveTo(cx - size/2, cy - size/2)
+            ctx.lineTo(cx + size/2, cy - size/2)
+            ctx.lineTo(cx + size/2 + isoX, cy - size/2 - isoY)
+            ctx.lineTo(cx - size/2 + isoX, cy - size/2 - isoY)
+            ctx.closePath()
+            ctx.fillStyle = tempColor.replace('rgb', 'rgba').replace(')', ', 0.65)')
+            ctx.fill()
+            ctx.stroke()
+            
+            // 立方体边框线
+            ctx.strokeStyle = '#e2e8f0'
+            ctx.lineWidth = 2
+            ctx.beginPath()
+            ctx.moveTo(cx + size/2 + isoX, cy - size/2 - isoY)
+            ctx.lineTo(cx + size/2 + isoX, cy + size/2 - isoY)
+            ctx.stroke()
+            ctx.beginPath()
+            ctx.moveTo(cx - size/2 + isoX, cy - size/2 - isoY)
+            ctx.lineTo(cx + size/2 + isoX, cy - size/2 - isoY)
+            ctx.stroke()
+            
+            // 面标签
+            ctx.fillStyle = '#fff'
+            ctx.font = `bold ${Math.max(14, canvas.width * 0.02)}px "Noto Sans SC"`
+            ctx.textAlign = 'center'
+            ctx.fillText('左面 (x)', cx - size/2 - 25, cy + 8)
+            ctx.fillText('右面 (x+dx)', cx + size/2 + 35, cy + 8)
+            ctx.fillText('前面 (y)', cx + size/2 + isoX/2 + 8, cy + size/2 - 10)
+            ctx.fillText('后面 (y+dy)', cx + size/2 + isoX + 20, cy - 15)
+            ctx.fillText('下面 (z)', cx - 18, cy + size/2 + 22)
+            ctx.fillText('上面 (z+dz)', cx + isoX - 8, cy - size/2 - isoY - 15)
+            
+            // 尺寸标注
+            ctx.font = `${Math.max(12, canvas.width * 0.024)}px monospace`
+            ctx.fillStyle = '#ccc'
+            ctx.fillText(`dx`, cx - size/2 - 8, cy + size/2 + 30)
+            ctx.fillText(`dy`, cx + size/2 + isoX + 12, cy + size/2 - 5)
+            ctx.fillText(`dz`, cx - 8, cy - size/2 - 20)
+            
+            // 热流箭头
+            const maxFlow = Math.max(Math.abs(qx), Math.abs(qy), Math.abs(qz), 1)
+            const scale = Math.min(50 / maxFlow, 45)
+            
+            // X方向箭头
+            const leftCenterX = cx - size/2 - 18
+            const leftCenterY = cy
+            const rightCenterX = cx + size/2 + 18
+            const rightCenterY = cy
+            
+            drawHeatArrow(ctx, leftCenterX, leftCenterY, qx, scale, true, 'x')
+            drawHeatArrow(ctx, rightCenterX, rightCenterY, qx_dx, scale, false, 'x')
+            
+            // Y方向箭头
+            const frontCenterX = cx + size/2 + 12
+            const frontCenterY = cy + size/2 - 12
+            const backCenterX = cx + size/2 + isoX + 12
+            const backCenterY = cy - size/2 - isoY + 12
+            drawHeatArrow(ctx, frontCenterX, frontCenterY, qy, scale * 0.9, true, 'y')
+            drawHeatArrow(ctx, backCenterX, backCenterY, qy_dy, scale * 0.9, false, 'y')
+            
+            // Z方向箭头
+            const bottomCenterX = cx - size/2 + 10
+            const bottomCenterY = cy + size/2 + 15
+            const topCenterX = cx + isoX - 10
+            const topCenterY = cy - size/2 - isoY - 15
+            drawHeatArrow(ctx, bottomCenterX, bottomCenterY, qz, scale * 0.9, true, 'z')
+            drawHeatArrow(ctx, topCenterX, topCenterY, qz_dz, scale * 0.9, false, 'z')
+            
+            // 小标签 q 值
+            ctx.font = `${Math.max(12, canvas.width * 0.024)}px monospace`
+            ctx.fillStyle = '#f59e0b'
+            ctx.textAlign = 'left'
+            ctx.fillText(`qₓ = ${qx.toFixed(1)}`, leftCenterX - 18, leftCenterY - 28)
+            ctx.fillText(`qₓ₊dx = ${qx_dx.toFixed(1)}`, rightCenterX + 8, rightCenterY - 28)
+        }
+        
+      function drawHeatArrow(ctx, baseX, baseY, qVal, scale, isInletSide, direction) {
+    if (Math.abs(qVal) < 0.01) return
+    
+    const len = Math.min(Math.abs(qVal) * scale, 55)
+    const sign = Math.sign(qVal)
+    let dx = 0, dy = 0
+    
+    if (direction === 'x') {
+        dx = sign * len
+        dy = 0
+    } else if (direction === 'y') {
+        dx = sign * len * 0.7
+        dy = -sign * len * 0.7
+    } else if (direction === 'z') {
+        dx = 0
+        dy = -sign * len
+    }
+    
+    const endX = baseX + dx
+    const endY = baseY + dy
+    
+    let color = '#ef4444'
+    if ((!isInletSide && sign > 0) || (isInletSide && sign < 0)) {
+        color = '#3b82f6'
+    }
+    
+    ctx.strokeStyle = color
+    ctx.fillStyle = color
+    
+    // 修改这里：调整箭头线宽（数值越大越粗）
+    ctx.lineWidth = 6  // 从 4 改为 6
+    
+    ctx.beginPath()
+    ctx.moveTo(baseX, baseY)
+    ctx.lineTo(endX, endY)
+    ctx.stroke()
+    
+    // 修改这里：调整箭头头部大小
+    const head = 16  // 从 12 改为 16
+    const angle = Math.atan2(dy, dx)
+    ctx.beginPath()
+    ctx.moveTo(endX, endY)
+    ctx.lineTo(endX - head * Math.cos(angle - Math.PI / 6), endY - head * Math.sin(angle - Math.PI / 6))
+    ctx.lineTo(endX - head * Math.cos(angle + Math.PI / 6), endY - head * Math.sin(angle + Math.PI / 6))
+    ctx.fill()
+    
+    // 流动粒子（可选）
+    if (Math.random() > 0.7) {
+        const particleX = baseX + (dx * Math.random())
+        const particleY = baseY + (dy * Math.random())
+        ctx.fillStyle = '#fff'
+        ctx.fillRect(particleX, particleY, 3, 3)  // 粒子也可以调大
+    }
+}
+        
+        function getTemperatureColor(t) {
+            const norm = Math.max(0, Math.min(1, (t - 220) / 160))
+            const r = Math.floor(40 + 215 * norm)
+            const g = Math.floor(80 + 80 * (1 - norm))
+            const b = Math.floor(255 * (1 - norm))
+            return `rgb(${r},${g},${b})`
+        }
+        
+        function updateFluxes() {
+            qx = -k * gradX
+            qx_dx = qx + (-k * lapX * dx)
+            qy = -k * gradY
+            qy_dy = qy + (-k * lapY * dy)
+            qz = -k * gradZ
+            qz_dz = qz + (-k * lapZ * dz)
+            
+            document.getElementById('qx-display').textContent = `qₓ = ${qx.toFixed(1)}`
+            document.getElementById('qy-display').textContent = `qᵧ = ${qy.toFixed(1)}`
+            document.getElementById('qz-display').textContent = `q_z = ${qz.toFixed(1)}`
+        }
+        
+        function calculateDTdt() {
+            const lapSum = lapX + lapY + lapZ
+            const dTdt = (k * lapSum + qv) / (rho * cp)
+            return dTdt
+        }
+        
+        function animate(timestamp) {
+            if (!lastTime) lastTime = timestamp
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.05)
+            lastTime = timestamp
+            
+            if (mode === 1) {
+                const dTdt = calculateDTdt()
+                T += dTdt * dt * 180
+                T = Math.max(220, Math.min(420, T))
+                document.getElementById('dtdt-val').textContent = dTdt.toFixed(2)
+            } else {
+                T = 300
+                document.getElementById('dtdt-val').textContent = '0.00'
+            }
+            
+            updateFluxes()
+            drawCanvas()
+            updateInsight()
+            
+            animationFrame = requestAnimationFrame(animate)
+        }
+        
+        function updateInsight() {
+            let html = ''
+            
+            if (qv > 200) {
+                html += `<div class="mb-3 flex items-start gap-2"><span class="text-xl">🔥</span><div>系统内部存在能量生成（如电池放电、焦耳热）</div></div>`
+            } else if (qv < -200) {
+                html += `<div class="mb-3 flex items-start gap-2"><span class="text-xl">❄️</span><div>系统内部存在能量吸收（相变冷却、吸热反应）</div></div>`
+            }
+            
+            if (k > 30) {
+                html += `<div class="mb-3 flex items-start gap-2"><span class="text-xl">⚡</span><div>导热系数很大 → 材料导热极快，温度分布趋于均匀</div></div>`
+            }
+            
+            const alpha = k / (rho * cp)
+            if (alpha > 0.0008) {
+                html += `<div class="mb-3 flex items-start gap-2"><span class="text-xl">🚀</span><div>热扩散率 α 较大，温度变化传播速度快（热量快速扩散）</div></div>`
+            } else if (alpha < 0.0001) {
+                html += `<div class="mb-3 flex items-start gap-2"><span class="text-xl">🐢</span><div>热扩散率 α 很小，热量"滞后"明显（典型绝热材料）</div></div>`
+            }
+            
+            const dTdt = calculateDTdt()
+            if (mode === 1 && Math.abs(dTdt) > 0.3) {
+                html += `<div class="mb-3 flex items-start gap-2"><span class="text-xl">⏳</span><div>非稳态过程：系统正在快速升温/降温（典型加热或冷却瞬态）</div></div>`
+            }
+            
+            if (Math.abs(gradX) > 15 && Math.abs(gradX) > Math.max(Math.abs(gradY), Math.abs(gradZ))) {
+                html += `<div class="mb-3 flex items-start gap-2"><span class="text-xl">→</span><div>x方向温度梯度主导 → 热流主要沿x方向（工程中常见一维近似）</div></div>`
+            }
+            
+            if (html === '') {
+                html = `<div class="text-zinc-400 italic text-center py-4">实时调整参数，这里会出现对应工程物理解读</div>`
+            }
+            
+            document.getElementById('insight-box').innerHTML = html
+        }
+        
+        function setStep(step) {
+            currentStep = step
+            const contentDiv = document.getElementById('step-content')
+            
+            for (let i = 1; i <= 4; i++) {
+                const btn = document.getElementById(`step-btn-${i}`)
+                if (btn) btn.classList.toggle('step-active', i === step)
+            }
+            
+            let html = ''
+            
+            if (step === 1) {
+                html = `
+                <div class="text-emerald-400 font-medium mb-2">Step 1：热流进入 - 流出（净能量守恒）</div>
+                <p class="mb-3 text-sm">微元体净热流入量 = 各方向流入 - 流出</p>
+                <div class="math-container bg-zinc-900 rounded-2xl p-3 text-center">
+                    $$ \\text{净流入} = (q_x - q_{x+dx})\\,dy\\,dz + (q_y - q_{y+dy})\\,dx\\,dz + (q_z - q_{z+dz})\\,dx\\,dy $$
+                </div>
+                <p class="text-xs text-zinc-400 mt-3">箭头长度差异体现梯度 → 产生净热流</p>`
+            } else if (step === 2) {
+                html = `
+                <div class="text-amber-400 font-medium mb-2">Step 2：泰勒展开（差分 → 微分）</div>
+                <p class="mb-3 text-sm">关键一步：将有限差分变为微分</p>
+                <div class="math-container bg-zinc-900 rounded-2xl p-3">
+                    $$ q_{x+dx} = q_x + \\frac{\\partial q_x}{\\partial x} dx $$
+                    <div class="mt-2 text-xs text-amber-300">同理 y、z 方向</div>
+                </div>
+                <p class="text-xs bg-amber-400/10 text-amber-400 px-2 py-1 rounded-2xl mt-3">这是从"差分"走向"微分"的关键一步！</p>`
+            } else if (step === 3) {
+                html = `
+                <div class="text-blue-400 font-medium mb-2">Step 3：代入傅里叶定律</div>
+                <div class="math-container bg-zinc-900 rounded-2xl p-3">
+                    $$ q_x = -k \\frac{\\partial T}{\\partial x} \\quad \\Rightarrow \\quad \\frac{\\partial q_x}{\\partial x} = -k \\frac{\\partial^2 T}{\\partial x^2} $$
+                </div>
+                <p class="text-xs text-zinc-400 mt-3">同理得到 y、z 方向</p>`
+            } else if (step === 4) {
+                html = `
+                <div class="text-purple-400 font-medium mb-2">Step 4：最终导热微分方程</div>
+                <div class="math-container bg-zinc-900 rounded-2xl p-4 text-center text-lg">
+                    $$ \\rho c_p \\frac{\\partial T}{\\partial t} = k \\left( \\frac{\\partial^2 T}{\\partial x^2} + \\frac{\\partial^2 T}{\\partial y^2} + \\frac{\\partial^2 T}{\\partial z^2} \\right) + q_v $$
+                </div>
+                <div class="mt-3 flex justify-center gap-2 text-xs">
+                    <span class="px-2 py-1 bg-purple-400/10 rounded-full">稳态时 ∂T/∂t = 0</span>
+                    <span class="px-2 py-1 bg-purple-400/10 rounded-full">无热源时 qᵥ = 0</span>
+                </div>`
+            }
+            
+            contentDiv.innerHTML = html
+            if (window.MathJax) {
+                MathJax.typesetPromise([contentDiv]).catch(() => {})
+            }
+        }
+        
+        function setMode(m) {
+            mode = m
+            const badge = document.getElementById('mode-badge')
+            
+            if (m === 0) {
+                badge.innerHTML = `⚖️ <span class="text-emerald-400">稳态</span>`
+                badge.style.backgroundColor = '#052e16'
+                badge.style.color = '#4ade80'
+                document.getElementById('btn-steady').classList.add('!bg-emerald-500', '!text-black')
+                document.getElementById('btn-transient').classList.remove('!bg-orange-500', '!text-black')
+            } else {
+                badge.innerHTML = `⏳ <span class="text-orange-400">非稳态</span>`
+                badge.style.backgroundColor = '#431407'
+                badge.style.color = '#fb923c'
+                document.getElementById('btn-transient').classList.add('!bg-orange-500', '!text-black')
+                document.getElementById('btn-steady').classList.remove('!bg-emerald-500', '!text-black')
+            }
+        }
+        
+        function loadCase(n) {
+            if (n === 0) {
+                k = 25; rho = 2500; cp = 1100; qv = 8500
+                gradX = -8; gradY = 3; gradZ = 12
+                lapX = -2.5; lapY = -1.8; lapZ = -3.2
+                T = 310
+                mode = 1
+            } else if (n === 1) {
+                k = 2.5; rho = 1800; cp = 780; qv = 4200
+                gradX = 25; gradY = -18; gradZ = 5
+                lapX = -4; lapY = 3.5; lapZ = -0.8
+                T = 340
+                mode = 1
+            } else if (n === 2) {
+                k = 380; rho = 8900; cp = 385; qv = 1200
+                gradX = -35; gradY = -12; gradZ = -28
+                lapX = -1.2; lapY = -0.9; lapZ = -2.1
+                T = 380
+                mode = 0
+            }
+            
+            document.getElementById('slider-k').value = k
+            document.getElementById('slider-rho').value = rho
+            document.getElementById('slider-cp').value = cp
+            document.getElementById('slider-qv').value = qv
+            document.getElementById('slider-gradx').value = gradX
+            document.getElementById('slider-grady').value = gradY
+            document.getElementById('slider-gradz').value = gradZ
+            document.getElementById('slider-lapx').value = lapX
+            document.getElementById('slider-lapy').value = lapY
+            document.getElementById('slider-lapz').value = lapZ
+            
+            updateAllValues()
+            setMode(mode)
+        }
+        
+        function bindSliders() {
+            const sliders = {
+                k: 'slider-k', rho: 'slider-rho', cp: 'slider-cp', qv: 'slider-qv',
+                gradx: 'slider-gradx', grady: 'slider-grady', gradz: 'slider-gradz',
+                lapx: 'slider-lapx', lapy: 'slider-lapy', lapz: 'slider-lapz'
+            }
+            
+            Object.keys(sliders).forEach(key => {
+                const el = document.getElementById(sliders[key])
+                if (el) {
+                    el.addEventListener('input', () => {
+                        if (key === 'k') k = parseFloat(el.value)
+                        else if (key === 'rho') rho = parseFloat(el.value)
+                        else if (key === 'cp') cp = parseFloat(el.value)
+                        else if (key === 'qv') qv = parseFloat(el.value)
+                        else if (key === 'gradx') gradX = parseFloat(el.value)
+                        else if (key === 'grady') gradY = parseFloat(el.value)
+                        else if (key === 'gradz') gradZ = parseFloat(el.value)
+                        else if (key === 'lapx') lapX = parseFloat(el.value)
+                        else if (key === 'lapy') lapY = parseFloat(el.value)
+                        else if (key === 'lapz') lapZ = parseFloat(el.value)
+                        
+                        updateAllValues()
+                    })
+                }
+            })
+        }
+        
+        function updateAllValues() {
+            document.getElementById('val-k').textContent = k.toFixed(1)
+            document.getElementById('val-rho').textContent = Math.round(rho)
+            document.getElementById('val-cp').textContent = Math.round(cp)
+            document.getElementById('val-qv').textContent = Math.round(qv)
+            
+            const alpha = (k / (rho * cp)).toFixed(6)
+            document.getElementById('alpha-val').textContent = alpha
+            
+            updateFluxes()
+            drawCanvas()
+            updateInsight()
+        }
+        
+        function resetSimulation() {
+            T = 300
+            drawCanvas()
+        }
+        
+        // 窗口大小改变时重新调整Canvas
+        function handleResize() {
+            if (canvas) {
+                const container = document.getElementById('canvas-container')
+                if (container) {
+                    const maxSize = Math.min(container.clientWidth - 40, container.clientHeight - 100, 600)
+                    const size = Math.max(400, maxSize)
+                    canvas.width = size
+                    canvas.height = size
+                    drawCanvas()
+                }
+            }
+        }
+        
+        function start() {
+            canvas = document.getElementById('canvas')
+            ctx = canvas.getContext('2d')
+            canvas.width = 600
+            canvas.height = 600
+            
+            bindSliders()
+            updateFluxes()
+            setStep(1)
+            setMode(1)
+            
+            window.addEventListener('resize', () => setTimeout(handleResize, 100))
+            setTimeout(handleResize, 100)
+            
+            animationFrame = requestAnimationFrame(animate)
+            
+            console.log('%c✅ 三维微元体导热微分方程交互式教学小程序已启动', 'background:#f59e0b;color:#000;font-weight:700;padding:2px 6px;border-radius:4px')
+            console.log('教学目标：理解导热微分方程的物理来源（守恒）、掌握微元分析法、建立实验→数学→工程逻辑')
+        }
+        
+        window.onload = start
+    </script>
+</body>
+</html>
