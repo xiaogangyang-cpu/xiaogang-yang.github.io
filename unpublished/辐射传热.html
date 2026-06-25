@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>辐射传热教学演示器 | 斯特藩–玻尔兹曼定律</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        
+        :root {
+            --primary: #f59e0b;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%);
+            color: #f1f5f9;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        
+        .formula {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 16px 32px;
+            border-radius: 9999px;
+            border: 2px solid #f59e0b;
+            font-size: 1.5rem;
+            font-weight: 600;
+            box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.3);
+            margin-bottom: 8px;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            gap: 24px;
+        }
+        
+        .card {
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+            border: 1px solid rgba(249, 115, 22, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 25px 50px -12px rgb(245 158 11 / 0.15);
+        }
+        
+        .slider-container {
+            margin-bottom: 24px;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            color: #e2e8f0;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            accent-color: #f59e0b;
+            height: 8px;
+            border-radius: 9999px;
+            background: #334155;
+        }
+        
+        .value-display {
+            font-family: monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f59e0b;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 4px 14px;
+            border-radius: 9999px;
+        }
+        
+        .visualization {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        
+        canvas {
+            border-radius: 16px;
+            background: #0f172a;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 340px;
+        }
+        
+        .scene-container {
+            position: relative;
+        }
+        
+        .scene-label {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            z-index: 10;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        .result-box {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+        }
+        
+        .result-value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        
+        .prompt-box {
+            background: linear-gradient(90deg, #1e2937, #334155);
+            border: 2px solid #f59e0b;
+            border-radius: 20px;
+            padding: 20px;
+            height: 100%;
+            box-shadow: 0 0 30px -10px #f59e0b;
+        }
+        
+        .prompt-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+            color: #f59e0b;
+        }
+        
+        .observation {
+            line-height: 1.7;
+            font-size: 1.1rem;
+            min-height: 120px;
+        }
+        
+        .tag {
+            display: inline-block;
+            background: #f59e0b;
+            color: #0f172a;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            margin: 4px 2px;
+        }
+        
+        .footer-note {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        .animate {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header>
+            <h1>🔥 辐射传热教学演示器</h1>
+            <p style="font-size: 1.3rem; margin-bottom: 12px; opacity: 0.9;">斯特藩–玻尔兹曼定律 • 黑体辐射非线性教学工具</p>
+            
+            <!-- 核心公式 -->
+            <div class="formula">
+                <span style="margin-right: 12px;">q =</span>
+                <span style="color: #f59e0b;">ε</span>
+                <span style="margin: 0 6px;">σ</span>
+                <span style="color: #f59e0b;">A</span>
+                <span style="margin: 0 12px;">(</span>
+                <span style="color: #f59e0b;">T<sup>4</sup></span>
+                <span style="margin: 0 8px;">−</span>
+                <span style="color: #f59e0b;">T<sub>env</sub><sup>4</sup></span>
+                <span style="margin: 0 12px;">)</span>
+                <span style="font-size: 1rem; margin-left: 20px; opacity: 0.8;">σ = 5.67 × 10⁻⁸ W/(m²·K⁴)</span>
+            </div>
+            
+            <div style="font-size: 1rem; opacity: 0.75;">
+                纯净辐射传热 • 实时交互 • 工程直觉培养
+            </div>
+        </header>
+
+        <div class="dashboard">
+            
+            <!-- 左侧：参数控制 -->
+            <div class="card">
+                <h2 style="font-size: 1.4rem; margin-bottom: 20px; color: #f59e0b; display: flex; align-items: center;">
+                    ⚙️ 参数调节
+                </h2>
+                
+                <!-- T 物体温度 -->
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>物体温度 <strong>T</strong> (K)</span>
+                        <span id="T-val" class="value-display">800</span>
+                    </div>
+                    <input type="range" id="slider-T" min="300" max="1500" value="800" step="10">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; opacity: 0.6; margin-top: 2px;">
+                        <span>300 K</span>
+                        <span>1500 K</span>
+                    </div>
+                </div>
+                
+                <!-- T_env 环境温度 -->
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>环境温度 <strong>T<sub>env</sub></strong> (K)</span>
+                        <span id="Tenv-val" class="value-display">300</span>
+                    </div>
+                    <input type="range" id="slider-Tenv" min="250" max="500" value="300" step="5">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; opacity: 0.6; margin-top: 2px;">
+                        <span>250 K</span>
+                        <span>500 K</span>
+                    </div>
+                </div>
+                
+                <!-- ε 发射率 -->
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>发射率 <strong>ε</strong></span>
+                        <span id="epsilon-val" class="value-display">0.85</span>
+                    </div>
+                    <input type="range" id="slider-epsilon" min="0" max="1" value="0.85" step="0.01">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; opacity: 0.6; margin-top: 2px;">
+                        <span>0（完美反射）</span>
+                        <span>1（黑体）</span>
+                    </div>
+                    <button id="btn-blackbody" 
+                            style="margin-top: 8px; width: 100%; background: #f59e0b; color: #0f172a; border: none; padding: 8px; border-radius: 9999px; font-weight: 700; font-size: 0.95rem; cursor: pointer;">
+                        ⚡ 切换为黑体 ε = 1
+                    </button>
+                </div>
+                
+                <!-- A 表面积 -->
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>表面积 <strong>A</strong> (m²)</span>
+                        <span id="A-val" class="value-display">1.0</span>
+                    </div>
+                    <input type="range" id="slider-A" min="0.1" max="5" value="1" step="0.1">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; opacity: 0.6; margin-top: 2px;">
+                        <span>0.1 m²</span>
+                        <span>5 m²</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px; padding: 12px; background: rgba(249, 115, 22, 0.1); border-radius: 12px; font-size: 0.9rem; text-align: center;">
+                    拖动滑块实时观察 T⁴ 非线性效应
+                </div>
+            </div>
+            
+            <!-- 中间：可视化区域 -->
+            <div class="visualization">
+                
+                <!-- 图表：q vs T -->
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h2 style="font-size: 1.35rem; color: #f59e0b;">📈 热辐射强度 vs 温度曲线</h2>
+                        <span id="nonlinear-tag" class="tag">T⁴ 强非线性</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="qChart"></canvas>
+                    </div>
+                    <div style="font-size: 0.85rem; text-align: center; margin-top: 8px; opacity: 0.7;">
+                        橙色曲线为当前参数下的净辐射热流 q（W）<br>
+                        当前工况点已高亮 • 横轴 T（K）
+                    </div>
+                </div>
+                
+                <!-- 物理场景 -->
+                <div class="card scene-container">
+                    <h2 style="font-size: 1.35rem; color: #f59e0b; margin-bottom: 12px;">🧪 物理场景示意图</h2>
+                    <canvas id="sceneCanvas" width="520" height="300"></canvas>
+                    <div class="scene-label">发热物体（颜色随温度实时变化）</div>
+                    
+                    <div style="display: flex; gap: 16px; margin-top: 12px; font-size: 0.9rem;">
+                        <div style="flex: 1; background: rgba(15,23,42,0.6); padding: 8px; border-radius: 12px; text-align: center;">
+                            🔴 高温 → 红色<br>
+                            🟡 中温 → 黄色<br>
+                            🔵 低温 → 蓝色
+                        </div>
+                        <div style="flex: 1; background: rgba(15,23,42,0.6); padding: 8px; border-radius: 12px; text-align: center;">
+                            ↗️ 箭头数量 / 长度 ∝ 净热流 q<br>
+                            <span id="direction-info" style="color:#f59e0b;">当前：辐射散热</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧：数值结果 + 教学提示 -->
+            <div class="card" style="display: flex; flex-direction: column;">
+                
+                <!-- 数值结果 -->
+                <h2 style="font-size: 1.35rem; color: #f59e0b; margin-bottom: 16px;">📊 实时计算结果</h2>
+                
+                <div class="results-grid">
+                    <div class="result-box">
+                        <div style="font-size: 0.95rem; opacity: 0.8;">净辐射热流 q</div>
+                        <div id="q-value" class="result-value" style="color: #f59e0b;">12480</div>
+                        <div style="font-size: 0.9rem; margin-top: 4px;">W</div>
+                    </div>
+                    <div class="result-box">
+                        <div style="font-size: 0.95rem; opacity: 0.8;">温差项 T⁴ − T<sub>env</sub>⁴</div>
+                        <div id="delta4-value" class="result-value" style="color: #64748b;">3.84 × 10¹¹</div>
+                        <div style="font-size: 0.9rem; margin-top: 4px;">K⁴</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px; padding: 16px; background: #0f172a; border-radius: 16px;">
+                    <strong>当前主导因素：</strong>
+                    <div id="dominant-factor" style="margin-top: 8px; font-size: 1.3rem; color: #f59e0b;">温度主导（T⁴ 效应）</div>
+                </div>
+                
+                <!-- 教学提示框 -->
+                <div class="prompt-box" style="margin-top: auto;">
+                    <div class="prompt-title">
+                        🧠 工程观察提示框
+                        <span id="prompt-indicator" class="animate" style="font-size: 1.4rem;">🔥</span>
+                    </div>
+                    <div id="observation-text" class="observation">
+                        欢迎使用！当前 T = 800 K，T⁴ 效应已开始显现。<br>
+                        拖动滑块观察<strong>热流随温度的爆炸式增长</strong>。
+                    </div>
+                    
+                    <div style="margin-top: 16px; border-top: 1px dashed #64748b; padding-top: 12px; font-size: 0.95rem;">
+                        <div id="engineering-link" style="line-height: 1.6;">
+                            工程应用联想：<span style="color:#f59e0b;">高温工业炉设计</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 页脚教学目标注释 -->
+        <div class="footer-note">
+            <strong>教学目标（已嵌入代码注释）：</strong><br>
+            1. 直观理解辐射传热的<strong>T⁴ 非线性本质</strong><br>
+            2. 建立“温度四次方主导”的工程直觉<br>
+            3. 区分辐射与其他传热方式（导热/对流）的量级差异<br>
+            • 纯 HTML + CSS + JS 单文件 • Chart.js 仅用于动态曲线 • Canvas 物理场景
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 辐射传热教学演示器
+         * 核心公式：q = ε σ A (T⁴ - T_env⁴)
+         * 教学目标：
+         *   - 理解辐射传热的非线性本质（T⁴ 主导）
+         *   - 建立“温度四次方主导”的工程直觉
+         *   - 区分导热 / 对流 / 辐射的量级差异
+         * 作者：Grok（xAI）按用户精确需求生成
+         */
+        
+        // 物理常数
+        const SIGMA = 5.670367e-8; // W/(m²·K⁴)
+        
+        // 当前参数（默认值）
+        let currentT = 800;
+        let currentTenv = 300;
+        let currentEpsilon = 0.85;
+        let currentA = 1.0;
+        
+        // Chart.js 实例
+        let qChart = null;
+        
+        // T 范围（用于绘制完整曲线）
+        const T_RANGE = [];
+        for (let t = 200; t <= 1600; t += 25) {
+            T_RANGE.push(t);
+        }
+        
+        // Canvas 上下文
+        let sceneCtx = null;
+        
+        /**
+         * 计算净辐射热流 q
+         */
+        function calculateQ(T, Tenv, epsilon, A) {
+            const T4 = Math.pow(T, 4);
+            const Tenv4 = Math.pow(Tenv, 4);
+            return epsilon * SIGMA * A * (T4 - Tenv4);
+        }
+        
+        /**
+         * 获取物体颜色（低温蓝色 → 中温黄色 → 高温红色）
+         */
+        function getObjectColor(T) {
+            const norm = Math.max(0, Math.min(1, (T - 300) / 1200));
+            
+            if (norm < 0.35) {
+                // 低温：蓝色
+                const blueFactor = (0.35 - norm) / 0.35;
+                return `rgb(30, 120, ${Math.round(255 * blueFactor)})`;
+            } else if (norm < 0.65) {
+                // 中温：黄色
+                const yellowFactor = (norm - 0.35) / 0.3;
+                const r = Math.round(255 * yellowFactor);
+                const g = 255;
+                const b = Math.round(80 * (1 - yellowFactor));
+                return `rgb(${r}, ${g}, ${b})`;
+            } else {
+                // 高温：红色/橙色
+                const redFactor = (norm - 0.65) / 0.35;
+                const r = 255;
+                const g = Math.round(255 * (1 - redFactor));
+                return `rgb(${r}, ${g}, 30)`;
+            }
+        }
+        
+        /**
+         * 绘制物理场景（Canvas）
+         */
+        function drawScene() {
+            if (!sceneCtx) return;
+            
+            const canvas = document.getElementById('sceneCanvas');
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const radius = 85;
+            
+            sceneCtx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 背景轻微渐变（代表宇宙/环境）
+            const bgGrad = sceneCtx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            bgGrad.addColorStop(0, '#0f172a');
+            bgGrad.addColorStop(1, '#1e2937');
+            sceneCtx.fillStyle = bgGrad;
+            sceneCtx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 计算当前 q
+            const q = calculateQ(currentT, currentTenv, currentEpsilon, currentA);
+            const absQ = Math.abs(q);
+            
+            // 物体
+            sceneCtx.shadowBlur = 35;
+            sceneCtx.shadowColor = getObjectColor(currentT);
+            sceneCtx.fillStyle = getObjectColor(currentT);
+            sceneCtx.beginPath();
+            sceneCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+            sceneCtx.fill();
+            sceneCtx.shadowBlur = 0;
+            
+            // 物体边框（高亮）
+            sceneCtx.strokeStyle = '#fff';
+            sceneCtx.lineWidth = 6;
+            sceneCtx.beginPath();
+            sceneCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+            sceneCtx.stroke();
+            
+            // 物体标签
+            sceneCtx.fillStyle = '#fff';
+            sceneCtx.font = 'bold 22px Noto Sans SC';
+            sceneCtx.textAlign = 'center';
+            sceneCtx.fillText('发热物体', cx, cy + radius + 42);
+            
+            // 辐射箭头
+            const numArrows = 12;
+            const baseLen = 38;
+            // 归一化热流（最大约 2MW 视觉上限）
+            let norm = Math.min(1, absQ / 2000000);
+            const arrowLen = baseLen + 135 * norm;
+            
+            const isHeating = q >= 0; // 正 = 散热（向外）
+            const arrowColor = isHeating ? '#f59e0b' : '#22d3ee';
+            
+            // 更新方向提示文字
+            document.getElementById('direction-info').innerHTML = 
+                isHeating 
+                    ? '↗️ 当前：辐射散热' 
+                    : '↘️ 当前：净热吸收';
+            
+            for (let i = 0; i < numArrows; i++) {
+                const angle = (i * 2 * Math.PI / numArrows) + 0.1; // 轻微偏移
+                
+                // 起点（物体表面）
+                const startX = cx + Math.cos(angle) * radius;
+                const startY = cy + Math.sin(angle) * radius;
+                
+                // 终点方向
+                const dir = isHeating ? 1 : -1;
+                const endX = startX + Math.cos(angle) * arrowLen * dir;
+                const endY = startY + Math.sin(angle) * arrowLen * dir;
+                
+                // 画主箭杆
+                sceneCtx.strokeStyle = arrowColor;
+                sceneCtx.lineWidth = 4.5;
+                sceneCtx.shadowBlur = 12;
+                sceneCtx.shadowColor = arrowColor;
+                sceneCtx.beginPath();
+                sceneCtx.moveTo(startX, startY);
+                sceneCtx.lineTo(endX, endY);
+                sceneCtx.stroke();
+                
+                // 箭头头部
+                const headSize = 18;
+                sceneCtx.save();
+                sceneCtx.translate(endX, endY);
+                sceneCtx.rotate(angle + (isHeating ? 0 : Math.PI));
+                sceneCtx.fillStyle = arrowColor;
+                sceneCtx.shadowBlur = 0;
+                sceneCtx.beginPath();
+                sceneCtx.moveTo(0, 0);
+                sceneCtx.lineTo(-headSize, headSize / 2);
+                sceneCtx.lineTo(-headSize, -headSize / 2);
+                sceneCtx.closePath();
+                sceneCtx.fill();
+                sceneCtx.restore();
+            }
+            
+            // 热流大小标签
+            sceneCtx.shadowBlur = 0;
+            sceneCtx.fillStyle = '#fff';
+            sceneCtx.font = '500 17px monospace';
+            sceneCtx.textAlign = 'center';
+            sceneCtx.fillText(`q ≈ ${Math.round(Math.abs(q)/1000)} kW`, cx, cy - radius - 30);
+        }
+        
+        /**
+         * 更新 Chart.js 曲线（含当前点高亮）
+         */
+        function updateChart() {
+            if (!qChart) return;
+            
+            const lineData = T_RANGE.map(t => {
+                return {
+                    x: t,
+                    y: calculateQ(t, currentTenv, currentEpsilon, currentA)
+                };
+            });
+            
+            // 当前点数据
+            const currentQ = calculateQ(currentT, currentTenv, currentEpsilon, currentA);
+            const pointData = [{
+                x: currentT,
+                y: currentQ
+            }];
+            
+            qChart.data.datasets[0].data = lineData;
+            qChart.data.datasets[1].data = pointData;
+            
+            // 动态更新非线性标签
+            const tagEl = document.getElementById('nonlinear-tag');
+            if (currentT > 650) {
+                tagEl.textContent = '🚀 T⁴ 强非线性区';
+                tagEl.style.background = '#ef4444';
+            } else {
+                tagEl.textContent = 'T⁴ 非线性';
+                tagEl.style.background = '#f59e0b';
+            }
+            
+            qChart.update('none'); // 平滑无动画刷新
+        }
+        
+        /**
+         * 更新所有数值显示
+         */
+        function updateNumerical() {
+            const q = calculateQ(currentT, currentTenv, currentEpsilon, currentA);
+            const delta4 = Math.pow(currentT, 4) - Math.pow(currentTenv, 4);
+            
+            // q 显示
+            const qEl = document.getElementById('q-value');
+            qEl.textContent = Math.round(q).toLocaleString('zh-CN');
+            if (q < 0) {
+                qEl.style.color = '#22d3ee';
+            } else {
+                qEl.style.color = '#f59e0b';
+            }
+            
+            // delta4
+            document.getElementById('delta4-value').textContent = 
+                delta4.toExponential(2).replace('e+', ' × 10⁺');
+            
+            // 主导因素判断
+            let dominantText = '';
+            if (Math.abs(currentT - currentTenv) < 30) {
+                dominantText = '热平衡状态（净辐射 ≈ 0）';
+            } else if (currentEpsilon < 0.3) {
+                dominantText = '发射率主导（表面性质关键）';
+            } else if (currentT > 950) {
+                dominantText = '温度主导（T⁴ 爆炸式增长）';
+            } else if (currentA > 3.5) {
+                dominantText = '面积主导（线性放大）';
+            } else {
+                dominantText = '温度主导（T⁴ 效应显著）';
+            }
+            document.getElementById('dominant-factor').innerHTML = dominantText;
+        }
+        
+        /**
+         * 动态生成教学观察提示（核心教学感）
+         */
+        function updateObservation() {
+            const q = calculateQ(currentT, currentTenv, currentEpsilon, currentA);
+            const deltaT = currentT - currentTenv;
+            let html = '';
+            
+            // 核心观察逻辑
+            if (Math.abs(deltaT) < 25) {
+                html = `
+                    <strong style="color:#22d3ee">观察：</strong>净辐射接近 0，系统趋于<strong>热平衡</strong>。<br>
+                    实际工程中这意味着温度自动稳定。
+                `;
+            } else if (currentT > 1100) {
+                html = `
+                    <strong style="color:#f59e0b">观察：</strong>热流增长速度远快于温度，<br>
+                    完美体现<strong>T⁴ 关系</strong>（非线性本质）。
+                `;
+            } else if (currentEpsilon < 0.4) {
+                html = `
+                    <strong style="color:#f59e0b">观察：</strong>发射率 ε 极低时，<br>
+                    材料表面性质<strong>显著降低</strong>辐射能力。
+                `;
+            } else if (currentA > 4) {
+                html = `
+                    <strong style="color:#f59e0b">观察：</strong>表面积线性放大热流，<br>
+                    但 T⁴ 仍为主导因素。
+                `;
+            } else if (currentT > 700 && currentT < 950) {
+                html = `
+                    <strong style="color:#f59e0b">观察：</strong>从 700 K 开始，T⁴ 效应开始<strong>显著加速</strong>。<br>
+                    这是航天器与工业炉的分水岭。
+                `;
+            } else {
+                html = `
+                    <strong style="color:#f59e0b">观察：</strong>当前参数下 T⁴ 贡献占主导。<br>
+                    尝试降低 ε 或升高 Tenv 观察变化！
+                `;
+            }
+            
+            // 附加工程联想
+            let app = '';
+            if (currentT > 1200) {
+                app = '类似<strong>高温熔炼炉 / 火箭发动机</strong>热控';
+            } else if (currentEpsilon < 0.2) {
+                app = '类似<strong>航天器多层隔热材料</strong>（低 ε）';
+            } else if (currentA > 3) {
+                app = '类似<strong>大型太阳能集热板</strong>';
+            } else {
+                app = '类似<strong>工业窑炉 / 卫星热辐射散热器</strong>';
+            }
+            
+            html += `<br><br><span style="font-size:0.95rem">工程联想：${app}</span>`;
+            
+            document.getElementById('observation-text').innerHTML = html;
+        }
+        
+        /**
+         * 全局更新（所有可视化同步）
+         */
+        function updateAll() {
+            updateNumerical();
+            updateChart();
+            drawScene();
+            updateObservation();
+        }
+        
+        /**
+         * 初始化 Chart.js
+         */
+        function initChart() {
+            const ctx = document.getElementById('qChart').getContext('2d');
+            
+            qChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: '净辐射热流 q (W)',
+                            borderColor: '#f59e0b',
+                            borderWidth: 3,
+                            tension: 0.3,
+                            pointRadius: 0,
+                            data: []
+                        },
+                        {
+                            label: '当前工况点',
+                            type: 'scatter',
+                            borderColor: '#fff',
+                            backgroundColor: '#ef4444',
+                            borderWidth: 3,
+                            pointRadius: 9,
+                            pointHoverRadius: 12,
+                            data: []
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: (ctx) => ctx.dataset.label === '当前工况点' 
+                                    ? `当前 q = ${Math.round(ctx.raw.y)} W` 
+                                    : `q = ${Math.round(ctx.raw.y)} W`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: { display: true, text: '物体温度 T (K)', color: '#e2e8f0', font: {size: 14} },
+                            grid: { color: 'rgba(226, 232, 240, 0.1)' },
+                            min: 200,
+                            max: 1600
+                        },
+                        y: {
+                            title: { display: true, text: '净辐射热流 q (W)', color: '#e2e8f0', font: {size: 14} },
+                            grid: { color: 'rgba(226, 232, 240, 0.1)' }
+                        }
+                    },
+                    animation: { duration: 800 }
+                }
+            });
+        }
+        
+        /**
+         * 绑定所有滑块事件
+         */
+        function bindSliders() {
+            // T
+            const sliderT = document.getElementById('slider-T');
+            sliderT.addEventListener('input', function () {
+                currentT = parseFloat(this.value);
+                document.getElementById('T-val').textContent = currentT;
+                updateAll();
+            });
+            
+            // Tenv
+            const sliderTenv = document.getElementById('slider-Tenv');
+            sliderTenv.addEventListener('input', function () {
+                currentTenv = parseFloat(this.value);
+                document.getElementById('Tenv-val').textContent = currentTenv;
+                updateAll();
+            });
+            
+            // ε
+            const sliderEpsilon = document.getElementById('slider-epsilon');
+            sliderEpsilon.addEventListener('input', function () {
+                currentEpsilon = parseFloat(this.value);
+                document.getElementById('epsilon-val').textContent = currentEpsilon.toFixed(2);
+                updateAll();
+            });
+            
+            // A
+            const sliderA = document.getElementById('slider-A');
+            sliderA.addEventListener('input', function () {
+                currentA = parseFloat(this.value);
+                document.getElementById('A-val').textContent = currentA.toFixed(1);
+                updateAll();
+            });
+            
+            // 黑体按钮
+            document.getElementById('btn-blackbody').addEventListener('click', function () {
+                currentEpsilon = 1.0;
+                document.getElementById('slider-epsilon').value = 1;
+                document.getElementById('epsilon-val').textContent = '1.00';
+                updateAll();
+                // 小动画
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => this.style.transform = 'scale(1)', 120);
+            });
+        }
+        
+        /**
+         * 启动整个小程序
+         */
+        window.onload = function () {
+            // 初始化图表
+            initChart();
+            
+            // 获取 Canvas
+            sceneCtx = document.getElementById('sceneCanvas').getContext('2d');
+            
+            // 绑定滑块
+            bindSliders();
+            
+            // 首次绘制
+            updateAll();
+            
+            console.log('%c🎉 辐射传热教学演示器已成功启动！\nT⁴ 非线性 + 实时物理场景 + 工程提示全功能就绪', 'color:#f59e0b; font-size:13px');
+        };
+    </script>
+</body>
+</html>
