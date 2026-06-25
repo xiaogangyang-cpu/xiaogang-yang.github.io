@@ -22,7 +22,7 @@ window.MathJax={tex:{inlineMath:[['$','$']],displayMath:[['$$','$$']]},svg:{font
   --am:#ffaa00; --amg:rgba(255,170,0,.35); --amd:rgba(255,170,0,.1);
   --vl:#aa55ff; --vlg:rgba(170,85,255,.35); --vld:rgba(170,85,255,.1);
   --rs:#ff3366; --rsg:rgba(255,51,102,.35);
-  --t1:#d0eeff; --t2:#7ab8d8; --t3:#3a7090; --t4:#1e4060;
+  --t1:#d0eeff; --t2:#7ab8d8; --t3:#7bbfe8; --t4:#326090;
   --bd:rgba(0,180,255,.15); --bd2:rgba(0,180,255,.38);
   --Ea:30000; --R:8.314; --T0:298;
 
@@ -34,7 +34,7 @@ window.MathJax={tex:{inlineMath:[['$','$']],displayMath:[['$$','$$']]},svg:{font
   --fs-sm:clamp(13px,0.8vw,15px);
   --fs-md:clamp(14px,0.9vw,16px);
   --fs-lg:clamp(16px,1vw,18px);
-  --fs-xl:clamp(18px,1.2vw,20px);
+  --fs-xl:clamp(26px,1.2vw,20px);
 }
 
 /* ══════════════════════════════════════════════════
@@ -609,7 +609,7 @@ input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.3)}
     <!-- Equation bar (bottom of center) -->
     <div id="eqbar">
       <div>
-        <div class="eq-formula" id="eqDisp">$$r = k[A]^1$$</div>
+        <div class="eq-formula" id="eqDisp">r = k[A]</div>
         <div class="eq-lbl">当前速率方程 · Current Rate Law</div>
       </div>
       <div class="eq-sep"></div>
@@ -990,12 +990,12 @@ function mkOpts(yLbl,xLbl){
     },
     scales:{
       x:{
-        title:{display:true,text:xLbl,color:'#2a5470',font:{family:'Share Tech Mono',size:8}},
+        title:{display:true,text:xLbl,color:'#e0ffff',font:{family:'Share Tech Mono',size:8}},
         ticks:{color:'#2a5470',font:{family:'Share Tech Mono',size:8},maxTicksLimit:6},
         grid:{color:'rgba(0,100,160,.1)'},border:{color:'rgba(0,100,160,.2)'}
       },
       y:{
-        title:{display:true,text:yLbl,color:'#2a5470',font:{family:'Share Tech Mono',size:8}},
+        title:{display:true,text:yLbl,color:'#e0ffff',font:{family:'Share Tech Mono',size:8}},
         ticks:{color:'#2a5470',font:{family:'Share Tech Mono',size:8},maxTicksLimit:5},
         grid:{color:'rgba(0,100,160,.1)'},border:{color:'rgba(0,100,160,.2)'}
       }
@@ -1004,7 +1004,7 @@ function mkOpts(yLbl,xLbl){
 }
 function lineDS(clr,data){
   return{data,borderColor:clr,
-    backgroundColor:clr.replace('rgb(','rgba(').replace(')',',0.07)'),
+    backgroundColor:clr.replace('rgb(','rgba(').replace(')',',0.12)'),
     borderWidth:2,pointRadius:0,fill:true,tension:.35};
 }
 
