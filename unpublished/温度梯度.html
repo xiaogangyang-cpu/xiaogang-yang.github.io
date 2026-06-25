@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>温度沿法向梯度 · 实时科技演示</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0a0f1c;
+            --panel-bg: #111827;
+            --text-main: #e0f2fe;
+            --text-sub: #94a3b8;
+            --accent-cyan: #22d3ee;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --neon-cyan: 0 0 20px #22d3ee;
+            --neon-red: 0 0 15px #ef4444;
+            --tech-shadow: 0 0 25px rgba(34,211,238,0.6);
+        }
+
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            background: radial-gradient(circle at center, #1e2937 0%, var(--bg-color) 80%);
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 30px 20px; 
+            min-height: 100vh;
+            overflow-x: hidden; /* 防止横向滚动条 */
+        }
+        
+        h1 { 
+            color: var(--accent-cyan); 
+            text-transform: uppercase; 
+            letter-spacing: 3px; 
+            font-weight: 700;
+            margin-bottom: 8px; 
+            text-shadow: var(--neon-cyan);
+            animation: titlePulse 3s infinite alternate ease-in-out;
+        }
+        @keyframes titlePulse {
+            from { text-shadow: 0 0 15px #22d3ee; }
+            to { text-shadow: 0 0 35px #22d3ee, 0 0 50px #22d3ee; }
+        }
+        
+        .subtitle { 
+            color: var(--text-sub); 
+            font-size: 1.05em; 
+            margin-bottom: 30px; 
+            max-width: 720px; 
+            text-align: center; 
+            line-height: 1.4;
+            text-shadow: 0 0 8px rgba(34,211,238,0.3);
+        }
+        
+        .main-container { 
+            display: flex; 
+            gap: 30px; 
+            justify-content: center; 
+            width: 1000px;
+            max-width: 100%;
+        }
+        
+        #canvasPanel { 
+            position: relative; 
+            width: 620px; 
+            height: 420px; 
+            background: var(--panel-bg); 
+            border: 3px solid var(--accent-cyan); 
+            border-radius: 12px; 
+            box-shadow: var(--tech-shadow), 0 0 40px rgba(34,211,238,0.3);
+            cursor: crosshair; 
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        #canvasPanel:hover {
+            box-shadow: 0 0 35px rgba(34,211,238,0.9);
+        }
+        canvas { 
+            display: block; 
+            border-radius: 9px; 
+        }
+        
+        #infoPanel { 
+            width: 340px; 
+            padding: 24px; 
+            background: var(--panel-bg); 
+            border: 2px solid #334155; 
+            border-radius: 12px; 
+            box-shadow: var(--tech-shadow);
+            display: flex; 
+            flex-direction: column; 
+            position: relative;
+        }
+        
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #334155;
+        }
+        .panel-header::before {
+            content: '';
+            display: block;
+            width: 12px;
+            height: 12px;
+            background: var(--accent-cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--accent-cyan);
+            animation: pulse 2s infinite;
+        }
+        
+        .panel-section { 
+            margin-bottom: 24px; 
+            padding-bottom: 18px; 
+            border-bottom: 1px solid #334155; 
+        }
+        
+        /* 数据显示通用样式 */
+        .data-point { 
+            margin-bottom: 16px; 
+        }
+        .data-label { 
+            font-size: 0.82em; 
+            color: var(--text-sub); 
+            font-weight: 500; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .data-value { 
+            color: var(--accent-blue); 
+            font-family: 'Roboto Mono', monospace; 
+            font-size: 1.35em; 
+            text-shadow: 0 0 12px rgba(59,130,246,0.5);
+            letter-spacing: 1px;
+        }
+        .data-value.grad { 
+            color: var(--accent-red); 
+            font-size: 1.45em; 
+            text-shadow: var(--neon-red);
+        }
+        
+        /* 移除原 sidebar 内 sections 的底部边框 */
+        .gradient-section { 
+            border-bottom: none; 
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .legend-box { 
+            display: flex; 
+            align-items: center; 
+            margin: 10px 0;
+            font-size: 0.9em;
+            color: var(--text-sub);
+        }
+        .legend-color { 
+            width: 22px; 
+            height: 10px; 
+            border: 1px solid #666; 
+            margin-right: 10px; 
+            border-radius: 3px;
+            box-shadow: 0 0 8px rgba(255,255,255,0.3);
+        }
+        
+        /* 新的底部容器 */
+        .bottom-container {
+            width: 1000px;
+            max-width: 100%;
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .hint-section { 
+            font-size: 0.92em; 
+            background: rgba(34,211,238,0.08); 
+            padding: 20px; 
+            border-left: 5px solid var(--accent-cyan); 
+            border-radius: 8px; 
+            box-shadow: 0 0 15px rgba(34,211,238,0.2);
+        }
+        .hint-title { 
+            color: var(--accent-cyan); 
+            font-weight: 700; 
+            margin-bottom: 10px; 
+            text-transform: uppercase; 
+            letter-spacing: 1.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.1em;
+        }
+        
+        .guide-section { 
+            font-size: 0.95em; 
+            color: var(--text-sub); 
+            background: rgba(15,23,42,0.6);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+        .guide-item { 
+            margin-bottom: 12px; 
+            line-height: 1.5;
+        }
+        
+        .footer-info {
+            margin-top: 15px;
+            margin-bottom: 20px;
+            font-size: 0.8em;
+            color: #64748b;
+            text-align: center;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+<h1>温度沿法向梯度 · 实时科技演示</h1>
+<p class="subtitle">左侧高温区（~100°C，红色）｜右侧低温区（~0°C，蓝色）<br>复杂扰动导致等温面弯曲 —— 观察梯度矢量如何垂直于等温线</p>
+
+<div class="main-container">
+    <div id="canvasPanel">
+        <canvas id="bgCanvas" width="620" height="420" style="position: absolute; left:0; top:0; z-index: 1;"></canvas>
+        <canvas id="overlayCanvas" width="620" height="420" style="position: absolute; left:0; top:0; z-index: 2;"></canvas>
+    </div>
+
+    <div id="infoPanel">
+        <div class="panel-header">
+            <h3 style="margin:0; color:var(--accent-cyan); font-size:1.1em; letter-spacing:2px;">实时数据读出</h3>
+        </div>
+        
+        <div class="panel-section">
+            <div class="data-point">
+                <span class="data-label">坐标 (X, Y) ─ 物理坐标系</span> 
+                <span class="data-value" id="coordVal">( - , - )</span>
+            </div>
+            <div class="data-point">
+                <span class="data-label">局部温度 (T)</span> 
+                <span class="data-value" id="tempVal">—</span> °C
+            </div>
+        </div>
+        
+        <div class="panel-section gradient-section">
+            <div class="data-point">
+                <span class="data-label">法向梯度大小 (|∇T|)</span> 
+                <span class="data-value grad" id="gradientVal">—</span> °C/px
+            </div>
+            
+            <div class="legend-box">
+                <div class="legend-color" style="background: #e2e8f0; border:1px solid #94a3b8;"></div>
+                等温线切线（黑色）
+            </div>
+            <div class="legend-box">
+                <div class="legend-color" style="background: #ef4444;"></div>
+                梯度矢量（红色 · 长度代表大小）
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bottom-container">
+    <div class="guide-section">
+        <div class="hint-title">🔬 观察提示（必看）</div>
+        <ol style="padding-left:20px; margin:0;">
+            <li class="guide-item">红色箭头（∇T）是否<strong>始终垂直</strong>于黑色等温线切线？</li>
+            <li class="guide-item">箭头<strong>长度最大</strong>的区域在哪里？（提示：靠近左侧高温边界）</li>
+            <li class="guide-item">箭头方向是否总是<strong>指向温度升高</strong>的方向？</li>
+            <li class="guide-item">扰动如何让等温线弯曲？观察弯曲处梯度方向与大小的变化。</li>
+            <li class="guide-item">在不同位置移动鼠标，感受<strong>梯度矢量长度</strong>随温度变化率剧烈变化。</li>
+        </ol>
+    </div>
+
+    <div class="hint-section">
+        <div class="hint-title">🕹️ 操控提示</div>
+        <p style="margin:0; line-height:1.6;">
+            在左侧画布区域<strong>拖动鼠标</strong>或点击任意位置<br>
+            → 实时显示局部温度、等温线切线与梯度矢量<br>
+            红色箭头<strong>长度 = 梯度大小</strong>，越长表示温度变化越剧烈
+        </p>
+    </div>
+    
+    <div class="footer-info">
+        科技风格交互演示 · 温度梯度可视化
+    </div>
+</div>
+
+<script>
+/**
+ * 优化版：科技风 + 梯度矢量长度严格代表大小 + 增强提示
+ * 核心改进：
+ * 1. 极致科技美观（霓虹辉光、脉冲动画、HUD式面板）
+ * 2. 梯度矢量长度精准映射大小（已优化缩放）
+ * 3. 实时拖动交互（mousemove）+ 更清晰的操控/观察提示
+ */
+
+const W = 620;
+const H = 420;
+
+// 梯度映射参数（更科学，适应当前模型最大梯度）
+const MAX_POSSIBLE_GRAD = 0.85;   // 根据扰动模型实测上限
+const MAX_VECTOR_LENGTH = 160;    // 最大箭头像素长度
+const MIN_VECTOR_LENGTH = 18;
+
+// --- 初始化 ---
+const bgCanvas = document.getElementById('bgCanvas');
+const bgCtx = bgCanvas.getContext('2d');
+const overlayCanvas = document.getElementById('overlayCanvas');
+const ctx = overlayCanvas.getContext('2d');
+
+const coordValText = document.getElementById('coordVal');
+const tempValText = document.getElementById('tempVal');
+const gradientValText = document.getElementById('gradientVal');
+
+// --- 物理模型（保持原逻辑，仅微调扰动强度以增强可视效果）---
+function getTemperature(x, y) {
+    let baseT = 100 * (1 - x / W);
+    let disturb = 19 * Math.sin(Math.PI * y / H * 1.8) * Math.sin(Math.PI * x / W * 1.3);
+    return Math.max(0, Math.min(115, baseT + disturb));
+}
+
+function getTemperatureGradient(x, y) {
+    const ds = 1.2;
+    const Tx1 = getTemperature(x + ds, y);
+    const Tx0 = getTemperature(x - ds, y);
+    const Ty1 = getTemperature(x, y + ds);
+    const Ty0 = getTemperature(x, y - ds);
+    
+    const dTDx = (Tx1 - Tx0) / (2 * ds);
+    const dTDy = (Ty1 - Ty0) / (2 * ds);
+    
+    const magnitude = Math.hypot(dTDx, dTDy);
+    
+    return { dx: dTDx, dy: dTDy, mag: magnitude };
+}
+
+// --- 绘制背景温度场 ---
+function drawTemperatureBackground() {
+    const step = 2;
+    for (let x = 0; x < W; x += step) {
+        for (let y = 0; y < H; y += step) {
+            const T = getTemperature(x, y);
+            const hue = 240 - Math.min(Math.max(T, 0), 115) * 2.1;
+            bgCtx.fillStyle = `hsl(${hue}, 100%, 52%)`;
+            bgCtx.fillRect(x, y, step, step);
+        }
+    }
+    
+    // 科技感标签
+    bgCtx.save();
+    bgCtx.font = '900 28px Roboto';
+    bgCtx.fillStyle = 'rgba(255,255,255,0.85)';
+    bgCtx.textAlign = 'center';
+    bgCtx.fillText('HIGH TEMP', W * 0.18, H * 0.12);
+    bgCtx.fillText('LOW TEMP', W * 0.82, H * 0.12);
+    bgCtx.restore();
+}
+
+// --- 核心交互绘制 ---
+function drawInteractiveElements(mouseX, mouseY) {
+    ctx.clearRect(0, 0, W, H);
+
+    // 1. 高亮点击点
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = '#fff';
+    ctx.beginPath();
+    ctx.arc(mouseX, mouseY, 7, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // 2. 获取物理数据
+    const T_point = getTemperature(mouseX, mouseY);
+    const grad = getTemperatureGradient(mouseX, mouseY);
+
+    // 3. 绘制等温线切线（垂直于梯度）
+    if (grad.mag > 0.001) {
+        let perpX = -grad.dy;
+        let perpY = grad.dx;
+        const perpLen = Math.hypot(perpX, perpY);
+        perpX /= perpLen;
+        perpY /= perpLen;
+
+        ctx.beginPath();
+        const lineHalfLen = 92;
+        ctx.moveTo(mouseX - perpX * lineHalfLen, mouseY - perpY * lineHalfLen);
+        ctx.lineTo(mouseX + perpX * lineHalfLen, mouseY + perpY * lineHalfLen);
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = '#e2e8f0';
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+
+    // 4. 绘制梯度矢量（长度严格代表大小）
+    if (grad.mag > 0.0001) {
+        let drawLength = (grad.mag / MAX_POSSIBLE_GRAD) * MAX_VECTOR_LENGTH;
+        drawLength = Math.max(MIN_VECTOR_LENGTH, Math.min(drawLength, MAX_VECTOR_LENGTH));
+
+        const normDx = grad.dx / grad.mag;
+        const normDy = grad.dy / grad.mag;
+        
+        const endX = mouseX + normDx * drawLength;
+        const endY = mouseY + normDy * drawLength;
+
+        // 主矢量线
+        ctx.beginPath();
+        ctx.moveTo(mouseX, mouseY);
+        ctx.lineTo(endX, endY);
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 4.5;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#ef4444';
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // 箭头
+        const arrowHeadLen = 14;
+        const angle = Math.atan2(grad.dy, grad.dx);
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(endX - arrowHeadLen * Math.cos(angle - 0.45), endY - arrowHeadLen * Math.sin(angle - 0.45));
+        ctx.lineTo(endX - arrowHeadLen * Math.cos(angle + 0.45), endY - arrowHeadLen * Math.sin(angle + 0.45));
+        ctx.closePath();
+        ctx.fillStyle = '#ef4444';
+        ctx.fill();
+    }
+
+    // 5. 更新侧边栏数据（更精确显示）
+    coordValText.innerText = `(${mouseX.toFixed(0)}, ${(H - mouseY).toFixed(0)})`;
+    tempValText.innerText = T_point.toFixed(1);
+    gradientValText.innerText = grad.mag.toFixed(3);
+}
+
+// --- 事件监听（升级为实时拖动）---
+overlayCanvas.addEventListener('mousemove', function(e) {
+    const rect = overlayCanvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    if (mouseX >= 0 && mouseX <= W && mouseY >= 0 && mouseY <= H) {
+        drawInteractiveElements(mouseX, mouseY);
+    }
+});
+
+overlayCanvas.addEventListener('mousedown', function(e) {
+    const rect = overlayCanvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    drawInteractiveElements(mouseX, mouseY);
+});
+
+// --- 启动 ---
+drawTemperatureBackground();
+drawInteractiveElements(W * 0.32, H * 0.58);  // 默认起始演示点（更直观位置）
+</script>
+</body>
+</html>
