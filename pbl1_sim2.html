@@ -18,23 +18,26 @@
     --teal: #4ecdc4;
     --blue: #45b7d1;
     --gold: #ffd700;
-    --text: #c8d8e8;
-    --muted: #556677;
-    --dim: #334455;
+    --text: #dae7f4;
+    --muted: #a3b8cd;
+    --dim: #8ba1b8;
     --dimmer: #1a3050;
   }
   html, body {
-    height: 100%;
     background: linear-gradient(135deg, var(--bg) 0%, var(--bg2) 50%, #060e1c 100%);
     font-family: 'Share Tech Mono', 'Courier New', monospace;
     color: var(--text);
-    overflow: hidden;
   }
-  ::-webkit-scrollbar { width: 4px; }
+  @media (min-width: 801px) {
+    html, body { height: 100%; overflow: hidden; }
+  }
+  @media (max-width: 800px) {
+    html, body { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: auto; }
+  }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--dimmer); }
+  ::-webkit-scrollbar-thumb { background: #24405f; border-radius: 4px; }
 
-  /* Animations */
   @keyframes scanline { 0%{top:-10%} 100%{top:110%} }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
   @keyframes slide-in { from{transform:translateX(-18px);opacity:0} to{transform:translateX(0);opacity:1} }
@@ -42,11 +45,10 @@
   @keyframes pulse-glow { 0%,100%{box-shadow:0 0 6px currentColor} 50%{box-shadow:0 0 20px currentColor, 0 0 40px currentColor} }
   @keyframes flash-ok  { 0%,100%{background:transparent} 50%{background:#00ff8822} }
   @keyframes flash-err { 0%,100%{background:transparent} 50%{background:#ff003322} }
+  @keyframes rotate-ring { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes counter-rotate { from{transform:rotate(0deg)} to{transform:rotate(-360deg)} }
 
-  /* Overlay effects */
-  #scanline-overlay {
-    position: fixed; inset: 0; pointer-events: none; z-index: 999; overflow: hidden;
-  }
+  #scanline-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 999; overflow: hidden; }
   #scanline-beam {
     position: absolute; left: 0; right: 0; height: 2px;
     background: linear-gradient(transparent, rgba(78,205,196,0.15), transparent);
@@ -62,15 +64,15 @@
     background-size: 200px 200px;
   }
 
-  /* Layout */
-  #app { display: flex; flex-direction: column; height: 100vh; }
+  #app { display: flex; flex-direction: column; min-height: 100vh; }
+  @media (min-width: 801px) { #app { height: 100vh; } }
 
-  /* Header */
   #header {
     display: flex; align-items: center; justify-content: space-between;
     background: linear-gradient(90deg, #0a1e3a, #0d2647, #0a1e3a);
     border-bottom: 1px solid var(--border);
     padding: 10px 24px; flex-shrink: 0; z-index: 10;
+    flex-wrap: wrap; gap: 8px;
   }
   #header-left { display: flex; align-items: center; gap: 12px; }
   .status-dot {
@@ -82,57 +84,60 @@
     font-family: 'Orbitron', monospace; font-size: 18px; font-weight: 900;
     color: var(--teal); letter-spacing: 3px; text-shadow: 0 0 10px rgba(78,205,196,0.4);
   }
-  .brand-sub { font-size: 11px; color: #445566; letter-spacing: 2px; }
-  #header-right { display: flex; align-items: center; gap: 16px; }
-  .sys-label { font-size: 11px; color: #445566; }
-  .sys-active { font-size: 11px; color: var(--teal); animation: blink 3s infinite; }
+  .brand-sub { font-size: 12px; color: var(--muted); letter-spacing: 2px; }
+  #header-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .sys-label { font-size: 12px; color: var(--muted); }
+  .sys-active { font-size: 12px; color: var(--teal); animation: blink 3s infinite; }
   #btn-next-header {
-    background: transparent; border: 1px solid var(--dimmer); color: #778899;
-    padding: 4px 14px; cursor: pointer; font-size: 11px; letter-spacing: 1px;
+    background: transparent; border: 1px solid #2d4d70; color: #b8cbe0;
+    padding: 8px 16px; cursor: pointer; font-size: 13px; letter-spacing: 1px;
     font-family: inherit; transition: all 0.2s;
+    min-height: 38px;
   }
   #btn-next-header:hover { border-color: var(--teal); color: var(--teal); }
 
-  /* Main grid */
   #main {
     flex: 1; display: grid;
-    grid-template-columns: 280px 1fr 300px;
+    grid-template-columns: 290px 1fr 310px;
     grid-template-rows: 1fr auto;
-    overflow: hidden; min-height: 0;
+    min-height: 0;
   }
+  @media (min-width: 801px) { #main { overflow: hidden; } }
 
-  /* ----- Responsive breakpoints ----- */
-  @media (max-width: 1000px) {
-    #main { grid-template-columns: 240px 1fr 280px; }
+  @media (max-width: 1000px) and (min-width: 801px) {
+    #main { grid-template-columns: 250px 1fr 270px; }
   }
   @media (max-width: 800px) {
-    #main { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; }
-    #left-panel { grid-row: 1; border-right: none; border-bottom: 1px solid var(--border2); }
-    #center-panel { grid-row: 2; min-height: 500px; }
-    #right-panel { grid-row: 3; border-left: none; border-top: 1px solid var(--border2); }
-    #bottom-panel { grid-row: 4; }
+    #main {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto auto;
+      overflow: visible;
+    }
+    #left-panel { grid-column: 1; grid-row: 1; border-right: none; border-bottom: 1px solid var(--border2); }
+    #center-panel { grid-column: 1; grid-row: 2; min-height: 460px; }
+    #right-panel { grid-column: 1; grid-row: 3; border-left: none; border-top: 1px solid var(--border2); }
+    #bottom-panel { grid-column: 1; grid-row: 4; }
   }
   @media (max-width: 500px) {
-    #center-panel { min-height: 420px; }
-    #battery-wrap { width: 240px; }
-    .ring-1 { width: 320px; height: 320px; }
-    .ring-2 { width: 380px; height: 380px; }
+    #center-panel { min-height: 400px; padding: 16px 10px; }
+    #battery-wrap { width: min(240px, 78vw); }
+    .ring-1 { width: 300px; height: 300px; }
+    .ring-2 { width: 360px; height: 360px; }
   }
 
-  /* Left Panel */
   #left-panel {
     grid-column: 1; grid-row: 1;
     border-right: 1px solid var(--border2);
     background: linear-gradient(180deg, #060f1e 0%, #08141f 100%);
     padding: 20px; display: flex; flex-direction: column; gap: 14px;
-    overflow-y: auto;
+    overflow-y: auto; min-width: 0;
   }
-  .panel-label {
-    font-size: 10px; color: #445566; letter-spacing: 2px; margin-bottom: 6px;
-  }
+  @media (max-width: 800px) { #left-panel { overflow-y: visible; padding: 16px; } }
+
+  .panel-label { font-size: 12px; color: var(--muted); letter-spacing: 2px; margin-bottom: 6px; }
   .case-title {
-    font-family: 'Orbitron', monospace; font-size: 13px;
-    color: var(--gold); line-height: 1.4; text-shadow: 0 0 8px rgba(255,215,0,0.3);
+    font-family: 'Orbitron', monospace; font-size: 14px;
+    color: var(--gold); line-height: 1.5; text-shadow: 0 0 8px rgba(255,215,0,0.3);
     animation: slide-in 0.5s ease;
   }
   .value-card {
@@ -149,36 +154,30 @@
     font-family: 'Orbitron', monospace; font-size: 28px; font-weight: 700;
     text-shadow: 0 0 14px currentColor;
   }
-  .big-unit { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .big-unit { font-size: 12px; color: var(--muted); margin-top: 4px; }
   .diff-card {
     background: var(--panel); border: 1px solid; padding: 12px;
     transition: border-color 0.5s;
   }
   .diff-row { display: flex; align-items: center; gap: 10px; }
-  .diff-icon { font-size: 20px; }
-  .formula-card {
-    background: #080f1a; border: 1px solid var(--dimmer); padding: 12px;
-  }
-  .formula-line { font-size: 12px; color: var(--teal); margin-bottom: 4px; }
-  .formula-sub { font-size: 11px; color: var(--muted); padding-left: 8px; line-height: 1.8; }
+  .diff-icon { font-size: 22px; }
+  .formula-card { background: #080f1a; border: 1px solid var(--dimmer); padding: 12px; }
+  .formula-line { font-size: 13px; color: var(--teal); margin-bottom: 6px; }
+  .formula-sub { font-size: 12.5px; color: var(--muted); padding-left: 8px; line-height: 1.9; }
 
-  /* Center Panel */
   #center-panel {
     grid-column: 2; grid-row: 1;
     position: relative; display: flex; flex-direction: column;
     align-items: center; justify-content: center; padding: 24px; overflow: hidden;
+    min-width: 0;
   }
-  #particle-canvas {
-    position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;
-  }
-  #energy-svg {
-    position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;
-  }
+  #particle-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #energy-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   .center-hint {
-    font-size: 10px; color: #334455; letter-spacing: 3px;
+    font-size: 13px; color: var(--muted); letter-spacing: 2px;
     margin-bottom: 20px; text-align: center; position: relative; z-index: 2;
   }
-  #battery-wrap { position: relative; z-index: 2; width: 270px; }
+  #battery-wrap { position: relative; z-index: 2; width: 270px; max-width: 100%; }
   .battery-terminal {
     width: 44px; height: 12px; background: #2a4060;
     border: 1px solid #3a5070; margin: 0 auto -1px;
@@ -189,8 +188,9 @@
     box-shadow: 0 0 30px rgba(69,183,209,0.15), inset 0 0 20px rgba(0,0,0,0.4);
   }
   .comp-layer {
-    padding: 20px 18px; cursor: pointer; transition: all 0.3s;
+    padding: 18px 16px; cursor: pointer; transition: all 0.3s;
     position: relative; overflow: hidden; border-bottom: 1px solid var(--border2);
+    -webkit-tap-highlight-color: transparent;
   }
   .comp-layer:last-child { border-bottom: none; }
   .comp-layer::after {
@@ -200,54 +200,48 @@
   }
   .comp-layer.active::after { opacity: 1; animation: pulse-glow 2s infinite; }
   .comp-layer:hover { transform: scaleX(1.01); }
-  .comp-layer-inner { display: flex; align-items: center; justify-content: space-between; }
+  .comp-layer-inner { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .comp-icon { font-size: 22px; font-weight: 700; text-shadow: 0 0 10px currentColor; }
-  .comp-name { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; }
-  .comp-mat { font-size: 10px; color: #445566; margin-top: 2px; }
-  .comp-mc { font-size: 11px; color: #778899; text-align: right; }
+  .comp-name { font-family: 'Orbitron', monospace; font-size: 13.5px; font-weight: 700; }
+  .comp-mat { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .comp-mc { font-size: 12.5px; color: #a9bed4; text-align: right; }
   .comp-mc span { font-weight: 700; }
-  .comp-bar-wrap { margin-top: 10px; height: 3px; background: #0a1520; border-radius: 2px; overflow: hidden; }
-  .comp-bar { height: 100%; border-radius: 2px; transition: width 1s ease; }
-  .comp-bar-label { font-size: 9px; color: #334455; margin-top: 3px; text-align: right; }
+  .comp-bar-wrap { margin-top: 10px; height: 4px; background: #0a1520; border-radius: 2px; overflow: hidden; }
+  .comp-bar { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  .comp-bar-label { font-size: 11.5px; color: var(--muted); margin-top: 4px; text-align: right; }
   .battery-foot {
     height: 8px; background: linear-gradient(#1a3050, #0d1e30);
     border: 2px solid var(--border); border-top: none;
     border-radius: 0 0 8px 8px;
   }
-  /* Decorative rings */
   #deco-rings {
     position: absolute; inset: 0; pointer-events: none; z-index: 1;
     display: flex; align-items: center; justify-content: center;
   }
-  .ring {
-    position: absolute; border-radius: 50%; border: 1px solid;
-    opacity: 0.08;
-  }
+  .ring { position: absolute; border-radius: 50%; border: 1px solid; opacity: 0.08; }
   .ring-1 { width: 380px; height: 380px; border-color: var(--teal); animation: rotate-ring 20s linear infinite; }
   .ring-2 { width: 440px; height: 440px; border-color: var(--orange); animation: counter-rotate 28s linear infinite; }
-  @keyframes rotate-ring { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-  @keyframes counter-rotate { from{transform:rotate(0deg)} to{transform:rotate(-360deg)} }
 
-  /* Total readout */
   #total-readout {
     position: relative; z-index: 2; margin-top: 22px; text-align: center;
     background: #080f1a; padding: 12px 36px; border-radius: 4px;
     border: 1px solid; transition: border-color 0.5s;
   }
-  .total-label { font-size: 10px; color: #445566; letter-spacing: 2px; }
+  .total-label { font-size: 12px; color: var(--muted); letter-spacing: 2px; }
   .total-value {
     font-family: 'Orbitron', monospace; font-size: 24px; font-weight: 900;
     text-shadow: 0 0 12px currentColor; transition: color 0.5s;
   }
 
-  /* Right Panel */
   #right-panel {
     grid-column: 3; grid-row: 1;
     border-left: 1px solid var(--border2);
     background: linear-gradient(180deg, #060f1e 0%, #08141f 100%);
     padding: 20px; display: flex; flex-direction: column; gap: 12px;
-    overflow-y: auto;
+    overflow-y: auto; min-width: 0;
   }
+  @media (max-width: 800px) { #right-panel { overflow-y: visible; padding: 16px; } }
+
   #detail-card {
     background: var(--panel); padding: 16px;
     position: relative; overflow: hidden; border: 1px solid;
@@ -259,105 +253,256 @@
     transition: background 0.3s;
   }
   #detail-card .inner { padding-left: 12px; }
-  .detail-name { font-family: 'Orbitron', monospace; font-size: 14px; font-weight: 700; margin-bottom: 4px; }
-  .detail-mat { font-size: 11px; color: #445566; margin-bottom: 12px; }
-  .stat-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
-  .stat-lbl { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
-  .stat-val { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; }
-  .stat-unit { font-size: 9px; color: #445566; }
+  .detail-name { font-family: 'Orbitron', monospace; font-size: 15px; font-weight: 700; margin-bottom: 5px; }
+  .detail-mat { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; gap: 8px; }
+  .stat-lbl { font-size: 12.5px; color: var(--muted); letter-spacing: 1px; }
+  .stat-val { font-family: 'Orbitron', monospace; font-size: 14px; font-weight: 700; text-align: right; }
+  .stat-unit { font-size: 11px; color: var(--muted); }
   #detail-empty {
-    color: #334455; font-size: 12px; text-align: center;
-    padding: 20px; border: 1px dashed var(--dimmer); line-height: 2;
+    color: var(--muted); font-size: 13.5px; text-align: center;
+    padding: 22px; border: 1px dashed #2a4a70; line-height: 2;
   }
-  /* 可调参数卡片 */
   .mini-comp {
     background: #0a1520; border: 1px solid var(--dimmer);
     padding: 12px; cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    margin-bottom: 10px;
   }
+  .mini-comp:last-child { margin-bottom: 0; }
   .mini-comp:hover { background: #0d1e30; }
   .mini-comp.active { border-color: currentColor; }
-  .mini-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-  .mini-name { font-size: 11px; }
-  .mini-mass { font-size: 10px; color: #445566; }
-  .slider-group {
-    margin-top: 8px; padding-top: 6px; border-top: 1px dashed #1a3050;
-  }
-  .slider-row {
-    display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
-  }
-  .slider-row label {
-    font-size: 10px; color: #778899; min-width: 22px;
-  }
+  .mini-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 8px; }
+  .mini-name { font-size: 13px; }
+  .mini-mass { font-size: 12px; color: var(--muted); }
+  .slider-group { margin-top: 8px; padding-top: 6px; border-top: 1px dashed #1a3050; }
+  .slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .slider-row label { font-size: 13px; color: #a9bed4; min-width: 18px; }
   .slider-row input[type=range] {
-    flex: 1; height: 5px; background: #1a3050; border-radius: 3px;
+    flex: 1; height: 6px; background: #1a3050; border-radius: 3px;
     -webkit-appearance: none; appearance: none;
+    touch-action: pan-y;
   }
   .slider-row input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 16px; height: 16px;
-    border-radius: 50%; background: var(--teal); border: 1px solid #fff;
+    -webkit-appearance: none; width: 22px; height: 22px;
+    border-radius: 50%; background: var(--teal); border: 2px solid #fff;
     cursor: pointer; box-shadow: 0 0 8px var(--teal);
   }
-  .slider-val {
-    min-width: 40px; text-align: right; font-size: 10px; color: var(--gold);
+  .slider-row input[type=range]::-moz-range-thumb {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--teal); border: 2px solid #fff;
+    cursor: pointer; box-shadow: 0 0 8px var(--teal);
   }
-  .mini-contrib { font-size: 10px; color: var(--muted); }
+  .slider-val { min-width: 52px; text-align: right; font-size: 13px; color: var(--gold); }
+  .mini-contrib { font-size: 12.5px; color: var(--muted); }
 
-  /* Bottom Panel */
   #bottom-panel {
     grid-column: 1 / -1; grid-row: 2;
     border-top: 1px solid var(--dimmer);
     background: linear-gradient(90deg, #060e1c, #08121e, #060e1c);
     padding: 14px 24px;
-    display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
     transition: background 0.3s;
   }
+  @media (max-width: 800px) { #bottom-panel { padding: 14px 16px; } }
   #bottom-panel.flash-ok  { animation: flash-ok  0.8s ease; }
   #bottom-panel.flash-err { animation: flash-err 0.8s ease; }
-  .bottom-info { min-width: 200px; }
-  .bottom-warn { font-size: 10px; color: var(--orange); letter-spacing: 2px; margin-bottom: 6px; }
-  .bottom-diff { font-size: 11px; color: #334455; }
-  #reason-btns { display: flex; gap: 10px; flex-wrap: wrap; flex: 1; }
+  .bottom-info { min-width: 220px; flex: 1 1 220px; }
+  .bottom-warn { font-size: 13px; color: var(--orange); letter-spacing: 1.5px; margin-bottom: 6px; }
+  .bottom-diff { font-size: 13.5px; color: var(--muted); word-break: break-all; }
+  #reason-btns { display: flex; gap: 8px; flex-wrap: wrap; flex: 1 1 auto; }
   .reason-btn {
-    background: #0a1520; border: 1px solid var(--dimmer); color: var(--muted);
-    padding: 8px 16px; cursor: pointer; font-family: inherit;
-    font-size: 12px; letter-spacing: 1px; transition: all 0.2s;
+    background: #0a1520; border: 1px solid #2a4a70; color: #b6c9dc;
+    padding: 10px 16px; cursor: pointer; font-family: inherit;
+    font-size: 13.5px; letter-spacing: 1px; transition: all 0.2s;
+    min-height: 42px;
+    -webkit-tap-highlight-color: transparent;
   }
   .reason-btn:hover:not(:disabled) { background: #1a3050; border-color: var(--blue); color: var(--blue); }
-  .reason-btn.selected { background: #1a3a55; border-color: var(--blue); color: var(--blue); }
-  .reason-btn:disabled { opacity: 0.4; cursor: default; }
+  .reason-btn.selected { background: #1a3a55; border-color: var(--blue); color: #9fe3ff; }
+  .reason-btn:disabled { opacity: 0.45; cursor: default; }
   #btn-submit {
-    background: #1a2a3a; border: none; color: #445566;
-    padding: 10px 26px; cursor: default;
-    font-family: 'Orbitron', monospace; font-size: 12px;
+    background: #1a2a3a; border: none; color: #93a8bd;
+    padding: 12px 26px; cursor: default;
+    font-family: 'Orbitron', monospace; font-size: 13px;
     font-weight: 700; letter-spacing: 2px; transition: all 0.2s;
+    min-height: 44px;
   }
-  #btn-submit.ready {
-    background: var(--orange); color: #fff; cursor: pointer;
-  }
+  #btn-submit.ready { background: var(--orange); color: #fff; cursor: pointer; }
   #btn-submit.ready:hover { background: #ff8c42; transform: scale(1.02); }
   #feedback-box {
-    border: 1px solid; padding: 8px 16px; max-width: 300px;
-    display: none; animation: fade-in 0.4s ease;
+    border: 1px solid; padding: 10px 16px; max-width: 380px;
+    display: none; animation: fade-in 0.4s ease; flex: 1 1 280px;
   }
   #feedback-box.ok  { background: #0d2a1a; border-color: var(--teal); }
   #feedback-box.err { background: #2a0d0d; border-color: #ff4444; }
-  .fb-title { font-size: 11px; font-weight: 700; margin-bottom: 3px; }
+  .fb-title { font-size: 13.5px; font-weight: 700; margin-bottom: 4px; }
   .fb-ok  .fb-title { color: var(--teal); }
   .fb-err .fb-title { color: var(--orange); }
-  .fb-hint { font-size: 10px; color: var(--muted); line-height: 1.5; }
+  .fb-hint { font-size: 12.5px; color: #b6c9dc; line-height: 1.6; }
   #btn-next-bottom, #btn-reset {
     background: #1a3a35; border: 1px solid var(--teal); color: var(--teal);
-    padding: 8px 18px; cursor: pointer; font-family: inherit;
-    font-size: 11px; transition: all 0.2s; display: inline-block;
+    padding: 11px 18px; cursor: pointer; font-family: inherit;
+    font-size: 13px; transition: all 0.2s; display: inline-block;
+    min-height: 42px;
+    -webkit-tap-highlight-color: transparent;
   }
   #btn-next-bottom:hover, #btn-reset:hover { background: var(--teal); color: #000; }
   #btn-reset { background: #3a2a1a; border-color: var(--gold); color: var(--gold); }
   #btn-reset:hover { background: var(--gold); color: #000; }
+
+  /* ─── 提示条 ─── */
+  #hint-row {
+    flex: 1 1 100%;
+    display: none;
+    padding: 12px 16px;
+    background: linear-gradient(90deg, #0a1e3a, #0d2647);
+    border: 1px solid var(--blue);
+    border-radius: 4px;
+    font-size: 13.5px;
+    color: #a8dff0;
+    letter-spacing: 0.5px;
+    line-height: 1.8;
+    animation: fade-in 0.3s ease;
+  }
+  #hint-row.ready {
+    border-color: var(--teal);
+    color: #b6f5ee;
+    background: linear-gradient(90deg, #0a2e2a, #0d3a35);
+  }
+  #hint-row .hint-icon { margin-right: 6px; font-weight: 700; }
+
+  /* ══════════ 阶段页面（测评 / 报告） ══════════ */
+  .stage {
+    position: fixed; inset: 0; z-index: 600; display: none;
+    overflow-y: auto;
+    background: linear-gradient(135deg, #050d1a 0%, #0a1628 50%, #060e1c 100%);
+    padding: 34px 20px 70px;
+  }
+  .stage-inner { max-width: 900px; margin: 0 auto; }
+  .stage-tag {
+    display: inline-block; font-size: 13px; letter-spacing: 3px; color: var(--teal);
+    border: 1px solid var(--teal); padding: 5px 14px; margin-bottom: 16px;
+    background: rgba(78,205,196,0.06);
+  }
+  .stage-title {
+    font-family: 'Orbitron', monospace; font-size: 26px; color: var(--gold);
+    letter-spacing: 2px; margin-bottom: 12px; line-height: 1.4;
+    text-shadow: 0 0 16px rgba(255,215,0,0.3);
+  }
+  .stage-desc { font-size: 15px; color: var(--text); line-height: 1.9; margin-bottom: 28px; }
+  .stage-desc b { color: var(--teal); }
+
+  .quiz-card {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 22px 24px; margin-bottom: 20px; animation: fade-in 0.4s ease;
+  }
+  .quiz-q { font-size: 16px; line-height: 1.9; color: #e8f2fb; margin-bottom: 18px; }
+  .quiz-num {
+    display: inline-block; font-family: 'Orbitron', monospace; color: var(--teal);
+    font-size: 14px; margin-right: 10px; border: 1px solid var(--teal);
+    padding: 2px 9px; border-radius: 3px;
+  }
+  .quiz-opts { display: flex; flex-direction: column; gap: 11px; }
+  .quiz-opt {
+    display: flex; align-items: flex-start; gap: 12px; text-align: left;
+    background: #0a1520; border: 1px solid #2a4a70; color: var(--text);
+    padding: 14px 16px; font-family: inherit; font-size: 15px; line-height: 1.65;
+    cursor: pointer; transition: all 0.2s; width: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .quiz-opt:hover:not(:disabled) { border-color: var(--blue); background: #0d1e30; }
+  .quiz-opt.sel { border-color: var(--teal); background: #0d2a2a; color: #d8fff9; }
+  .quiz-opt.right { border-color: #37d67a; background: #0d2a1a; color: #c6ffdb; }
+  .quiz-opt.wrong { border-color: #ff5555; background: #2a0d0d; color: #ffd0d0; }
+  .quiz-opt:disabled { cursor: default; }
+  .opt-key { font-family: 'Orbitron', monospace; font-weight: 700; color: var(--gold); flex-shrink: 0; }
+  .quiz-explain {
+    margin-top: 16px; padding: 14px 16px; border-left: 3px solid var(--gold);
+    background: #0a1520; font-size: 14px; line-height: 1.9; color: #d3e3f2;
+  }
+  .quiz-explain b { color: var(--gold); }
+
+  .stage-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+  .btn-primary {
+    background: var(--orange); border: none; color: #fff;
+    padding: 14px 36px; font-family: 'Orbitron', monospace; font-size: 15px;
+    font-weight: 700; letter-spacing: 2px; cursor: pointer; transition: all .2s;
+  }
+  .btn-primary:hover:not(:disabled) { background: #ff8c42; transform: scale(1.02); }
+  .btn-primary:disabled { background: #1a2a3a; color: #7d90a4; cursor: default; }
+  .btn-ghost {
+    background: #1a3a35; border: 1px solid var(--teal); color: var(--teal);
+    padding: 13px 28px; font-family: inherit; font-size: 14px; cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-ghost:hover { background: var(--teal); color: #000; }
+
+  .quiz-summary {
+    background: #0d1e30; border: 1px solid var(--border); padding: 16px 20px;
+    font-size: 16px; color: var(--text); margin-top: 20px; line-height: 1.8;
+  }
+  .quiz-summary b { font-family: 'Orbitron', monospace; color: var(--gold); font-size: 20px; }
+
+  /* 报告 */
+  .report-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px; margin-bottom: 22px;
+  }
+  .report-card {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 18px 20px; margin-bottom: 20px;
+  }
+  .report-card h4 {
+    font-family: 'Orbitron', monospace; font-size: 13.5px; color: var(--teal);
+    letter-spacing: 1.5px; margin-bottom: 14px; font-weight: 400;
+  }
+  .report-big {
+    font-family: 'Orbitron', monospace; font-size: 32px; font-weight: 900;
+    line-height: 1.1;
+  }
+  .dim-row { margin-bottom: 18px; }
+  .dim-row:last-child { margin-bottom: 0; }
+  .dim-head {
+    display: flex; justify-content: space-between; font-size: 14.5px;
+    margin-bottom: 8px; color: #e0ecf8;
+  }
+  .dim-score { font-family: 'Orbitron', monospace; }
+  .dim-bar-bg {
+    height: 9px; background: #0a1520; border-radius: 5px;
+    overflow: hidden; border: 1px solid #1d3a5c;
+  }
+  .dim-bar { height: 100%; border-radius: 5px; transition: width 1s ease; }
+  .dim-desc { font-size: 13px; color: var(--muted); margin-top: 7px; }
+
+  table.rpt { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.rpt th, table.rpt td {
+    border: 1px solid #1d3a5c; padding: 11px 13px; text-align: left;
+    white-space: nowrap;
+  }
+  table.rpt th { background: #0d1e30; color: var(--teal); font-weight: 400; letter-spacing: 1px; }
+  table.rpt td { color: #d3e3f2; }
+
+  @media (max-width: 600px) {
+    #header { padding: 8px 12px; }
+    .brand { font-size: 14px; letter-spacing: 1.5px; }
+    .brand-sub { display: none; }
+    .sys-label { display: none; }
+    .center-hint { font-size: 11px; letter-spacing: 1px; margin-bottom: 14px; }
+    #total-readout { padding: 10px 22px; }
+    .total-value { font-size: 20px; }
+    .big-value { font-size: 22px; }
+    .stage { padding: 22px 14px 60px; }
+    .stage-title { font-size: 19px; }
+    .stage-desc { font-size: 14px; }
+    .quiz-q { font-size: 15px; }
+    .quiz-opt { font-size: 14px; padding: 12px 13px; }
+    .report-big { font-size: 26px; }
+  }
 </style>
 </head>
 <body>
 
-<!-- Overlays -->
 <div id="noise-overlay"></div>
 <div id="scanline-overlay">
   <div id="scanline-beam"></div>
@@ -365,13 +510,11 @@
 </div>
 
 <div id="app">
-
-  <!-- Header -->
   <div id="header">
     <div id="header-left">
       <div class="status-dot"></div>
       <span class="brand">THERMAL DETECTIVE</span>
-      <span class="brand-sub">可调参数模拟器</span>
+      <span class="brand-sub">通过调节电池组件质量与比热容，匹配实验热容并推理异常原因，再经选择题巩固概念，最终生成能力报告，以培养定量探究与逻辑推理能力。</span>
     </div>
     <div id="header-right">
       <span class="sys-label">SYS_STATUS:</span>
@@ -380,10 +523,8 @@
     </div>
   </div>
 
-  <!-- Main -->
   <div id="main">
 
-    <!-- Left Panel -->
     <div id="left-panel">
       <div>
         <div class="panel-label">▶ CASE FILE</div>
@@ -407,8 +548,8 @@
         <div class="diff-row">
           <span class="diff-icon" id="diff-icon"></span>
           <div>
-            <div id="diff-value" style="font-size:12px"></div>
-            <div id="diff-label" style="font-size:10px;color:#445566;margin-top:2px"></div>
+            <div id="diff-value" style="font-size:13.5px"></div>
+            <div id="diff-label" style="font-size:12.5px;color:var(--muted);margin-top:3px"></div>
           </div>
         </div>
       </div>
@@ -420,7 +561,6 @@
       </div>
     </div>
 
-    <!-- Center Panel -->
     <div id="center-panel">
       <canvas id="particle-canvas"></canvas>
       <svg id="energy-svg" xmlns="http://www.w3.org/2000/svg">
@@ -471,7 +611,6 @@
       </div>
     </div>
 
-    <!-- Right Panel -->
     <div id="right-panel">
       <div class="panel-label">▶ MATERIAL DATABASE (可调)</div>
 
@@ -501,32 +640,69 @@
       <div id="detail-empty">← 点击电池组件<br>查看详细数据</div>
 
       <div class="panel-label" style="margin-top:4px">▶ 调节滑块改变参数</div>
-      <div id="mini-list"><!-- injected by JS --></div>
+      <div id="mini-list"></div>
     </div>
 
-    <!-- Bottom Panel -->
     <div id="bottom-panel">
       <div class="bottom-info">
         <div class="bottom-warn">⚠ 推理分析 — 选择异常原因</div>
         <div class="bottom-diff" id="bottom-diff"></div>
       </div>
       <div id="reason-btns"></div>
-      <button id="btn-submit">SUBMIT</button>
+      <button id="btn-submit" disabled>请先选择原因</button>
       <div id="feedback-box">
         <div class="fb-title" id="fb-title"></div>
         <div class="fb-hint"  id="fb-hint"></div>
       </div>
       <button id="btn-next-bottom">下一案件 →</button>
       <button id="btn-reset">↺ 重置案件参数</button>
+      <div id="hint-row">
+        <span class="hint-icon">ℹ</span>
+        <span id="hint-text"></span>
+      </div>
     </div>
 
-  </div><!-- #main -->
-</div><!-- #app -->
+  </div>
+</div>
+
+<!-- ══════════════ 阶段 2：理论测评 ══════════════ -->
+<div id="quiz-stage" class="stage">
+  <div class="stage-inner">
+    <div class="stage-tag">STAGE 2 / 3 · 理论验证</div>
+    <h1 class="stage-title">热容概念测评</h1>
+    <p class="stage-desc">
+      三项探索已完成。下面两道选择题用于检验你对 <b>C = Σ(m·c)</b> 的计算方法与物理意义的理解，其中电解液c = 2.00 J·g⁻¹·K⁻¹。
+      请先选择答案，再点击「提交答案」查看解析。
+    </p>
+    <div id="quiz-list"></div>
+    <div class="stage-actions">
+      <button id="btn-quiz-submit" class="btn-primary" disabled>提交答案</button>
+      <button id="btn-to-report" class="btn-ghost" style="display:none">查看探索报告 →</button>
+    </div>
+    <div id="quiz-result" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ══════════════ 阶段 3：探索报告 ══════════════ -->
+<div id="report-stage" class="stage">
+  <div class="stage-inner">
+    <div class="stage-tag">STAGE 3 / 3 · 探究成果</div>
+    <h1 class="stage-title">探索报告 · 热容侦探能力评估</h1>
+    <p class="stage-desc">
+      本报告基于你在三起案件中的参数调节过程、推理判断结果以及概念测评表现自动生成，
+      用于反映动手探究、数据分析与概念理解等方面的综合能力。
+    </p>
+    <div id="report-body"></div>
+    <div class="stage-actions" style="margin-top:24px">
+      <button id="btn-restart" class="btn-ghost">↺ 重新开始全部探索</button>
+    </div>
+  </div>
+</div>
 
 <script>
-// ══════════════════════════════════════════
-//  DATA (添加原始值字段)
-// ══════════════════════════════════════════
+/* ══════════════════════════════════════════
+   数据
+   ══════════════════════════════════════════ */
 const CASES = [
   {
     id: 1,
@@ -539,6 +715,7 @@ const CASES = [
     ],
     answer: "电解液比例变化",
     hint: "实验值偏高，电解液比热容较大，若其质量增加会导致总热容升高。",
+    matchThreshold: 2.0,
   },
   {
     id: 2,
@@ -551,6 +728,7 @@ const CASES = [
     ],
     answer: "材料污染",
     hint: "计算值偏高而实验值偏低，正极材料可能被杂质污染，导致实际比热容下降。",
+    matchThreshold: 2.0,
   },
   {
     id: 3,
@@ -563,52 +741,88 @@ const CASES = [
     ],
     answer: "实验误差",
     hint: "计算值与实验值接近，偏差在允许范围内，可能来自量热仪系统误差。",
+    matchThreshold: 5.0,
   },
 ];
 
-const REASONS = ["电解液比例变化", "材料污染", "实验误差", "计算错误"];
+const REASONS = ["电解液比例变化", "材料污染", "实验误差"];
 
-// ══════════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════════
-let caseIdx      = 0;
+const HINTS = {
+  '电解液比例变化':
+    '你选择了【电解液比例变化】。电解液的比热容较大（约 2 J·g⁻¹·K⁻¹），请尝试增大电解液的质量或微调其比热容，观察 C_calc 是否向 C_exp 收敛。',
+  '材料污染':
+    '你选择了【材料污染】。污染通常会改变材料的比热容 c（而非质量）。请调节对应材料的 c 值，观察 ΔC 是否收敛到阈值内。',
+  '实验误差':
+    '你选择了【实验误差】。如果偏差来自测量系统误差，理论上无法通过调节任何参数让 C_calc 精确匹配 C_exp——但若初始 ΔC 已在容差范围内，这本身就是支持该结论的证据。',
+};
+
+/* ══════════════════════════════════════════
+   测评题目
+   ══════════════════════════════════════════ */
+const QUIZ = [
+  {
+    q: "某电池由三部分组成：正极 50 g（c = 0.90 J·g⁻¹·K⁻¹）、负极 30 g（c = 0.70 J·g⁻¹·K⁻¹）、电解液 20 g（c 查询可知）。该电池的总热容最接近下列哪个值？",
+    options: ["45 J·K⁻¹", "106 J·K⁻¹", "140 J·K⁻¹", "300 J·K⁻¹"],
+    answer: 1,
+    explain: "C = Σ(m·c) = 50×0.90 + 30×0.70 + 20×2.00 = 45 + 21 + 40 = 106 J·K⁻¹。热容是各组分「质量 × 比热容」之和，而不是质量之和或比热容之和。"
+  },
+  {
+    q: "在案件 #001 中，电解液的质量（28.3 g）并不是最大的，但它的热容贡献却最突出。最合理的解释是：",
+    options: [
+      "电解液的工作温度最高",
+      "电解液的比热容最大（约 2.05 J·g⁻¹·K⁻¹）",
+      "电解液的体积最大",
+      "电解液的密度最大"
+    ],
+    answer: 1,
+    explain: "热容贡献 = m × c。电解液比热容约 2.05 J·g⁻¹·K⁻¹，远高于正极（0.87）与负极（0.71），即使质量不占优，乘积依然最大。这说明比热容与质量同为决定热容的关键因素——改变任意一个都会改变总热容。"
+  }
+];
+
+/* ══════════════════════════════════════════
+   状态
+   ══════════════════════════════════════════ */
+let caseIdx = 0;
 let selectedComp = null;
 let selectedReason = null;
-let submitted    = false;
+let submitted = false;
+let currentM = [];
+let currentC = [];
 
-// 当前可调参数 (动态更新)
-let currentM = [];  // 每个组件的当前质量
-let currentC = [];  // 每个组件的当前比热容
+let quizSel = [null, null];
+let quizSubmitted = false;
 
-function loadCase(idx) {
-  const comps = CASES[idx].components;
-  currentM = comps.map(c => c.m_orig);
-  currentC = comps.map(c => c.c_orig);
-  selectedComp = null;
-  selectedReason = null;
-  submitted = false;
-  document.getElementById('feedback-box').style.display = 'none';
-  document.getElementById('btn-next-bottom').style.display = 'none';
-  document.getElementById('btn-submit').style.display = 'block';
-  document.getElementById('btn-submit').classList.remove('ready');
-  render();
+let progress = {
+  cases: [],
+  quiz: [],
+  startTime: 0,
+};
+
+function resetProgress() {
+  progress = {
+    cases: CASES.map(() => ({ solved:false, correct:false, diff:null, reason:null, adjusts:0 })),
+    quiz: QUIZ.map(() => null),
+    startTime: Date.now(),
+  };
 }
 
-// ══════════════════════════════════════════
-//  PARTICLE SYSTEM (原样保留)
-// ══════════════════════════════════════════
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+/* ══════════════════════════════════════════
+   粒子系统
+   ══════════════════════════════════════════ */
 const canvas = document.getElementById('particle-canvas');
 const ctx    = canvas.getContext('2d');
 let particles = [];
 let animId;
 
 function resizeCanvas() {
-  canvas.width  = canvas.offsetWidth;
-  canvas.height = canvas.offsetHeight;
+  canvas.width  = canvas.offsetWidth  || 300;
+  canvas.height = canvas.offsetHeight || 300;
 }
 function initParticles() {
   const colors = ["#ff6b35","#4ecdc4","#45b7d1","#ffd700"];
-  particles = Array.from({length: 70}, () => ({
+  particles = Array.from({length: 60}, () => ({
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height,
     vx: (Math.random()-0.5) * 0.6,
@@ -621,7 +835,7 @@ function initParticles() {
 function animateParticles() {
   const caseData = CASES[caseIdx];
   const C_calc   = currentM.reduce((sum, m, i) => sum + m * currentC[i], 0);
-  const isMatch  = Math.abs(C_calc - caseData.C_exp) < 0.5;
+  const isMatch  = Math.abs(C_calc - caseData.C_exp) < (caseData.matchThreshold ?? 1.0);
   const speed    = isMatch ? 0.3 : 2.0;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -641,50 +855,42 @@ function animateParticles() {
   animId = requestAnimationFrame(animateParticles);
 }
 
-// ══════════════════════════════════════════
-//  RENDER
-// ══════════════════════════════════════════
+/* ══════════════════════════════════════════
+   案件加载
+   ══════════════════════════════════════════ */
+function loadCase(idx) {
+  caseIdx = idx;
+  const comps = CASES[idx].components;
+  const rec   = progress.cases[idx];
+
+  currentM = comps.map(c => c.m_orig);
+  currentC = comps.map(c => c.c_orig);
+  selectedComp   = null;
+  selectedReason = rec.solved ? rec.reason : null;
+  submitted      = rec.solved;
+
+  const hintRow = document.getElementById('hint-row');
+  hintRow.style.display = 'none';
+  hintRow.classList.remove('ready');
+
+  render();
+}
+
+/* ══════════════════════════════════════════
+   结构渲染
+   ══════════════════════════════════════════ */
 function render() {
-  const caseData  = CASES[caseIdx];
-  const comps     = caseData.components;
-  const totalMass = currentM.reduce((s,v)=>s+v,0);
-  const C_calc    = currentM.reduce((sum, m, i) => sum + m * currentC[i], 0);
-  const diff      = Math.abs(C_calc - caseData.C_exp);
-  const isMatch   = diff < 0.5;
+  const caseData = CASES[caseIdx];
+  const comps    = caseData.components;
+  const rec      = progress.cases[caseIdx];
 
-  // ── Case title
   document.getElementById('case-title').textContent = caseData.title;
-
-  // ── Value cards
   document.getElementById('cexp-display').textContent = caseData.C_exp.toFixed(1);
-  const ccDisp = document.getElementById('ccalc-display');
-  ccDisp.textContent = C_calc.toFixed(1);
-  ccDisp.style.color = isMatch ? 'var(--teal)' : 'var(--orange)';
-  const ccCard = document.getElementById('ccalc-card');
-  if (isMatch) ccCard.classList.remove('red'); else ccCard.classList.add('red');
 
-  // ── Diff card
-  const diffCard  = document.getElementById('diff-card');
-  const diffColor = isMatch ? 'var(--teal)' : '#ff4444';
-  diffCard.style.borderColor = diffColor;
-  document.getElementById('diff-icon').textContent = isMatch ? '✓' : '✗';
-  document.getElementById('diff-icon').style.color = diffColor;
-  document.getElementById('diff-value').style.color = isMatch ? 'var(--teal)' : 'var(--orange)';
-  document.getElementById('diff-value').textContent = `ΔC = ${diff.toFixed(2)} J·K⁻¹`;
-  document.getElementById('diff-label').textContent = isMatch ? '数值吻合，无异常' : '⚠ 存在显著偏差！';
-
-  // ── Formula
-  let formulaHTML = '';
-  comps.forEach((c, i) => {
-    formulaHTML += `<span style="color:${c.color}">+ ${currentM[i].toFixed(1)} × ${currentC[i].toFixed(2)} = ${(currentM[i]*currentC[i]).toFixed(2)}</span><br>`;
-  });
-  document.getElementById('formula-lines').innerHTML = formulaHTML;
-
-  // ── Battery layers
+  /* 电池层 */
   const body = document.getElementById('battery-body');
   body.innerHTML = '';
   comps.forEach((c, i) => {
-    const pct = (currentM[i]*currentC[i] / C_calc * 100).toFixed(1);
     const active = selectedComp === i;
     const bg = active
       ? `linear-gradient(135deg, ${c.color}22, ${c.color}11)`
@@ -696,22 +902,22 @@ function render() {
     div.style.color        = c.color;
     div.innerHTML = `
       <div class="comp-layer-inner">
-        <div style="display:flex;align-items:center;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0">
           <span class="comp-icon" style="color:${c.color}">${c.icon}</span>
-          <div>
+          <div style="min-width:0">
             <div class="comp-name" style="color:${c.color}">${c.name}</div>
             <div class="comp-mat">${c.material}</div>
           </div>
         </div>
         <div class="comp-mc">
-          m·c = <span style="color:${c.color}">${(currentM[i]*currentC[i]).toFixed(1)}</span><br>
-          <span style="font-size:9px;color:#445566">J·K⁻¹</span>
+          m·c = <span style="color:${c.color}" class="comp-mc-val">0</span><br>
+          <span style="font-size:11px;color:#8fa5bb">J·K⁻¹</span>
         </div>
       </div>
       <div class="comp-bar-wrap">
-        <div class="comp-bar" style="width:${pct}%;background:linear-gradient(90deg,${c.color}88,${c.color})"></div>
+        <div class="comp-bar" style="width:0%;background:linear-gradient(90deg,${c.color}88,${c.color})"></div>
       </div>
-      <div class="comp-bar-label">${pct}% 热容贡献</div>`;
+      <div class="comp-bar-label">0% 热容贡献</div>`;
     div.addEventListener('click', () => {
       selectedComp = selectedComp === i ? null : i;
       render();
@@ -719,37 +925,7 @@ function render() {
     body.appendChild(div);
   });
 
-  // ── Total readout
-  const totalEl = document.getElementById('total-val');
-  totalEl.textContent = C_calc.toFixed(2) + ' J·K⁻¹';
-  totalEl.style.color = isMatch ? 'var(--teal)' : 'var(--orange)';
-  document.getElementById('total-readout').style.borderColor = isMatch ? 'rgba(78,205,196,0.4)' : 'rgba(255,107,53,0.4)';
-
-  // ── Detail card
-  const dc = document.getElementById('detail-card');
-  const de = document.getElementById('detail-empty');
-  if (selectedComp !== null) {
-    const sc = comps[selectedComp];
-    const mCurr = currentM[selectedComp];
-    const cCurr = currentC[selectedComp];
-    dc.style.display   = 'block';
-    dc.style.borderColor = sc.color + '66';
-    dc.querySelector('.side-bar').style.background = sc.color;
-    document.getElementById('d-name').textContent = sc.name;
-    document.getElementById('d-name').style.color = sc.color;
-    document.getElementById('d-mat').textContent  = sc.material;
-    document.getElementById('d-m').innerHTML  = `${mCurr.toFixed(1)} <span class="stat-unit">g</span>`;
-    document.getElementById('d-c').innerHTML  = `${cCurr.toFixed(2)} <span class="stat-unit">J·g⁻¹·K⁻¹</span>`;
-    document.getElementById('d-mc').innerHTML = `${(mCurr*cCurr).toFixed(2)} <span class="stat-unit">J·K⁻¹</span>`;
-    document.getElementById('d-mc').style.color = sc.color;
-    document.getElementById('d-pct').innerHTML = `${(mCurr/totalMass*100).toFixed(1)} <span class="stat-unit">%</span>`;
-    de.style.display = 'none';
-  } else {
-    dc.style.display = 'none';
-    de.style.display = 'block';
-  }
-
-  // ── Mini list with sliders
+  /* 右侧 mini 列表 */
   const ml = document.getElementById('mini-list');
   ml.innerHTML = '';
   comps.forEach((c, i) => {
@@ -774,8 +950,8 @@ function render() {
         </div>
       </div>
       <div class="mini-contrib">贡献 = ${(currentM[i]*currentC[i]).toFixed(1)} J·K⁻¹</div>`;
+
     div.addEventListener('click', (e) => {
-      // 点击卡片时选中，但避免点击滑块时触发放射
       if (e.target.tagName !== 'INPUT') {
         selectedComp = selectedComp === i ? null : i;
         render();
@@ -783,31 +959,45 @@ function render() {
     });
     ml.appendChild(div);
 
-    // 绑定滑块事件
     const mSlider = div.querySelector('.m-slider');
     const cSlider = div.querySelector('.c-slider');
+
     mSlider.addEventListener('input', (e) => {
-      const idx = parseInt(e.target.dataset.index);
+      const idx = +e.target.dataset.index;
       currentM[idx] = parseFloat(e.target.value);
       document.getElementById(`m-val-${idx}`).textContent = currentM[idx].toFixed(1);
-      render();
+      if (!submitted) progress.cases[caseIdx].adjusts++;
+      updateLiveValues();
     });
     cSlider.addEventListener('input', (e) => {
-      const idx = parseInt(e.target.dataset.index);
+      const idx = +e.target.dataset.index;
       currentC[idx] = parseFloat(e.target.value);
       document.getElementById(`c-val-${idx}`).textContent = currentC[idx].toFixed(2);
-      render();
+      if (!submitted) progress.cases[caseIdx].adjusts++;
+      updateLiveValues();
     });
-    // 阻止点击滑块时选中卡片
-    mSlider.addEventListener('click', (e) => e.stopPropagation());
-    cSlider.addEventListener('click', (e) => e.stopPropagation());
+    mSlider.addEventListener('click', e => e.stopPropagation());
+    cSlider.addEventListener('click', e => e.stopPropagation());
   });
 
-  // ── Bottom diff text
-  document.getElementById('bottom-diff').textContent =
-    `C_exp=${caseData.C_exp.toFixed(1)}  vs  C_calc=${C_calc.toFixed(2)}  →  ΔC=${diff.toFixed(2)}`;
+  /* 详情卡 */
+  const dc = document.getElementById('detail-card');
+  const de = document.getElementById('detail-empty');
+  if (selectedComp !== null) {
+    const sc = comps[selectedComp];
+    dc.style.display = 'block';
+    dc.style.borderColor = sc.color + '66';
+    dc.querySelector('.side-bar').style.background = sc.color;
+    document.getElementById('d-name').textContent = sc.name;
+    document.getElementById('d-name').style.color = sc.color;
+    document.getElementById('d-mat').textContent  = sc.material;
+    de.style.display = 'none';
+  } else {
+    dc.style.display = 'none';
+    de.style.display = 'block';
+  }
 
-  // ── Reason buttons
+  /* 理由按钮 */
   const rb = document.getElementById('reason-btns');
   rb.innerHTML = '';
   REASONS.forEach(r => {
@@ -818,87 +1008,523 @@ function render() {
     btn.addEventListener('click', () => {
       if (submitted) return;
       selectedReason = r;
-      updateSubmitBtn();
+      showHint(r);
       render();
     });
     rb.appendChild(btn);
   });
 
-  updateSubmitBtn();
+  /* 已提交状态 */
+  const submitBtn = document.getElementById('btn-submit');
+  const nextBtn   = document.getElementById('btn-next-bottom');
+  const fb        = document.getElementById('feedback-box');
+
+  if (submitted) {
+    submitBtn.style.display = 'none';
+    nextBtn.style.display = 'inline-block';
+    fb.className = 'fb-' + (rec.correct ? 'ok' : 'err');
+    fb.style.display = 'block';
+    document.getElementById('fb-title').textContent =
+      rec.correct ? '✓ 推理正确！案件已侦破。' : `✗ 推理有误 — 正确答案：${caseData.answer}`;
+    document.getElementById('fb-hint').textContent = caseData.hint;
+
+    const allSolved = progress.cases.every(c => c.solved);
+    nextBtn.textContent =
+      (caseIdx === CASES.length - 1 && allSolved) ? '进入理论测评 →' : '下一案件 →';
+  } else {
+    submitBtn.style.display = 'block';
+    nextBtn.style.display = 'none';
+    fb.style.display = 'none';
+  }
+
+  updateLiveValues();
 }
 
-function updateSubmitBtn() {
+/* ══════════════════════════════════════════
+   提示条
+   ══════════════════════════════════════════ */
+function showHint(reason) {
+  const hintRow  = document.getElementById('hint-row');
+  const hintText = document.getElementById('hint-text');
+  hintRow.style.display = 'block';
+  hintRow.classList.remove('ready');
+  hintText.textContent = HINTS[reason] || '请调节滑块，让 C_calc 接近 C_exp。';
+}
+
+/* ══════════════════════════════════════════
+   只更新数值
+   ══════════════════════════════════════════ */
+function updateLiveValues() {
+  const caseData  = CASES[caseIdx];
+  const comps     = caseData.components;
+  const totalMass = currentM.reduce((s,v)=>s+v,0) || 1;
+  const C_calc    = currentM.reduce((sum, m, i) => sum + m * currentC[i], 0);
+  const diff      = Math.abs(C_calc - caseData.C_exp);
+  const THRESHOLD = caseData.matchThreshold ?? 1.0;
+  const isMatch   = diff < THRESHOLD;
+
+  const ccDisp = document.getElementById('ccalc-display');
+  ccDisp.textContent = C_calc.toFixed(1);
+  ccDisp.style.color = isMatch ? 'var(--teal)' : 'var(--orange)';
+  const ccCard = document.getElementById('ccalc-card');
+  if (isMatch) ccCard.classList.remove('red'); else ccCard.classList.add('red');
+
+  const diffCard = document.getElementById('diff-card');
+  diffCard.style.borderColor = isMatch ? 'var(--teal)' : '#ff4444';
+  document.getElementById('diff-icon').textContent = isMatch ? '✓' : '✗';
+  document.getElementById('diff-icon').style.color = isMatch ? 'var(--teal)' : 'var(--orange)';
+  document.getElementById('diff-value').style.color = isMatch ? 'var(--teal)' : 'var(--orange)';
+  document.getElementById('diff-value').textContent = `ΔC = ${diff.toFixed(2)} J·K⁻¹`;
+  document.getElementById('diff-label').textContent = isMatch ? '数值吻合，无异常' : '⚠ 存在显著偏差！';
+
+  let formulaHTML = '';
+  comps.forEach((c, i) => {
+    formulaHTML += `<span style="color:${c.color}">+ ${currentM[i].toFixed(1)} × ${currentC[i].toFixed(2)} = ${(currentM[i]*currentC[i]).toFixed(2)}</span><br>`;
+  });
+  document.getElementById('formula-lines').innerHTML = formulaHTML;
+
+  document.querySelectorAll('#battery-body .comp-layer').forEach((el, i) => {
+    const pct = C_calc > 0 ? (currentM[i]*currentC[i] / C_calc * 100).toFixed(1) : '0.0';
+    const mcEl = el.querySelector('.comp-mc-val');
+    if (mcEl) mcEl.textContent = (currentM[i]*currentC[i]).toFixed(1);
+    const barEl = el.querySelector('.comp-bar');
+    if (barEl) barEl.style.width = pct + '%';
+    const lblEl = el.querySelector('.comp-bar-label');
+    if (lblEl) lblEl.textContent = pct + '% 热容贡献';
+  });
+
+  const totalEl = document.getElementById('total-val');
+  totalEl.textContent = C_calc.toFixed(2) + ' J·K⁻¹';
+  totalEl.style.color = isMatch ? 'var(--teal)' : 'var(--orange)';
+  document.getElementById('total-readout').style.borderColor =
+    isMatch ? 'rgba(78,205,196,0.4)' : 'rgba(255,107,53,0.4)';
+
+  if (selectedComp !== null) {
+    document.getElementById('d-m').innerHTML  = `${currentM[selectedComp].toFixed(1)} <span class="stat-unit">g</span>`;
+    document.getElementById('d-c').innerHTML  = `${currentC[selectedComp].toFixed(2)} <span class="stat-unit">J·g⁻¹·K⁻¹</span>`;
+    document.getElementById('d-mc').innerHTML = `${(currentM[selectedComp]*currentC[selectedComp]).toFixed(2)} <span class="stat-unit">J·K⁻¹</span>`;
+    document.getElementById('d-mc').style.color = comps[selectedComp].color;
+    document.getElementById('d-pct').innerHTML = `${(currentM[selectedComp]/totalMass*100).toFixed(1)} <span class="stat-unit">%</span>`;
+  }
+
+  document.querySelectorAll('#mini-list .mini-comp').forEach((el, i) => {
+    const contrib = el.querySelector('.mini-contrib');
+    if (contrib) contrib.textContent = `贡献 = ${(currentM[i]*currentC[i]).toFixed(1)} J·K⁻¹`;
+    const mass = el.querySelector('.mini-mass');
+    if (mass) mass.textContent = currentM[i].toFixed(1) + 'g';
+  });
+
+  document.getElementById('bottom-diff').textContent =
+    `C_exp=${caseData.C_exp.toFixed(1)}  vs  C_calc=${C_calc.toFixed(2)}  →  ΔC=${diff.toFixed(2)}`;
+
+  updateSubmitBtn(C_calc, diff, THRESHOLD, isMatch);
+}
+
+/* ══════════════════════════════════════════
+   提交按钮状态
+   ══════════════════════════════════════════ */
+function updateSubmitBtn(C_calc, diff, THRESHOLD, isMatch) {
+  if (submitted) return;
+
   const sb = document.getElementById('btn-submit');
-  if (!submitted) {
-    if (selectedReason) { sb.classList.add('ready'); }
-    else                { sb.classList.remove('ready'); }
-    sb.style.display = 'block';
+
+  if (!selectedReason) {
+    sb.textContent = '请先选择原因';
+    sb.classList.remove('ready');
+    sb.disabled = true;
+    sb.style.opacity = '0.6';
+  } else if (!isMatch) {
+    sb.textContent = `需调节 ΔC=${diff.toFixed(1)}`;
+    sb.classList.remove('ready');
+    sb.disabled = true;
+    sb.style.opacity = '0.75';
+  } else {
+    sb.textContent = '提交推理';
+    sb.classList.add('ready');
+    sb.disabled = false;
+    sb.style.opacity = '1';
+    const hintRow = document.getElementById('hint-row');
+    if (hintRow.style.display !== 'none') hintRow.classList.add('ready');
   }
 }
 
-// ══════════════════════════════════════════
-//  ACTIONS
-// ══════════════════════════════════════════
+/* ══════════════════════════════════════════
+   案件推进
+   ══════════════════════════════════════════ */
+function goNext() {
+  if (caseIdx < CASES.length - 1) {
+    loadCase(caseIdx + 1);
+    return;
+  }
+  if (progress.cases.every(c => c.solved)) {
+    startQuiz();
+    return;
+  }
+  const n = progress.cases.findIndex(c => !c.solved);
+  loadCase(n >= 0 ? n : 0);
+}
+
+/* ══════════════════════════════════════════
+   提交推理
+   ══════════════════════════════════════════ */
 document.getElementById('btn-submit').addEventListener('click', () => {
   if (!selectedReason || submitted) return;
-  submitted = true;
 
-  const caseData = CASES[caseIdx];
-  const correct  = selectedReason === caseData.answer;
+  const caseData  = CASES[caseIdx];
+  const C_calc    = currentM.reduce((sum, m, i) => sum + m * currentC[i], 0);
+  const diff      = Math.abs(C_calc - caseData.C_exp);
+  const THRESHOLD = caseData.matchThreshold ?? 1.0;
+  if (diff >= THRESHOLD) return;
+
+  submitted = true;
+  const correct = selectedReason === caseData.answer;
+
+  progress.cases[caseIdx].solved = true;
+  progress.cases[caseIdx].correct = correct;
+  progress.cases[caseIdx].diff = diff;
+  progress.cases[caseIdx].reason = selectedReason;
 
   const bp = document.getElementById('bottom-panel');
   bp.classList.add(correct ? 'flash-ok' : 'flash-err');
   setTimeout(() => bp.classList.remove('flash-ok', 'flash-err'), 900);
 
-  const fb = document.getElementById('feedback-box');
-  fb.className     = 'fb-' + (correct ? 'ok' : 'err');
-  fb.style.display = 'block';
-  document.getElementById('fb-title').textContent =
-    correct ? '✓ 推理正确！案件已侦破。' : `✗ 推理有误 — 正确答案：${caseData.answer}`;
-  document.getElementById('fb-hint').textContent  = caseData.hint;
-
-  document.getElementById('btn-next-bottom').style.display = 'inline-block';
-  document.getElementById('btn-submit').style.display = 'none';
-
   render();
+  updateLiveValues();
 });
 
-document.getElementById('btn-next-header').addEventListener('click', () => {
-  caseIdx = (caseIdx + 1) % CASES.length;
-  loadCase(caseIdx);
-});
-
-document.getElementById('btn-next-bottom').addEventListener('click', () => {
-  caseIdx = (caseIdx + 1) % CASES.length;
-  loadCase(caseIdx);
-});
+document.getElementById('btn-next-header').addEventListener('click', goNext);
+document.getElementById('btn-next-bottom').addEventListener('click', goNext);
 
 document.getElementById('btn-reset').addEventListener('click', () => {
-  // 重置当前案件参数到原始值
   const comps = CASES[caseIdx].components;
   currentM = comps.map(c => c.m_orig);
   currentC = comps.map(c => c.c_orig);
-  selectedReason = null;
-  submitted = false;
-  document.getElementById('feedback-box').style.display = 'none';
-  document.getElementById('btn-next-bottom').style.display = 'none';
-  document.getElementById('btn-submit').style.display = 'block';
-  document.getElementById('btn-submit').classList.remove('ready');
+  selectedComp = null;
+  if (!progress.cases[caseIdx].solved) {
+    selectedReason = null;
+    submitted = false;
+    document.getElementById('hint-row').style.display = 'none';
+    document.getElementById('hint-row').classList.remove('ready');
+  } else {
+    selectedReason = progress.cases[caseIdx].reason;
+  }
   render();
 });
 
-// ══════════════════════════════════════════
-//  INIT
-// ══════════════════════════════════════════
+/* ══════════════════════════════════════════
+   阶段 2：测评
+   ══════════════════════════════════════════ */
+function startQuiz() {
+  document.getElementById('main').style.display = 'none';
+  document.getElementById('report-stage').style.display = 'none';
+  const qs = document.getElementById('quiz-stage');
+  qs.style.display = 'block';
+  qs.scrollTop = 0;
+  renderQuiz();
+}
+
+function renderQuiz() {
+  const list = document.getElementById('quiz-list');
+  list.innerHTML = '';
+
+  QUIZ.forEach((item, qi) => {
+    const card = document.createElement('div');
+    card.className = 'quiz-card';
+
+    const qdiv = document.createElement('div');
+    qdiv.className = 'quiz-q';
+    qdiv.innerHTML = `<span class="quiz-num">Q${qi+1}</span>${item.q}`;
+    card.appendChild(qdiv);
+
+    const opts = document.createElement('div');
+    opts.className = 'quiz-opts';
+    item.options.forEach((opt, oi) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      let cls = 'quiz-opt';
+      if (quizSel[qi] === oi) cls += ' sel';
+      if (quizSubmitted) {
+        if (oi === item.answer) cls += ' right';
+        else if (quizSel[qi] === oi) cls += ' wrong';
+        b.disabled = true;
+      }
+      b.className = cls;
+      b.innerHTML = `<span class="opt-key">${'ABCD'[oi]}</span><span class="opt-txt">${opt}</span>`;
+      if (!quizSubmitted) {
+        b.addEventListener('click', () => { quizSel[qi] = oi; renderQuiz(); });
+      }
+      opts.appendChild(b);
+    });
+    card.appendChild(opts);
+
+    if (quizSubmitted) {
+      const ex = document.createElement('div');
+      ex.className = 'quiz-explain';
+      const ok = quizSel[qi] === item.answer;
+      ex.innerHTML = `<b>${ok ? '✓ 回答正确' : '✗ 回答错误'}</b>　正确答案：${'ABCD'[item.answer]}<br>${item.explain}`;
+      card.appendChild(ex);
+    }
+
+    list.appendChild(card);
+  });
+
+  const sb = document.getElementById('btn-quiz-submit');
+  sb.disabled = quizSubmitted || quizSel.some(v => v === null);
+  sb.style.display = quizSubmitted ? 'none' : 'inline-block';
+}
+
+document.getElementById('btn-quiz-submit').addEventListener('click', () => {
+  if (quizSel.some(v => v === null) || quizSubmitted) return;
+  quizSubmitted = true;
+
+  QUIZ.forEach((item, qi) => {
+    progress.quiz[qi] = quizSel[qi] === item.answer;
+  });
+
+  renderQuiz();
+
+  const sc = progress.quiz.filter(Boolean).length;
+  const res = document.getElementById('quiz-result');
+  res.style.display = 'block';
+  res.innerHTML = `
+    <div class="quiz-summary">
+      本次测评得分：<b>${sc} / ${QUIZ.length}</b>　
+      ${sc === QUIZ.length ? '—— 概念掌握牢固，可以进入报告环节。'
+        : (sc === 1 ? '—— 有一题失分，请阅读上方解析后进入报告环节。'
+                    : '—— 两题均未答对，请认真阅读上方解析后进入报告环节。')}
+    </div>`;
+
+  document.getElementById('btn-to-report').style.display = 'inline-block';
+});
+
+document.getElementById('btn-to-report').addEventListener('click', showReport);
+
+/* ══════════════════════════════════════════
+   阶段 3：报告
+   ══════════════════════════════════════════ */
+function effScore(total) {
+  const avg = total / CASES.length;
+  if (avg <= 15) return 100;
+  if (avg <= 30) return 88;
+  if (avg <= 60) return 75;
+  if (avg <= 100) return 62;
+  return 50;
+}
+
+function showReport() {
+  document.getElementById('quiz-stage').style.display = 'none';
+  const rs = document.getElementById('report-stage');
+  rs.style.display = 'block';
+  rs.scrollTop = 0;
+
+  const solvedCount  = progress.cases.filter(c => c.solved).length;
+  const correctCount = progress.cases.filter(c => c.correct).length;
+  const quizCorrect  = progress.quiz.filter(Boolean).length;
+  const totalAdjusts = progress.cases.reduce((s, c) => s + c.adjusts, 0);
+  const totalSec     = Math.max(1, Math.round((Date.now() - progress.startTime) / 1000));
+
+  const solvedDiffs = progress.cases.filter(c => c.solved).map(c => c.diff || 0);
+  const avgDiff = solvedDiffs.length
+    ? solvedDiffs.reduce((a, b) => a + b, 0) / solvedDiffs.length
+    : 0;
+
+  const precisionScore = solvedCount === 0
+    ? 40
+    : clamp(100 - (avgDiff / 3) * 55, 40, 100);
+
+  const dims = [
+    { name: '探究完成度', color: '#4ecdc4', score: solvedCount / CASES.length * 100,
+      desc: `完成 ${solvedCount} / ${CASES.length} 项热容匹配探索` },
+    { name: '逻辑推理力', color: '#ff6b35', score: correctCount / CASES.length * 100,
+      desc: `异常原因推理正确 ${correctCount} / ${CASES.length} 次` },
+    { name: '概念理解力', color: '#ffd700', score: quizCorrect / QUIZ.length * 100,
+      desc: `热容概念测评答对 ${quizCorrect} / ${QUIZ.length} 题` },
+    { name: '参数控制精度', color: '#45b7d1', score: precisionScore,
+      desc: solvedCount ? `已解案件平均偏差 ΔC ≈ ${avgDiff.toFixed(2)} J·K⁻¹` : '尚未完成任何参数匹配' },
+    { name: '探究效率', color: '#b57bff', score: effScore(totalAdjusts),
+      desc: `累计参数调节 ${totalAdjusts} 次（平均每案 ${(totalAdjusts / CASES.length).toFixed(0)} 次）` },
+  ];
+
+  const overall = Math.round(dims.reduce((s, d) => s + d.score, 0) / dims.length);
+
+  let rank;
+  if (overall >= 90)      rank = ['S', '#ffd700', '卓越 · 热容侦探大师'];
+  else if (overall >= 80) rank = ['A', '#4ecdc4', '优秀 · 资深热容分析员'];
+  else if (overall >= 70) rank = ['B', '#45b7d1', '良好 · 合格热容侦探'];
+  else if (overall >= 60) rank = ['C', '#ff6b35', '合格 · 见习热容侦探'];
+  else                    rank = ['D', '#ff7777', '待提升 · 热容学徒'];
+
+  /* 评语 */
+  const comments = [];
+  comments.push(`本次探究共完成 <b style="color:#4ecdc4">${solvedCount} / ${CASES.length}</b> 项热容匹配任务，累计调节参数 <b style="color:#4ecdc4">${totalAdjusts}</b> 次，总耗时约 ${Math.floor(totalSec/60)} 分 ${totalSec%60} 秒。`);
+
+  if (correctCount === CASES.length && solvedCount === CASES.length) {
+    comments.push('三起案件的异常原因推理全部正确，说明你能够把「热容贡献 = 质量 × 比热容」这一关系与真实数据偏差建立联系，具备良好的证据—结论对应意识。');
+  } else if (correctCount >= 1) {
+    comments.push(`异常原因推理正确 <b style="color:#ffd700">${correctCount}</b> 次。需要注意区分「质量变化」与「比热容变化」对总热容的不同影响：前者改变 m·c 中的 m，后者改变 c，两者都会使 ΔC 发生变化，但对应的物理原因完全不同。`);
+  } else if (solvedCount > 0) {
+    comments.push('异常原因推理尚未命中，建议重新审视各组分 m·c 的占比，先判断是「总量不足」还是「比例失衡」，再定位到具体组分。');
+  }
+
+  if (quizCorrect === QUIZ.length) {
+    comments.push('热容概念测评全部正确，对 C = Σ(m·c) 的数值计算与物理意义掌握牢固。');
+  } else if (quizCorrect === 1) {
+    comments.push('热容概念测评答对 1 题，建议复习：热容是各组分「质量 × 比热容」的累加，比热容大的组分即使质量不占优也可能贡献最大。');
+  } else {
+    comments.push('热容概念测评两题均未答对，建议回到探索界面，把每组件的 m、c、m·c 三个数值逐一对照，重新建立定量感觉。');
+  }
+
+  if (solvedCount === CASES.length && avgDiff < 0.5) {
+    comments.push('参数收敛精度极高，几乎完美复现了实验测量值，展现出很强的定量调节能力。');
+  } else if (totalAdjusts > 120) {
+    comments.push('参数调节次数偏多，下次可以尝试先估算目标 ΔC 需要改变多少 m·c，再有针对性地调整，提高探究效率。');
+  }
+
+  if (solvedCount === CASES.length && correctCount === CASES.length && quizCorrect === QUIZ.length) {
+    comments.push('综合来看，你在动手探究、数据分析、逻辑推理与概念理解四个层面均表现稳定，已具备独立完成热容相关实验分析的能力。');
+  }
+
+  const caseRows = progress.cases.map((c, i) => `
+    <tr>
+      <td style="color:#ffd700">#00${i+1}</td>
+      <td>${c.solved ? '<span style="color:#4ecdc4">已完成</span>' : '<span style="color:#ff6b35">未完成</span>'}</td>
+      <td>${c.solved ? c.diff.toFixed(2) + ' J·K⁻¹' : '—'}</td>
+      <td>${c.reason || '—'}</td>
+      <td>${c.solved
+            ? (c.correct ? '<span style="color:#4ecdc4">✓ 正确</span>' : '<span style="color:#ff6b35">✗ 错误</span>')
+            : '—'}</td>
+      <td>${c.adjusts}</td>
+    </tr>`).join('');
+
+  const quizRows = QUIZ.map((q, i) => `
+    <div style="font-size:14px;line-height:1.9;padding-bottom:12px;margin-bottom:12px;border-bottom:1px dashed #1d3a5c">
+      <div style="color:#dbe8f5">Q${i+1}．${q.q}</div>
+      <div style="margin-top:8px">
+        你的答案：<b style="color:${progress.quiz[i] ? '#4ecdc4' : '#ff6b35'}">${
+          quizSel[i] != null ? 'ABCD'[quizSel[i]] : '未作答'}</b>
+        &nbsp;|&nbsp; 正确答案：<b style="color:#ffd700">${'ABCD'[q.answer]}</b>
+        &nbsp;|&nbsp; ${progress.quiz[i]
+          ? '<span style="color:#4ecdc4">✓ 正确</span>'
+          : '<span style="color:#ff6b35">✗ 错误</span>'}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('report-body').innerHTML = `
+    <div class="report-grid">
+      <div class="report-card" style="margin-bottom:0">
+        <h4>综合评级</h4>
+        <div class="report-big" style="color:${rank[1]}">${rank[0]}</div>
+        <div style="font-size:14.5px;color:${rank[1]};margin-top:8px">${rank[2]}</div>
+      </div>
+      <div class="report-card" style="margin-bottom:0">
+        <h4>综合得分</h4>
+        <div class="report-big" style="color:var(--teal)">${overall}<span style="font-size:15px;color:var(--muted)"> / 100</span></div>
+        <div style="font-size:13.5px;color:var(--muted);margin-top:8px">五项能力维度平均分</div>
+      </div>
+      <div class="report-card" style="margin-bottom:0">
+        <h4>探索总耗时</h4>
+        <div class="report-big" style="color:var(--blue)">${Math.floor(totalSec/60)}<span style="font-size:16px">分</span>${totalSec%60}<span style="font-size:16px">秒</span></div>
+        <div style="font-size:13.5px;color:var(--muted);margin-top:8px">从开始探索到生成报告</div>
+      </div>
+    </div>
+
+    <div class="report-card">
+      <h4>▎能力维度分析</h4>
+      ${dims.map(d => `
+        <div class="dim-row">
+          <div class="dim-head">
+            <span>${d.name}</span>
+            <span class="dim-score" style="color:${d.color}">${Math.round(d.score)}</span>
+          </div>
+          <div class="dim-bar-bg">
+            <div class="dim-bar" style="width:${Math.round(d.score)}%;background:linear-gradient(90deg,${d.color}55,${d.color})"></div>
+          </div>
+          <div class="dim-desc">${d.desc}</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="report-card">
+      <h4>▎案件侦破明细</h4>
+      <div style="overflow-x:auto">
+        <table class="rpt">
+          <thead>
+            <tr>
+              <th>案件</th><th>参数匹配</th><th>最终 ΔC</th>
+              <th>推理结论</th><th>判定</th><th>调节次数</th>
+            </tr>
+          </thead>
+          <tbody>${caseRows}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="report-card">
+      <h4>▎概念测评明细</h4>
+      ${quizRows}
+    </div>
+
+    <div class="report-card">
+      <h4>▎综合评语</h4>
+      <div style="font-size:15px;line-height:2.1;color:#dbe8f5">
+        ${comments.map(t => `<div style="margin-bottom:8px">· ${t}</div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* ══════════════════════════════════════════
+   重新开始
+   ══════════════════════════════════════════ */
+document.getElementById('btn-restart').addEventListener('click', () => {
+  document.getElementById('report-stage').style.display = 'none';
+  document.getElementById('quiz-stage').style.display = 'none';
+  document.getElementById('main').style.display = '';
+
+  resetProgress();
+  quizSel = [null, null];
+  quizSubmitted = false;
+  document.getElementById('quiz-result').style.display = 'none';
+  document.getElementById('quiz-result').innerHTML = '';
+  document.getElementById('btn-to-report').style.display = 'none';
+  document.getElementById('btn-quiz-submit').style.display = 'inline-block';
+  document.getElementById('btn-quiz-submit').disabled = true;
+  document.getElementById('quiz-list').innerHTML = '';
+
+  caseIdx = 0;
+  selectedComp = null;
+  selectedReason = null;
+  submitted = false;
+
+  resizeCanvas();
+  initParticles();
+  loadCase(0);
+});
+
+/* ══════════════════════════════════════════
+   窗口缩放
+   ══════════════════════════════════════════ */
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const oldW = canvas.width  || 1;
+    const oldH = canvas.height || 1;
+    resizeCanvas();
+    const sx = canvas.width  / oldW;
+    const sy = canvas.height / oldH;
+    particles.forEach(p => { p.x *= sx; p.y *= sy; });
+  }, 150);
+});
+
+/* ══════════════════════════════════════════
+   初始化
+   ══════════════════════════════════════════ */
 window.addEventListener('load', () => {
   resizeCanvas();
   initParticles();
   animateParticles();
+  resetProgress();
   loadCase(0);
-});
-window.addEventListener('resize', () => {
-  resizeCanvas();
-  initParticles();
 });
 </script>
 </body>
