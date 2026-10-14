@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Colloidal Science Interactive — Zeta Potential & DLVO Theory</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #21262d;
+    --accent: #58a6ff; --green: #3fb950; --red: #f85149; --yellow: #d29922;
+    --text: #e6edf3; --muted: #8b949e; --blue-region: rgba(88,166,255,0.08);
+    --red-region: rgba(248,81,73,0.08); --font: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; line-height: 1.5; }
+  h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 10px; }
+  h3 { font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+
+  /* Layout */
+  #header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--panel); }
+  #header .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  #tabs { display: flex; gap: 2px; padding: 10px 20px 0; background: var(--panel); border-bottom: 1px solid var(--border); }
+  .tab { padding: 7px 16px; border-radius: 4px 4px 0 0; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--muted); border: 1px solid transparent; border-bottom: none; transition: all 0.15s; }
+  .tab.active { background: var(--bg); color: var(--accent); border-color: var(--border); }
+  .tab:hover:not(.active) { color: var(--text); }
+  .module { display: none; }
+  .module.active { display: grid; }
+
+  /* Module 1 */
+  #m1 { grid-template-columns: 220px 1fr; grid-template-rows: 1fr auto; height: calc(100vh - 80px); }
+  #m1 .controls { grid-row: 1 / 3; padding: 16px; border-right: 1px solid var(--border); overflow-y: auto; background: var(--panel); }
+  #m1 .chart-area { padding: 12px 16px 0; }
+  #m1 .info-bar { padding: 10px 16px 14px; }
+
+  /* Module 2 */
+  #m2 { grid-template-columns: 220px 1fr; grid-template-rows: 1fr auto; height: calc(100vh - 80px); }
+  #m2 .controls { grid-row: 1 / 3; padding: 16px; border-right: 1px solid var(--border); overflow-y: auto; background: var(--panel); }
+  #m2 .chart-area { display: grid; grid-template-columns: 1fr 1fr; padding: 12px 16px 0; gap: 10px; }
+  #m2 .info-bar { padding: 10px 16px 14px; }
+
+  /* Module 3 */
+  #m3 { grid-template-columns: 200px 1fr 260px; height: calc(100vh - 80px); }
+  #m3 .controls { padding: 16px; border-right: 1px solid var(--border); overflow-y: auto; background: var(--panel); }
+  #m3 .chart-area { padding: 12px 10px; display: flex; flex-direction: column; gap: 8px; }
+  #m3 .anim-area { border-left: 1px solid var(--border); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  /* Controls */
+  .ctrl-group { margin-bottom: 16px; }
+  label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  select, input[type=range] { width: 100%; }
+  select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 5px 8px; border-radius: 4px; font-size: 12px; }
+  input[type=range] { -webkit-appearance: none; height: 4px; background: var(--border); border-radius: 2px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: var(--accent); border-radius: 50%; cursor: pointer; }
+  .val-display { font-size: 13px; font-weight: 600; color: var(--accent); margin-top: 3px; }
+
+  /* Metrics */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+  .metric { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; }
+  .metric .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .metric .val { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .metric .val.pos { color: var(--red); }
+  .metric .val.neg { color: var(--accent); }
+  .metric .val.neutral { color: var(--yellow); }
+  .metric .val.good { color: var(--green); }
+
+  /* Explanation box */
+  .explain { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; padding: 10px 12px; font-size: 12px; line-height: 1.6; color: var(--muted); margin-top: 8px; }
+  .explain span { color: var(--text); }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  button { background: var(--border); border: 1px solid var(--border); color: var(--text); padding: 5px 11px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: all 0.15s; font-family: var(--font); }
+  button:hover { background: #30363d; }
+  button.active { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 600; }
+
+  /* Canvas */
+  canvas { border-radius: 6px; border: 1px solid var(--border); background: #0a0d12; }
+
+  /* Status badge */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge.stable { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+  .badge.metastable { background: rgba(210,153,34,0.15); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .badge.unstable { background: rgba(248,81,73,0.15); color: var(--red); border: 1px solid rgba(248,81,73,0.3); }
+
+  /* Indicator strip */
+  .indicator-strip { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .ind { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+  .ind .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+  /* Plotly override */
+  .js-plotly-plot .plotly .modebar { display: none !important; }
+  .plotly-chart { border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <h1>Colloidal Science Interactive</h1>
+    <div class="sub">Zeta Potential · Electrical Double Layer · DLVO Theory · Salt-Induced Aggregation</div>
+  </div>
+</div>
+
+<div id="tabs">
+  <div class="tab active" onclick="switchTab(0)">① pH & Zeta Potential</div>
+  <div class="tab" onclick="switchTab(1)">② EDL & DLVO Theory</div>
+  <div class="tab" onclick="switchTab(2)">③ Aggregation Animation</div>
+</div>
+
+<!-- ===== MODULE 1 ===== -->
+<div id="m1" class="module active">
+  <div class="controls">
+    <h2>Module 1 Controls</h2>
+
+    <div class="ctrl-group">
+      <label>Material</label>
+      <select id="m1-material" onchange="loadMaterial()">
+        <option value="SiO2">SiO₂ (Silica)</option>
+        <option value="TiO2">TiO₂ (Titania)</option>
+        <option value="Fe2O3">Hematite (Fe₂O₃)</option>
+        <option value="Al2O3">Al₂O₃ (Alumina)</option>
+        <option value="ZnO">ZnO (Zinc Oxide)</option>
+      </select>
+    </div>
+
+    <div class="ctrl-group">
+      <label>pH <span class="val-display" id="ph-val">7.0</span></label>
+      <input type="range" id="m1-ph" min="0" max="14" step="0.1" value="7"
+        oninput="document.getElementById('ph-val').textContent=parseFloat(this.value).toFixed(1); updateM1()">
+    </div>
+
+    <div class="ctrl-group">
+      <label>Isoelectric Point (IEP) <span class="val-display" id="iep-val">2.0</span></label>
+      <input type="range" id="m1-iep" min="2" max="10" step="0.1" value="2"
+        oninput="document.getElementById('iep-val').textContent=parseFloat(this.value).toFixed(1); updateM1()">
+    </div>
+
+    <div class="ctrl-group">
+      <label>Max ζ Potential (mV) <span class="val-display" id="zmax-val">60</span></label>
+      <input type="range" id="m1-zmax" min="20" max="80" step="1" value="60"
+        oninput="document.getElementById('zmax-val').textContent=this.value; updateM1()">
+    </div>
+
+    <hr>
+    <div class="btn-row">
+      <button onclick="resetM1()">Reset</button>
+    </div>
+    <hr>
+
+    <div class="ctrl-group">
+      <label>Stability Criterion</label>
+      <div style="font-size:11px; color:var(--muted); line-height:1.7">
+        <div><span style="color:var(--green)">●</span> |ζ| &gt; 30 mV — Stable</div>
+        <div><span style="color:var(--yellow)">●</span> 10–30 mV — Metastable</div>
+        <div><span style="color:var(--red)">●</span> |ζ| &lt; 10 mV — Unstable</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-area">
+    <div id="m1-plot" class="plotly-chart" style="height:100%"></div>
+  </div>
+
+  <div class="info-bar">
+    <div class="metrics" id="m1-metrics"></div>
+    <div class="explain" id="m1-explain"></div>
+  </div>
+</div>
+
+<!-- ===== MODULE 2 ===== -->
+<div id="m2" class="module">
+  <div class="controls">
+    <h2>Module 2 Controls</h2>
+
+    <div class="ctrl-group">
+      <label>Electrolyte</label>
+      <select id="m2-elec" onchange="updateM2()">
+        <option value="NaCl">NaCl (1:1)</option>
+        <option value="CaCl2">CaCl₂ (2:1)</option>
+        <option value="AlCl3">AlCl₃ (3:1)</option>
+      </select>
+    </div>
+
+    <div class="ctrl-group">
+      <label>Concentration (M) <span class="val-display" id="conc-val">0.01</span></label>
+      <input type="range" id="m2-conc" min="-6" max="0" step="0.05" value="-2"
+        oninput="document.getElementById('conc-val').textContent=(Math.pow(10,+this.value)).toExponential(2); updateM2()">
+    </div>
+
+    <div class="ctrl-group">
+      <label>Particle Radius (nm) <span class="val-display" id="rad-val">100</span></label>
+      <input type="range" id="m2-rad" min="10" max="500" step="5" value="100"
+        oninput="document.getElementById('rad-val').textContent=this.value; updateM2()">
+    </div>
+
+    <div class="ctrl-group">
+      <label>Hamaker Constant (×10⁻²⁰ J) <span class="val-display" id="hamaker-val">10</span></label>
+      <input type="range" id="m2-hamaker" min="1" max="30" step="0.5" value="10"
+        oninput="document.getElementById('hamaker-val').textContent=parseFloat(this.value).toFixed(1); updateM2()">
+    </div>
+
+    <div class="ctrl-group">
+      <label>Temperature (K) <span class="val-display" id="temp-val">298</span></label>
+      <input type="range" id="m2-temp" min="273" max="373" step="1" value="298"
+        oninput="document.getElementById('temp-val').textContent=this.value; updateM2()">
+    </div>
+
+    <div class="ctrl-group">
+      <label>Surface Potential (mV) <span class="val-display" id="psi0-val">-40</span></label>
+      <input type="range" id="m2-psi0" min="-100" max="-5" step="1" value="-40"
+        oninput="document.getElementById('psi0-val').textContent=this.value; updateM2()">
+    </div>
+
+    <hr>
+    <div class="btn-row">
+      <button onclick="resetM2()">Reset</button>
+    </div>
+  </div>
+
+  <div class="chart-area">
+    <div id="m2-plotA" class="plotly-chart" style="height:calc(50% - 4px)"></div>
+    <div id="m2-plotB" class="plotly-chart" style="height:calc(50% - 4px)"></div>
+  </div>
+
+  <div class="info-bar" style="grid-column:2">
+    <div class="metrics" id="m2-metrics"></div>
+    <div class="explain" id="m2-explain"></div>
+  </div>
+</div>
+
+<!-- ===== MODULE 3 ===== -->
+<div id="m3" class="module">
+  <div class="controls">
+    <h2>Module 3 Controls</h2>
+
+    <div class="ctrl-group">
+      <label>Electrolyte</label>
+      <div class="btn-row" style="flex-direction:column; gap:4px">
+        <button id="btn-nacl" class="active" onclick="setElec('NaCl')">NaCl (1:1)</button>
+        <button id="btn-cacl2" onclick="setElec('CaCl2')">CaCl₂ (2:1)</button>
+        <button id="btn-alcl3" onclick="setElec('AlCl3')">AlCl₃ (3:1)</button>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <label>Concentration (M) <span class="val-display" id="m3-conc-val">0.001</span></label>
+      <input type="range" id="m3-conc" min="-6" max="0" step="0.05" value="-3"
+        oninput="document.getElementById('m3-conc-val').textContent=(Math.pow(10,+this.value)).toExponential(2); restartAnim()">
+    </div>
+
+    <hr>
+    <div class="btn-row">
+      <button onclick="startAnim()">▶ Play</button>
+      <button onclick="pauseAnim()">⏸ Pause</button>
+      <button onclick="restartAnim()">↺ Restart</button>
+    </div>
+    <hr>
+
+    <div style="font-size:11px; color:var(--muted); line-height:1.8">
+      <div style="font-weight:600; color:var(--text); margin-bottom:4px">Animation Steps</div>
+      <div id="m3-step-list"></div>
+    </div>
+  </div>
+
+  <div class="chart-area">
+    <div id="m3-dlvo" class="plotly-chart" style="flex:1"></div>
+    <div class="metrics" id="m3-metrics" style="margin-top:4px"></div>
+  </div>
+
+  <div class="anim-area">
+    <h3>Particle Simulation</h3>
+    <canvas id="m3-canvas" width="234" height="280"></canvas>
+    <div class="explain" id="m3-explain" style="font-size:11px"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  CONSTANTS & HELPERS
+// ============================================================
+const kB = 1.38064852e-23, e = 1.60217662e-19, eps0 = 8.854187817e-12, NA = 6.022e23;
+const F = 96485, R = 8.314;
+
+const MATERIALS = {
+  SiO2:  { iep: 2.0, zmax: 60 },
+  TiO2:  { iep: 5.8, zmax: 45 },
+  Fe2O3: { iep: 8.5, zmax: 40 },
+  Al2O3: { iep: 9.1, zmax: 55 },
+  ZnO:   { iep: 9.0, zmax: 50 }
+};
+
+const ELEC = {
+  NaCl:  { z: 1, color: '#58a6ff', label: 'NaCl' },
+  CaCl2: { z: 2, color: '#d29922', label: 'CaCl₂' },
+  AlCl3: { z: 3, color: '#f85149', label: 'AlCl₃' }
+};
+
+const PLOTLY_LAYOUT_BASE = {
+  paper_bgcolor: '#0a0d12', plot_bgcolor: '#0a0d12',
+  font: { color: '#8b949e', family: 'Segoe UI, system-ui, sans-serif', size: 11 },
+  margin: { t: 28, r: 14, b: 46, l: 52 },
+  xaxis: { gridcolor: '#21262d', linecolor: '#30363d', zerolinecolor: '#30363d' },
+  yaxis: { gridcolor: '#21262d', linecolor: '#30363d', zerolinecolor: '#30363d' },
+  legend: { bgcolor: 'rgba(0,0,0,0)', font: { size: 10 } },
+  hoverlabel: { bgcolor: '#161b22', bordercolor: '#21262d', font: { size: 11 } }
+};
+
+function mergeLayout(extra) { return Object.assign({}, PLOTLY_LAYOUT_BASE, extra); }
+
+function stabilityClass(zeta) {
+  const az = Math.abs(zeta);
+  if (az > 30) return { label: 'Stable', cls: 'stable', color: '#3fb950' };
+  if (az >= 10) return { label: 'Metastable', cls: 'metastable', color: '#d29922' };
+  return { label: 'Aggregating', cls: 'unstable', color: '#f85149' };
+}
+
+function metricHTML(lbl, val, cls='') {
+  return `<div class="metric"><div class="lbl">${lbl}</div><div class="val ${cls}">${val}</div></div>`;
+}
+
+// ============================================================
+//  MODULE 1 — pH & ZETA POTENTIAL
+// ============================================================
+function zetaFn(pH, iep, zmax, a=2.0) {
+  return zmax * Math.tanh((iep - pH) / a);
+}
+
+function loadMaterial() {
+  const m = MATERIALS[document.getElementById('m1-material').value];
+  document.getElementById('m1-iep').value = m.iep;
+  document.getElementById('iep-val').textContent = m.iep.toFixed(1);
+  document.getElementById('m1-zmax').value = m.zmax;
+  document.getElementById('zmax-val').textContent = m.zmax;
+  updateM1();
+}
+
+function updateM1() {
+  const pH  = +document.getElementById('m1-ph').value;
+  const iep = +document.getElementById('m1-iep').value;
+  const zmax= +document.getElementById('m1-zmax').value;
+
+  const pHs = Array.from({length: 281}, (_, i) => i * 0.05);
+  const zetas = pHs.map(p => zetaFn(p, iep, zmax));
+  const curZ = zetaFn(pH, iep, zmax);
+  const sc = stabilityClass(curZ);
+  const charge = curZ > 0.5 ? 'Positive (+)' : curZ < -0.5 ? 'Negative (−)' : 'Neutral (~0)';
+
+  const traces = [
+    { x: pHs.filter(p=>p<=iep), y: zetas.filter((_,i)=>pHs[i]<=iep),
+      fill:'tozeroy', fillcolor:'rgba(248,81,73,0.12)', line:{color:'#f85149',width:2},
+      name:'Positive region', mode:'lines', showlegend:true },
+    { x: pHs.filter(p=>p>=iep), y: zetas.filter((_,i)=>pHs[i]>=iep),
+      fill:'tozeroy', fillcolor:'rgba(88,166,255,0.10)', line:{color:'#58a6ff',width:2},
+      name:'Negative region', mode:'lines', showlegend:true },
+    { x:[pH], y:[curZ], mode:'markers', marker:{size:11,color:sc.color,symbol:'circle',
+      line:{width:2,color:'#fff'}}, name:'Current point', showlegend:true },
+    { x:[iep,iep], y:[-zmax-5, zmax+5], mode:'lines',
+      line:{color:'#8b949e',width:1.5,dash:'dash'}, name:'IEP', showlegend:true }
+  ];
+
+  const layout = mergeLayout({
+    title: { text:'ζ Potential vs pH', font:{size:12,color:'#e6edf3'}, x:0.5, xanchor:'center' },
+    xaxis: { ...PLOTLY_LAYOUT_BASE.xaxis, title:'pH', range:[0,14], dtick:2 },
+    yaxis: { ...PLOTLY_LAYOUT_BASE.yaxis, title:'ζ Potential (mV)', range:[-zmax-10, zmax+10] },
+    shapes: [{ type:'line', x0:0,x1:14,y0:0,y1:0, line:{color:'#30363d',width:1} }],
+    annotations: [
+      { x:iep, y:zmax+5, text:`IEP = ${iep.toFixed(1)}`, showarrow:false,
+        font:{size:10,color:'#8b949e'}, xanchor:'left' }
+    ]
+  });
+
+  Plotly.react('m1-plot', traces, layout, {responsive:true, displayModeBar:false});
+
+  // Metrics
+  document.getElementById('m1-metrics').innerHTML = [
+    metricHTML('pH', pH.toFixed(1)),
+    metricHTML('IEP', iep.toFixed(1)),
+    metricHTML('Surface Charge', charge, curZ>0.5?'pos':curZ<-0.5?'neg':'neutral'),
+    metricHTML('ζ Potential', curZ.toFixed(1)+' mV', Math.abs(curZ)>30?'good':Math.abs(curZ)>10?'neutral':'pos'),
+    metricHTML('Stability', `<span class="badge ${sc.cls}">${sc.label}</span>`)
+  ].join('');
+
+  // Explanation
+  let txt = '';
+  if (pH < iep - 0.2) txt = `<span>pH (${pH.toFixed(1)}) is below the IEP (${iep.toFixed(1)})</span>: surface sites are protonated → <span>positive charge</span>. Electrostatic repulsion keeps particles dispersed when |ζ| is large.`;
+  else if (pH > iep + 0.2) txt = `<span>pH (${pH.toFixed(1)}) is above the IEP (${iep.toFixed(1)})</span>: surface sites are deprotonated → <span>negative charge</span>. High |ζ| ensures colloidal stability.`;
+  else txt = `<span>pH ≈ IEP (${iep.toFixed(1)})</span>: net surface charge approaches zero. ζ → 0 means electrostatic repulsion vanishes → <span>particles aggregate</span>.`;
+  if (Math.abs(curZ) < 10) txt += ` ⚠ |ζ| < 10 mV: system is <span style="color:var(--red)">critically unstable</span>.`;
+  document.getElementById('m1-explain').innerHTML = txt;
+}
+
+function resetM1() {
+  document.getElementById('m1-material').value = 'SiO2';
+  document.getElementById('m1-ph').value = 7;
+  document.getElementById('ph-val').textContent = '7.0';
+  loadMaterial();
+}
+
+// ============================================================
+//  MODULE 2 — EDL & DLVO
+// ============================================================
+function ionicStrength(C, elec) {
+  // I = 0.5 * sum(ci * zi^2)
+  if (elec === 'NaCl')  return C;            // Na+: z=1, Cl-: z=1
+  if (elec === 'CaCl2') return 3 * C;        // Ca2+ z=2, 2Cl- z=1
+  if (elec === 'AlCl3') return 6 * C;        // Al3+ z=3, 3Cl- z=1
+}
+
+function debyeLength(I, T) {
+  // κ⁻¹ (nm) = 0.304 / sqrt(I) at 25°C; generalised with T
+  const eps_r = 78.5 * (298 / T);
+  const kappa_sq = (2 * NA * e * e * I * 1000) / (eps_r * eps0 * kB * T);
+  return 1e9 / Math.sqrt(kappa_sq); // nm
+}
+
+function computeDLVO(r_nm, A_J, T, kappa_inv_nm, psi0_mV) {
+  const psi0 = psi0_mV * 1e-3;
+  const r = r_nm * 1e-9;
+  const eps_r = 78.5 * (298 / T);
+  const eps = eps_r * eps0;
+  const kappa = 1e9 / kappa_inv_nm;
+
+  const hArr = Array.from({length: 300}, (_, i) => (i + 1) * 0.3); // nm
+  const VvdW = [], Velec = [], Vtot = [];
+
+  hArr.forEach(h_nm => {
+    const h = h_nm * 1e-9;
+    const vdw = -(A_J * r) / (12 * h);                          // sphere-flat approx
+    const el  = 64 * Math.PI * eps * r * (kB*T/e)**2 *
+                Math.tanh(e*psi0/(4*kB*T))**2 * Math.exp(-kappa*h);
+    VvdW.push(vdw / (kB*T));
+    Velec.push(el / (kB*T));
+    Vtot.push((vdw + el) / (kB*T));
+  });
+  return { hArr, VvdW, Velec, Vtot };
+}
+
+function updateM2() {
+  const elec  = document.getElementById('m2-elec').value;
+  const logC  = +document.getElementById('m2-conc').value;
+  const C     = Math.pow(10, logC);
+  const r_nm  = +document.getElementById('m2-rad').value;
+  const A_raw = +document.getElementById('m2-hamaker').value;
+  const A_J   = A_raw * 1e-20;
+  const T     = +document.getElementById('m2-temp').value;
+  const psi0  = +document.getElementById('m2-psi0').value;
+
+  const I = ionicStrength(C, elec);
+  const kd = debyeLength(I, T);
+  const { hArr, VvdW, Velec, Vtot } = computeDLVO(r_nm, A_J, T, kd, psi0);
+
+  // === Figure A: Potential decay ===
+  const xA = Array.from({length: 200}, (_, i) => i * 0.3);
+  const stern = 0.4; // nm Stern layer thickness
+  const yA = xA.map(x => {
+    if (x < stern) return psi0;
+    return psi0 * Math.exp(-(x - stern) / kd);
+  });
+
+  const tracesA = [
+    { x: xA, y: yA, mode: 'lines', name: 'ψ(x)', line: { color: '#58a6ff', width: 2 } },
+    { x: [stern, stern], y: [psi0*0.95, psi0*0.05], mode: 'lines',
+      line: { color: '#d29922', dash: 'dot', width: 1.5 }, name: 'Stern / Slip', showlegend: true },
+    { x: [0, 0], y: [psi0, psi0*0.9], mode: 'markers',
+      marker: { symbol:'line-ns', size:10, color:'#f85149', line:{width:2,color:'#f85149'} },
+      name: 'Surface', showlegend: true }
+  ];
+
+  const layA = mergeLayout({
+    title: { text: 'A. Electrical Double Layer', font:{size:11,color:'#e6edf3'}, x:0.04, xanchor:'left' },
+    xaxis: { ...PLOTLY_LAYOUT_BASE.xaxis, title: 'Distance from surface (nm)', range:[0,Math.min(kd*8,60)] },
+    yaxis: { ...PLOTLY_LAYOUT_BASE.yaxis, title: 'Potential (mV)' },
+    shapes: [
+      { type:'rect', x0:0, x1:stern, y0:-1000,y1:1000, fillcolor:'rgba(248,81,73,0.08)', line:{width:0} }
+    ],
+    annotations: [
+      { x:stern/2, y:psi0*0.6, text:'Stern', showarrow:false, font:{size:9,color:'#d29922'} },
+      { x:kd+stern, y:psi0*Math.exp(-1)*0.8, text:`κ⁻¹=${kd.toFixed(1)}nm`, showarrow:false, font:{size:9,color:'#8b949e'} }
+    ]
+  });
+  Plotly.react('m2-plotA', tracesA, layA, {responsive:true, displayModeBar:false});
+
+  // === Figure B: DLVO ===
+  // Find barrier & minima
+  let barrier = -Infinity, barrierH = 0, sec_min = Infinity, sec_minH = 0;
+  Vtot.forEach((v,i) => {
+    if (v > barrier && hArr[i] > 0.5 && hArr[i] < 40) { barrier=v; barrierH=hArr[i]; }
+    if (i>5 && hArr[i]>1.5 && v < sec_min) { sec_min=v; sec_minH=hArr[i]; }
+  });
+  barrier = Math.max(barrier, 0);
+
+  const tracesB = [
+    { x:hArr, y:VvdW, mode:'lines', name:'V<sub>vdW</sub>', line:{color:'#f85149',width:1.8,dash:'dot'} },
+    { x:hArr, y:Velec, mode:'lines', name:'V<sub>elec</sub>', line:{color:'#58a6ff',width:1.8,dash:'dot'} },
+    { x:hArr, y:Vtot, mode:'lines', name:'V<sub>total</sub>', line:{color:'#3fb950',width:2.5} },
+    { x:[barrierH], y:[barrier], mode:'markers', name:'Barrier',
+      marker:{size:9,color:'#d29922',symbol:'diamond',line:{width:1.5,color:'#fff'}} },
+  ];
+
+  const ymax = Math.min(Math.max(...Vtot.slice(0,150)) * 1.3, 200);
+  const ymin = Math.max(Math.min(...Vtot.slice(0,150)) * 1.3, -100);
+
+  const layB = mergeLayout({
+    title: { text: 'B. DLVO Interaction Energy', font:{size:11,color:'#e6edf3'}, x:0.04, xanchor:'left' },
+    xaxis: { ...PLOTLY_LAYOUT_BASE.xaxis, title: 'Surface separation h (nm)', range:[0,50] },
+    yaxis: { ...PLOTLY_LAYOUT_BASE.yaxis, title: 'Energy / k<sub>B</sub>T', range:[ymin,ymax] },
+    shapes: [{ type:'line',x0:0,x1:50,y0:0,y1:0, line:{color:'#30363d',width:1}}],
+    annotations: barrier > 0.5 ? [
+      { x:barrierH, y:barrier+3, text:`ΔE=${barrier.toFixed(1)} k<sub>B</sub>T`,
+        showarrow:true, arrowhead:2, arrowsize:0.8, arrowcolor:'#d29922',
+        font:{size:9,color:'#d29922'}, ax:20, ay:-20 }
+    ] : []
+  });
+  Plotly.react('m2-plotB', tracesB, layB, {responsive:true, displayModeBar:false});
+
+  // Metrics & Explain
+  const sc = stabilityClass(psi0);
+  document.getElementById('m2-metrics').innerHTML = [
+    metricHTML('Ionic Strength', I.toExponential(2)+' M'),
+    metricHTML('Debye Length', kd.toFixed(2)+' nm', kd>5?'good':kd>1?'neutral':'pos'),
+    metricHTML('Surface Potential', psi0+' mV'),
+    metricHTML('Energy Barrier', barrier.toFixed(1)+' k<sub>B</sub>T', barrier>10?'good':barrier>2?'neutral':'pos'),
+    metricHTML('Stability', `<span class="badge ${sc.cls}">${sc.label}</span>`)
+  ].join('');
+
+  const zval = ELEC[elec].z;
+  document.getElementById('m2-explain').innerHTML =
+    `<span>${ELEC[elec].label}</span> (valence z=${zval}): ionic strength I = ${I.toExponential(2)} M → Debye length κ⁻¹ = <span>${kd.toFixed(2)} nm</span>.
+    The <span>Schulze-Hardy rule</span> predicts that higher valence electrolytes (z³ dependence) compress the double layer far more efficiently.
+    Energy barrier = <span>${barrier.toFixed(1)} kBT</span>${barrier<10?' — insufficient to prevent aggregation.':' — adequate for colloidal stability.'}`;
+}
+
+function resetM2() {
+  document.getElementById('m2-elec').value='NaCl';
+  document.getElementById('m2-conc').value=-2; document.getElementById('conc-val').textContent='1.00e-2';
+  document.getElementById('m2-rad').value=100; document.getElementById('rad-val').textContent='100';
+  document.getElementById('m2-hamaker').value=10; document.getElementById('hamaker-val').textContent='10.0';
+  document.getElementById('m2-temp').value=298; document.getElementById('temp-val').textContent='298';
+  document.getElementById('m2-psi0').value=-40; document.getElementById('psi0-val').textContent='-40';
+  updateM2();
+}
+
+// ============================================================
+//  MODULE 3 — ANIMATION
+// ============================================================
+let animFrame = null, animT = 0, animPlaying = false;
+let m3Elec = 'NaCl';
+
+const STEPS = [
+  'Low salt → large Debye length',
+  'Increasing salt concentration',
+  'Double layer compressing',
+  'Energy barrier decreasing',
+  'Particles approaching',
+  'Aggregation occurring'
+];
+
+function setElec(e) {
+  m3Elec = e;
+  ['NaCl','CaCl2','AlCl3'].forEach(el => {
+    document.getElementById('btn-'+el.toLowerCase()).classList.toggle('active', el===e);
+  });
+  restartAnim();
+}
+
+function getM3Params() {
+  const logC = +document.getElementById('m3-conc').value;
+  const C = Math.pow(10, logC);
+  const I = ionicStrength(C, m3Elec);
+  const kd = debyeLength(I, 298);
+  const psi0 = -50;
+  const r_nm = 100, A_J = 10e-20;
+  const dlvo = computeDLVO(r_nm, A_J, 298, kd, psi0);
+  return { C, I, kd, psi0, ...dlvo };
+}
+
+function drawDLVO3(t) {
+  const { hArr, VvdW, Velec, Vtot, kd, I } = getM3Params();
+  // At time t (0-1), gradually increase concentration
+  const logC0 = +document.getElementById('m3-conc').value - 2 * t;
+  const C_eff = Math.max(Math.pow(10, logC0), 1e-6);
+  const I_eff = ionicStrength(C_eff, m3Elec);
+  const kd_eff = debyeLength(I_eff, 298);
+  const { VvdW: vw, Velec: ve, Vtot: vt } = computeDLVO(100, 10e-20, 298, kd_eff, -50);
+
+  let barrier = 0;
+  vt.forEach((v,i)=>{ if(hArr[i]>0.5&&hArr[i]<40&&v>barrier) barrier=v; });
+
+  const traces = [
+    { x:hArr, y:vw, mode:'lines', name:'V<sub>vdW</sub>', line:{color:'#f85149',width:1.5,dash:'dot'} },
+    { x:hArr, y:ve, mode:'lines', name:'V<sub>elec</sub>', line:{color:'#58a6ff',width:1.5,dash:'dot'} },
+    { x:hArr, y:vt, mode:'lines', name:'V<sub>total</sub>', line:{color:'#3fb950',width:2.5} }
+  ];
+  const ymax = Math.min(Math.max(...vt.slice(0,150)) * 1.3, 200);
+  const ymin = Math.max(Math.min(...vt.slice(0,100)) * 1.3, -80);
+
+  Plotly.react('m3-dlvo', traces, mergeLayout({
+    title: { text:`DLVO (κ⁻¹=${kd_eff.toFixed(2)} nm)`, font:{size:11,color:'#e6edf3'}, x:0.04, xanchor:'left' },
+    xaxis: { ...PLOTLY_LAYOUT_BASE.xaxis, title:'h (nm)', range:[0,50] },
+    yaxis: { ...PLOTLY_LAYOUT_BASE.yaxis, title:'Energy / k<sub>B</sub>T', range:[ymin,ymax] },
+    shapes: [{type:'line',x0:0,x1:50,y0:0,y1:0,line:{color:'#30363d',width:1}}]
+  }), {responsive:true,displayModeBar:false});
+
+  return { kd_eff, I_eff, barrier };
+}
+
+// Canvas particle simulation
+const N_PARTICLES = 18;
+let particles = [];
+
+function initParticles() {
+  const cvs = document.getElementById('m3-canvas');
+  particles = Array.from({length: N_PARTICLES}, () => ({
+    x: 10 + Math.random() * (cvs.width - 20),
+    y: 10 + Math.random() * (cvs.height - 20),
+    vx: (Math.random()-0.5)*0.8, vy:(Math.random()-0.5)*0.8,
+    r: 10, cluster: false
+  }));
+}
+
+function drawParticles(t, kd, barrier) {
+  const cvs = document.getElementById('m3-canvas');
+  const ctx = cvs.getContext('2d');
+  const W = cvs.width, H = cvs.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0a0d12'; ctx.fillRect(0,0,W,H);
+
+  // EDL glow radius scales with Debye length
+  const edlR = Math.min(kd * 3, 40);
+  const agg = barrier < 5;
+
+  particles.forEach(p => {
+    // Move
+    p.x += p.vx * (agg ? 2.5 : 0.6);
+    p.y += p.vy * (agg ? 2.5 : 0.6);
+
+    // Bounce
+    if (p.x < p.r) { p.x = p.r; p.vx = Math.abs(p.vx); }
+    if (p.x > W-p.r) { p.x = W-p.r; p.vx = -Math.abs(p.vx); }
+    if (p.y < p.r) { p.y = p.r; p.vy = Math.abs(p.vy); }
+    if (p.y > H-p.r) { p.y = H-p.r; p.vy = -Math.abs(p.vy); }
+
+    // Repulsion between particles (scaled by barrier)
+    particles.forEach(q => {
+      if (q===p) return;
+      const dx=q.x-p.x, dy=q.y-p.y, dist=Math.sqrt(dx*dx+dy*dy);
+      if (dist < p.r*2 + edlR*0.8) {
+        const rep = agg ? 0.02 : 0.15;
+        p.vx -= dx/dist*rep; p.vy -= dy/dist*rep;
+      }
+      // Cluster attraction when aggregating
+      if (agg && dist < 50) {
+        p.vx += dx/dist*0.04; p.vy += dy/dist*0.04;
+      }
+    });
+
+    // Clamp speed
+    const spd = Math.sqrt(p.vx*p.vx+p.vy*p.vy);
+    if (spd > 2.5) { p.vx=p.vx/spd*2.5; p.vy=p.vy/spd*2.5; }
+
+    // Draw EDL halo
+    if (edlR > 2) {
+      const grd = ctx.createRadialGradient(p.x,p.y,p.r,p.x,p.y,p.r+edlR);
+      const c = ELEC[m3Elec].color;
+      grd.addColorStop(0, c+'55');
+      grd.addColorStop(1, c+'00');
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r+edlR,0,Math.PI*2);
+      ctx.fillStyle=grd; ctx.fill();
+    }
+
+    // Draw particle
+    const grd2 = ctx.createRadialGradient(p.x-2,p.y-2,1,p.x,p.y,p.r);
+    grd2.addColorStop(0,'#c0d8ff');
+    grd2.addColorStop(1,'#2060b0');
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=grd2; ctx.fill();
+    ctx.strokeStyle=agg?'#f85149':'#58a6ff'; ctx.lineWidth=1; ctx.stroke();
+  });
+
+  // Status overlay
+  const sc = barrier > 10 ? {label:'Stable',color:'#3fb950'} :
+             barrier > 2  ? {label:'Metastable',color:'#d29922'} :
+                            {label:'Aggregating',color:'#f85149'};
+  ctx.font='bold 11px Segoe UI'; ctx.fillStyle=sc.color;
+  ctx.fillText(sc.label, 8, 18);
+  ctx.font='10px Segoe UI'; ctx.fillStyle='#8b949e';
+  ctx.fillText(`κ⁻¹ = ${kd.toFixed(1)} nm`, 8, 32);
+  ctx.fillText(`Barrier: ${barrier.toFixed(1)} kBT`, 8, 46);
+}
+
+let stepLabels = STEPS.map(s=>`<div>• ${s}</div>`).join('');
+document.getElementById('m3-step-list').innerHTML = stepLabels;
+
+function animLoop() {
+  if (!animPlaying) return;
+  animT = Math.min(animT + 0.002, 1);
+  const { kd_eff, I_eff, barrier } = drawDLVO3(animT);
+  drawParticles(animT, kd_eff, barrier);
+
+  const stepIdx = Math.floor(animT * STEPS.length);
+  document.getElementById('m3-step-list').innerHTML =
+    STEPS.map((s,i)=>`<div style="color:${i===stepIdx?'#e6edf3':'#8b949e'};${i===stepIdx?'font-weight:600':''}">
+      ${i===stepIdx?'▶':i<stepIdx?'✓':'○'} ${s}</div>`).join('');
+
+  const sc = stabilityClass(-(50 - animT*35));
+  document.getElementById('m3-metrics').innerHTML = [
+    metricHTML('Electrolyte', ELEC[m3Elec].label),
+    metricHTML('Debye Length', kd_eff.toFixed(2)+' nm', kd_eff>5?'good':kd_eff>1?'neutral':'pos'),
+    metricHTML('Energy Barrier', barrier.toFixed(1)+' k<sub>B</sub>T', barrier>10?'good':barrier>2?'neutral':'pos'),
+    metricHTML('Status', `<span class="badge ${sc.cls}">${sc.label}</span>`)
+  ].join('');
+
+  const explTexts = [
+    `Low ionic strength: EDL extends <span>${kd_eff.toFixed(1)} nm</span>. Electrostatic barrier prevents particle approach.`,
+    `Salt concentration rising. Counterions screen surface charge more effectively.`,
+    `Double layer compressed to <span>${kd_eff.toFixed(1)} nm</span>. Debye length shrinking under Schulze-Hardy influence.`,
+    `Energy barrier reduced to <span>${barrier.toFixed(1)} kBT</span>. Repulsive overlap diminished.`,
+    `Particles can now approach the <span>secondary minimum</span>. Weak, reversible flocculation possible.`,
+    `Barrier < 5 kBT: thermal energy sufficient to overcome repulsion. <span style="color:var(--red)">Irreversible coagulation</span>.`
+  ];
+  document.getElementById('m3-explain').innerHTML = explTexts[Math.min(stepIdx, 5)];
+
+  if (animT < 1) animFrame = requestAnimationFrame(animLoop);
+  else { animPlaying = false; }
+}
+
+function startAnim() { if (!animPlaying) { animPlaying=true; animLoop(); } }
+function pauseAnim() { animPlaying=false; if(animFrame) cancelAnimationFrame(animFrame); }
+function restartAnim() {
+  pauseAnim(); animT=0; initParticles();
+  drawDLVO3(0); drawParticles(0, getM3Params().kd, 100);
+  animPlaying=true; animLoop();
+}
+
+// ============================================================
+//  TAB SWITCHING
+// ============================================================
+function switchTab(idx) {
+  document.querySelectorAll('.module').forEach((m,i)=>m.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  if (idx===0) updateM1();
+  if (idx===1) updateM2();
+  if (idx===2) { initParticles(); restartAnim(); }
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  loadMaterial();
+  updateM1();
+});
+</script>
+</body>
+</html>
