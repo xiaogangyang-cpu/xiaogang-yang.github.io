@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
-<title>电池失控100秒：热极限挑战 · 音效版</title>
+<title>电池失控120秒：热极限挑战 · 音效版</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Noto+Sans+SC:wght@300;400;700&display=swap');
 
@@ -18,7 +18,7 @@
     --danger: #ff2244;
     --warn: #ffbb00;
     --text: #c8e8ff;
-    --text-dim: #4a7a9b;
+    --text-dim: #7aadcc;
     --glow: 0 0 20px rgba(0,212,255,0.4);
     --glow-danger: 0 0 30px rgba(255,34,68,0.6);
   }
@@ -926,8 +926,9 @@
       <div class="battery-fill" style="height:30%"></div>
     </div>
   </div>
-  <div class="splash-title">电池失控 100 秒<br>热极限挑战</div>
+  <div class="splash-title">电池失控 120 秒<br>热极限挑战</div>
   <div class="splash-sub">BATTERY THERMAL RUNAWAY · PHYSICS SIMULATION<br>基于能量守恒 · 实时热力学模拟 · 物理化学实验</div>
+ <div class="splash-sub">本模型仅含物理焦耳热（Q=I²R），忽略SEI分解等放热副反应；内阻、热容、质量均视为恒定，不随温度或SOC变化；<br>采用集总参数假设，电池内部无温度梯度；散热按理想牛顿冷却处理。因此它模拟的是"热积累与热平衡"，<br>而非真实的化学热失控。</div>
   <button class="start-btn" onclick="startGame()">▶ 开始实验</button>
 </div>
 
@@ -949,7 +950,7 @@
     <div class="phase-header">
       <div class="phase-number">PHASE 01 / CLOSED SYSTEM</div>
       <div class="phase-name">封闭体系——常规散热下的功率冲击</div>
-      <div class="phase-desc">模拟电池在正常散热模块中发生大功率输出（猛踩加速）。调节电流与散热强度，观察热累积对温升的延缓效果。</div>
+      <div class="phase-desc">模拟电池在正常散热模块中发生大功率输出（猛踩加速）。调节电流与散热强度，观察热累积对温升的延缓效果。第一部分进入下一关，触发条件120秒或250度</div>
     </div>
 
     <!-- 三栏布局：控制 | 热状态 | 能量分配+公式 -->
@@ -1103,7 +1104,7 @@
     <div class="phase-header danger">
       <div class="phase-number">PHASE 02 / ADIABATIC SYSTEM · ⚠ DANGER</div>
       <div class="phase-name danger">隔离体系——绝热极端环境下的热失控</div>
-      <div class="phase-desc">模拟电池在绝热仓中心发生短路。Q'=0，所有能量转化为内热。计算到达热失控触发点的时间，做出紧急决策。</div>
+      <div class="phase-desc">模拟电池在绝热仓中心发生短路。Q'=0，所有能量转化为内热（绝热过程）。计算到达热失控触发点（130°C ）的时间，做出紧急决策。</div>
     </div>
 
     <div class="grid-2 mb-12">
@@ -1549,7 +1550,7 @@ function p1Start() {
 
     p1UpdateUI(Qgen, Qdiss, Qacc, W_actual);
 
-    if (state.p1.time >= 120 || state.p1.T >= 300) {
+    if (state.p1.time >= 120 || state.p1.T >= 250) {
       clearInterval(state.p1.interval);
       state.p1.running = false;
       state.p1.completed = true;
@@ -1957,7 +1958,9 @@ function generateReport() {
 window.addEventListener('resize', () => {
   initHeatCanvas();
 });
-document.addEventListener('touchmove', e => e.stopPropagation(), {passive: true});
+document.querySelectorAll('input[type=range]').forEach(el => {
+  el.addEventListener('touchmove', e => e.stopPropagation(), {passive: true});
+});
 </script>
 </body>
 </html>
