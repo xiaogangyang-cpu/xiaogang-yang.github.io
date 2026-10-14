@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>热力学第二定律与化学平衡交互模拟器</title>
+<!--
+  本文件不依赖任何外部库或 CDN：图表（Canvas 2D）、粒子动画、数值求解全部为原生 JavaScript，
+  离线或 CDN 被屏蔽时仍可完整运行。localStorage 仅用于可选的学习记录，禁用存储时核心模拟不受影响。
+-->
+<style>
+:root{--bg:#040a18;--card:#0a1630;--card2:#0d1d3d;--line:#1b3a66;--cy:#22d3ee;--ye:#facc15;--gr:#4ade80;--rd:#f87171;--tx:#dbeafe;--mu:#8fb0d8}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--tx);font:14px/1.65 "Microsoft YaHei","PingFang SC",system-ui,sans-serif;touch-action:manipulation;
+  background:radial-gradient(1200px 600px at 15% -10%,#0c2550 0,transparent 60%),radial-gradient(900px 500px at 100% 0,#0a2f4a 0,transparent 55%),var(--bg);min-height:100vh}
+[hidden]{display:none!important}
+code,.mono{font-family:Consolas,Menlo,monospace}
+a{color:var(--cy)}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);background:rgba(4,10,24,.85);position:sticky;top:0;z-index:10;backdrop-filter:blur(6px)}
+h1{font-size:20px;margin:0;color:var(--cy)}
+.sub{margin:2px 0 0;color:var(--mu);font-size:12.5px;max-width:720px}
+nav{display:flex;gap:8px;flex-wrap:wrap}
+button,select,textarea{font:inherit;color:var(--tx)}
+.tab,.btn{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;transition:border-color .15s,background .15s}
+.tab:hover,.btn:hover{border-color:var(--cy)}
+.tab.active{background:#0e3a55;border-color:var(--cy);color:#fff;box-shadow:0 0 12px rgba(34,211,238,.25)}
+.btn.warn{border-color:#6b5a14;color:var(--ye)}
+.btn.sm{padding:3px 8px;font-size:12.5px}
+:focus-visible{outline:2px solid var(--ye);outline-offset:2px}
+.grid{display:grid;grid-template-columns:300px minmax(0,1fr) 350px;gap:14px;padding:14px;max-width:1650px;margin:0 auto}
+.grid>section,.grid>aside{min-width:0}
+.card{background:linear-gradient(180deg,var(--card),#081226);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:0 0 18px rgba(34,211,238,.05)}
+.card h2,.card h3{margin:0 0 8px;font-size:15px;color:var(--cy)}
+.card h3 small{color:var(--mu);font-weight:400;margin-left:6px}
+canvas{width:100%;display:block;border-radius:8px;background:#060f24}
+.cv-chart{height:300px}.cv-part{height:220px}.cv-bar{height:150px}.cv-chart2{height:270px}.cv-ent{aspect-ratio:2/1}.cv-hist{height:200px}
+.ctl{margin-bottom:12px}
+.ctl-h{display:flex;align-items:center;gap:6px}
+.ctl-h label{color:var(--cy);font-weight:600}
+.ctl.ye .ctl-h label{color:var(--ye)}
+.unit{color:var(--mu);font-size:12px;flex:1}
+.tip{width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--mu);cursor:pointer;font-size:12px;padding:0}
+.tiptext{font-size:12.5px;color:var(--mu);background:#07122a;border-left:3px solid var(--ye);padding:6px 8px;margin:4px 0;border-radius:4px}
+.warnmsg{font-size:12px;color:var(--ye);margin-top:2px}
+.ctl-b{display:flex;gap:8px;align-items:center}
+input[type=range]{flex:1;accent-color:var(--cy);min-width:0}
+input[type=number]{width:84px;background:#07122a;border:1px solid var(--line);border-radius:6px;color:var(--tx);padding:4px 6px;font:inherit}
+select,textarea{background:#07122a;border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+textarea{width:100%;min-height:62px;resize:vertical}
+.row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;align-items:center}
+.preset{font-size:12.5px;padding:5px 8px;text-align:left}
+.chk{display:flex;gap:8px;align-items:center;margin:6px 0 10px;color:var(--ye);font-weight:600}
+.note{font-size:12.5px;color:var(--mu)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13.5px}
+.kv span:nth-child(odd){color:var(--mu)}
+.kv span:nth-child(even){text-align:right;font-family:Consolas,Menlo,monospace}
+.cyv{color:var(--cy)}.yev{color:var(--ye)}.grv{color:var(--gr)}.rdv{color:var(--rd)}
+.status{padding:8px 10px;border-radius:8px;border:1px solid;margin:8px 0;font-weight:600}
+.status.ok{border-color:#1f6b3d;background:rgba(74,222,128,.08);color:var(--gr)}
+.status.bad{border-color:#7a2f2f;background:rgba(248,113,113,.08);color:var(--rd)}
+.status.warn{border-color:#6b5a14;background:rgba(250,204,21,.08);color:var(--ye)}
+.box{border-left:3px solid var(--cy);background:#07122a;padding:7px 10px;margin:8px 0;border-radius:4px;font-size:13px}
+.box.ye{border-color:var(--ye)}.box.rd{border-color:var(--rd)}.box.gr{border-color:var(--gr)}
+.box b{color:#fff}
+.calc{white-space:pre-wrap;font-family:Consolas,Menlo,monospace;font-size:12.5px;color:#bfe9ff;background:#050d20;border:1px dashed var(--line);border-radius:8px;padding:8px;margin:8px 0}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--mu);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
+table.cmp{width:100%;border-collapse:collapse;font-size:12.5px;display:block;overflow-x:auto}
+table.cmp td,table.cmp th{border:1px solid var(--line);padding:3px 7px;text-align:right;white-space:nowrap}
+table.cmp th{color:var(--cy);background:#07122a}
+table.cmp td:first-child,table.cmp th:first-child{text-align:left}
+.bottom{max-width:1650px;margin:0 auto;padding:0 14px 30px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.bottom .card{margin:0}
+.thtabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.thtabs .btn{padding:3px 9px;font-size:12.5px}
+.thtabs .btn.sel{border-color:var(--cy);background:#0e3a55}
+.thtabs .btn.hl::after{content:" ●";color:var(--ye)}
+.task{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+.task h3{font-size:14px}
+.done{color:var(--gr);font-size:12px;margin-left:6px}
+@media(max-width:1150px){.grid{grid-template-columns:300px minmax(0,1fr)}#analysis{grid-column:1/-1}}
+@media(max-width:760px){
+  .grid{grid-template-columns:1fr}#viz{order:1}#analysis{order:2}#controls{order:3}
+  .bottom{grid-template-columns:1fr}.cv-chart{height:250px}.cv-chart2{height:230px}header{position:static}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>热力学第二定律与化学平衡交互模拟器</h1>
+    <p class="sub">提出假设 → 调节参数 → 观察结果 → 解释机制 → 工程决策。所有数值、图表与文字均来自同一份状态数据。</p>
+  </div>
+  <nav aria-label="模块切换">
+    <button class="tab active" data-mod="1" type="button">模块一 · 自发性与 ΔG°</button>
+    <button class="tab" data-mod="2" type="button">模块二 · 合成氨平衡</button>
+    <button class="tab" data-mod="3" type="button">模块三 · 熵增与扩散</button>
+    <button class="btn warn" id="btnReset" type="button">↺ 重置当前模块</button>
+  </nav>
+</header>
+
+<main class="grid">
+  <section id="controls" aria-label="参数控制区">
+    <div class="card" data-m="1">
+      <h2>参数控制 · 吉布斯自由能</h2>
+      <div id="sl1"></div>
+      <div class="note">预设案例（近似标准数据，仅作示意）</div>
+      <div class="row" id="presets1"></div>
+      <div class="row"><button class="btn" id="rnd1" type="button">🎲 随机案例</button><button class="btn calcbtn" type="button">显示计算过程</button></div>
+    </div>
+    <div class="card" data-m="2" hidden>
+      <h2>参数控制 · 哈伯法合成氨</h2>
+      <div class="note" style="margin-bottom:8px">N₂ + 3H₂ ⇌ 2NH₃（理想气体，p° = 1 bar）</div>
+      <div id="sl2"></div>
+      <div class="ctl ye">
+        <div class="ctl-h"><label for="vmode">惰性气体加入条件</label></div>
+        <select id="vmode"><option value="p">定压：总压 P 固定（惰性气体稀释，等效降低分压）</option><option value="v">定容：体积与温度固定（反应物分压不变）</option></select>
+        <div class="note">定容时，P 表示不含惰性气体时反应气体的初始压力。</div>
+      </div>
+      <label class="chk"><input type="checkbox" id="cat" checked> 启用催化剂（仅影响速率，不改变 K）</label>
+      <div class="ctl ye"><div class="ctl-h"><label for="spd">动画时间加速（定性）</label></div>
+        <select id="spd"><option value="1">×1</option><option value="10">×10</option><option value="100">×100</option></select></div>
+      <div class="note">预设工况</div>
+      <div class="row" id="presets2"></div>
+      <div class="row"><button class="btn" id="restart2" type="button">▶ 从初始组成重播</button><button class="btn calcbtn" type="button">显示计算过程</button></div>
+    </div>
+    <div class="card" data-m="3" hidden>
+      <h2>参数控制 · 粒子扩散</h2>
+      <div id="sl3"></div>
+      <div class="ctl"><div class="ctl-h"><label for="gsel">统计网格</label><span class="unit">列 × 行（容器 2:1）</span></div>
+        <select id="gsel"><option value="4">4 × 2</option><option value="8" selected>8 × 4</option><option value="12">12 × 6</option><option value="16">16 × 8</option></select></div>
+      <div class="ctl"><div class="ctl-h"><label for="nsel">反转时的速度扰动</label></div>
+        <select id="nsel"><option value="0">无扰动（理想反转）</option><option value="0.001">0.1%</option><option value="0.01">1%</option><option value="0.05">5%</option></select></div>
+      <div class="row">
+        <button class="btn" id="b3start" type="button">▶ 开始扩散</button>
+        <button class="btn" id="b3pause" type="button">⏸ 暂停</button>
+        <button class="btn" id="b3step" type="button">单步 +10</button>
+        <button class="btn" id="b3reset" type="button">↺ 重新开始</button>
+      </div>
+      <div class="row">
+        <button class="btn warn" id="b3rev" type="button">⟲ 尝试逆过程（反转全部速度）</button>
+        <button class="btn" id="b3samp" type="button">🎲 随机采样 2000 次</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="viz" aria-label="动态可视化区">
+    <div data-m="1">
+      <div class="card"><h3>ΔG°–T 曲线 <small>绿色 ΔG°&lt;0，红色 ΔG°&gt;0</small></h3><canvas id="c1" class="cv-chart" role="img" aria-label="ΔG°随温度变化曲线"></canvas></div>
+      <div class="card"><h3>示意：A ⇌ B 平衡分布 <small id="p1cap"></small></h3><canvas id="p1" class="cv-part" role="img" aria-label="粒子示意"></canvas>
+        <div class="legend"><span><i style="background:#60a5fa"></i>A</span><span><i style="background:#4ade80"></i>B</span><span>示意模型：Δν=0 的 A⇌B，B 占比 = K/(1+K)</span></div></div>
+    </div>
+    <div data-m="2" hidden>
+      <div class="card"><h3>反应器粒子 <small id="prog2"></small></h3><canvas id="p2" class="cv-part" role="img" aria-label="反应器粒子"></canvas>
+        <div class="legend"><span><i style="background:#60a5fa"></i>N₂</span><span><i style="background:#e0f2fe"></i>H₂</span><span><i style="background:#4ade80"></i>NH₃</span><span><i style="background:#94a3b8"></i>惰性</span><span>动画速度为定性示意，不代表真实速率或平衡时间</span></div></div>
+      <div class="card"><h3>平衡组成（摩尔分数 y）</h3><canvas id="cbar" class="cv-bar" role="img" aria-label="平衡组成"></canvas></div>
+      <div class="card"><h3>平衡指标曲线 <small>每个点均为实际求解结果</small></h3>
+        <div class="row" style="margin-top:0"><label for="axsel">横轴变量：</label><select id="axsel"><option value="T">温度 T</option><option value="P">总压 P</option></select></div>
+        <canvas id="cA" class="cv-chart2" role="img" aria-label="平衡指标曲线"></canvas></div>
+      <div class="card"><h3>合成氨工艺决策 <small>热力学最有利 ≠ 工业最优</small></h3>
+        <p class="note" style="margin-top:0">目标：在给定组成下提高 NH₃ 平衡含量，同时兼顾速率、设备能力、催化剂性能、循环流程与能耗。保存两组参数，并排比较。</p>
+        <div class="row"><button class="btn" id="saveA" type="button">保存当前为方案 A</button><button class="btn" id="saveB" type="button">保存当前为方案 B</button><button class="btn sm" id="clrAB" type="button">清空</button></div>
+        <div id="schemeBox"></div></div>
+    </div>
+    <div data-m="3" hidden>
+      <div class="card"><h3>孤立容器中的粒子 <small id="st3"></small></h3><canvas id="c3" class="cv-ent" role="img" aria-label="粒子扩散"></canvas>
+        <div class="legend"><span><i style="background:#22d3ee"></i>粒子</span><span>青色区域 = 初始集中区（容器左侧 25%）；虚线 = 统计网格</span></div></div>
+      <div class="card"><h3>网格分布熵随时间 <small>H = −Σpᵢ ln pᵢ，Hmax = ln(网格数)</small></h3><canvas id="cEnt" class="cv-hist" role="img" aria-label="分布熵时间序列"></canvas></div>
+    </div>
+  </section>
+
+  <aside id="analysis" aria-label="实时分析区">
+    <div data-m="1"><div class="card"><h2>实时结果</h2><div id="an1"></div></div>
+      <div class="card"><h2>当前探究任务</h2><p class="note" style="margin:0">任务一：温度如何改变反应的自发性？先预测，再在下方“探究任务”中查看计算结果。<a href="#task1">前往任务一</a></p></div></div>
+    <div data-m="2" hidden><div class="card"><h2>实时结果</h2><div id="an2"></div></div>
+      <div class="card"><h2>当前探究任务</h2><p class="note" style="margin:0">任务二：为什么合成氨不能只追求低温和高压？<a href="#task2">前往任务二</a></p></div></div>
+    <div data-m="3" hidden><div class="card"><h2>实时结果</h2><div id="an3"></div></div>
+      <div class="card"><h2>当前探究任务</h2><p class="note" style="margin:0">任务三：为什么粒子扩散后更难自发恢复初始状态？<a href="#task3">前往任务三</a></p></div></div>
+  </aside>
+</main>
+
+<div class="bottom">
+  <section class="card" id="theory"><h2>核心理论 <small class="note">带 ● 的卡片与当前模拟状态相关</small></h2>
+    <div class="thtabs" id="thTabs"></div><div id="thBody"></div></section>
+  <section class="card" id="tasks"><h2>探究任务</h2>
+    <p class="note" style="margin-top:0">学习记录仅保存在本机浏览器（localStorage），不上传任何数据。<button class="btn sm" id="clrProg" type="button">清除学习记录</button> <span id="stMsg"></span></p>
+    <div id="taskList"></div></section>
+</div>
+
+<script>
+'use strict';
+/* ==========================================================================
+ * 1. 常量、状态与通用工具
+ * ========================================================================== */
+const R = 8.314462618, TREF = 298.15, P0 = 1, KB = 1.380649e-23;   // J/(mol·K)、K、bar、J/K
+const $ = id => document.getElementById(id);
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const f = (x, d = 2) => Number.isFinite(x) ? x.toFixed(d) : '—';
+const gauss = () => Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(6.2831853 * Math.random());
+
+/** 科学计数法（HTML 上标）；非有限值显示“—”，避免 NaN/Infinity 出现在界面 */
+function sci(x, d = 2) {
+  if (!Number.isFinite(x)) return '—'; if (x === 0) return '0';
+  const e = Math.floor(Math.log10(Math.abs(x)));
+  return (e >= -3 && e <= 4) ? x.toPrecision(4) : (x / Math.pow(10, e)).toFixed(d) + '×10<sup>' + e + '</sup>';
+}
+/** 由 ln K 显示 K：先转为以 10 为底的指数，避免 exp 溢出 */
+function fK(lnK) {
+  if (!Number.isFinite(lnK)) return '—';
+  const l = lnK / Math.LN10; if (Math.abs(l) < 4) return Math.exp(lnK).toPrecision(4);
+  const e = Math.floor(l); return Math.pow(10, l - e).toFixed(2) + '×10<sup>' + e + '</sup>';
+}
+const DEF1 = { T: 298, H: -100, S: -200 };
+const DEF2 = { Tc: 450, P: 150, r: 3, a: 0, i: 0, cat: true, vmode: false };
+const DEF3 = { N: 200, G: 8, speed: 2, noise: 0 };
+const S = { mod: 1, calc: false, spd: 1, m1: { ...DEF1 }, m2: { ...DEF2 }, m3: { ...DEF3 }, sel: 'gibbs', hl: 'gibbs', schemes: { A: null, B: null } };
+
+/* 合并频繁的界面更新：同一帧内多次调用只刷新一次 */
+let pending = false;
+function schedule() { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; update(); }); }
+
+/* ==========================================================================
+ * 2. 控件工厂（滑块 + 数值框双向联动，含非法输入提示）
+ * ========================================================================== */
+const ctls = [];
+function mkCtl(host, obj, key, o) {
+  const d = document.createElement('div'); d.className = 'ctl' + (o.ye ? ' ye' : '');
+  const id = 'in_' + Math.random().toString(36).slice(2, 7);
+  d.innerHTML = '<div class="ctl-h"><label for="' + id + '">' + o.label + '</label><span class="unit">' + o.unit +
+    '</span><button type="button" class="tip" aria-label="变量说明">?</button></div><div class="tiptext" hidden>' + o.tip +
+    '</div><div class="ctl-b"><input type="range" aria-label="' + o.label + '滑块"><input type="number" id="' + id + '"></div><div class="warnmsg" hidden></div>';
+  const [rg, nb] = d.querySelectorAll('input'), msg = d.querySelector('.warnmsg'), tip = d.querySelector('.tiptext');
+  [rg, nb].forEach(e => { e.min = o.min; e.max = o.max; e.step = o.step; });
+  d.querySelector('.tip').onclick = () => { tip.hidden = !tip.hidden; };
+  const sync = () => { rg.value = obj[key]; nb.value = (+obj[key]).toFixed(o.dec); };
+  const apply = v => { const old = obj[key]; obj[key] = v; sync(); onParam(obj, key, old); schedule(); };
+  rg.oninput = () => { msg.hidden = true; apply(+rg.value); };
+  nb.onchange = () => {
+    let v = parseFloat(nb.value);
+    if (!Number.isFinite(v)) { msg.textContent = '输入无效，已恢复为 ' + obj[key]; msg.hidden = false; sync(); return; }
+    if (v < o.min || v > o.max) { msg.textContent = '超出允许范围 ' + o.min + '–' + o.max + '，已自动修正'; msg.hidden = false; v = clamp(v, o.min, o.max); } else msg.hidden = true;
+    apply(v);
+  };
+  host.appendChild(d); ctls.push(sync); sync();
+}
+const syncAll = () => ctls.forEach(s => s());
+
+mkCtl($('sl1'), S.m1, 'T', { label: '温度 T', unit: 'K', min: 0, max: 1000, step: 1, dec: 0, ye: true, tip: 'T = 0 K 是模型边界：涉及 1/T 与 ln K 的量无定义，程序不予计算，也不代表常规实验条件。' });
+mkCtl($('sl1'), S.m1, 'H', { label: '标准反应焓变 ΔH°', unit: 'kJ·mol⁻¹', min: -200, max: 200, step: 0.1, dec: 1, tip: 'ΔH°<0 放热，焓项有利于正向；内部换算为 J·mol⁻¹。' });
+mkCtl($('sl1'), S.m1, 'S', { label: '标准反应熵变 ΔS°', unit: 'J·mol⁻¹·K⁻¹', min: -400, max: 400, step: 0.5, dec: 1, tip: 'ΔS°>0 混乱度增大，熵项 −TΔS° 随温度升高越来越有利。' });
+mkCtl($('sl2'), S.m2, 'Tc', { label: '温度 T', unit: '℃（内部换算为 K）', min: 250, max: 800, step: 1, dec: 0, ye: true, tip: '放热反应升温使 K 减小，但反应速率通常增大：这是工程折中的核心。' });
+mkCtl($('sl2'), S.m2, 'P', { label: '总压 P', unit: 'bar', min: 1, max: 300, step: 1, dec: 0, ye: true, tip: '气体分子数 4→2，加压使平衡向 NH₃ 方向移动；压力越高，设备与压缩成本越高。' });
+mkCtl($('sl2'), S.m2, 'r', { label: '初始 H₂/N₂ 摩尔比', unit: '（化学计量比 3）', min: 0.5, max: 6, step: 0.1, dec: 1, tip: '仅指 H₂ 与 N₂ 之间的比例。' });
+mkCtl($('sl2'), S.m2, 'a', { label: '初始 NH₃ 摩尔分数', unit: '%', min: 0, max: 60, step: 1, dec: 0, tip: '初始含 NH₃ 时，反应可能正向也可能逆向，取决于 Q₀ 与 K。' });
+mkCtl($('sl2'), S.m2, 'i', { label: '初始惰性气体比例', unit: '%（扩展功能）', min: 0, max: 50, step: 1, dec: 0, tip: '惰性气体物质的量已计入总量；定压与定容的影响不同，见下方选项。' });
+mkCtl($('sl3'), S.m3, 'N', { label: '粒子数 N', unit: '个', min: 2, max: 600, step: 1, dec: 0, tip: '移动端建议 ≤ 300。N 越小，分布熵的涨落越明显。' });
+mkCtl($('sl3'), S.m3, 'speed', { label: '模拟速度', unit: '步/帧', min: 1, max: 8, step: 1, dec: 0, ye: true, tip: '每帧推进的固定时间步数；不改变物理结果，只改变观察节奏。' });
+
+/* ==========================================================================
+ * 3. 模块一：ΔG°、ln K、范特霍夫
+ * ========================================================================== */
+/** 标准反应吉布斯自由能 ΔG° = ΔH° − TΔS°；输入 kJ/mol、K、J/(mol·K)，返回 kJ/mol（J 与 kJ 仅在此处换算） */
+function calculateDeltaG(H_kJ, T, dS) { return (H_kJ * 1000 - T * dS) / 1000; }
+/** 实际反应吉布斯自由能 ΔG = ΔG° + RT ln Q（kJ/mol）；ln Q 不是有限数时返回 −Infinity/+Infinity 的符号信息 */
+function calculateActualDeltaG(dG0_kJ, T, lnQv) { return dG0_kJ + R * T * lnQv / 1000; }
+/** ln K = −ΔG°/(RT)；T≤0 无定义返回 null。只算 ln K，不直接 exp，避免溢出 */
+function calculateLnK(dG0_kJ, T) { return T > 0 ? -(dG0_kJ * 1000) / (R * T) : null; }
+
+function calc1() {
+  const { T, H, S: dS } = S.m1, dG = calculateDeltaG(H, T, dS);
+  return { T, H, dS, dG, lnK: calculateLnK(dG, T), Tstar: dS !== 0 ? H * 1000 / dS : null };
+}
+let C1 = null;
+function render1(c) {
+  const near = Math.abs(c.dG) < 0.5; let st, cls;
+  if (near) { st = '◎ ΔG° ≈ 0（|ΔG°|<0.5 kJ·mol⁻¹）：正逆向倾向接近，K≈1'; cls = 'warn'; }
+  else if (c.dG < 0) { st = '✔ ΔG°<0：标准态下正向反应具有热力学倾向'; cls = 'ok'; }
+  else { st = '✘ ΔG°>0：标准态下正向反应无热力学倾向（逆向更有利）'; cls = 'bad'; }
+  const sTerm = -c.T * c.dS / 1000; let kind;
+  if (c.H < 0 && c.dS > 0) kind = 'ΔH°<0、ΔS°>0：焓、熵两个因素<b>均有利</b>于正向。';
+  else if (c.H > 0 && c.dS < 0) kind = 'ΔH°>0、ΔS°<0：两个因素<b>均不利</b>于正向。';
+  else if (c.H < 0 && c.dS < 0) kind = 'ΔH°<0、ΔS°<0：<b>低温</b>更有利于正向；T 超过 T* 后熵项占优转为不利。';
+  else if (c.H > 0 && c.dS > 0) kind = 'ΔH°>0、ΔS°>0：<b>高温</b>更有利于正向；T 超过 T* 后熵项占优转为有利。';
+  else if (c.dS === 0) kind = 'ΔS°=0：ΔG°=ΔH°，与温度无关，曲线为水平线。'; else kind = 'ΔH°=0：方向完全由熵项 −TΔS° 决定。';
+  let ts;
+  if (c.Tstar === null) ts = 'ΔS°=0，不存在有限的交叉温度 T*。';
+  else if (c.Tstar > 0 && c.Tstar <= 1000) ts = 'T* = ΔH°/ΔS° = <span class="yev">' + f(c.Tstar, 1) + ' K</span>；当前 T ' + (c.T < c.Tstar ? '低于' : c.T > c.Tstar ? '高于' : '等于') + ' T*。';
+  else ts = 'T* = ' + f(c.Tstar, 0) + ' K 不在 0–1000 K 内：<b>当前范围内未出现自发性倾向的转换</b>。';
+  const ins = (c.Tstar > 0 && c.Tstar <= 1000) ? (c.H < 0 ? '放热熵减反应（如合成氨）温度过高会使热力学倾向反转。' : '吸热熵增反应需把温度提高到 T* 以上才有热力学倾向。') : '热力学倾向只回答“能否”，速率、选择性与能耗要另行评估。';
+  $('an1').innerHTML =
+    '<div class="kv"><span>温度 T</span><span class="cyv">' + c.T + ' K</span><span>ΔH°</span><span class="cyv">' + f(c.H, 1) + ' kJ·mol⁻¹</span>' +
+    '<span>ΔS°</span><span class="cyv">' + f(c.dS, 1) + ' J·mol⁻¹·K⁻¹</span>' +
+    '<span>ΔG° = ΔH° − TΔS°</span><span class="' + (near ? 'yev' : c.dG < 0 ? 'grv' : 'rdv') + '">' + f(c.dG, 2) + ' kJ·mol⁻¹</span>' +
+    '<span>ln K</span><span class="cyv">' + (c.lnK === null ? '未定义（T=0）' : f(c.lnK, 3)) + '</span>' +
+    '<span>K（标准态，无量纲）</span><span class="cyv">' + (c.lnK === null ? '未定义' : fK(c.lnK)) + '</span></div>' +
+    '<div class="status ' + cls + '">' + st + '</div>' +
+    (c.T === 0 ? '<div class="box rd"><b>模型边界：</b>T=0 K 时不计算 ln K 与 K，仅作理论端点，并非常规实验条件。</div>' : '') +
+    '<div class="box">' + kind + '<br>焓项 ΔH° = ' + f(c.H, 1) + ' kJ，熵项 −TΔS° = ' + f(sTerm, 1) + ' kJ → ΔG° = ' + f(c.dG, 1) + ' kJ·mol⁻¹。</div>' +
+    '<div class="box">' + ts + '</div><div class="box ye">工程启示：' + ins + '</div>' +
+    '<div class="box rd"><b>注意：</b>ΔG° 是标准态量。实际方向由 ΔG = ΔG° + RT ln Q 决定；ΔG°&lt;0 不等于任意组成下都自发，K 的大小也不表示当前已达平衡。</div>' +
+    (S.calc ? '<div class="calc">ΔH° = ' + f(c.H, 1) + ' kJ = ' + f(c.H * 1000, 0) + ' J·mol⁻¹\nTΔS° = ' + c.T + ' × ' + f(c.dS, 1) + ' = ' + f(c.T * c.dS, 1) + ' J·mol⁻¹\n' +
+      'ΔG° = ' + f(c.H * 1000, 0) + ' − (' + f(c.T * c.dS, 1) + ') = ' + f(c.dG * 1000, 1) + ' J = ' + f(c.dG, 3) + ' kJ·mol⁻¹\n' +
+      (c.lnK === null ? 'ln K：T=0，不计算\n' : 'ln K = −ΔG°/(RT) = ' + f(-c.dG * 1000, 1) + '/(8.3145×' + c.T + ') = ' + f(c.lnK, 4) + '\n') +
+      (c.Tstar === null ? 'T*：ΔS°=0，无定义' : 'T* = ΔH°/ΔS° = ' + f(c.H * 1000, 0) + '/' + f(c.dS, 1) + ' = ' + f(c.Tstar, 2) + ' K') + '</div>' : '');
+}
+
+/* ==========================================================================
+ * 4. 通用折线图（Canvas）
+ * ========================================================================== */
+function prep(cv) {
+  const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1, w = Math.max(10, r.width), h = Math.max(10, r.height);
+  if (cv.width !== Math.round(w * d) || cv.height !== Math.round(h * d)) { cv.width = Math.round(w * d); cv.height = Math.round(h * d); }
+  const g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); return { g, w, h };
+}
+function ticks(a, b, n) {
+  const raw = (b - a) / n, p = Math.pow(10, Math.floor(Math.log10(raw))), fr = raw / p, s = (fr < 1.5 ? 1 : fr < 3 ? 2 : fr < 7 ? 5 : 10) * p, out = [];
+  for (let v = Math.ceil(a / s - 1e-9) * s; v <= b + 1e-9; v += s) out.push(+v.toFixed(10)); return { vals: out, step: s };
+}
+function plot(cv, o) {
+  const { g, w, h } = prep(cv); g.clearRect(0, 0, w, h);
+  const m = { l: 56, r: 14, t: 30, b: 42 }, pw = w - m.l - m.r, ph = h - m.t - m.b;
+  const X = x => m.l + (x - o.x0) / (o.x1 - o.x0) * pw, Y = y => m.t + (1 - (y - o.y0) / (o.y1 - o.y0)) * ph;
+  g.font = '12px sans-serif';
+  if (o.shade) for (let px = 0; px < pw; px += 2) { const c = o.shade(o.x0 + (px + 1) / pw * (o.x1 - o.x0)); if (c) { g.fillStyle = c; g.fillRect(m.l + px, m.t, 2.5, ph); } }
+  g.strokeStyle = '#13294d'; g.fillStyle = '#8fb0d8'; g.lineWidth = 1;
+  const tx = ticks(o.x0, o.x1, 6), ty = ticks(o.y0, o.y1, 5), dx = Math.max(0, -Math.floor(Math.log10(tx.step))), dy = Math.max(0, -Math.floor(Math.log10(ty.step)));
+  g.textAlign = 'center'; tx.vals.forEach(v => { g.beginPath(); g.moveTo(X(v), m.t); g.lineTo(X(v), m.t + ph); g.stroke(); g.fillText(v.toFixed(dx), X(v), m.t + ph + 15); });
+  g.textAlign = 'right'; ty.vals.forEach(v => { g.beginPath(); g.moveTo(m.l, Y(v)); g.lineTo(m.l + pw, Y(v)); g.stroke(); g.fillText(v.toFixed(dy), m.l - 6, Y(v) + 4); });
+  g.save(); g.beginPath(); g.rect(m.l, m.t, pw, ph); g.clip();
+  (o.hlines || []).forEach(l => { g.strokeStyle = l.color; g.setLineDash(l.dash || []); g.lineWidth = 1.3; g.beginPath(); g.moveTo(m.l, Y(l.y)); g.lineTo(m.l + pw, Y(l.y)); g.stroke(); });
+  (o.series || []).forEach(s => {   // 非有限数据点被跳过，避免无意义的曲线
+    g.setLineDash(s.dash || []); g.strokeStyle = s.color; g.lineWidth = s.w || 1.6; g.beginPath(); let pen = false;
+    s.pts.forEach(p => { if (!Number.isFinite(p[0]) || !Number.isFinite(p[1])) { pen = false; return; } pen ? g.lineTo(X(p[0]), Y(p[1])) : g.moveTo(X(p[0]), Y(p[1])); pen = true; }); g.stroke();
+  });
+  (o.vlines || []).forEach(l => { g.setLineDash(l.dash || []); g.strokeStyle = l.color; g.lineWidth = l.w || 1.3; g.beginPath(); g.moveTo(X(l.x), m.t); g.lineTo(X(l.x), m.t + ph); g.stroke(); });
+  g.restore(); g.setLineDash([]);
+  (o.vlines || []).forEach((l, k) => { if (!l.label) return; g.fillStyle = l.color; const rt = X(l.x) > m.l + pw * 0.65; g.textAlign = rt ? 'right' : 'left'; g.fillText(l.label, X(l.x) + (rt ? -5 : 5), m.t + 13 + k * 13); });
+  (o.points || []).forEach(p => {
+    if (!Number.isFinite(p.y)) return; g.fillStyle = p.color; g.beginPath(); g.arc(X(p.x), clamp(Y(p.y), m.t, m.t + ph), 5, 0, 7); g.fill();
+    if (p.label) { const rt = X(p.x) > m.l + pw * 0.55; g.textAlign = rt ? 'right' : 'left'; g.fillText(p.label, X(p.x) + (rt ? -9 : 9), clamp(Y(p.y) + (p.dy || -9), m.t + 30, m.t + ph - 4)); }
+  });
+  g.strokeStyle = '#2a528a'; g.strokeRect(m.l, m.t, pw, ph);
+  g.fillStyle = '#cfe3ff'; g.textAlign = 'center'; g.fillText(o.xl, m.l + pw / 2, h - 6);
+  g.save(); g.translate(13, m.t + ph / 2); g.rotate(-Math.PI / 2); g.fillText(o.yl, 0, 0); g.restore();
+  let lx = m.l; g.textAlign = 'left'; (o.legend || []).forEach(l => { g.fillStyle = l.c; g.fillRect(lx, 8, 10, 10); g.fillStyle = '#cfe3ff'; g.fillText(l.t, lx + 14, 17); lx += 22 + g.measureText(l.t).width; });
+}
+function updateThermodynamicChart(c) {
+  const m = S.m1, at = T => calculateDeltaG(m.H, T, m.S), ends = [at(0), at(1000)];
+  let lo = Math.min(0, ...ends), hi = Math.max(0, ...ends); const pad = Math.max(20, (hi - lo) * 0.12); lo -= pad; hi += pad;
+  const pts = []; for (let T = 0; T <= 1000; T += 10) pts.push([T, at(T)]);
+  const o = { x0: 0, x1: 1000, y0: lo, y1: hi, xl: '温度 T / K', yl: 'ΔG° / kJ·mol⁻¹',
+    shade: x => { const g = at(x); return Math.abs(g) < 1e-9 ? null : g < 0 ? 'rgba(74,222,128,.11)' : 'rgba(248,113,113,.11)'; },
+    hlines: [{ y: 0, color: '#9ec5f0', dash: [5, 4] }], series: [{ pts, color: '#22d3ee', w: 2.6 }], vlines: [{ x: m.T, color: 'rgba(250,204,21,.6)', w: 1 }],
+    points: [{ x: m.T, y: c.dG, color: '#facc15', label: 'ΔG° = ' + f(c.dG, 1) + ' kJ/mol', dy: c.dG < 0 ? 22 : -10 }],
+    legend: [{ c: '#4ade80', t: 'ΔG°<0 ✔' }, { c: '#f87171', t: 'ΔG°>0 ✘' }, { c: '#22d3ee', t: 'ΔG°(T)' }, { c: '#facc15', t: '当前 T / T*' }] };
+  if (c.Tstar !== null && c.Tstar > 0 && c.Tstar <= 1000) o.vlines.push({ x: c.Tstar, color: '#facc15', dash: [4, 4], label: 'T* = ' + f(c.Tstar, 0) + ' K' });
+  plot($('c1'), o);
+}
+
+/* ==========================================================================
+ * 5. 模块二：合成氨平衡
+ * ========================================================================== */
+// 298.15 K 数据（按 N2 + 3H2 → 2NH3 计量）：ΔH° = −92.2 kJ/mol；ΔG° ≈ 2×ΔfG°(NH3) ≈ −32.8 kJ/mol
+const DH298 = -92200, DG298 = -32800;                       // J·mol⁻¹
+const LNK_REF = calculateLnK(DG298 / 1000, TREF);           // ln Kref ≈ 13.23，Kref ≈ 5.6×10⁵
+const DS298 = (DH298 - DG298) / TREF;                       // ≈ −199 J·mol⁻¹·K⁻¹（文献 ≈ −198.7）
+/** 范特霍夫方程：ln K(T) = ln Kref − (ΔH°/R)(1/T − 1/Tref)，ΔH° 取 J·mol⁻¹，T 取 K，ΔH° 视为常数 */
+function calculateVanthoffK(T) { return LNK_REF - (DH298 / R) * (1 / T - 1 / TREF); }
+
+/** 初始组成（物质的量）。定压：以 1 mol 总气体为基准；定容：以 1 mol 反应气体为基准，惰性气体额外加入 */
+function makeN0(p) {
+  const a = p.a / 100;
+  if (p.vmode) { const i = Math.min(p.i / 100, 0.95), nN = (1 - a) / (1 + p.r); return { N2: nN, H2: p.r * nN, NH3: a, In: i / (1 - i), v: true, clamped: false }; }
+  const ii = Math.max(0, Math.min(p.i / 100, 0.95 - a)), nN = (1 - a - ii) / (1 + p.r);
+  return { N2: nN, H2: p.r * nN, NH3: a, In: ii, v: false, clamped: p.i / 100 > ii + 1e-9 };
+}
+/**
+ * ln Q，Q = (pNH3/p°)² / [(pN2/p°)(pH2/p°)³]，压力比无量纲。
+ * 定压：p_i = (n_i/n总)·P，n总 含惰性气体；定容：p_i = P·n_i/n反应基准(=1)，惰性气体不改变反应组分分压。
+ */
+function lnQ(xi, n0, P) {
+  const nN = n0.N2 - xi, nH = n0.H2 - 3 * xi, nA = n0.NH3 + 2 * xi;
+  if (nA <= 0) return -Infinity; if (nN <= 0 || nH <= 0) return Infinity;
+  const nt = n0.v ? 1 : nN + nH + nA + n0.In;
+  return 2 * Math.log(nA / nt) - Math.log(nN / nt) - 3 * Math.log(nH / nt) - 2 * Math.log(P / P0);
+}
+/** 有界二分法解 ln Q(ξ) = ln K。ξ ∈ [−n(NH3,0)/2, min(nN2,0, nH2,0/3)] 保证各组分非负；ln Q 对 ξ 严格单调递增，故根唯一 */
+function solveEquilibriumExtent(n0, P, lnK) {
+  const lo0 = -n0.NH3 / 2, hi0 = Math.min(n0.N2, n0.H2 / 3); let lo = lo0, hi = hi0, it = 0;
+  while (hi - lo > 1e-15 && it < 300) { const mid = (lo + hi) / 2; if (lnQ(mid, n0, P) - lnK < 0) lo = mid; else hi = mid; it++; }
+  const xi = (lo + hi) / 2, res = lnQ(xi, n0, P) - lnK;
+  return { xi, lo0, hi0, it, res, conv: Math.abs(res) < 1e-8 };
+}
+function comp(xi, n0) {
+  const N2 = Math.max(0, n0.N2 - xi), H2 = Math.max(0, n0.H2 - 3 * xi), NH3 = Math.max(0, n0.NH3 + 2 * xi), In = n0.In, nt = N2 + H2 + NH3 + In;
+  return { N2, H2, NH3, In, nt, y: [N2 / nt, H2 / nt, NH3 / nt, In / nt] };
+}
+/** 平衡组成与指标：y(NH3)、N2 平衡转化率 X = ξ/n(N2,0)（负值表示净生成 N2） */
+function calculateEquilibriumComposition(n0, P, T) {
+  const lnK = calculateVanthoffK(T), sol = solveEquilibriumExtent(n0, P, lnK), cp = comp(sol.xi, n0);
+  return { lnK, sol, cp, X: sol.xi / n0.N2, yNH3: cp.y[2] };
+}
+const eqAt = (Tc, P, n0) => calculateEquilibriumComposition(n0, P, Tc + 273.15);
+
+let C2 = null;
+function calc2() {
+  const p = S.m2, T = p.Tc + 273.15, n0 = makeN0(p), e = calculateEquilibriumComposition(n0, p.P, T), cp = e.cp, y0 = comp(0, n0).y;
+  const dG0 = -R * T * e.lnK / 1000, lq0 = lnQ(0, n0, p.P);
+  const pp = n0.v ? [cp.N2, cp.H2, cp.NH3, cp.In].map(n => n * p.P) : cp.y.map(y => y * p.P);
+  const Ptot = n0.v ? p.P * cp.nt : p.P;
+  const nCons = Math.abs((2 * cp.N2 + cp.NH3) - (2 * n0.N2 + n0.NH3)), hCons = Math.abs((2 * cp.H2 + 3 * cp.NH3) - (2 * n0.H2 + 3 * n0.NH3));
+  C2 = { p, T, n0, e, cp, y0, dG0, lq0, dGinit: Number.isFinite(lq0) ? calculateActualDeltaG(dG0, T, lq0 - e.lnK) - dG0 + 0 : -Infinity, pp, Ptot, nCons, hCons };
+  // ΔG = RT ln(Q/K) = RT(ln Q − ln K)
+  C2.dGinit = Number.isFinite(lq0) ? R * T * (lq0 - e.lnK) / 1000 : -Infinity;
+  return C2;
+}
+/** 教学提示卡（温度/压力/催化剂）：数值取自实际求解，避免结论与图表矛盾 */
+function tipCards(c) {
+  const p = c.p, n0 = c.n0, y = c.cp.y[2] * 100, g = (Tc, P) => eqAt(clamp(Tc, 250, 800), clamp(P, 1, 300), n0).yNH3 * 100;
+  const tLo = clamp(p.Tc - 50, 250, 800), tHi = clamp(p.Tc + 50, 250, 800), pLo = clamp(Math.round(p.P / 1.5), 1, 300), pHi = clamp(Math.round(p.P * 1.5), 1, 300);
+  const tHint = p.Tc < 350 ? '该温度下热力学有利，但达到平衡可能明显变慢。' : p.Tc > 600 ? '该温度下速率通常较高，但 K 已明显降低，平衡含量偏低。' : '处于工业常见温区附近：需折中平衡与速率。';
+  const pHint = p.P > 250 ? '平衡有利，但设备强度、压缩功、密封、安全与投资成本显著增加。' : p.P < 30 ? '压力偏低，气体物质的量减少的优势未发挥。' : '需与压缩功及设备成本一起评估。';
+  return '<div class="box ye"><b>温度：</b>' + tLo + '℃ → ' + tHi + '℃，y(NH₃) 由 ' + f(g(tLo, p.P), 1) + '% 变为 ' + f(g(tHi, p.P), 1) + '%（放热反应，升温 K 减小）。降温平衡更有利但速率降低；升温速率通常增大但平衡不利。' + tHint + '</div>' +
+    '<div class="box ye"><b>压力：</b>' + pLo + ' → ' + pHi + ' bar，y(NH₃) 由 ' + f(g(p.Tc, pLo), 1) + '% 变为 ' + f(g(p.Tc, pHi), 1) + '%。同一温度下标准 K 不变（ln K = ' + f(c.e.lnK, 2) + '），压力通过反应商与组成影响平衡位置。' + pHint + '</div>' +
+    '<div class="box ' + (p.cat ? 'gr' : 'rd') + '"><b>催化剂：</b>' + (p.cat ? '已启用：降低动力学障碍、加快趋近平衡；相同 T、P、初始条件下 K 与最终平衡组成不变（y(NH₃) 仍为 ' + f(y, 2) + '%）。' : '已关闭：平衡组成不变（y(NH₃) 仍为 ' + f(y, 2) + '%），但趋近平衡可能明显变慢。') + '本程序未建立动力学模型，不给出真实速率或平衡时间。</div>' +
+    (p.i > 0 ? '<div class="box ye"><b>惰性气体（' + (n0.v ? '定容' : '定压') + '）：</b>' + (n0.v ? '体积与温度固定时，反应组分分压不变，平衡进度 ξ 不变；但混合气总物质的量增大，y(NH₃) 会被稀释，总压升至 ' + f(c.Ptot, 1) + ' bar。' : '总压固定时，惰性气体占据分压，反应组分分压降低，平衡向气体物质的量增大的一侧移动，不利于生成 NH₃；工业循环回路需要弛放。') + '</div>' : '') +
+    (n0.clamped ? '<div class="box rd">惰性气体比例已限制为 ' + f(n0.In * 100, 0) + '%，以保证反应物总量不低于 5%。</div>' : '');
+}
+function render2(c) {
+  const p = c.p, y = c.cp.y, eq0 = Math.abs(c.e.sol.xi) < 1e-9; let dir, dcls;
+  if (eq0) { dir = '◎ 初始组成已在平衡点（ξ≈0）'; dcls = 'warn'; }
+  else if (c.e.sol.xi > 0) { dir = '✔ 净反应正向进行（生成 NH₃），ξ = ' + sci(c.e.sol.xi, 3) + ' mol'; dcls = 'ok'; }
+  else { dir = '✘ 净反应逆向进行（NH₃ 分解），ξ = ' + sci(c.e.sol.xi, 3) + ' mol'; dcls = 'bad'; }
+  const conv = c.e.sol.conv ? '✔ 已收敛：|ln Q − ln K| = ' + sci(Math.abs(c.e.sol.res), 2) + '（二分 ' + c.e.sol.it + ' 次）' : '⚠ 平衡极度偏向一侧，受双精度限制，残差 ' + sci(Math.abs(c.e.sol.res), 2) + '；结果取区间内最接近端点的值';
+  const minN = Math.min(c.cp.N2, c.cp.H2, c.cp.NH3);
+  const dGi = Number.isFinite(c.dGinit) ? f(c.dGinit, 2) + ' kJ·mol⁻¹' : '−∞（Q₀=0，初始无 NH₃）';
+  $('an2').innerHTML =
+    '<div class="kv"><span>温度 T</span><span class="cyv">' + f(c.T, 2) + ' K（' + p.Tc + ' ℃）</span><span>总压 P' + (c.n0.v ? '（定容初始）' : '') + '</span><span class="cyv">' + p.P + ' bar</span>' +
+    '<span>ln K(T)（范特霍夫）</span><span class="cyv">' + f(c.e.lnK, 3) + '</span><span>K(T)（无量纲）</span><span class="cyv">' + fK(c.e.lnK) + '</span>' +
+    '<span>ΔG°(T) = −RT ln K</span><span class="' + (c.dG0 < 0 ? 'grv' : 'rdv') + '">' + f(c.dG0, 2) + ' kJ·mol⁻¹</span>' +
+    '<span>初始 ΔG = RT ln(Q₀/K)</span><span class="cyv">' + dGi + '</span>' +
+    '<span>y(N₂) 平衡（初始）</span><span class="cyv">' + f(y[0] * 100, 2) + '%（' + f(c.y0[0] * 100, 2) + '%）</span>' +
+    '<span>y(H₂) 平衡（初始）</span><span class="cyv">' + f(y[1] * 100, 2) + '%（' + f(c.y0[1] * 100, 2) + '%）</span>' +
+    '<span>y(NH₃) 平衡（初始）</span><span class="grv">' + f(y[2] * 100, 2) + '%（' + f(c.y0[2] * 100, 2) + '%）</span>' +
+    '<span>Δy(NH₃) = 平衡 − 初始</span><span class="yev">' + f((y[2] - c.y0[2]) * 100, 2) + ' 个百分点</span>' +
+    '<span>N₂ 平衡转化率 X(N₂)</span><span class="grv">' + f(c.e.X * 100, 2) + '%</span>' +
+    '<span>p(NH₃) / p(H₂) / p(N₂)</span><span class="cyv">' + f(c.pp[2], 2) + ' / ' + f(c.pp[1], 2) + ' / ' + f(c.pp[0], 2) + ' bar</span>' +
+    (c.n0.v ? '<span>平衡总压（定容）</span><span class="cyv">' + f(c.Ptot, 2) + ' bar</span>' : '') + '</div>' +
+    '<div class="status ' + dcls + '">' + dir + '</div>' +
+    '<div class="box ' + (c.e.sol.conv ? '' : 'rd') + '">' + conv + '<br>物料守恒：N 原子误差 ' + sci(c.nCons, 1) + '，H 原子误差 ' + sci(c.hCons, 1) + '；最小组分物质的量 ' + sci(minN, 2) + ' ≥ 0 ✔</div>' +
+    '<div class="box"><b>指标定义：</b>y(NH₃) = n(NH₃)/n总，是平衡混合气中的摩尔分数，<b>不是</b>转化率；X(N₂) = ξ/n(N₂,0) = 已转化 N₂ / 初始 N₂。二者均为热力学平衡指标，不等同于工业装置的单程转化率或实际产量。</div>' +
+    tipCards(c) +
+    '<div class="box"><b>模型假设：</b>理想气体、p°=1 bar；ΔH°₂₉₈=−92.2 kJ·mol⁻¹，ΔG°₂₉₈≈−32.8 kJ·mol⁻¹（Kref≈' + fK(LNK_REF) + '），ΔS°₂₉₈≈' + f(DS298, 1) + ' J·mol⁻¹·K⁻¹；ΔH° 取常数。宽温区内热容变化与高压非理想性会引入偏差。求解：二分法，状态：' + (c.e.sol.conv ? '已收敛' : '极端 K') + '。</div>' +
+    (S.calc ? '<div class="calc">ln Kref = −ΔG°₂₉₈/(R·Tref) = 32800/(8.31446×298.15) = ' + f(LNK_REF, 4) + '\n(1/T − 1/Tref) = ' + sci(1 / c.T - 1 / TREF, 4) + ' K⁻¹\n' +
+      'ln K = ln Kref − (ΔH°/R)(1/T − 1/Tref) = ' + f(c.e.lnK, 4) + '\n初始(mol)：N₂=' + f(c.n0.N2, 4) + ' H₂=' + f(c.n0.H2, 4) + ' NH₃=' + f(c.n0.NH3, 4) + ' 惰性=' + f(c.n0.In, 4) + '（' + (c.n0.v ? '定容' : '定压') + '）\n' +
+      'ξ 区间 [' + sci(c.e.sol.lo0, 3) + ', ' + sci(c.e.sol.hi0, 3) + ']，二分得 ξ = ' + sci(c.e.sol.xi, 6) + '\nn总 = ' + f(c.cp.nt, 6) + '；Q = (pNH₃/p°)²/[(pN₂/p°)(pH₂/p°)³]\nln Q − ln K = ' + sci(c.e.sol.res, 3) + '</div>' : '');
+}
+function drawBar(c) {
+  const { g, w, h } = prep($('cbar')); g.clearRect(0, 0, w, h);
+  const names = ['N₂', 'H₂', 'NH₃', '惰性'], cols = ['#60a5fa', '#e0f2fe', '#4ade80', '#94a3b8'], l = 54, rr = 70, bh = (h - 16) / 4;
+  g.font = '12px sans-serif'; g.textBaseline = 'middle';
+  names.forEach((n, k) => { const y = 8 + k * bh, v = c.cp.y[k];
+    g.fillStyle = '#8fb0d8'; g.textAlign = 'right'; g.fillText(n, l - 8, y + bh / 2); g.fillStyle = '#0d1d3d'; g.fillRect(l, y + 4, w - l - rr, bh - 8);
+    g.fillStyle = cols[k]; g.fillRect(l, y + 4, (w - l - rr) * v, bh - 8); g.fillStyle = '#dbeafe'; g.textAlign = 'left'; g.fillText((v * 100).toFixed(2) + '%', w - rr + 8, y + bh / 2); });
+}
+function updateAmmoniaChart(c) {
+  drawBar(c); const p = c.p, n0 = c.n0, axT = $('axsel').value === 'T', series = [], ycur = c.cp.y[2] * 100, xcur = c.e.X * 100; let lo = 0, hi = 10;
+  const track = v => { if (Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } };
+  if (axT) {
+    const cols = ['#64748b', '#a78bfa', '#facc15', '#fb923c']; [1, 50, 150, 300].forEach((P, k) => { const pts = []; for (let Tc = 250; Tc <= 800; Tc += 10) { const v = eqAt(Tc, P, n0).yNH3 * 100; track(v); pts.push([Tc, v]); } series.push({ pts, color: cols[k], w: 1.3, dash: [5, 3] }); });
+    const a = [], b = []; for (let Tc = 250; Tc <= 800; Tc += 5) { const e = eqAt(Tc, p.P, n0); a.push([Tc, e.yNH3 * 100]); b.push([Tc, e.X * 100]); track(e.yNH3 * 100); track(e.X * 100); }
+    series.push({ pts: a, color: '#22d3ee', w: 2.6 }, { pts: b, color: '#4ade80', w: 2, dash: [2, 3] });
+    plot($('cA'), { x0: 250, x1: 800, y0: lo, y1: hi * 1.1, xl: '温度 T / ℃', yl: '指标 / %', series, vlines: [{ x: p.Tc, color: 'rgba(250,204,21,.6)', w: 1 }],
+      points: [{ x: p.Tc, y: ycur, color: '#facc15', label: 'y=' + f(ycur, 1) + '%', dy: -10 }],
+      legend: [{ c: '#22d3ee', t: 'y(NH₃) @' + p.P + ' bar' }, { c: '#4ade80', t: 'X(N₂)' }, { c: '#64748b', t: 'y: 1/50/150/300 bar' }] });
+  } else {
+    const a = [], b = []; for (let P = 1; P <= 300; P += 3) { const e = eqAt(p.Tc, P, n0); a.push([P, e.yNH3 * 100]); b.push([P, e.X * 100]); track(e.yNH3 * 100); track(e.X * 100); }
+    series.push({ pts: a, color: '#22d3ee', w: 2.6 }, { pts: b, color: '#4ade80', w: 2, dash: [2, 3] });
+    plot($('cA'), { x0: 1, x1: 300, y0: lo, y1: hi * 1.1, xl: '总压 P / bar（T = ' + p.Tc + ' ℃）', yl: '指标 / %', series, vlines: [{ x: p.P, color: 'rgba(250,204,21,.6)', w: 1 }],
+      points: [{ x: p.P, y: ycur, color: '#facc15', label: 'y=' + f(ycur, 1) + '%', dy: 18 }], legend: [{ c: '#22d3ee', t: 'y(NH₃)' }, { c: '#4ade80', t: 'X(N₂)' }] });
+  }
+}
+/* 工艺决策：保存两组方案并排比较（定性工程提示，不含虚构成本数值） */
+function saveScheme(k) {
+  const c = C2, p = c.p;
+  S.schemes[k] = { p: { ...p }, lnK: c.e.lnK, y: c.cp.y[2] * 100, X: c.e.X * 100, pN: c.pp[2],
+    pb: p.P < 50 ? '较低' : p.P <= 200 ? '中等' : '较高', th: p.Tc < 350 ? '达到平衡可能明显变慢' : p.Tc > 600 ? '平衡含量显著受限' : '常规催化温区附近' };
+  renderSchemes();
+}
+function renderSchemes() {
+  const A = S.schemes.A, B = S.schemes.B; if (!A && !B) { $('schemeBox').innerHTML = '<p class="note">尚未保存方案。调节参数后点击“保存”。</p>'; return; }
+  const row = (n, fn) => '<tr><td>' + n + '</td><td>' + (A ? fn(A) : '—') + '</td><td>' + (B ? fn(B) : '—') + '</td></tr>';
+  $('schemeBox').innerHTML = '<table class="cmp"><tr><th>项目</th><th>方案 A</th><th>方案 B</th></tr>' +
+    row('温度 / ℃', s => s.p.Tc) + row('总压 / bar', s => s.p.P) + row('H₂/N₂；NH₃₀；惰性 (%)', s => s.p.r + '；' + s.p.a + '；' + s.p.i + (s.p.vmode ? '（定容）' : '')) +
+    row('ln K', s => f(s.lnK, 2)) + row('y(NH₃) / %', s => f(s.y, 2)) + row('X(N₂) / %', s => f(s.X, 2)) + row('p(NH₃) / bar', s => f(s.pN, 2)) +
+    row('压力相关负担（定性）', s => s.pb) + row('温度相关提示（定性）', s => s.th) + '</table>' +
+    '<div class="row"><button class="btn sm" data-load="A" type="button">载入 A</button><button class="btn sm" data-load="B" type="button">载入 B</button></div>' +
+    '<div class="box ye">比较时请区分：平衡含量更高 ≠ 工业更优。还需考虑速率、设备能力、催化剂性能、循环流程与能耗；最低温度、最高压力不应直接视为最优方案。</div>';
+  $('schemeBox').querySelectorAll('[data-load]').forEach(b => b.onclick = () => { const s = S.schemes[b.dataset.load]; if (s) { Object.assign(S.m2, s.p); $('cat').checked = S.m2.cat; $('vmode').value = S.m2.vmode ? 'v' : 'p'; syncAll(); schedule(); } });
+}
+
+/* ==========================================================================
+ * 6. 粒子（模块一、二：像素坐标；模块三：逻辑坐标）
+ * ========================================================================== */
+const PS = { 1: [], 2: [] }; let xiDisp = 0, xBdisp = 0.5, lastKey = '';
+const COL1 = ['#60a5fa', '#4ade80'], COL2 = ['#60a5fa', '#e0f2fe', '#4ade80', '#94a3b8'], RAD2 = [5, 3, 4.5, 4];
+function setCount(ps, n, W, H, nt) {
+  while (ps.length < n) { const a = Math.random() * 6.283, v = 40 + Math.random() * 40; ps.push({ x: 10 + Math.random() * (W - 20), y: 10 + Math.random() * (H - 20), vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: Math.floor(Math.random() * nt) }); }
+  while (ps.length > n) ps.splice(Math.floor(Math.random() * ps.length), 1);
+}
+/** 最大余数法分配整数个数，并随机改变粒子类型使其与目标组成一致 */
+function retype(ps, fr) {
+  const n = ps.length, tg = fr.map(v => Math.floor(v * n)); let rest = n - tg.reduce((a, b) => a + b, 0);
+  fr.map((v, k) => [v * n - tg[k], k]).sort((a, b) => b[0] - a[0]).forEach(([, k]) => { if (rest > 0) { tg[k]++; rest--; } });
+  const cnt = tg.map(() => 0); ps.forEach(p => cnt[p.t]++);
+  for (let g = 0; g < 600; g++) { const ov = cnt.findIndex((c, i) => c > tg[i]), un = cnt.findIndex((c, i) => c < tg[i]); if (ov < 0 || un < 0) break;
+    const idx = []; ps.forEach((p, i) => { if (p.t === ov) idx.push(i); }); ps[idx[Math.floor(Math.random() * idx.length)]].t = un; cnt[ov]--; cnt[un]++; }
+}
+function moveBox(ps, W, H, spd, dt) {
+  for (const p of ps) { p.x += p.vx * spd * dt; p.y += p.vy * spd * dt;
+    if (p.x < 6) { p.x = 6; p.vx = Math.abs(p.vx); } if (p.x > W - 6) { p.x = W - 6; p.vx = -Math.abs(p.vx); }
+    if (p.y < 6) { p.y = 6; p.vy = Math.abs(p.vy); } if (p.y > H - 6) { p.y = H - 6; p.vy = -Math.abs(p.vy); } }
+}
+/** 通用粒子绘制：o.lx/o.ly 为逻辑坐标范围（缺省时按像素坐标）；o.under 为底层叠加绘制回调 */
+function drawParticles(cv, ps, o) {
+  const { g, w, h } = prep(cv); g.clearRect(0, 0, w, h); const sx = o.lx ? w / o.lx : 1, sy = o.ly ? h / o.ly : 1;
+  if (o.under) o.under(g, w, h);
+  for (const p of ps) { const t = p.t || 0; g.fillStyle = o.cols[t]; g.beginPath(); g.arc(p.x * sx, p.y * sy, o.rad ? o.rad[t] : o.r || 4, 0, 7); g.fill(); }
+  g.strokeStyle = '#2a528a'; g.strokeRect(.5, .5, w - 1, h - 1);
+}
+function anim1(dt) {
+  const c = C1 || calc1(), cv = $('p1'), r = cv.getBoundingClientRect(); setCount(PS[1], 90, r.width, r.height, 2);
+  if (c.lnK !== null) { const xB = 1 / (1 + Math.exp(-c.lnK)); xBdisp += (xB - xBdisp) * (1 - Math.exp(-5 * dt)); retype(PS[1], [1 - xBdisp, xBdisp]); $('p1cap').textContent = '（B 占比 ' + f(xB * 100, 1) + '%）'; }
+  else $('p1cap').textContent = '（T=0 K：模型边界，粒子冻结）';
+  const spd = c.T === 0 ? 0 : Math.sqrt(c.T / 400) * 1.2; moveBox(PS[1], r.width, r.height, spd, dt); drawParticles(cv, PS[1], { cols: COL1, r: 5 });
+}
+function anim2(dt) {
+  if (!C2) return; const c = C2, p = c.p, cv = $('p2'), r = cv.getBoundingClientRect(), key = [p.r, p.a, p.i, p.vmode].join('|');
+  if (key !== lastKey) { lastKey = key; xiDisp = 0; }
+  const kd = (p.cat ? 1.2 : 0.05) * S.spd;       // 仅为定性示意：催化剂开启时趋近平衡更快；不是真实动力学
+  xiDisp = clamp(xiDisp + (c.e.sol.xi - xiDisp) * (1 - Math.exp(-Math.min(kd, 8) * dt)), c.e.sol.lo0, c.e.sol.hi0);
+  setCount(PS[2], Math.round(60 + 120 * Math.log(p.P) / Math.log(300)), r.width, r.height, 4); retype(PS[2], comp(xiDisp, c.n0).y);
+  $('prog2').textContent = '（定性示意：ξ/ξeq = ' + f((Math.abs(c.e.sol.xi) < 1e-12 ? 1 : clamp(xiDisp / c.e.sol.xi, 0, 1)) * 100, 1) + '%）';
+  moveBox(PS[2], r.width, r.height, Math.sqrt(c.T / 700) * 1.1, dt); drawParticles(cv, PS[2], { cols: COL2, rad: RAD2 });
+}
+
+/* ==========================================================================
+ * 7. 模块三：孤立系统扩散与分布熵
+ * ========================================================================== */
+const LX = 2, LY = 1, DT = 1 / 60, REGION = 0.25;           // 容器 2×1（无量纲），初始区域 = 左侧 25% 宽度
+const M3 = { ps: [], p0: [], run: false, started: false, step: 0, hist: [], rev: false, samp: null, fr: 0 };
+function initSim() {
+  const N = S.m3.N; M3.ps = []; M3.p0 = [];
+  for (let i = 0; i < N; i++) { const x = Math.random() * LX * REGION, y = Math.random() * LY; M3.ps.push({ x, y, vx: gauss() * 0.35, vy: gauss() * 0.35 }); M3.p0.push({ x, y }); }
+  M3.run = false; M3.started = false; M3.step = 0; M3.hist = []; M3.rev = false; M3.samp = null; recordHist();
+}
+/** 单个时间步：固定 dt，边界“折叠反射”。该离散动力学在速度反转后可严格回溯（忽略浮点误差），无粒子间碰撞 */
+function stepSim() {
+  for (const p of M3.ps) {
+    p.x += p.vx * DT; p.y += p.vy * DT;
+    if (p.x < 0) { p.x = -p.x; p.vx = -p.vx; } else if (p.x > LX) { p.x = 2 * LX - p.x; p.vx = -p.vx; }
+    if (p.y < 0) { p.y = -p.y; p.vy = -p.vy; } else if (p.y > LY) { p.y = 2 * LY - p.y; p.vy = -p.vy; }
+  }
+  M3.step++; if (M3.step % 2 === 0) recordHist();
+}
+/** 网格分布熵：p_i = n_i/N，H = −Σ p_i ln p_i；S_B = k_B N H（教学统计指标，非完整热力学熵） */
+function calculateDistributionEntropy(ps, G) {
+  const gx = G, gy = G / 2, cnt = new Array(gx * gy).fill(0), N = ps.length; let H = 0, occ = 0;
+  for (const p of ps) cnt[Math.min(gy - 1, Math.floor(p.y / LY * gy)) * gx + Math.min(gx - 1, Math.floor(p.x / LX * gx))]++;
+  for (const c of cnt) if (c > 0) { occ++; const q = c / N; H -= q * Math.log(q); }
+  return { H, Hmax: Math.log(gx * gy), occ, cells: gx * gy };
+}
+function recordHist() { const e = calculateDistributionEntropy(M3.ps, S.m3.G); M3.hist.push([M3.step * DT, e.H / e.Hmax]); if (M3.hist.length > 1500) M3.hist.shift(); }
+function reverseVelocities() {
+  const eta = S.m3.noise; for (const p of M3.ps) { p.vx = -p.vx * (1 + eta * gauss()); p.vy = -p.vy * (1 + eta * gauss()); }
+  M3.rev = true; M3.run = true; M3.started = true; setHL('statistical');
+}
+function sampleReturn(N, T = 2000) { let all = 0, ge = 0; for (let t = 0; t < T; t++) { let k = 0; for (let i = 0; i < N; i++) if (Math.random() < REGION) k++; if (k === N) all++; if (k >= 0.9 * N) ge++; } return { T, all, ge, N }; }
+let C3 = null;
+function calc3() {
+  const N = M3.ps.length, G = S.m3.G, e = calculateDistributionEntropy(M3.ps, G), e0 = calculateDistributionEntropy(M3.p0, G);
+  const inReg = M3.ps.filter(p => p.x < LX * REGION).length, left = M3.ps.filter(p => p.x < LX / 2).length, dS = KB * N * (e.H - e0.H);
+  C3 = { N, G, e, e0, inReg, left, ratio: e.H / e.Hmax, dS, dlnW: N * (e.H - e0.H), log10P: N * Math.log10(REGION) };
+  return C3;
+}
+function render3(c) {
+  const lab = !M3.started ? '初始集中分布' : M3.rev ? '已反转速度：理想逆演化' : c.ratio >= 0.9 ? '接近均匀分布（存在涨落）' : '扩散中';
+  $('st3').textContent = '（状态：' + lab + (M3.started && !M3.run ? '，已暂停' : '') + '）';
+  const neg = c.dS < -1e-30;
+  $('an3').innerHTML = '<div class="status ' + (!M3.started ? 'warn' : c.ratio >= 0.9 ? 'ok' : 'warn') + '">' + (!M3.started ? '◎ ' : c.ratio >= 0.9 ? '✔ ' : '↗ ') + lab + '</div>' +
+    '<div class="kv"><span>粒子总数 N</span><span class="cyv">' + c.N + '</span>' +
+    '<span>初始区域占容器面积</span><span class="cyv">' + f(REGION * 100, 0) + '%（初始 100% 粒子在内）</span>' +
+    '<span>当前初始区域内粒子数</span><span class="cyv">' + c.inReg + '（' + f(c.inReg / c.N * 100, 1) + '%）</span>' +
+    '<span>左半 / 右半容器</span><span class="cyv">' + c.left + ' / ' + (c.N - c.left) + '</span>' +
+    '<span>占据网格数</span><span class="cyv">' + c.e.occ + ' / ' + c.e.cells + '（初始 ' + c.e0.occ + '）</span>' +
+    '<span>分布熵 H = −Σpᵢlnpᵢ</span><span class="cyv">' + f(c.e.H, 3) + '（初始 ' + f(c.e0.H, 3) + '）</span>' +
+    '<span>H / Hmax</span><span class="yev">' + f(c.ratio * 100, 1) + '%（Hmax=' + f(c.e.Hmax, 3) + '）</span>' +
+    '<span>S_B = k_B·N·H</span><span class="cyv">' + sci(KB * c.N * c.e.H, 3) + ' J/K</span>' +
+    '<span>ΔS系统 = S_B − S_B,0</span><span class="' + (neg ? 'rdv' : 'grv') + '">' + sci(c.dS, 3) + ' J/K</span>' +
+    '<span>ΔS环境（孤立，无交换）</span><span class="cyv">0</span>' +
+    '<span>ΔS总 = ΔS系统 + ΔS环境</span><span class="' + (neg ? 'rdv' : 'grv') + '">' + sci(c.dS, 3) + ' J/K</span>' +
+    '<span>ln W 的变化 ≈ N·ΔH</span><span class="cyv">' + f(c.dlnW, 1) + '</span>' +
+    '<span>全部粒子同时在初始区域的概率</span><span class="cyv">10<sup>' + f(c.log10P, 1) + '</sup></span></div>' +
+    (M3.started && c.dlnW > 0 && !M3.rev ? '<div class="box gr"><b>宏观状态数增多：</b>粒子可分布的网格占据方式增多，均匀分布对应的微观实现方式远多于集中分布，因此更可能被观察到。</div>' : '') +
+    (neg ? '<div class="box ye"><b>涨落：</b>有限 N 的统计指标可暂时下降，这不违反熵增原理——该指标只是教学模型，且不要求每一帧单调增加。</div>' : '') +
+    (M3.rev ? '<div class="box ye"><b>逆过程：</b>本模型无粒子间碰撞，精确反转全部速度后系统可回溯到集中态；扰动越大，越难回聚。这需要“精心制备”的微观状态，并非自发发生。</div>' : '') +
+    (M3.samp ? '<div class="box">随机采样 ' + M3.samp.T + ' 次（N=' + M3.samp.N + '）：全部粒子同在初始区域 ' + M3.samp.all + ' 次；≥90% 在区域内 ' + M3.samp.ge + ' 次；理论概率 (0.25)<sup>N</sup> = 10<sup>' + f(M3.samp.N * Math.log10(REGION), 1) + '</sup>。极小概率 ≠ 绝对不可能；减小 N 可看到回聚。</div>' : '') +
+    '<div class="box rd"><b>孤立系统：</b>不与环境交换热量或物质，ΔS总 = ΔS系统 + ΔS环境 且自发过程中 ΔS总 ≥ 0（可逆极限取等号）。粒子分布熵只是教学统计量，不等同于真实气体的全部热力学熵；动画描述的是宏观上更可能出现的分布，不是每个微观运动都不可逆。</div>';
+}
+function updateEntropyChart() {
+  const h = M3.hist, tmax = Math.max(5, h.length ? h[h.length - 1][0] : 5), tx = M3.step * DT;
+  plot($('cEnt'), { x0: 0, x1: tmax, y0: 0, y1: 1.1, xl: '模拟时间（无量纲）', yl: 'H / Hmax', series: [{ pts: h, color: '#22d3ee', w: 2 }], hlines: [{ y: 1, color: '#4ade80', dash: [5, 4] }],
+    points: h.length ? [{ x: tx, y: h[h.length - 1][1], color: '#facc15', label: f(h[h.length - 1][1] * 100, 0) + '%', dy: 16 }] : [], legend: [{ c: '#22d3ee', t: 'H/Hmax' }, { c: '#4ade80', t: '均匀分布上限' }] });
+}
+function drawEntropyBox() {
+  const G = S.m3.G;
+  drawParticles($('c3'), M3.ps, { cols: ['#22d3ee'], r: Math.max(1.6, 4 - M3.ps.length / 200), lx: LX, ly: LY, under: (g, w, h) => {
+    g.fillStyle = 'rgba(34,211,238,.10)'; g.fillRect(0, 0, w * REGION, h); g.strokeStyle = 'rgba(143,176,216,.25)'; g.setLineDash([3, 4]); g.lineWidth = 1;
+    for (let i = 1; i < G; i++) { g.beginPath(); g.moveTo(w * i / G, 0); g.lineTo(w * i / G, h); g.stroke(); }
+    for (let j = 1; j < G / 2; j++) { g.beginPath(); g.moveTo(0, h * j / (G / 2)); g.lineTo(w, h * j / (G / 2)); g.stroke(); }
+    g.setLineDash([]); g.strokeStyle = '#22d3ee'; g.strokeRect(.5, .5, w * REGION, h - 1); g.fillStyle = '#22d3ee'; g.font = '12px sans-serif'; g.fillText('初始区域', 6, 16); } });
+}
+function anim3() {
+  if (M3.run) for (let s = 0; s < S.m3.speed; s++) stepSim();
+  drawEntropyBox(); if ((M3.fr++ % 4 === 0) || !M3.run) { render3(calc3()); updateEntropyChart(); }
+}
+
+/* ==========================================================================
+ * 8. 核心理论卡片与自动高亮
+ * ========================================================================== */
+const THEORY = {
+  gibbs: ['吉布斯自由能与自发性', 'ΔG = ΔH − TΔS；ΔG° = ΔH° − TΔS°', '恒温恒压、无非体积功时，ΔG<0 自发，ΔG=0 平衡。', '用 ΔG°–T 曲线估计反应的有利温度窗口。', 'ΔG°<0 不等于任意组成都自发，也不表示反应很快。'],
+  coupling: ['焓变、熵变与温度的耦合', 'T* = ΔH°/ΔS°（ΔG°=0）', '焓项与熵项竞争，温度决定谁占主导。', '放热熵减的合成氨：温度过高，热力学倾向反转。', '符号相同时不能套结论，要代入 T 与数值判断。'],
+  K: ['标准反应吉布斯自由能与平衡常数', 'ΔG° = −RT ln K；ln K = −ΔG°/(RT)', 'K 是标准态定义的无量纲量；放热反应升温 K 减小。', '范特霍夫方程估计不同温度下的 K。', 'K 大不等于已平衡或反应快；压力不改变同一温度下的 K。'],
+  Q: ['化学平衡与反应商', 'ΔG = ΔG° + RT ln Q = RT ln(Q/K)', 'Q<K 正向，Q>K 逆向，Q=K 平衡。', '循环气、初始组成决定实际反应方向。', '不能用 ΔG° 代替 ΔG 判断实际方向。'],
+  lechatelier: ['勒夏特列原理与压力效应', 'Δn气 = −2；Q = [y²(NH₃)/(y(N₂)y³(H₂))]·(p°/P)²', '理想气体加压使 Q 减小，平衡向 NH₃ 侧移动。', '高压带来设备强度、压缩功、密封、安全与投资成本。', '压力不改变 K；定压加惰性气体等效降压，定容加惰性气体不改变反应物分压。'],
+  kinetics: ['热力学与动力学的区别', 'k ∝ exp(−Ea/RT)（阿伦尼乌斯，定性）', '热力学回答“能否、到哪里”，动力学回答“多快”。催化剂降低障碍。', '低温平衡有利但可能明显变慢，催化剂拓展可用温区。', '催化剂不改变 K，也不改变最终平衡组成。'],
+  isolated: ['孤立系统熵增原理', 'ΔS总 = ΔS系统 + ΔS环境 ≥ 0', '孤立系统自发过程总熵不减，可逆极限不变。', '熵产生量化不可逆性与能量品位损失。', '“不减”不是每个微观过程不可逆，也不是每一帧都严格增加。'],
+  statistical: ['统计熵与宏观不可逆性', 'S = k_B ln W；教学指标 S_B = −k_B N Σpᵢ ln pᵢ', '均匀分布对应的微观状态数远多于集中分布。', '混合、扩散、分离过程的能耗与方向。', '回聚概率极小但不是绝对为零；该网格熵不是完整热力学熵。']
+};
+function liveNote(id) {
+  const c1 = C1, c2 = C2, c3 = C3;
+  if (id === 'gibbs' && c1) return '当前：ΔG° = ' + f(c1.dG, 2) + ' kJ·mol⁻¹（T=' + c1.T + ' K）。';
+  if (id === 'coupling' && c1) return '当前：ΔH°=' + f(c1.H, 1) + ' kJ，ΔS°=' + f(c1.dS, 1) + ' J/K，' + (c1.Tstar > 0 && c1.Tstar <= 1000 ? 'T*=' + f(c1.Tstar, 0) + ' K。' : '范围内无 T*。');
+  if (c2 && ['K', 'Q', 'lechatelier', 'kinetics'].includes(id)) return '当前：T=' + c2.p.Tc + ' ℃，P=' + c2.p.P + ' bar，ln K=' + f(c2.e.lnK, 2) + '，y(NH₃)=' + f(c2.cp.y[2] * 100, 2) + '%，催化剂' + (c2.p.cat ? '开' : '关') + '。';
+  if (c3 && ['isolated', 'statistical'].includes(id)) return '当前：N=' + c3.N + '，H/Hmax=' + f(c3.ratio * 100, 1) + '%，ΔS总(模型)=' + sci(c3.dS, 2) + ' J/K。';
+  return '';
+}
+function setHL(id) { S.hl = id; S.sel = id; renderTheory(); }
+/** 按当前参数变化触发对应理论卡高亮 */
+function onParam(obj, key, old) {
+  if (obj === S.m1) { setHL(key === 'T' && obj.T > old && obj.S < 0 ? 'coupling' : key === 'T' ? 'gibbs' : 'coupling'); }
+  else if (obj === S.m2) { setHL(key === 'P' && obj.P > old ? 'lechatelier' : key === 'Tc' ? 'K' : key === 'P' ? 'lechatelier' : 'Q'); }
+  else if (obj === S.m3) { if (key === 'N') initSim(); setHL('isolated'); }
+}
+function renderTheory() {
+  $('thTabs').innerHTML = Object.keys(THEORY).map(k => '<button type="button" class="btn' + (k === S.sel ? ' sel' : '') + (k === S.hl ? ' hl' : '') + '" data-k="' + k + '">' + THEORY[k][0] + '</button>').join('');
+  $('thTabs').querySelectorAll('button').forEach(b => b.onclick = () => { S.sel = b.dataset.k; renderTheory(); });
+  const t = THEORY[S.sel], ln = liveNote(S.sel);
+  $('thBody').innerHTML = '<div class="box"><b>核心公式：</b><code>' + t[1] + '</code></div><div class="box"><b>物理含义：</b>' + t[2] + '</div><div class="box ye"><b>工程联系：</b>' + t[3] + '</div><div class="box rd"><b>常见误区：</b>' + t[4] + '</div>' + (ln ? '<div class="box gr">' + ln + '</div>' : '');
+}
+function updateTeachingFeedback() { renderTheory(); }
+
+/* ==========================================================================
+ * 9. 探究任务（预测文本框 → 计算结果 → 差异反馈；可选 localStorage）
+ * ========================================================================== */
+const KEY = 'thermoSimProgress', store = { ok: true, data: { done: {}, text: {} } };
+function loadProg() { try { const s = localStorage.getItem(KEY); if (s) store.data = JSON.parse(s); } catch (e) { store.ok = false; } }
+function saveProg() { try { localStorage.setItem(KEY, JSON.stringify(store.data)); } catch (e) { store.ok = false; $('stMsg').textContent = '（本地存储不可用，学习记录不会保存，不影响模拟）'; } }
+const up = t => /增大|升高|变大|上升|增加|更不利|更大|变正/.test(t), dn = t => /减小|降低|变小|下降|减少|更有利|变负|更小/.test(t);
+const TASKS = [
+  { t: '任务一：温度如何改变反应的自发性？', q: '先预测：升高温度时，当前 ΔH°、ΔS° 组合下的 ΔG° 会增大还是减小？并写出你对交叉温度 T* 物理意义的理解。' },
+  { t: '任务二：为什么合成氨不能只追求低温和高压？', q: '预测：比较 250 ℃/300 bar 与 450 ℃/150 bar 的 K、y(NH₃)、X(N₂)，并解释为何工业不简单选择最低温和最高压。' },
+  { t: '任务三：为什么粒子扩散后更难自发恢复初始状态？', q: '预测：N 增大后，全部粒子自发回到初始区域的概率如何变化？请用微观状态数或概率解释，并区分“极小概率”与“不可能”。' }];
+function task1(txt) {
+  const m = S.m1, T1 = Math.min(m.T, 900), T2 = T1 + 100, g1 = calculateDeltaG(m.H, T1, m.S), g2 = calculateDeltaG(m.H, T2, m.S), d = g2 - g1, act = Math.abs(d) < 1e-6 ? 0 : d > 0 ? 1 : -1;
+  let fb = '', r = '<div class="box">以当前 ΔH°=' + f(m.H, 1) + ' kJ、ΔS°=' + f(m.S, 1) + ' J/K：T 由 ' + T1 + ' 升至 ' + T2 + ' K，ΔG° 由 ' + f(g1, 2) + ' 变为 ' + f(g2, 2) + ' kJ·mol⁻¹（斜率 −ΔS° = ' + f(-m.S, 1) + ' J·mol⁻¹·K⁻¹）。' + (C1 && C1.Tstar > 0 && C1.Tstar <= 1000 ? ' T* = ' + f(C1.Tstar, 0) + ' K。' : ' 0–1000 K 内无 T*。') + '</div>';
+  if (!txt.trim()) fb = '请先写下你的预测，再对照上面的计算。';
+  else if (up(txt) && dn(txt)) fb = '你的文字同时包含“增大”和“减小”两种方向，请明确：在什么温度/符号条件下是哪一种？';
+  else if (act === 1 && dn(txt)) fb = '差异：你预测 ΔG° 减小，但模型显示增大。检查 ΔS° 的符号：dΔG°/dT = −ΔS°。';
+  else if (act === -1 && up(txt)) fb = '差异：你预测 ΔG° 增大，但模型显示减小。检查 ΔS° 的符号：dΔG°/dT = −ΔS°。';
+  else if (act === 0 && (up(txt) || dn(txt))) fb = '差异：当前 ΔS°=0，ΔG° 与温度无关。';
+  else fb = '方向与模型一致。';
+  if (txt.trim() && !/T\*|交叉|转折|转变/.test(txt)) fb += ' 你还没有解释交叉温度：它是焓项与熵项相互抵消（ΔG°=0）的温度。';
+  return r + '<div class="box ye">' + fb + '</div>';
+}
+function task2(txt) {
+  const n0 = makeN0(S.m2), pts = [[250, 300], [350, 200], [450, 150], [450, 300], [550, 100], [800, 1]];
+  const rows = pts.map(([Tc, P]) => { const e = eqAt(Tc, P, n0); return '<tr><td>' + Tc + ' ℃ / ' + P + ' bar</td><td>' + f(e.lnK, 2) + '</td><td>' + fK(e.lnK) + '</td><td>' + f(e.yNH3 * 100, 2) + '</td><td>' + f(e.X * 100, 2) + '</td></tr>'; }).join('');
+  const a = eqAt(250, 300, n0), b = eqAt(450, 150, n0);
+  let r = '<table class="cmp"><tr><th>条件</th><th>ln K</th><th>K</th><th>y(NH₃)/%</th><th>X(N₂)/%</th></tr>' + rows + '</table><div class="box">250 ℃/300 bar 的 y(NH₃) = ' + f(a.yNH3 * 100, 1) + '%，高于 450 ℃/150 bar 的 ' + f(b.yNH3 * 100, 1) + '%：平衡上更有利。</div>', fb;
+  if (!txt.trim()) fb = '请先写下预测与解释。';
+  else if (!/速率|动力学|催化|成本|能耗|设备|压缩|循环|活性/.test(txt)) fb = '差异：你的解释只涉及平衡。表中低温高压的平衡含量更高，为什么工业仍不选它？请补充速率/催化剂活性、设备与压缩成本、循环流程等因素。';
+  else fb = '你已提到工程因素。请进一步用表中数据说明：平衡含量的提升与付出的代价（速率变慢、压力成本）如何权衡。';
+  if (/只|一定|总是|越低越好|越高越好/.test(txt)) fb += ' 注意“只/一定/越…越好”的绝对化表述：最低温与最高压不是自动的工业最优。';
+  return r + '<div class="box ye">' + fb + '</div>';
+}
+function task3(txt) {
+  M3.samp = sampleReturn(S.m3.N); const s = M3.samp, c = C3 || calc3();
+  let r = '<div class="box">N = ' + c.N + '：当前 H/Hmax = ' + f(c.ratio * 100, 1) + '%；全部粒子同在初始区域的理论概率 (0.25)<sup>N</sup> = 10<sup>' + f(s.N * Math.log10(REGION), 1) + '</sup>。随机采样 ' + s.T + ' 次：全部回聚 ' + s.all + ' 次，≥90% 回聚 ' + s.ge + ' 次。减小 N（如 4–6）更容易观察到回聚。</div>', fb;
+  if (!txt.trim()) fb = '请先写下预测与解释。';
+  else if (/不可能|绝对|永远不/.test(txt)) fb = '差异：你使用了“不可能/绝对”。模型给出的是极小但非零的概率，N 越大越小。';
+  else if (!/概率|微观|状态数|统计|W|熵/.test(txt)) fb = '差异：解释尚未用到统计语言。试着比较集中分布与均匀分布各自对应的微观状态数。';
+  else fb = '你使用了统计解释。再区分：速度反转的“理想逆演化”需要精确的微观初态，而不是自发发生。';
+  return r + '<div class="box ye">' + fb + '</div>';
+}
+function buildTasks() {
+  $('taskList').innerHTML = TASKS.map((t, i) => '<div class="task" id="task' + (i + 1) + '"><h3>' + t.t + '<span class="done" id="dn' + (i + 1) + '"></span></h3><p class="note">' + t.q + '</p>' +
+    '<label class="note" for="tp' + (i + 1) + '">我的预测：</label><textarea id="tp' + (i + 1) + '" placeholder="在此写下预测与理由"></textarea><div class="row"><button class="btn" data-t="' + (i + 1) + '" type="button">查看计算结果</button></div><div id="tf' + (i + 1) + '"></div></div>').join('');
+  [1, 2, 3].forEach(k => { const ta = $('tp' + k); ta.value = store.data.text[k] || ''; $('dn' + k).textContent = store.data.done[k] ? '✔ 已完成' : '';
+    ta.oninput = () => { store.data.text[k] = ta.value; saveProg(); }; });
+  $('taskList').querySelectorAll('[data-t]').forEach(b => b.onclick = () => { const k = +b.dataset.t, txt = $('tp' + k).value; $('tf' + k).innerHTML = [task1, task2, task3][k - 1](txt);
+    if (txt.trim()) { store.data.done[k] = true; $('dn' + k).textContent = '✔ 已完成'; } store.data.text[k] = txt; saveProg(); });
+}
+$('clrProg').onclick = () => { store.data = { done: {}, text: {} }; try { localStorage.removeItem(KEY); } catch (e) {} buildTasks(); $('stMsg').textContent = '已清除学习记录。'; };
+
+/* ==========================================================================
+ * 10. 总更新、事件绑定与主循环
+ * ========================================================================== */
+function update() {
+  if (S.mod === 1) { C1 = calc1(); render1(C1); updateThermodynamicChart(C1); }
+  else if (S.mod === 2) { const c = calc2(); render2(c); updateAmmoniaChart(c); }
+  else { drawEntropyBox(); render3(calc3()); updateEntropyChart(); }
+  updateTeachingFeedback();
+}
+function setMod(m) {
+  S.mod = m; document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', +b.dataset.mod === m));
+  document.querySelectorAll('[data-m]').forEach(e => { e.hidden = +e.dataset.m !== m; });
+  setHL(m === 1 ? 'gibbs' : m === 2 ? 'K' : 'isolated'); requestAnimationFrame(update);
+}
+function resetSimulation() {
+  if (S.mod === 1) Object.assign(S.m1, DEF1);
+  else if (S.mod === 2) { Object.assign(S.m2, DEF2); $('cat').checked = true; $('vmode').value = 'p'; xiDisp = 0; }
+  else { Object.assign(S.m3, DEF3); $('gsel').value = '8'; $('nsel').value = '0'; initSim(); }
+  syncAll(); schedule();
+}
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => setMod(+b.dataset.mod));
+$('btnReset').onclick = resetSimulation;
+document.querySelectorAll('.calcbtn').forEach(b => b.onclick = () => { S.calc = !S.calc; schedule(); });
+$('cat').onchange = e => { S.m2.cat = e.target.checked; setHL('kinetics'); schedule(); };
+$('vmode').onchange = e => { S.m2.vmode = e.target.value === 'v'; setHL('lechatelier'); schedule(); };
+$('spd').onchange = e => { S.spd = +e.target.value; };
+$('axsel').onchange = schedule;
+$('restart2').onclick = () => { xiDisp = 0; };
+$('saveA').onclick = () => saveScheme('A'); $('saveB').onclick = () => saveScheme('B');
+$('clrAB').onclick = () => { S.schemes = { A: null, B: null }; renderSchemes(); };
+$('gsel').onchange = e => { S.m3.G = +e.target.value; recordHist(); schedule(); };
+$('nsel').onchange = e => { S.m3.noise = +e.target.value; };
+$('b3start').onclick = () => { M3.run = true; M3.started = true; setHL('isolated'); };
+$('b3pause').onclick = () => { M3.run = !M3.run; $('b3pause').textContent = M3.run ? '⏸ 暂停' : '▶ 继续'; };
+$('b3step').onclick = () => { M3.run = false; M3.started = true; for (let i = 0; i < 10; i++) stepSim(); };
+$('b3reset').onclick = () => { initSim(); $('b3pause').textContent = '⏸ 暂停'; schedule(); };
+$('b3rev').onclick = reverseVelocities;
+$('b3samp').onclick = () => { M3.samp = sampleReturn(S.m3.N); setHL('statistical'); };
+[['① ΔH°<0, ΔS°>0　H₂O₂ 分解', -196, 125], ['② ΔH°>0, ΔS°<0　3/2 O₂→O₃', 142.7, -68.8], ['③ ΔH°<0, ΔS°<0　N₂+3H₂→2NH₃', -92.2, -198.7], ['④ ΔH°>0, ΔS°>0　N₂O₄→2NO₂', 57.2, 175.8]].forEach(([n, h, s]) => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'btn preset'; b.textContent = n; b.onclick = () => { Object.assign(S.m1, { H: h, S: s, T: 298 }); setHL('coupling'); syncAll(); schedule(); }; $('presets1').appendChild(b); });
+$('rnd1').onclick = () => { S.m1.H = Math.round((Math.random() * 400 - 200) * 10) / 10; S.m1.S = Math.round((Math.random() * 800 - 400) * 2) / 2; S.m1.T = 100 + Math.round(Math.random() * 800); syncAll(); schedule(); };
+[['工业典型 450 ℃ / 150 bar', { Tc: 450, P: 150, r: 3, a: 0, i: 0 }], ['低温高压 250 ℃ / 300 bar', { Tc: 250, P: 300, r: 3, a: 0, i: 0 }], ['高温低压 800 ℃ / 1 bar', { Tc: 800, P: 1, r: 3, a: 0, i: 0 }], ['含 10% 惰性气体', { Tc: 450, P: 150, r: 3, a: 0, i: 10 }], ['初始含 30% NH₃', { Tc: 450, P: 150, r: 3, a: 30, i: 0 }]].forEach(([n, v]) => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'btn preset'; b.textContent = n; b.onclick = () => { Object.assign(S.m2, v); syncAll(); schedule(); }; $('presets2').appendChild(b); });
+
+let last = performance.now();
+function loop(t) {
+  const dt = Math.min(0.05, (t - last) / 1000); last = t;
+  if (!document.hidden) { if (S.mod === 1) anim1(dt); else if (S.mod === 2) anim2(dt); else anim3(); }
+  requestAnimationFrame(loop);
+}
+window.addEventListener('resize', schedule);
+loadProg(); buildTasks(); renderSchemes(); initSim(); renderTheory(); update(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>
