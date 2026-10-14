@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DLVO Theory & Zeta Potential Simulator</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;1,300&display=swap');
+
+  :root {
+    --bg-deep:       #070d1a;
+    --bg-panel:      #0d1829;
+    --bg-card:       #111f35;
+    --bg-inset:      #0a1422;
+    --border:        #1e3050;
+    --border-bright: #2a4a72;
+    --text-primary:  #d4e8ff;
+    --text-secondary:#7badd4;
+    --text-muted:    #3a6090;
+    --accent-cyan:   #00d4ff;
+    --accent-blue:   #2979ff;
+    --accent-indigo: #7c4dff;
+    --accent-gold:   #ffc400;
+    --green:         #00e676;
+    --yellow:        #ffea00;
+    --red:           #ff1744;
+    --orange:        #ff6d00;
+    --plot-vdw:      #ff6b6b;
+    --plot-edl:      #4ecdc4;
+    --plot-total:    #ffe66d;
+    --plot-psi:      #a78bfa;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --serif: 'IBM Plex Serif', serif;
+    --radius: 6px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    min-height: 100vh;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, #07111f 0%, #0d1f3c 60%, #0a1628 100%);
+    border-bottom: 1px solid var(--border-bright);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+  }
+  header .logo-group { display: flex; align-items: center; gap: 14px; }
+  header .logo-atom {
+    width: 38px; height: 38px;
+    border: 2px solid var(--accent-cyan);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 0 14px rgba(0,212,255,0.3);
+  }
+  header h1 {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent-cyan);
+    letter-spacing: 0.5px;
+  }
+  header .subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+  .header-badges { display: flex; gap: 8px; }
+  .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 3px;
+    border: 1px solid;
+    letter-spacing: 0.5px;
+  }
+  .badge-module { border-color: var(--accent-cyan); color: var(--accent-cyan); background: rgba(0,212,255,0.05); }
+
+  /* ── MAIN LAYOUT ── */
+  .app-shell {
+    display: grid;
+    grid-template-columns: 300px 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 0;
+    height: calc(100vh - 67px);
+    min-height: 700px;
+  }
+
+  /* LEFT PANEL */
+  #left-panel {
+    grid-row: 1 / 3;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-bright) transparent;
+  }
+
+  /* CENTER + RIGHT PANELS TOP ROW */
+  #center-panel {
+    background: var(--bg-deep);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex; flex-direction: column;
+  }
+  #right-panel {
+    background: var(--bg-deep);
+    border-bottom: 1px solid var(--border);
+    display: flex; flex-direction: column;
+  }
+
+  /* BOTTOM PANEL */
+  #bottom-panel {
+    grid-column: 2 / 4;
+    background: var(--bg-panel);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    min-height: 220px;
+    max-height: 260px;
+  }
+
+  /* ── SECTION HEADERS ── */
+  .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .panel-header .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-cyan  { background: var(--accent-cyan); box-shadow: 0 0 6px var(--accent-cyan); }
+  .dot-blue  { background: var(--accent-blue); box-shadow: 0 0 6px var(--accent-blue); }
+  .dot-indigo{ background: var(--accent-indigo); box-shadow: 0 0 6px var(--accent-indigo); }
+  .dot-gold  { background: var(--accent-gold); box-shadow: 0 0 6px var(--accent-gold); }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  /* ── CONTROL SECTIONS ── */
+  .ctrl-section {
+    padding: 14px 14px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ctrl-section-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent-cyan);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ctrl-section-title::before {
+    content: '';
+    display: inline-block;
+    width: 18px; height: 1px;
+    background: var(--accent-cyan);
+    opacity: 0.5;
+  }
+
+  .ctrl-row {
+    margin-bottom: 10px;
+  }
+  .ctrl-label {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .ctrl-label .param-name { font-family: var(--mono); }
+  .ctrl-label .param-val {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-cyan);
+    min-width: 60px;
+    text-align: right;
+  }
+
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border-bright);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent-cyan);
+    box-shadow: 0 0 6px rgba(0,212,255,0.6);
+    cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent-cyan);
+    box-shadow: 0 0 6px rgba(0,212,255,0.6);
+    cursor: pointer;
+    border: none;
+  }
+
+  .valence-group {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .valence-btn {
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.15s;
+  }
+  .valence-btn:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+  .valence-btn.active { background: rgba(0,212,255,0.12); border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+  /* ── CALC READOUT ── */
+  .readout-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .readout-card {
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+  }
+  .readout-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .readout-value {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent-cyan);
+  }
+  .readout-unit {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+
+  /* ── STABILITY INDICATOR ── */
+  .stability-bar {
+    margin: 10px 14px;
+    padding: 12px;
+    border-radius: var(--radius);
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.5s;
+  }
+  .stability-icon { font-size: 22px; }
+  .stability-text-main {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .stability-text-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+  .stability-zeta {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .stab-green  { border-color: var(--green);  background: rgba(0,230,118,0.06); }
+  .stab-yellow { border-color: var(--yellow); background: rgba(255,234,0,0.06); }
+  .stab-red    { border-color: var(--red);    background: rgba(255,23,68,0.06); }
+
+  /* ── PRESET BUTTONS ── */
+  .preset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .preset-btn {
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 8px 6px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.2s;
+    line-height: 1.4;
+  }
+  .preset-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); background: rgba(41,121,255,0.08); }
+  .preset-btn.active-preset { border-color: var(--accent-indigo); color: var(--accent-indigo); background: rgba(124,77,255,0.1); }
+
+  /* ── STERIC CONTROLS ── */
+  .steric-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+  .toggle-switch {
+    width: 34px; height: 18px;
+    background: var(--border);
+    border-radius: 9px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    left: 2px; top: 2px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: all 0.2s;
+  }
+  .toggle-switch.on { background: var(--accent-indigo); }
+  .toggle-switch.on::after { left: 18px; background: #fff; }
+
+  /* ── pH SLIDER ── */
+  .ph-display {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    justify-content: space-between;
+    color: var(--text-muted);
+  }
+
+  /* ── PLOT AREAS ── */
+  .plot-container {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+  }
+  .plot-container .plotly-graph-div {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* ── BOTTOM PANEL SECTIONS ── */
+  .bp-section {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .bp-section:last-child { border-right: none; }
+
+  /* SCHEMATIC CANVAS */
+  #schematic-canvas {
+    flex: 1;
+    width: 100%;
+    display: block;
+  }
+
+  /* BARRIER ANALYSIS */
+  .barrier-grid {
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    flex: 1;
+  }
+  .barrier-card {
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px;
+    text-align: center;
+  }
+  .barrier-card .bc-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 4px;
+  }
+  .barrier-card .bc-val {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .barrier-card .bc-unit {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-left: 1px;
+  }
+  .barrier-interp {
+    margin: 0 12px 10px;
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 11px;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.4s;
+  }
+
+  /* ── EDUCATIONAL PANELS ── */
+  .edu-section {
+    border-top: 1px solid var(--border);
+  }
+  .edu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 14px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+    transition: color 0.15s;
+    user-select: none;
+  }
+  .edu-toggle:hover { color: var(--accent-cyan); }
+  .edu-toggle .arrow { transition: transform 0.2s; font-size: 9px; }
+  .edu-toggle.open .arrow { transform: rotate(90deg); }
+  .edu-content {
+    display: none;
+    padding: 0 14px 12px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    border-top: 1px solid var(--border);
+  }
+  .edu-content.visible { display: block; }
+  .edu-content p { margin-bottom: 6px; }
+  .edu-content strong { color: var(--text-primary); }
+  .eq-block {
+    background: var(--bg-inset);
+    border-left: 2px solid var(--accent-cyan);
+    padding: 6px 10px;
+    margin: 8px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent-cyan);
+    border-radius: 0 3px 3px 0;
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(0,212,255,0.3); }
+    50%       { box-shadow: 0 0 14px rgba(0,212,255,0.7); }
+  }
+  .readout-value { animation: glow-pulse 3s infinite; }
+
+  /* Responsive breakpoints */
+  @media (max-width: 1100px) {
+    .app-shell { grid-template-columns: 260px 1fr 1fr; }
+  }
+  @media (max-width: 900px) {
+    .app-shell {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+      height: auto;
+    }
+    #left-panel { grid-row: auto; max-height: none; }
+    #bottom-panel { grid-column: auto; grid-template-columns: 1fr; max-height: none; }
+    .bp-section { min-height: 200px; }
+  }
+
+  /* ── POLYMER THICKNESS SLIDER (hidden by default) ── */
+  #steric-ctrl { display: none; padding: 8px 14px 0; }
+  #steric-ctrl.visible { display: block; }
+
+  /* pH color gradient track */
+  #ph-slider {
+    background: linear-gradient(to right, #e74c3c, #e67e22, #f1c40f, #2ecc71, #3498db, #9b59b6);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-group">
+    <div class="logo-atom">⚛</div>
+    <div>
+      <h1>DLVO / Zeta Potential Simulator</h1>
+      <div class="subtitle">Colloidal Stability · Electrokinetics · Surface Forces</div>
+    </div>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-module">Module 1–4</span>
+    <span class="badge badge-module">Real-time</span>
+    <span class="badge badge-module">DLVO v2.0</span>
+  </div>
+</header>
+
+<div class="app-shell">
+
+  <!-- ══════════ LEFT PANEL ══════════ -->
+  <div id="left-panel">
+
+    <!-- M1: Zeta Parameters -->
+    <div class="panel-header">
+      <span class="dot dot-cyan"></span>
+      MODULE 1 — Zeta Potential
+    </div>
+
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">Surface & Electrolyte</div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span class="param-name">ψ₀  Surface Potential</span>
+          <span class="param-val" id="val-psi0">-50 mV</span>
+        </div>
+        <input type="range" id="sl-psi0" min="-100" max="100" step="1" value="-50">
+      </div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span class="param-name">C  Electrolyte Conc.</span>
+          <span class="param-val" id="val-conc">1e-3 M</span>
+        </div>
+        <input type="range" id="sl-conc" min="-6" max="0" step="0.1" value="-3">
+      </div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span class="param-name">z⁺  Cation Valence</span>
+        </div>
+        <div class="valence-group" id="vg-cation">
+          <div class="valence-btn active" data-v="1">+1</div>
+          <div class="valence-btn" data-v="2">+2</div>
+          <div class="valence-btn" data-v="3">+3</div>
+        </div>
+      </div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span class="param-name">z⁻  Anion Valence</span>
+        </div>
+        <div class="valence-group" id="vg-anion">
+          <div class="valence-btn active" data-v="1">-1</div>
+          <div class="valence-btn" data-v="2">-2</div>
+          <div class="valence-btn" data-v="3">-3</div>
+        </div>
+      </div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span class="param-name">T  Temperature</span>
+          <span class="param-val" id="val-temp">298 K</span>
+        </div>
+        <input type="range" id="sl-temp" min="273" max="373" step="1" value="298">
+      </div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span class="param-name">x_slip  Zeta Plane</span>
+          <span class="param-val" id="val-slip">1.0 nm</span>
+        </div>
+        <input type="range" id="sl-slip" min="0" max="20" step="0.1" value="1">
+      </div>
+    </div>
+
+    <!-- Calculated Values -->
+    <div class="readout-grid">
+      <div class="readout-card">
+        <div class="readout-label">Ionic Strength</div>
+        <div class="readout-value" id="ro-I">0.001<span class="readout-unit">M</span></div>
+      </div>
+      <div class="readout-card">
+        <div class="readout-label">Debye Length κ⁻¹</div>
+        <div class="readout-value" id="ro-kappa">9.6<span class="readout-unit">nm</span></div>
+      </div>
+      <div class="readout-card">
+        <div class="readout-label">ψ_Stern</div>
+        <div class="readout-value" id="ro-stern">-45<span class="readout-unit">mV</span></div>
+      </div>
+      <div class="readout-card">
+        <div class="readout-label">ζ Zeta Potential</div>
+        <div class="readout-value" id="ro-zeta">-40<span class="readout-unit">mV</span></div>
+      </div>
+    </div>
+
+    <!-- Stability Indicator -->
+    <div id="stability-bar" class="stability-bar stab-green">
+      <span class="stability-icon" id="stab-icon">🟢</span>
+      <div>
+        <div class="stability-text-main" id="stab-text">Highly Stable</div>
+        <div class="stability-text-sub" id="stab-sub">|ζ| > 30 mV — strong electrostatic repulsion</div>
+      </div>
+      <div class="stability-zeta" id="stab-zeta-val">|ζ| = 40</div>
+    </div>
+
+    <!-- M2: DLVO Parameters -->
+    <div class="panel-header" style="margin-top:0;">
+      <span class="dot dot-blue"></span>
+      MODULE 2 — DLVO Energy
+    </div>
+
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">Particle & Material</div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span class="param-name">R  Particle Radius</span>
+          <span class="param-val" id="val-R">100 nm</span>
+        </div>
+        <input type="range" id="sl-R" min="10" max="1000" step="10" value="100">
+      </div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span class="param-name">A  Hamaker Constant</span>
+          <span class="param-val" id="val-A">5×10⁻²⁰ J</span>
+        </div>
+        <input type="range" id="sl-A" min="0.1" max="20" step="0.1" value="5">
+      </div>
+    </div>
+
+    <!-- M3: Regulation Simulator -->
+    <div class="panel-header">
+      <span class="dot dot-indigo"></span>
+      MODULE 3 — Regulation
+    </div>
+
+    <div style="padding: 10px 14px 6px;">
+      <div class="ctrl-section-title">Preset Scenarios</div>
+      <div class="preset-grid">
+        <div class="preset-btn" id="pr-salt" onclick="applyPreset('salt')">⊕ Salt<br><span style="color:var(--text-muted);font-size:9px">I↑ → κ⁻¹↓</span></div>
+        <div class="preset-btn" id="pr-dilute" onclick="applyPreset('dilute')">⊖ Dilute<br><span style="color:var(--text-muted);font-size:9px">I↓ → κ⁻¹↑</span></div>
+        <div class="preset-btn" id="pr-ph2" onclick="applyPreset('ph2')">pH 2<br><span style="color:var(--text-muted);font-size:9px">acid surface</span></div>
+        <div class="preset-btn" id="pr-ph10" onclick="applyPreset('ph10')">pH 10<br><span style="color:var(--text-muted);font-size:9px">basic surface</span></div>
+      </div>
+    </div>
+
+    <!-- pH Slider -->
+    <div class="ctrl-section">
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span class="param-name">pH  Surface Potential modifier</span>
+          <span class="param-val" id="val-ph">7.0</span>
+        </div>
+        <input type="range" id="ph-slider" min="2" max="12" step="0.1" value="7">
+        <div class="ph-display">
+          <span>Acid</span><span>→</span><span>pKa</span><span>→</span><span>Base</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Steric Toggle -->
+    <div class="steric-toggle" onclick="toggleSteric()" id="steric-toggle">
+      <div class="toggle-switch" id="steric-switch"></div>
+      <span>Add Dispersant (Steric Stabilization)</span>
+    </div>
+    <div id="steric-ctrl">
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span class="param-name">δ  Polymer Layer</span>
+          <span class="param-val" id="val-polymer">5 nm</span>
+        </div>
+        <input type="range" id="sl-polymer" min="0" max="20" step="0.5" value="5">
+      </div>
+    </div>
+
+    <!-- Educational Sections -->
+    <div class="edu-section">
+      <div class="edu-toggle" onclick="toggleEdu(this)" id="edu1-toggle">
+        <span>▶ What is Zeta Potential?</span>
+        <span class="arrow">▸</span>
+      </div>
+      <div class="edu-content" id="edu1">
+        <p>When a charged particle is immersed in an electrolyte, counter-ions condense near the surface forming the <strong>Stern layer</strong> (inner compact region). Beyond this, the <strong>diffuse layer</strong> extends into the bulk.</p>
+        <p>The <strong>slip plane</strong> (shear plane) separates ions that move with the particle from the bulk solution. The electric potential at this plane is the <strong>Zeta potential (ζ)</strong> — experimentally measurable via electrophoresis.</p>
+        <div class="eq-block">ψ(x) = ψ₀ · exp(−κx)</div>
+        <p><strong>ψ₀</strong> = surface potential, <strong>κ⁻¹</strong> = Debye screening length, measured in nm.</p>
+      </div>
+    </div>
+
+    <div class="edu-section">
+      <div class="edu-toggle" onclick="toggleEdu(this)">
+        <span>▶ What is Debye Length?</span>
+        <span class="arrow">▸</span>
+      </div>
+      <div class="edu-content">
+        <p>The <strong>Debye length (κ⁻¹)</strong> characterizes how far electrostatic interactions extend from a charged surface into solution. High ionic strength compresses the double layer, reducing κ⁻¹.</p>
+        <div class="eq-block">κ⁻¹ = √(εᵣε₀k_BT / 2N_Ae²I)</div>
+        <p>At 1 mM NaCl: κ⁻¹ ≈ 9.6 nm. At 100 mM: κ⁻¹ ≈ 0.96 nm. Divalent ions compress the double layer 4× more than monovalent at the same concentration (Schulze-Hardy rule).</p>
+      </div>
+    </div>
+
+    <div class="edu-section">
+      <div class="edu-toggle" onclick="toggleEdu(this)">
+        <span>▶ What is DLVO Theory?</span>
+        <span class="arrow">▸</span>
+      </div>
+      <div class="edu-content">
+        <p><strong>DLVO theory</strong> (Derjaguin, Landau, Verwey, Overbeek) describes colloidal stability as a competition between:</p>
+        <p>• <strong>Van der Waals attraction</strong> (short range) — always present, drives aggregation</p>
+        <p>• <strong>Electrostatic repulsion</strong> (double-layer) — depends on surface charge and ionic strength</p>
+        <div class="eq-block">V_total = V_EDL + V_vdW</div>
+        <p>An <strong>energy barrier</strong> &gt;25 kT prevents particles from reaching primary contact. Below 10 kT, Brownian motion causes irreversible aggregation (coagulation).</p>
+      </div>
+    </div>
+
+  </div>
+  <!-- /LEFT PANEL -->
+
+  <!-- ══════════ CENTER PANEL ══════════ -->
+  <div id="center-panel">
+    <div class="panel-header">
+      <span class="dot dot-cyan"></span>
+      POTENTIAL DISTRIBUTION — ψ(x) vs Distance
+    </div>
+    <div class="plot-container" id="plot-zeta-container"></div>
+  </div>
+
+  <!-- ══════════ RIGHT PANEL ══════════ -->
+  <div id="right-panel">
+    <div class="panel-header">
+      <span class="dot dot-blue"></span>
+      DLVO INTERACTION ENERGY — V(h) vs Separation
+    </div>
+    <div class="plot-container" id="plot-dlvo-container"></div>
+  </div>
+
+  <!-- ══════════ BOTTOM PANEL ══════════ -->
+  <div id="bottom-panel">
+
+    <!-- Schematic -->
+    <div class="bp-section">
+      <div class="panel-header">
+        <span class="dot dot-indigo"></span>
+        MODULE 4 — Particle Schematic
+      </div>
+      <canvas id="schematic-canvas"></canvas>
+    </div>
+
+    <!-- Barrier Analysis -->
+    <div class="bp-section">
+      <div class="panel-header">
+        <span class="dot dot-gold"></span>
+        BARRIER ANALYSIS
+      </div>
+      <div class="barrier-grid">
+        <div class="barrier-card">
+          <div class="bc-label">Primary Min.</div>
+          <div class="bc-val" id="ba-pmin" style="color:var(--plot-vdw)">—<span class="bc-unit">kT</span></div>
+        </div>
+        <div class="barrier-card">
+          <div class="bc-label">Energy Barrier</div>
+          <div class="bc-val" id="ba-barrier" style="color:var(--plot-total)">—<span class="bc-unit">kT</span></div>
+        </div>
+        <div class="barrier-card">
+          <div class="bc-label">Secondary Min.</div>
+          <div class="bc-val" id="ba-smin" style="color:var(--plot-edl)">—<span class="bc-unit">kT</span></div>
+        </div>
+      </div>
+      <div class="barrier-interp" id="ba-interp" style="border-color:var(--green);background:rgba(0,230,118,0.06);">
+        <span id="ba-icon">✓</span>
+        <span id="ba-text" style="font-family:var(--mono);font-size:11px;color:var(--green);">Stable Dispersion (barrier &gt; 25 kT)</span>
+      </div>
+    </div>
+
+    <!-- pH Curve -->
+    <div class="bp-section">
+      <div class="panel-header">
+        <span class="dot dot-green"></span>
+        pH vs SURFACE POTENTIAL (Schematic)
+      </div>
+      <div class="plot-container" id="plot-ph-container" style="min-height:120px;"></div>
+    </div>
+
+  </div>
+  <!-- /BOTTOM PANEL -->
+
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// PHYSICAL CONSTANTS
+// ═══════════════════════════════════════
+const kB = 1.380649e-23;  // J/K
+const e_charge = 1.602176634e-19; // C
+const NA = 6.02214076e23;
+const eps0 = 8.8541878e-12; // F/m
+const epsR = 78.5; // water at ~25°C
+
+// STATE
+let state = {
+  psi0: -50,        // mV
+  concLog: -3,      // log10(mol/L)
+  zCat: 1,
+  zAn: 1,
+  T: 298,           // K
+  xSlip: 1.0,       // nm
+  R: 100,           // nm
+  A: 5e-20,         // J (5 × 10⁻²⁰)
+  pH: 7,
+  steric: false,
+  polymerThick: 5,  // nm
+};
+
+let animating = false;
+
+// ═══════════════════════════════════════
+// CALCULATIONS
+// ═══════════════════════════════════════
+function calcDebye(concM, zCat, zAn, T) {
+  // Ionic strength: for 1:1 electrolyte with z+ and z-
+  // Assume fully dissociated salt: c cations + c anions
+  const I = 0.5 * concM * (zCat * zCat + zAn * zAn);
+  const kappa2 = (2 * NA * e_charge * e_charge * I * 1000) / (epsR * eps0 * kB * T);
+  const kappa = Math.sqrt(kappa2); // m⁻¹
+  const kappa_inv_nm = 1e9 / kappa; // nm
+  return { I, kappa, kappa_inv_nm };
+}
+
+function calcPotentials(psi0_mV, kappa, xSlip_nm, pH_mod) {
+  // pH modifies surface potential (simplified Nernst-like)
+  const pHfactor = 1 - 0.05 * Math.abs(pH_mod - 7); // crude model
+  const psi0_mod = psi0_mV * Math.max(0.1, pHfactor);
+
+  const psi0_V = psi0_mod * 1e-3;
+  const xSlip_m = xSlip_nm * 1e-9;
+  // Stern layer at 0.5 nm
+  const xStern = 0.5e-9;
+  const psi_stern = psi0_V * Math.exp(-kappa * xStern) * 1000; // mV
+  const zeta = psi0_V * Math.exp(-kappa * xSlip_m) * 1000; // mV
+  return { psi0_mod, psi_stern, zeta };
+}
+
+function dlvoEnergy(h_nm, R_nm, A_J, kappa, psi0_mV, T, steric, polyThick_nm) {
+  const h = h_nm * 1e-9;
+  const R = R_nm * 1e-9;
+  const psi0_V = psi0_mV * 1e-3;
+  const kT = kB * T;
+
+  // Van der Waals (sphere-sphere, HHF approx)
+  const VvdW = -(A_J * R) / (12 * h);
+
+  // EDL repulsion (Derjaguin approx, symmetric)
+  const Vedl = 2 * Math.PI * epsR * eps0 * R * psi0_V * psi0_V *
+               Math.log(1 + Math.exp(-kappa * h));
+
+  // Steric (de Gennes brush, simplified)
+  let Vsteric = 0;
+  if (steric && polyThick_nm > 0) {
+    const L = polyThick_nm * 1e-9;
+    if (h < 2 * L) {
+      // Simple exponential repulsion
+      const s = 5e-9; // grafting distance ~5nm
+      Vsteric = Math.PI * R * kB * T / (s * s * s) * L * L *
+        (28/11 * Math.pow(2*L/h, 5/4) + 20/77 * Math.pow(h/(2*L), 7/4) - 48/11);
+      Vsteric = Math.max(0, Vsteric);
+    }
+  }
+
+  const Vtotal = (VvdW + Vedl + Vsteric) / kT;
+  return {
+    VvdW: VvdW / kT,
+    Vedl: Vedl / kT,
+    Vsteric: Vsteric / kT,
+    Vtotal
+  };
+}
+
+function findBarriers(hArr, VtotalArr) {
+  let primaryMin = null, energyBarrier = null, secondaryMin = null;
+  let primaryMinH = null;
+
+  // Find primary minimum (smallest h, deepest negative)
+  for (let i = 0; i < hArr.length; i++) {
+    if (hArr[i] < 2 && VtotalArr[i] < 0) {
+      if (primaryMin === null || VtotalArr[i] < primaryMin) {
+        primaryMin = VtotalArr[i];
+        primaryMinH = hArr[i];
+      }
+    }
+  }
+
+  // Find energy barrier (maximum)
+  let barrierIdx = -1;
+  for (let i = 1; i < VtotalArr.length - 1; i++) {
+    if (VtotalArr[i] > (VtotalArr[i-1]) && VtotalArr[i] > (VtotalArr[i+1])) {
+      if (energyBarrier === null || VtotalArr[i] > energyBarrier) {
+        energyBarrier = VtotalArr[i];
+        barrierIdx = i;
+      }
+    }
+  }
+
+  // Find secondary minimum (local min after barrier)
+  if (barrierIdx > 0) {
+    for (let i = barrierIdx + 1; i < VtotalArr.length - 1; i++) {
+      if (VtotalArr[i] < VtotalArr[i-1] && VtotalArr[i] < VtotalArr[i+1] && VtotalArr[i] < 0) {
+        if (secondaryMin === null || VtotalArr[i] < secondaryMin) {
+          secondaryMin = VtotalArr[i];
+        }
+      }
+    }
+  }
+
+  return {
+    primaryMin: primaryMin !== null ? primaryMin.toFixed(1) : '—',
+    energyBarrier: energyBarrier !== null ? energyBarrier.toFixed(1) : '0',
+    secondaryMin: secondaryMin !== null ? secondaryMin.toFixed(1) : '—'
+  };
+}
+
+// ═══════════════════════════════════════
+// PLOT GLOBALS
+// ═══════════════════════════════════════
+const plotLayout = (xTitle, yTitle, extra = {}) => ({
+  paper_bgcolor: 'rgba(0,0,0,0)',
+  plot_bgcolor: 'rgba(7,13,26,0.9)',
+  font: { family: 'IBM Plex Mono, monospace', size: 10, color: '#7badd4' },
+  xaxis: {
+    title: { text: xTitle, font: { size: 10 } },
+    gridcolor: '#1e3050',
+    gridwidth: 1,
+    zerolinecolor: '#2a4a72',
+    tickfont: { size: 9 },
+    ...extra.xaxis
+  },
+  yaxis: {
+    title: { text: yTitle, font: { size: 10 } },
+    gridcolor: '#1e3050',
+    gridwidth: 1,
+    zerolinecolor: '#2a4a72',
+    tickfont: { size: 9 },
+    ...extra.yaxis
+  },
+  margin: { t: 16, b: 48, l: 56, r: 20 },
+  legend: {
+    x: 0.98, y: 0.98, xanchor: 'right', yanchor: 'top',
+    bgcolor: 'rgba(13,24,41,0.85)',
+    bordercolor: '#1e3050', borderwidth: 1,
+    font: { size: 9 }
+  },
+  ...extra,
+});
+
+const config = { displayModeBar: false, responsive: true };
+
+let plotsInitialized = false;
+
+// ═══════════════════════════════════════
+// MAIN UPDATE FUNCTION
+// ═══════════════════════════════════════
+function update() {
+  const concM = Math.pow(10, state.concLog);
+  const { I, kappa, kappa_inv_nm } = calcDebye(concM, state.zCat, state.zAn, state.T);
+  const { psi0_mod, psi_stern, zeta } = calcPotentials(state.psi0, kappa, state.xSlip, state.pH);
+  const A_J = state.A * 1e-20;
+
+  // Update readouts
+  document.getElementById('ro-I').innerHTML = I.toExponential(2) + '<span class="readout-unit">M</span>';
+  document.getElementById('ro-kappa').innerHTML = kappa_inv_nm.toFixed(2) + '<span class="readout-unit">nm</span>';
+  document.getElementById('ro-stern').innerHTML = psi_stern.toFixed(1) + '<span class="readout-unit">mV</span>';
+  document.getElementById('ro-zeta').innerHTML = zeta.toFixed(1) + '<span class="readout-unit">mV</span>';
+
+  // Stability indicator
+  const absZeta = Math.abs(zeta);
+  const sb = document.getElementById('stability-bar');
+  const si = document.getElementById('stab-icon');
+  const st = document.getElementById('stab-text');
+  const ss = document.getElementById('stab-sub');
+  const sv = document.getElementById('stab-zeta-val');
+  sb.className = 'stability-bar ';
+  sv.textContent = '|ζ| = ' + absZeta.toFixed(1);
+  if (absZeta >= 30) {
+    sb.className += 'stab-green'; si.textContent = '🟢';
+    st.textContent = 'Highly Stable';
+    st.style.color = 'var(--green)';
+    ss.textContent = '|ζ| ≥ 30 mV — strong electrostatic repulsion';
+  } else if (absZeta >= 20) {
+    sb.className += 'stab-yellow'; si.textContent = '🟡';
+    st.textContent = 'Moderately Stable';
+    st.style.color = 'var(--yellow)';
+    ss.textContent = '|ζ| 20–30 mV — moderate stability';
+  } else {
+    sb.className += 'stab-red'; si.textContent = '🔴';
+    st.textContent = 'Likely Aggregation';
+    st.style.color = 'var(--red)';
+    ss.textContent = '|ζ| < 20 mV — insufficient repulsion';
+  }
+
+  // ── PLOT 1: Potential Profile ──
+  const xArr = [];
+  for (let x = 0; x <= 50; x += 0.2) xArr.push(x);
+  const psiArr = xArr.map(x => psi0_mod * Math.exp(-kappa * x * 1e-9) * 1000 * 0.001 * 1000);
+  // Actually: ψ(x) = ψ0_mod [mV] * exp(-κ * x[nm] * 1e-9)
+  const psiPlot = xArr.map(x => psi0_mod * Math.exp(-kappa * x * 1e-9));
+
+  const annotations_zeta = [
+    {
+      x: state.xSlip, y: zeta,
+      text: `ζ = ${zeta.toFixed(1)} mV`,
+      showarrow: true, arrowcolor: '#00d4ff',
+      font: { size: 9, color: '#00d4ff', family: 'IBM Plex Mono' },
+      bgcolor: 'rgba(0,212,255,0.1)', bordercolor: '#00d4ff', borderwidth: 1,
+      ax: 40, ay: -30
+    },
+    {
+      x: 0, y: psi0_mod,
+      text: `ψ₀ = ${psi0_mod.toFixed(1)} mV`,
+      showarrow: true, arrowcolor: '#a78bfa',
+      font: { size: 9, color: '#a78bfa', family: 'IBM Plex Mono' },
+      bgcolor: 'rgba(167,139,250,0.1)', bordercolor: '#a78bfa', borderwidth: 1,
+      ax: 50, ay: -25
+    },
+    {
+      x: 0.5, y: psi0_mod * Math.exp(-kappa * 0.5e-9),
+      text: `ψ_s = ${psi_stern.toFixed(1)} mV`,
+      showarrow: true, arrowcolor: '#ffc400',
+      font: { size: 9, color: '#ffc400', family: 'IBM Plex Mono' },
+      bgcolor: 'rgba(255,196,0,0.1)', bordercolor: '#ffc400', borderwidth: 1,
+      ax: 60, ay: 20
+    }
+  ];
+
+  const shapes_zeta = [
+    // Stern layer shading
+    { type: 'rect', x0: 0, x1: 0.5, y0: Math.min(0, psi0_mod) - 5, y1: Math.max(0, psi0_mod) + 5,
+      fillcolor: 'rgba(255,196,0,0.05)', line: { color: '#ffc400', width: 1, dash: 'dot' } },
+    // Slip plane
+    { type: 'line', x0: state.xSlip, x1: state.xSlip,
+      y0: Math.min(0, psi0_mod) - 5, y1: Math.max(0, psi0_mod) + 5,
+      line: { color: '#00d4ff', width: 1.5, dash: 'dash' } },
+    // Debye length marker
+    { type: 'line', x0: kappa_inv_nm, x1: kappa_inv_nm,
+      y0: Math.min(0, psi0_mod) - 5, y1: Math.max(0, psi0_mod) + 5,
+      line: { color: '#4ecdc4', width: 1, dash: 'dot' } },
+  ];
+
+  const trace_psi = {
+    x: xArr, y: psiPlot,
+    name: 'ψ(x)',
+    type: 'scatter', mode: 'lines',
+    line: { color: '#a78bfa', width: 2.5 },
+  };
+
+  const trace_zeta_point = {
+    x: [state.xSlip], y: [zeta],
+    name: 'Zeta Potential',
+    type: 'scatter', mode: 'markers',
+    marker: { color: '#00d4ff', size: 10, symbol: 'circle', line: { color: '#fff', width: 1 } }
+  };
+
+  const layout1 = plotLayout('Distance from Surface (nm)', 'Potential (mV)', {
+    annotations: annotations_zeta,
+    shapes: shapes_zeta,
+    yaxis: { gridcolor: '#1e3050', zerolinecolor: '#2a4a72' }
+  });
+
+  if (!plotsInitialized) {
+    Plotly.newPlot('plot-zeta-container', [trace_psi, trace_zeta_point], layout1, config);
+  } else {
+    Plotly.react('plot-zeta-container', [trace_psi, trace_zeta_point], layout1, config);
+  }
+
+  // ── PLOT 2: DLVO Energy ──
+  const hArr = [];
+  for (let h = 0.15; h <= 80; h += 0.2) hArr.push(h);
+
+  const VvdWArr = [], VedlArr = [], VtotalArr = [], VsterArr = [];
+  hArr.forEach(h => {
+    const v = dlvoEnergy(h, state.R, A_J, kappa, psi0_mod, state.T, state.steric, state.polymerThick);
+    VvdWArr.push(Math.max(-200, v.VvdW));
+    VedlArr.push(Math.min(300, v.Vedl));
+    VtotalArr.push(Math.max(-200, Math.min(300, v.Vtotal)));
+    VsterArr.push(Math.min(300, v.Vsteric));
+  });
+
+  const barriers = findBarriers(hArr, VtotalArr);
+
+  // Barrier analysis UI
+  document.getElementById('ba-pmin').innerHTML =
+    barriers.primaryMin + '<span class="bc-unit">kT</span>';
+  document.getElementById('ba-barrier').innerHTML =
+    barriers.energyBarrier + '<span class="bc-unit">kT</span>';
+  document.getElementById('ba-smin').innerHTML =
+    barriers.secondaryMin + '<span class="bc-unit">kT</span>';
+
+  const barrierVal = parseFloat(barriers.energyBarrier);
+  const baInterp = document.getElementById('ba-interp');
+  const baText = document.getElementById('ba-text');
+  const baIcon = document.getElementById('ba-icon');
+  if (barrierVal > 25) {
+    baInterp.style.borderColor = 'var(--green)';
+    baInterp.style.background = 'rgba(0,230,118,0.06)';
+    baText.style.color = 'var(--green)';
+    baText.textContent = 'Stable Dispersion (barrier > 25 kT)';
+    baIcon.textContent = '✓';
+  } else if (barrierVal >= 10) {
+    baInterp.style.borderColor = 'var(--yellow)';
+    baInterp.style.background = 'rgba(255,234,0,0.06)';
+    baText.style.color = 'var(--yellow)';
+    baText.textContent = 'Metastable (barrier 10–25 kT)';
+    baIcon.textContent = '⚠';
+  } else {
+    baInterp.style.borderColor = 'var(--red)';
+    baInterp.style.background = 'rgba(255,23,68,0.06)';
+    baText.style.color = 'var(--red)';
+    baText.textContent = 'Unstable — Aggregation (barrier < 10 kT)';
+    baIcon.textContent = '✗';
+  }
+
+  const dlvoTraces = [
+    { x: hArr, y: VvdWArr, name: 'V_vdW (attraction)', type: 'scatter', mode: 'lines',
+      line: { color: '#ff6b6b', width: 1.8, dash: 'dot' } },
+    { x: hArr, y: VedlArr, name: 'V_EDL (repulsion)', type: 'scatter', mode: 'lines',
+      line: { color: '#4ecdc4', width: 1.8, dash: 'dash' } },
+    { x: hArr, y: VtotalArr, name: 'V_total (DLVO)', type: 'scatter', mode: 'lines',
+      line: { color: '#ffe66d', width: 2.5 } },
+  ];
+
+  if (state.steric) {
+    dlvoTraces.push({
+      x: hArr, y: VtotalArr.map((v,i) => Math.min(300, v + VsterArr[i])),
+      name: 'V_total + Steric', type: 'scatter', mode: 'lines',
+      line: { color: '#c8f7c5', width: 2, dash: 'longdash' }
+    });
+  }
+
+  // Zero line + barrier annotation
+  const dlvoShapes = [
+    { type: 'line', x0: 0, x1: 80, y0: 0, y1: 0,
+      line: { color: '#2a4a72', width: 1 } }
+  ];
+
+  const layout2 = plotLayout('Separation Distance h (nm)', 'Interaction Energy (kT)', {
+    shapes: dlvoShapes,
+    yaxis: { range: [-100, Math.min(300, Math.max(150, barrierVal * 1.5 + 10))],
+             gridcolor: '#1e3050', zerolinecolor: '#2a4a72' }
+  });
+
+  if (!plotsInitialized) {
+    Plotly.newPlot('plot-dlvo-container', dlvoTraces, layout2, config);
+  } else {
+    Plotly.react('plot-dlvo-container', dlvoTraces, layout2, config);
+  }
+
+  // ── PLOT 3: pH vs Surface Potential ──
+  const phArr = [];
+  for (let p = 2; p <= 12; p += 0.1) phArr.push(p);
+  // Simplified Nernst: ψ0(pH) = ψ0_base * (1 - 0.05 * |pH - 7|)
+  // Center on current ψ0
+  const psiBase = state.psi0;
+  const phPsiArr = phArr.map(p => {
+    const f = 1 - 0.05 * Math.abs(p - 7);
+    return psiBase * Math.max(0.05, f);
+  });
+
+  const phTrace = {
+    x: phArr, y: phPsiArr,
+    name: 'ψ₀(pH)', type: 'scatter', mode: 'lines',
+    line: { color: '#00e676', width: 2 },
+    fill: 'tozeroy',
+    fillcolor: 'rgba(0,230,118,0.05)'
+  };
+  const phCurrentTrace = {
+    x: [state.pH], y: [psi0_mod],
+    name: 'Current pH',
+    type: 'scatter', mode: 'markers',
+    marker: { color: '#00d4ff', size: 9, symbol: 'circle' }
+  };
+
+  const layoutPH = plotLayout('pH', 'ψ₀ (mV)', {
+    margin: { t: 10, b: 40, l: 48, r: 14 },
+    legend: { x: 0.98, y: 0.02, xanchor: 'right', yanchor: 'bottom',
+              bgcolor: 'rgba(13,24,41,0.85)', bordercolor: '#1e3050', borderwidth: 1,
+              font: { size: 9 } },
+    yaxis: { gridcolor: '#1e3050', zerolinecolor: '#2a4a72' },
+    xaxis: { tickvals: [2,4,6,8,10,12] }
+  });
+
+  if (!plotsInitialized) {
+    Plotly.newPlot('plot-ph-container', [phTrace, phCurrentTrace], layoutPH, config);
+  } else {
+    Plotly.react('plot-ph-container', [phTrace, phCurrentTrace], layoutPH, config);
+  }
+
+  plotsInitialized = true;
+
+  // Draw schematic
+  drawSchematic(kappa_inv_nm, zeta, state.xSlip);
+}
+
+// ═══════════════════════════════════════
+// SCHEMATIC CANVAS (Module 4)
+// ═══════════════════════════════════════
+function drawSchematic(kappa_inv, zeta, xSlip) {
+  const canvas = document.getElementById('schematic-canvas');
+  const parent = canvas.parentElement;
+  canvas.width = parent.clientWidth || 300;
+  canvas.height = (parent.clientHeight || 230) - 36;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const particleR = 55;
+  const cx = W * 0.22;
+  const cy = H * 0.5;
+
+  // Background
+  ctx.fillStyle = '#070d1a';
+  ctx.fillRect(0, 0, W, H);
+
+  // Debye length indicator
+  const debyePx = Math.min(100, kappa_inv * 4);
+  const slipPx = Math.min(80, xSlip * 10);
+
+  // ── Diffuse layer ──
+  const grad = ctx.createRadialGradient(cx, cy, particleR, cx, cy, particleR + debyePx + 20);
+  grad.addColorStop(0, zeta < 0 ? 'rgba(41,121,255,0.25)' : 'rgba(255,107,107,0.25)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.beginPath();
+  ctx.arc(cx, cy, particleR + debyePx + 20, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // ── Stern layer ring ──
+  ctx.beginPath();
+  ctx.arc(cx, cy, particleR + 5, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,196,0,0.7)';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([3, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Slip plane ring ──
+  ctx.beginPath();
+  ctx.arc(cx, cy, particleR + slipPx, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(0,212,255,0.8)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 5]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Debye length ring ──
+  ctx.beginPath();
+  ctx.arc(cx, cy, particleR + debyePx, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(78,205,196,0.4)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 6]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Particle body ──
+  const pGrad = ctx.createRadialGradient(cx - 15, cy - 15, 5, cx, cy, particleR);
+  pGrad.addColorStop(0, '#2a4a72');
+  pGrad.addColorStop(0.6, '#0d1829');
+  pGrad.addColorStop(1, '#070d1a');
+  ctx.beginPath();
+  ctx.arc(cx, cy, particleR, 0, Math.PI * 2);
+  ctx.fillStyle = pGrad;
+  ctx.fill();
+  ctx.strokeStyle = '#2979ff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // ── Surface charge symbols ──
+  const chargeSign = state.psi0 < 0 ? '−' : '+';
+  const chargeColor = state.psi0 < 0 ? '#ff6b6b' : '#4ecdc4';
+  for (let a = 0; a < 8; a++) {
+    const angle = (a / 8) * Math.PI * 2;
+    const tx = cx + (particleR - 3) * Math.cos(angle);
+    const ty = cy + (particleR - 3) * Math.sin(angle);
+    ctx.fillStyle = chargeColor;
+    ctx.font = 'bold 10px IBM Plex Mono';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(chargeSign, tx, ty);
+  }
+
+  // ── Counter ions in diffuse layer ──
+  const counterSign = state.psi0 < 0 ? '+' : '−';
+  const counterColor = state.psi0 < 0 ? '#4ecdc4' : '#ff6b6b';
+  const ionPositions = [
+    {a: 0.3, r: particleR + 12}, {a: 1.1, r: particleR + 18},
+    {a: 1.8, r: particleR + 10}, {a: 2.5, r: particleR + 25},
+    {a: 3.2, r: particleR + 15}, {a: 4.0, r: particleR + 20},
+    {a: 4.8, r: particleR + 12}, {a: 5.5, r: particleR + 22},
+    {a: 0.8, r: particleR + 30}, {a: 2.0, r: particleR + 35},
+    {a: 3.5, r: particleR + 28}, {a: 5.0, r: particleR + 33},
+  ];
+  ionPositions.forEach(({a, r}) => {
+    if (r < particleR + debyePx + 10) {
+      ctx.fillStyle = counterColor;
+      ctx.font = 'bold 9px IBM Plex Mono';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(counterSign, cx + r * Math.cos(a), cy + r * Math.sin(a));
+    }
+  });
+
+  // ── Labels ──
+  const labels = [
+    { r: particleR * 0.5, a: -Math.PI*0.5, text: 'Surface', color: '#7badd4' },
+    { r: particleR + 12, a: Math.PI*0.25, text: 'Stern', color: '#ffc400' },
+    { r: particleR + slipPx, a: -Math.PI*0.3, text: 'Slip\nPlane', color: '#00d4ff' },
+    { r: particleR + debyePx, a: Math.PI*0.6, text: 'κ⁻¹', color: '#4ecdc4' },
+  ];
+
+  ctx.font = 'bold 9px IBM Plex Mono';
+  labels.forEach(({r, a, text, color}) => {
+    const lx = cx + r * Math.cos(a);
+    const ly = cy + r * Math.sin(a);
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    const lines = text.split('\n');
+    lines.forEach((line, i) => ctx.fillText(line, lx, ly + i * 11));
+  });
+
+  // ── Legend ──
+  const legendX = W * 0.52;
+  const legendY = H * 0.12;
+  const items = [
+    { color: '#2979ff', label: 'Particle surface' },
+    { color: '#ffc400', label: 'Stern layer' },
+    { color: '#00d4ff', label: 'Slip plane (ζ = ' + zeta.toFixed(1) + ' mV)' },
+    { color: '#4ecdc4', label: 'Debye length (' + kappa_inv.toFixed(1) + ' nm)' },
+    { color: chargeColor, label: (state.psi0 < 0 ? 'Negative' : 'Positive') + ' surface charge' },
+    { color: counterColor, label: 'Counter-ions' },
+  ];
+
+  ctx.font = '9px IBM Plex Mono';
+  items.forEach(({color, label}, i) => {
+    const iy = legendY + i * 18;
+    ctx.fillStyle = color;
+    ctx.fillRect(legendX, iy - 5, 12, 9);
+    ctx.fillStyle = '#7badd4';
+    ctx.textAlign = 'left';
+    ctx.fillText(label, legendX + 17, iy);
+  });
+
+  // ── Title ──
+  ctx.fillStyle = '#3a6090';
+  ctx.font = '9px IBM Plex Mono';
+  ctx.textAlign = 'left';
+  ctx.fillText('FIG. 4 — Electric Double Layer Schematic (Scientific Illustration)', 10, H - 8);
+}
+
+// ═══════════════════════════════════════
+// SLIDER / INPUT LISTENERS
+// ═══════════════════════════════════════
+function bindSlider(id, stateKey, displayId, formatter) {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    state[stateKey] = parseFloat(el.value);
+    if (displayId) document.getElementById(displayId).textContent = formatter(state[stateKey]);
+    update();
+  });
+}
+
+function fmtMv(v) { return v.toFixed(0) + ' mV'; }
+function fmtK(v)  { return v.toFixed(0) + ' K'; }
+function fmtNm(v) { return v.toFixed(1) + ' nm'; }
+function fmtR(v)  { return v.toFixed(0) + ' nm'; }
+function fmtA(v)  { return v.toFixed(1) + '×10⁻²⁰ J'; }
+function fmtPH(v) { return v.toFixed(1); }
+function fmtPoly(v) { return v.toFixed(1) + ' nm'; }
+function fmtConc(v) {
+  const c = Math.pow(10, v);
+  if (c < 0.001) return c.toExponential(1) + ' M';
+  return c.toFixed(c < 0.01 ? 4 : c < 0.1 ? 3 : 2) + ' M';
+}
+
+bindSlider('sl-psi0',  'psi0',     'val-psi0', fmtMv);
+bindSlider('sl-conc',  'concLog',  'val-conc', fmtConc);
+bindSlider('sl-temp',  'T',        'val-temp', fmtK);
+bindSlider('sl-slip',  'xSlip',    'val-slip', fmtNm);
+bindSlider('sl-R',     'R',        'val-R',    fmtR);
+bindSlider('sl-A',     'A',        'val-A',    fmtA);
+bindSlider('ph-slider','pH',       'val-ph',   fmtPH);
+bindSlider('sl-polymer','polymerThick','val-polymer', fmtPoly);
+
+// Valence buttons
+['vg-cation', 'vg-anion'].forEach((groupId, idx) => {
+  const stateKey = idx === 0 ? 'zCat' : 'zAn';
+  document.querySelectorAll('#' + groupId + ' .valence-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#' + groupId + ' .valence-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state[stateKey] = parseInt(btn.dataset.v);
+      update();
+    });
+  });
+});
+
+// pH slider updates psi0 via pH modifier (displayed separately)
+document.getElementById('ph-slider').addEventListener('input', function() {
+  state.pH = parseFloat(this.value);
+  document.getElementById('val-ph').textContent = fmtPH(state.pH);
+  update();
+});
+
+// ═══════════════════════════════════════
+// STERIC TOGGLE
+// ═══════════════════════════════════════
+function toggleSteric() {
+  state.steric = !state.steric;
+  const sw = document.getElementById('steric-switch');
+  const ctrl = document.getElementById('steric-ctrl');
+  sw.classList.toggle('on', state.steric);
+  ctrl.classList.toggle('visible', state.steric);
+  update();
+}
+
+// ═══════════════════════════════════════
+// PRESETS (Module 3)
+// ═══════════════════════════════════════
+function applyPreset(name) {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active-preset'));
+  document.getElementById('pr-' + name.replace('ph','ph')).classList.add('active-preset');
+
+  const animate = (fromLog, toLog) => {
+    if (animating) return;
+    animating = true;
+    const steps = 20;
+    let step = 0;
+    const interval = setInterval(() => {
+      const t = step / steps;
+      const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // ease in-out
+      state.concLog = fromLog + (toLog - fromLog) * ease;
+      document.getElementById('sl-conc').value = state.concLog;
+      document.getElementById('val-conc').textContent = fmtConc(state.concLog);
+      update();
+      step++;
+      if (step > steps) { clearInterval(interval); animating = false; }
+    }, 50);
+  };
+
+  if (name === 'salt') {
+    animate(state.concLog, Math.min(0, state.concLog + 2));
+  } else if (name === 'dilute') {
+    animate(state.concLog, Math.max(-6, state.concLog - 2));
+  } else if (name === 'ph2') {
+    state.pH = 2;
+    document.getElementById('ph-slider').value = 2;
+    document.getElementById('val-ph').textContent = '2.0';
+    update();
+  } else if (name === 'ph10') {
+    state.pH = 10;
+    document.getElementById('ph-slider').value = 10;
+    document.getElementById('val-ph').textContent = '10.0';
+    update();
+  }
+}
+
+// ═══════════════════════════════════════
+// EDUCATIONAL TOGGLES
+// ═══════════════════════════════════════
+function toggleEdu(toggleEl) {
+  const content = toggleEl.nextElementSibling;
+  const isOpen = content.classList.contains('visible');
+  content.classList.toggle('visible', !isOpen);
+  toggleEl.classList.toggle('open', !isOpen);
+}
+
+// ═══════════════════════════════════════
+// RESPONSIVE: redraw schematic on resize
+// ═══════════════════════════════════════
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    if (plotsInitialized) {
+      Plotly.Plots.resize('plot-zeta-container');
+      Plotly.Plots.resize('plot-dlvo-container');
+      Plotly.Plots.resize('plot-ph-container');
+    }
+    update();
+  }, 150);
+});
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+// Set initial display values
+document.getElementById('val-psi0').textContent = fmtMv(state.psi0);
+document.getElementById('val-conc').textContent = fmtConc(state.concLog);
+document.getElementById('val-temp').textContent = fmtK(state.T);
+document.getElementById('val-slip').textContent = fmtNm(state.xSlip);
+document.getElementById('val-R').textContent = fmtR(state.R);
+document.getElementById('val-A').textContent = fmtA(state.A);
+document.getElementById('val-ph').textContent = fmtPH(state.pH);
+document.getElementById('val-polymer').textContent = fmtPoly(state.polymerThick);
+
+update();
+</script>
+</body>
+</html>
