@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>绿电波动下反渗透海水淡化系统柔性运行与碳排放决策模拟器</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #07111f; --panel: #0c1e36; --accent: #00e5ff; --green: #00e676;
+  --yellow: #ffea00; --orange: #ff9100; --red: #ff1744; --purple: #d500f9;
+  --blue: #40c4ff; --text: #e8f4f8; --muted: #7a9bb5; --border: #1a3555;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; background: var(--bg); color: var(--text);
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  overflow: auto; font-size: 12.5px;
+  -webkit-text-size-adjust: 100%;
+}
+.console {
+  display: grid; grid-template-columns: 270px 1fr 300px; grid-template-rows: auto 1fr;
+  min-height: 100vh; height: 100dvh; gap: 5px; padding: 5px;
+  overflow: hidden;
+}
+header {
+  grid-column: 1 / -1; background: linear-gradient(90deg, #0a1c30, #0c2d4a);
+  border: 1px solid var(--border); border-radius: 5px; padding: 7px 12px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+}
+header h1 { font-size: 15px; font-weight: 600; color: var(--accent); letter-spacing: 0.4px; }
+.header-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn {
+  background: #102a45; border: 1px solid var(--accent); color: var(--accent);
+  padding: 4px 11px; border-radius: 4px; cursor: pointer; font-size: 11.5px; transition: all 0.15s;
+}
+.btn:hover { background: var(--accent); color: #07111f; }
+.btn.danger { border-color: var(--red); color: var(--red); }
+.btn.danger:hover { background: var(--red); color: #fff; }
+.panel {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 5px;
+  padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
+}
+.panel h2 {
+  font-size: 12.5px; color: var(--accent); border-bottom: 1px solid var(--border);
+  padding-bottom: 3px; margin-bottom: 2px;
+}
+.ctrl-group { margin-bottom: 4px; }
+.ctrl-group label {
+  display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 1px;
+}
+.ctrl-group input[type=range] { width: 100%; accent-color: var(--accent); height: 3px; }
+.val { color: var(--green); font-weight: 600; }
+.presets { display: flex; flex-wrap: wrap; gap: 3px; }
+.preset {
+  flex: 1; min-width: 55px; background: #0a223a; border: 1px solid var(--border);
+  color: var(--text); padding: 3px 5px; border-radius: 3px; cursor: pointer;
+  font-size: 10.5px; text-align: center;
+}
+.preset:hover, .preset.active { border-color: var(--green); color: var(--green); }
+.center { display: flex; flex-direction: column; gap: 5px; min-height: 0; }
+.sys-view {
+  flex: 1.45; background: #050e1a; border: 1px solid var(--border); border-radius: 5px;
+  position: relative; overflow: hidden; min-height: 240px;
+}
+#plantCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.status-bar {
+  background: #0a1c30; border: 1px solid var(--border); border-radius: 4px;
+  padding: 5px 10px; font-size: 12px; display: flex; align-items: center; gap: 8px;
+}
+.status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.charts {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; height: 150px; flex-shrink: 0;
+}
+.chart-box {
+  background: #050e1a; border: 1px solid var(--border); border-radius: 4px;
+  padding: 3px; position: relative;
+}
+.chart-box canvas { width: 100% !important; height: 100% !important; }
+.metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.metric {
+  background: #0a1c30; border: 1px solid var(--border); border-radius: 4px; padding: 5px 7px;
+}
+.metric .lab { font-size: 10px; color: var(--muted); }
+.metric .num { font-size: 14px; font-weight: 700; color: var(--green); }
+.metric .unit { font-size: 9.5px; color: var(--muted); }
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.78);
+  z-index: 1000; align-items: center; justify-content: center; padding: 16px;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--panel); border: 1px solid var(--accent); border-radius: 7px;
+  max-width: 700px; max-height: 86vh; overflow-y: auto; padding: 18px; width: 100%;
+}
+.modal h2 { color: var(--accent); margin-bottom: 10px; font-size: 16px; }
+.modal h3 { color: var(--green); margin: 10px 0 5px; font-size: 13.5px; }
+.modal p, .modal li { font-size: 12.5px; line-height: 1.55; color: var(--text); margin-bottom: 5px; }
+.modal .close {
+  float: right; background: transparent; border: 1px solid var(--red);
+  color: var(--red); padding: 2px 9px; border-radius: 3px; cursor: pointer;
+}
+.formula {
+  background: #050e1a; border-left: 3px solid var(--accent); padding: 7px 11px;
+  margin: 7px 0; font-family: "Consolas", monospace; font-size: 12.5px; color: var(--yellow);
+}
+.note { font-size: 11px; color: var(--muted); font-style: italic; }
+
+/* 平板：略收窄左右栏 */
+@media (max-width: 1100px) {
+  .console { grid-template-columns: 220px 1fr 240px; }
+  header h1 { font-size: 13px; }
+}
+
+/* 手机 / 窄屏：纵向堆叠 + 整页可滚动 */
+@media (max-width: 900px) {
+  html, body {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .console {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+    padding-bottom: 24px;
+  }
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 13px; }
+  .header-btns { gap: 4px; }
+  .btn { padding: 5px 10px; font-size: 12px; }
+
+  /* 左侧控制区：展开，不截断 */
+  .panel {
+    max-height: none;
+    overflow: visible;
+    flex-shrink: 0;
+  }
+
+  /* 中间工艺图：固定高度，保证完整可见 */
+  .center {
+    flex: none;
+    min-height: 0;
+  }
+  .sys-view {
+    flex: none;
+    height: 360px;
+    min-height: 300px;
+  }
+  .charts {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .chart-box { height: 150px; }
+
+  /* 右侧仪表盘：自然高度 */
+  .metrics { grid-template-columns: 1fr 1fr; }
+}
+
+/* 更小屏幕再压缩工艺图高度 */
+@media (max-width: 480px) {
+  .sys-view { height: 300px; min-height: 260px; }
+  header h1 { font-size: 12px; }
+  .btn { padding: 4px 8px; font-size: 11px; }
+}
+</style>
+</head>
+<body>
+<div class="console">
+  <header>
+    <h1>绿电波动下反渗透海水淡化决策模拟器</h1>
+    <div class="header-btns">
+      <button class="btn" id="btnTheory">物理化学理论</button>
+      <button class="btn" id="btnTasks">工程任务</button>
+      <button class="btn" id="btnAssumptions">模型假设</button>
+      <button class="btn" id="btnStart">启动</button>
+      <button class="btn" id="btnPause">暂停</button>
+      <button class="btn danger" id="btnReset">重置</button>
+    </div>
+  </header>
+  <div class="panel">
+    <h2>环境与决策控制</h2>
+    <div class="ctrl-group">
+      <label>天气预设</label>
+      <div class="presets">
+        <div class="preset active" data-p="sunny">晴天</div>
+        <div class="preset" data-p="cloudy">多云</div>
+        <div class="preset" data-p="hybrid">风光互补</div>
+        <div class="preset" data-p="extreme">极端波动</div>
+      </div>
+    </div>
+    <div class="ctrl-group"><label>风电装机 <span class="val" id="vWind">400</span> kW</label>
+      <input type="range" id="sWind" min="0" max="800" value="400" step="10"></div>
+    <div class="ctrl-group"><label>光伏装机 <span class="val" id="vSolar">300</span> kW</label>
+      <input type="range" id="sSolar" min="0" max="600" value="300" step="10"></div>
+    <div class="ctrl-group"><label>风电波动幅度 <span class="val" id="vAmp">0.25</span></label>
+      <input type="range" id="sAmp" min="0" max="0.6" value="0.25" step="0.05"></div>
+    <div class="ctrl-group"><label>风电随机扰动 <span class="val" id="vNoise">0.15</span></label>
+      <input type="range" id="sNoise" min="0" max="0.4" value="0.15" step="0.05"></div>
+    <div class="ctrl-group"><label>社区淡水需求 <span class="val" id="vDemand">36</span> m³/h</label>
+      <input type="range" id="sDemand" min="5" max="80" value="36" step="2"></div>
+    <div class="ctrl-group"><label>需求波动幅度 <span class="val" id="vDemAmp">0.1</span></label>
+      <input type="range" id="sDemAmp" min="0" max="0.4" value="0.1" step="0.05"></div>
+    <div class="ctrl-group"><label>电池储能容量 <span class="val" id="vBatCap">800</span> kWh</label>
+      <input type="range" id="sBatCap" min="0" max="2000" value="800" step="50"></div>
+    <div class="ctrl-group"><label>初始 SOC <span class="val" id="vSoc0">60</span> %</label>
+      <input type="range" id="sSoc0" min="10" max="90" value="60" step="5"></div>
+    <div class="ctrl-group"><label>最大充/放电功率 <span class="val" id="vBatP">300</span> kW</label>
+      <input type="range" id="sBatP" min="50" max="600" value="300" step="20"></div>
+    <div class="ctrl-group"><label>淡水蓄水池容量 <span class="val" id="vTankCap">200</span> m³</label>
+      <input type="range" id="sTankCap" min="20" max="500" value="200" step="10"></div>
+    <div class="ctrl-group"><label>初始蓄水量 <span class="val" id="vTank0">50</span> %</label>
+      <input type="range" id="sTank0" min="10" max="90" value="50" step="5"></div>
+    <div class="ctrl-group"><label>RO 柔性调节程度 <span class="val" id="vFlex">50</span> %</label>
+      <input type="range" id="sFlex" min="0" max="100" value="50" step="5"></div>
+    <div class="ctrl-group"><label>模拟速度 <span class="val" id="vSpeed">1.0</span>×</label>
+      <input type="range" id="sSpeed" min="0.2" max="5" value="1" step="0.2"></div>
+    <div class="ctrl-group"><label>电网排放因子 <span class="val" id="vEF">0.55</span> kg/kWh</label>
+      <input type="range" id="sEF" min="0.2" max="0.9" value="0.55" step="0.05"></div>
+  </div>
+  <div class="center">
+    <div class="sys-view" id="sysView"><canvas id="plantCanvas"></canvas></div>
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot" style="background:var(--green)"></div>
+      <span id="statusText">系统就绪。点击“启动”开始模拟。</span>
+    </div>
+    <div class="charts">
+      <div class="chart-box"><canvas id="chartPower"></canvas></div>
+      <div class="chart-box"><canvas id="chartWater"></canvas></div>
+      <div class="chart-box"><canvas id="chartSOC"></canvas></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>关键指标仪表盘</h2>
+    <div class="metrics">
+      <div class="metric"><div class="lab">当前绿电功率</div><div class="num" id="mGreen">0</div><div class="unit">kW</div></div>
+      <div class="metric"><div class="lab">RO系统功率需求</div><div class="num" id="mRO">0</div><div class="unit">kW</div></div>
+      <div class="metric"><div class="lab">高压泵压力</div><div class="num" id="mPress">0</div><div class="unit">MPa</div></div>
+      <div class="metric"><div class="lab">RO膜通量</div><div class="num" id="mFlux">0</div><div class="unit">LMH</div></div>
+      <div class="metric"><div class="lab">当前产水量</div><div class="num" id="mProd">0</div><div class="unit">m³/h</div></div>
+      <div class="metric"><div class="lab">累计产水量</div><div class="num" id="mCumProd">0</div><div class="unit">m³</div></div>
+      <div class="metric"><div class="lab">储能剩余 SOC</div><div class="num" id="mSOC">60</div><div class="unit">%</div></div>
+      <div class="metric"><div class="lab">淡水蓄水池</div><div class="num" id="mTank">50</div><div class="unit">%</div></div>
+      <div class="metric"><div class="lab">累计电网电量</div><div class="num" id="mGridE">0</div><div class="unit">kWh</div></div>
+      <div class="metric"><div class="lab">累计碳排放</div><div class="num" id="mCO2">0</div><div class="unit">kg CO₂</div></div>
+      <div class="metric"><div class="lab">单位产水碳排放</div><div class="num" id="mUnitCO2">0</div><div class="unit">kg/m³</div></div>
+      <div class="metric"><div class="lab">单位产水能耗 SEC</div><div class="num" id="mSEC">0</div><div class="unit">kWh/m³</div></div>
+      <div class="metric"><div class="lab">绿电利用率</div><div class="num" id="mGreenUtil">0</div><div class="unit">%</div></div>
+      <div class="metric"><div class="lab">供水保障率</div><div class="num" id="mSupplyRate">100</div><div class="unit">%</div></div>
+      <div class="metric"><div class="lab">模拟时间</div><div class="num" id="mTime">0.0</div><div class="unit">h</div></div>
+      <div class="metric"><div class="lab">泵速设定 u</div><div class="num" id="mU">0.70</div><div class="unit">—</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalTheory">
+  <div class="modal">
+    <button class="close" onclick="closeModal('modalTheory')">关闭</button>
+    <h2>物理化学理论背景</h2>
+    <h3>1. 反渗透热力学</h3>
+    <div class="formula">π = i C R T &nbsp;&nbsp;&nbsp; ΔG ≈ V̄<sub>w</sub> (Δπ − ΔP)</div>
+    <p>渗透压采用 van't Hoff 近似。本模拟器对高盐度海水使用有效渗透压 Δπ_eff ≈ 2.7 MPa（25 °C）。只有 ΔP > Δπ 时净驱动力为正，水才反向迁移。</p>
+    <p class="note">适用条件：恒温、理想溶液近似；工程中需考虑活度系数与浓度极化。</p>
+    <h3>2. 膜传质动力学</h3>
+    <div class="formula">J<sub>w</sub> = A<sub>w</sub> (ΔP − Δπ) &nbsp;&nbsp;&nbsp; J<sub>actual</sub> = J<sub>w</sub> · f<sub>fouling</sub></div>
+    <p>A<sub>w</sub> = 4.2 L·m⁻²·h⁻¹·MPa⁻¹，膜面积 6000 m²。产水量由净传质驱动力与膜面积决定，而非绿电功率的线性函数。</p>
+    <h3>3. 泵功与能量转换</h3>
+    <div class="formula">P<sub>RO</sub> = (ΔP · Q<sub>feed</sub>) / η<sub>pump</sub> &nbsp;&nbsp;&nbsp; P<sub>net</sub> = P<sub>RO</sub> · (1 − η<sub>recovery</sub>)</div>
+    <p>η<sub>pump</sub> = 0.78，η<sub>recovery</sub> = 0.55。泵速 u ∈ [0,1]，ΔP ≈ ΔP<sub>max</sub> · u²。SEC = 累计泵电耗 / 累计产水量。</p>
+    <h3>4. 电池储能</h3>
+    <div class="formula">SOC(t+Δt) = SOC(t) + (η · P<sub>ch</sub> − P<sub>dis</sub>/η) · Δt / E<sub>cap</sub></div>
+    <p>SOC 限制在 [10%, 95%]。储能实现电能时间转移，主要用于平抑短时绿电波动。</p>
+    <h3>5. 碳排放</h3>
+    <div class="formula">M<sub>CO₂</sub> = E<sub>grid</sub> × EF<sub>grid</sub></div>
+    <p>仅计算运行阶段电网购电对应的间接碳排放。运行阶段零排放 ≠ 全生命周期零碳排放。</p>
+  </div>
+</div>
+<div class="modal-overlay" id="modalTasks">
+  <div class="modal">
+    <button class="close" onclick="closeModal('modalTasks')">关闭</button>
+    <h2>学生工程决策任务</h2>
+    <h3>任务1：绿电充足条件下的 RO 运行</h3>
+    <p>调节风光装机与 RO 负荷，观察压力、通量与单位产水能耗。思考：为什么绿电增加不一定意味着单位产水能耗下降？</p>
+    <h3>任务2：极端天气下的供水稳定性</h3>
+    <p>设置极端波动，分别调节电池容量与淡水池容量，观察何时出现供水不足。比较电池储能与淡水蓄存的适用场景。</p>
+    <h3>任务3：低碳运行与供水稳定性的权衡</h3>
+    <p>分别设置柔性程度 0%、50%、100%，比较产水量、碳排放与供水保障率。完全柔性可能导致产水不足。</p>
+    <h3>任务4：海岛淡化系统工程设计</h3>
+    <p>约束：供水保障率 ≥ 95%，SEC 合理，碳排放尽可能低，储能容量有限。提交参数组合与方案解释。</p>
+  </div>
+</div>
+<div class="modal-overlay" id="modalAssumptions">
+  <div class="modal">
+    <button class="close" onclick="closeModal('modalAssumptions')">关闭</button>
+    <h2>模型假设与参数说明</h2>
+    <ul>
+      <li>有效渗透压 Δπ_eff = 2.7 MPa；最大操作压力 6.5 MPa；膜面积 6000 m²；A_w = 4.2 LMH/MPa（正常工况产水约 18–22 m³/h）。</li>
+      <li>泵效率 0.78，能量回收 0.55；最大进水流量随泵速变化。</li>
+      <li>光伏：正弦昼夜模型；风电：均值 + 正弦 + 受限随机扰动。</li>
+      <li>功率守恒：P_green + P_storage + P_grid = P_RO + P_aux。</li>
+      <li>柔性策略真正改变泵速 u → 压力 → 通量 → 产水量。</li>
+      <li>本模拟器仅用于教学，参数可调，结果不代表真实工程设计值。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const PI_EFF=2.7, DP_MAX=6.5, A_W=4.2, A_MEM=6000;
+const ETA_PUMP=0.78, ETA_REC=0.55, ETA_BAT=0.92, P_AUX=18;
+const SOC_MIN=0.10, SOC_MAX=0.95, FOULING=0.92;
+
+let running=false, simTime=8.0, lastTs=0;
+const dt=0.02;
+let state={
+  windRated:400, solarRated:300, amp:0.25, noise:0.15,
+  demandBase:18, demAmp:0.1,
+  batCap:800, soc:0.60, batPmax:300,
+  tankCap:200, tank:100,
+  flex:0.5, speed:1.0, ef:0.55, u:0.70,
+  cumProd:0, cumGridE:0, cumCO2:0, cumROEnergy:0,
+  supplyOkHours:0, totalHours:0, weather:'sunny',
+  pWind:0, pSolar:0, pGreen:0, pRO:0, pGrid:0, pCharge:0, pDischarge:0,
+  dP:0, Jw:0, qProd:0, dem:0
+};
+const histLen=120;
+let histT=[], histGreen=[], histRO=[], histGrid=[];
+let histProd=[], histDem=[], histTank=[];
+let histSOC=[], histCO2=[], histCumProd=[];
+
+const $=id=>document.getElementById(id);
+const sliders={
+  wind:$('sWind'), solar:$('sSolar'), amp:$('sAmp'), noise:$('sNoise'),
+  demand:$('sDemand'), demAmp:$('sDemAmp'),
+  batCap:$('sBatCap'), soc0:$('sSoc0'), batP:$('sBatP'),
+  tankCap:$('sTankCap'), tank0:$('sTank0'),
+  flex:$('sFlex'), speed:$('sSpeed'), ef:$('sEF')
+};
+function bindSliders(){
+  const map=[
+    ['wind','vWind','windRated'],['solar','vSolar','solarRated'],
+    ['amp','vAmp','amp'],['noise','vNoise','noise'],
+    ['demand','vDemand','demandBase'],['demAmp','vDemAmp','demAmp'],
+    ['batCap','vBatCap','batCap'],['soc0','vSoc0',null],
+    ['batP','vBatP','batPmax'],['tankCap','vTankCap','tankCap'],
+    ['tank0','vTank0',null],['flex','vFlex',null],
+    ['speed','vSpeed','speed'],['ef','vEF','ef']
+  ];
+  map.forEach(([sid,vid,key])=>{
+    sliders[sid].addEventListener('input',()=>{
+      const v=parseFloat(sliders[sid].value);
+      $(vid).textContent=v;
+      if(key) state[key]=v;
+      if(sid==='flex') state.flex=v/100;
+      if(sid==='soc0'&&!running) state.soc=v/100;
+      if(sid==='tank0'&&!running) state.tank=(v/100)*state.tankCap;
+      if(sid==='tankCap'&&!running) state.tank=Math.min(state.tank,v);
+    });
+  });
+}
+bindSliders();
+
+document.querySelectorAll('.preset').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.preset').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    state.weather=el.dataset.p;
+    if(state.weather==='sunny'){state.amp=0.15;state.noise=0.08;}
+    if(state.weather==='cloudy'){state.amp=0.30;state.noise=0.20;}
+    if(state.weather==='hybrid'){state.amp=0.22;state.noise=0.12;}
+    if(state.weather==='extreme'){state.amp=0.55;state.noise=0.35;}
+    sliders.amp.value=state.amp; $('vAmp').textContent=state.amp;
+    sliders.noise.value=state.noise; $('vNoise').textContent=state.noise;
+  });
+});
+
+$('btnStart').onclick=()=>{running=true; lastTs=performance.now(); requestAnimationFrame(loop);};
+$('btnPause').onclick=()=>{running=false;};
+$('btnReset').onclick=resetSim;
+$('btnTheory').onclick=()=>openModal('modalTheory');
+$('btnTasks').onclick=()=>openModal('modalTasks');
+$('btnAssumptions').onclick=()=>openModal('modalAssumptions');
+function openModal(id){$(id).classList.add('show');}
+function closeModal(id){$(id).classList.remove('show');}
+
+function solarPower(t){
+  const hour=((t%24)+24)%24;
+  if(hour<6||hour>18) return 0;
+  const s=Math.sin(Math.PI*(hour-6)/12);
+  let wf=1.0;
+  if(state.weather==='cloudy') wf=0.45;
+  if(state.weather==='extreme') wf=0.25;
+  if(state.weather==='hybrid') wf=0.85;
+  return state.solarRated*Math.max(0,s)*wf;
+}
+function windPower(t){
+  const mean=state.windRated;
+  const wave=1+state.amp*Math.sin(2*Math.PI*t/6.5);
+  const noise=state.noise*(Math.sin(t*1.7)*0.6+Math.sin(t*3.1)*0.3+(Math.random()-0.5)*0.4);
+  return Math.max(0,mean*(wave+noise));
+}
+function demandRate(t){ return state.demandBase*(1+state.demAmp*Math.sin(2*Math.PI*t/24)); }
+function decidePumpSpeed(pGreen,soc,tankFrac){
+  const uTarget=0.75;
+  const pAvail=pGreen+(soc>SOC_MIN+0.05?state.batPmax*0.85:0);
+  let u;
+  if(state.flex<0.05) u=uTarget;
+  else if(state.flex>0.95) u=Math.min(1,Math.max(0.18,pGreen/380));
+  else { const follow=Math.min(1,Math.max(0.22,pAvail/360)); u=(1-state.flex)*uTarget+state.flex*follow; }
+  if(tankFrac>0.97) u*=0.25;
+  if(soc<0.18&&state.flex>0.3) u=Math.min(u,0.38);
+  return Math.max(0.08,Math.min(1,u));
+}
+function roPhysics(u){
+  const dP=DP_MAX*u*u;
+  const net=Math.max(0,dP-PI_EFF);
+  const Jw=A_W*net*FOULING;
+  const Qprod=(Jw*A_MEM)/1000;
+  const recovery=0.42+0.08*u;
+  const Qfeed=Qprod/recovery;
+  const dP_Pa=dP*1e6, Q_m3s=Qfeed/3600;
+  const P_gross=(dP_Pa*Q_m3s)/ETA_PUMP/1000;
+  const P_net=P_gross*(1-ETA_REC)+P_AUX;
+  return {dP,Jw,Qprod,Qfeed,P_RO:Math.max(P_AUX,P_net)};
+}
+function powerBalance(pGreen,pRO,soc,dtH){
+  let pGrid=0, pCharge=0, pDischarge=0;
+  const surplus=pGreen-pRO;
+  if(surplus>=0){
+    const maxCh=Math.min(state.batPmax,surplus);
+    const room=(SOC_MAX-soc)*state.batCap;
+    pCharge=Math.max(0,Math.min(maxCh,room/(dtH*ETA_BAT+1e-9)));
+  } else {
+    const deficit=-surplus;
+    const maxDis=Math.min(state.batPmax,deficit);
+    const avail=(soc-SOC_MIN)*state.batCap*ETA_BAT;
+    pDischarge=Math.max(0,Math.min(maxDis,avail/(dtH+1e-9)));
+    pGrid=Math.max(0,deficit-pDischarge);
+  }
+  const dE=(pCharge*ETA_BAT-pDischarge/ETA_BAT)*dtH;
+  let newSoc=soc+dE/(state.batCap||1);
+  newSoc=Math.max(SOC_MIN,Math.min(SOC_MAX,newSoc));
+  return {pGrid,pCharge,pDischarge,newSoc};
+}
+
+function step(dtH){
+  const t=simTime;
+  const pWind=windPower(t), pSolar=solarPower(t), pGreen=pWind+pSolar;
+  const dem=demandRate(t), tankFrac=state.tank/state.tankCap;
+  state.u=decidePumpSpeed(pGreen,state.soc,tankFrac);
+  const ro=roPhysics(state.u);
+  const bal=powerBalance(pGreen,ro.P_RO,state.soc,dtH);
+  state.soc=bal.newSoc;
+  let qProd=ro.Qprod;
+  if(state.tank>=state.tankCap*0.995) qProd=Math.min(qProd,dem*0.2);
+  state.tank+=(qProd-dem)*dtH;
+  state.tank=Math.max(0,Math.min(state.tankCap,state.tank));
+  state.cumProd+=qProd*dtH; state.cumGridE+=bal.pGrid*dtH;
+  state.cumCO2+=bal.pGrid*dtH*state.ef; state.cumROEnergy+=ro.P_RO*dtH;
+  state.totalHours+=dtH;
+  if(state.tank>state.tankCap*0.05) state.supplyOkHours+=dtH;
+  state.pWind=pWind; state.pSolar=pSolar; state.pGreen=pGreen;
+  state.pRO=ro.P_RO; state.pGrid=bal.pGrid;
+  state.pCharge=bal.pCharge; state.pDischarge=bal.pDischarge;
+  state.dP=ro.dP; state.Jw=ro.Jw; state.qProd=qProd; state.dem=dem;
+  const unitCO2=state.cumProd>0.01?state.cumCO2/state.cumProd:0;
+  const sec=state.cumProd>0.01?state.cumROEnergy/state.cumProd:0;
+  const greenUtil=pGreen>0?Math.min(100,(Math.min(pGreen,ro.P_RO)/pGreen)*100):0;
+  const supplyRate=state.totalHours>0.1?(state.supplyOkHours/state.totalHours)*100:100;
+  $('mGreen').textContent=pGreen.toFixed(1);
+  $('mRO').textContent=ro.P_RO.toFixed(1);
+  $('mPress').textContent=ro.dP.toFixed(2);
+  $('mFlux').textContent=ro.Jw.toFixed(1);
+  $('mProd').textContent=qProd.toFixed(2);
+  $('mCumProd').textContent=state.cumProd.toFixed(1);
+  $('mSOC').textContent=(state.soc*100).toFixed(1);
+  $('mTank').textContent=((state.tank/state.tankCap)*100).toFixed(1);
+  $('mGridE').textContent=state.cumGridE.toFixed(1);
+  $('mCO2').textContent=state.cumCO2.toFixed(1);
+  $('mUnitCO2').textContent=unitCO2.toFixed(3);
+  $('mSEC').textContent=sec.toFixed(2);
+  $('mGreenUtil').textContent=greenUtil.toFixed(0);
+  $('mSupplyRate').textContent=supplyRate.toFixed(1);
+  $('mTime').textContent=simTime.toFixed(2);
+  $('mU').textContent=state.u.toFixed(2);
+  updateStatus(pGreen,bal,ro,tankFrac);
+  pushHist(t,pGreen,ro.P_RO,bal.pGrid,qProd,dem,state.tank/state.tankCap*100,state.soc*100,state.cumCO2,state.cumProd);
+}
+function updateStatus(pGreen,bal,ro,tankFrac){
+  const dot=$('statusDot'), txt=$('statusText');
+  if(tankFrac<0.08){ dot.style.background='var(--orange)'; txt.textContent='淡水储备不足，社区供水存在风险。'; }
+  else if(bal.pGrid>5){ dot.style.background='var(--red)'; txt.textContent='储能不足，电网正在介入，碳排放增加。'; }
+  else if(state.u<0.35&&state.flex>0.4){ dot.style.background='var(--yellow)'; txt.textContent='绿电不足，RO系统正在降低运行负荷（柔性策略）。'; }
+  else if(bal.pDischarge>5){ dot.style.background='var(--blue)'; txt.textContent='正在调用储能，平抑绿电供给波动。'; }
+  else if(pGreen>ro.P_RO*0.9){ dot.style.background='var(--green)'; txt.textContent='绿电充足，RO系统正在使用可再生能源运行。'; }
+  else if(state.flex>0.7&&tankFrac<0.25){ dot.style.background='var(--purple)'; txt.textContent='策略冲突：低碳运行与供水稳定性难以同时满足。'; }
+  else { dot.style.background='var(--green)'; txt.textContent='系统正常运行中。'; }
+}
+function pushHist(t,g,ro,gr,pr,de,tk,so,co,cp){
+  histT.push(t); histGreen.push(g); histRO.push(ro); histGrid.push(gr);
+  histProd.push(pr); histDem.push(de); histTank.push(tk);
+  histSOC.push(so); histCO2.push(co); histCumProd.push(cp);
+  if(histT.length>histLen){
+    [histT,histGreen,histRO,histGrid,histProd,histDem,histTank,histSOC,histCO2,histCumProd].forEach(a=>a.shift());
+  }
+  updateCharts();
+}
+
+let chartPower, chartWater, chartSOC;
+function initCharts(){
+  const common={responsive:true,maintainAspectRatio:false,animation:false,
+    scales:{x:{display:false},y:{ticks:{color:'#7a9bb5',font:{size:9}},grid:{color:'#1a3555'}}},
+    plugins:{legend:{labels:{color:'#e8f4f8',font:{size:9},boxWidth:10}}}};
+  chartPower=new Chart($('chartPower'),{type:'line',data:{labels:histT,datasets:[
+    {label:'绿电',data:histGreen,borderColor:'#00e676',borderWidth:1.5,pointRadius:0,tension:0.3},
+    {label:'RO负荷',data:histRO,borderColor:'#40c4ff',borderWidth:1.5,pointRadius:0,tension:0.3},
+    {label:'电网',data:histGrid,borderColor:'#ff1744',borderWidth:1.5,pointRadius:0,tension:0.3}
+  ]},options:{...common,scales:{...common.scales,y:{...common.scales.y,title:{display:true,text:'kW',color:'#7a9bb5'}}}}});
+  chartWater=new Chart($('chartWater'),{type:'line',data:{labels:histT,datasets:[
+    {label:'产水',data:histProd,borderColor:'#00e5ff',borderWidth:1.5,pointRadius:0,tension:0.3},
+    {label:'需求',data:histDem,borderColor:'#ffea00',borderWidth:1.5,pointRadius:0,tension:0.3},
+    {label:'蓄水池%',data:histTank,borderColor:'#d500f9',borderWidth:1.5,pointRadius:0,tension:0.3,yAxisID:'y1'}
+  ]},options:{...common,scales:{x:{display:false},
+    y:{ticks:{color:'#7a9bb5',font:{size:9}},grid:{color:'#1a3555'},title:{display:true,text:'m³/h',color:'#7a9bb5'}},
+    y1:{position:'right',min:0,max:100,ticks:{color:'#d500f9',font:{size:9}},grid:{drawOnChartArea:false}}}}});
+  chartSOC=new Chart($('chartSOC'),{type:'line',data:{labels:histT,datasets:[
+    {label:'SOC %',data:histSOC,borderColor:'#00e676',borderWidth:1.5,pointRadius:0,tension:0.3},
+    {label:'累计CO₂',data:histCO2,borderColor:'#ff9100',borderWidth:1.5,pointRadius:0,tension:0.3,yAxisID:'y1'}
+  ]},options:{...common,scales:{x:{display:false},
+    y:{min:0,max:100,ticks:{color:'#7a9bb5',font:{size:9}},grid:{color:'#1a3555'}},
+    y1:{position:'right',ticks:{color:'#ff9100',font:{size:9}},grid:{drawOnChartArea:false}}}}});
+}
+function updateCharts(){
+  if(!chartPower) return;
+  chartPower.data.labels=histT; chartPower.data.datasets[0].data=histGreen;
+  chartPower.data.datasets[1].data=histRO; chartPower.data.datasets[2].data=histGrid; chartPower.update('none');
+  chartWater.data.labels=histT; chartWater.data.datasets[0].data=histProd;
+  chartWater.data.datasets[1].data=histDem; chartWater.data.datasets[2].data=histTank; chartWater.update('none');
+  chartSOC.data.labels=histT; chartSOC.data.datasets[0].data=histSOC;
+  chartSOC.data.datasets[1].data=histCO2; chartSOC.update('none');
+}
+
+/* ========== 工艺图：逻辑坐标 1280×720，设备约 1.8× 放大 ========== */
+
+const LW=1280, LH=720;
+const canvas=$('plantCanvas'), ctx=canvas.getContext('2d');
+let particles=[], animPhase=0;
+
+/* 设备中心（拉开间距，避免 1.8× 后重叠） */
+const EQ={
+  wind:{x:110, y:180},
+  solar:{x:110, y:490},
+  bus:{x:340, y:340},
+  bat:{x:560, y:170},
+  grid:{x:560, y:540},
+  pump:{x:780, y:340},
+  ro:{x:980, y:340},
+  tank:{x:1170, y:180},
+  city:{x:1170, y:540}
+};
+
+/* 管道路径（贴合放大后的设备边缘） */
+const PIPES={
+  windPower:  [{x:182,y:180},{x:250,y:180},{x:250,y:310},{x:278,y:310}],
+  solarPower: [{x:182,y:490},{x:250,y:490},{x:250,y:370},{x:278,y:370}],
+  toBat:      [{x:402,y:310},{x:480,y:310},{x:480,y:170},{x:500,y:170}],
+  toGrid:     [{x:402,y:370},{x:480,y:370},{x:480,y:540},{x:500,y:540}],
+  mainPower:  [{x:402,y:340},{x:710,y:340}],
+  seawater:   [{x:710,y:420},{x:745,y:420},{x:745,y:340},{x:755,y:340}],
+  pumpToRO:   [{x:850,y:340},{x:910,y:340}],
+  roToTank:   [{x:1050,y:340},{x:1110,y:340},{x:1110,y:180},{x:1130,y:180}],
+  tankToCity: [{x:1170,y:250},{x:1170,y:490}],
+  brine:      [{x:980,y:410},{x:980,y:620},{x:880,y:620}]
+};
+
+const PATHS={
+  wind:  PIPES.windPower.concat([{x:340,y:340},{x:402,y:340},{x:710,y:340}]),
+  solar: PIPES.solarPower.concat([{x:340,y:340},{x:402,y:340},{x:710,y:340}]),
+  red:   [{x:500,y:540},{x:480,y:540},{x:480,y:370},{x:402,y:370},{x:402,y:340},{x:710,y:340}],
+  blue:  PIPES.pumpToRO.concat(PIPES.roToTank).concat(PIPES.tankToCity),
+  batIn: PIPES.toBat,
+  batOut:[{x:500,y:170},{x:480,y:170},{x:480,y:310},{x:402,y:310}]
+};
+
+function resizeCanvas(){
+  const r=canvas.parentElement.getBoundingClientRect();
+  const dpr=Math.min(window.devicePixelRatio||1, 2);
+  canvas.width=Math.max(1,Math.floor(r.width*dpr));
+  canvas.height=Math.max(1,Math.floor(r.height*dpr));
+}
+function applyLogicalTransform(){
+  const cw=canvas.width, ch=canvas.height;
+  const s=Math.min(cw/LW, ch/LH);
+  const ox=(cw-LW*s)/2, oy=(ch-LH*s)/2;
+  ctx.setTransform(s,0,0,s,ox,oy);
+}
+function drawRoundedRect(x,y,w,h,r,fill,stroke){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill();}
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2.4;ctx.stroke();}
+}
+function drawPipe(pts,color,width){
+  if(!pts||pts.length<2) return;
+  ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=width;
+  ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash([]);
+  ctx.moveTo(pts[0].x,pts[0].y);
+  for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y);
+  ctx.stroke();
+}
+function drawArrowHead(x,y,dir,color){
+  ctx.fillStyle=color; ctx.beginPath();
+  if(dir==='r'){ctx.moveTo(x,y-7);ctx.lineTo(x+12,y);ctx.lineTo(x,y+7);}
+  else if(dir==='d'){ctx.moveTo(x-7,y);ctx.lineTo(x,y+12);ctx.lineTo(x+7,y);}
+  else if(dir==='l'){ctx.moveTo(x,y-7);ctx.lineTo(x-12,y);ctx.lineTo(x,y+7);}
+  else{ctx.moveTo(x-7,y);ctx.lineTo(x,y-12);ctx.lineTo(x+7,y);}
+  ctx.fill();
+}
+function drawLabel(text,x,y,color,size){
+  ctx.fillStyle=color||'#a0c4d8';
+  ctx.font=`${size||18}px "Segoe UI","PingFang SC",sans-serif`;
+  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.fillText(text,x,y);
+}
+
+function drawPlant(){
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#050e1a'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  applyLogicalTransform();
+
+  const W=EQ.wind,S=EQ.solar,B=EQ.bus,BAT=EQ.bat,G=EQ.grid,P=EQ.pump,R=EQ.ro,T=EQ.tank,C=EQ.city;
+  const powerActive=state.pGreen>40, gridActive=state.pGrid>3;
+
+  /* 管道（加粗约 1.6×） */
+  drawPipe(PIPES.windPower,'#26a69a',5.5);
+  drawPipe(PIPES.solarPower,'#26a69a',5.5);
+  drawPipe(PIPES.toBat,'#26a69a',4.5);
+  drawPipe(PIPES.toGrid,gridActive?'#ff1744':'#455a64',4.5);
+  drawPipe(PIPES.mainPower,powerActive?'#00e676':'#455a64',7.5);
+  drawPipe(PIPES.seawater,'#1e88e5',6);
+  drawPipe(PIPES.pumpToRO,'#1e88e5',7.5);
+  drawPipe(PIPES.roToTank,'#29b6f6',6);
+  drawPipe(PIPES.tankToCity,'#29b6f6',6);
+  drawPipe(PIPES.brine,'#546e7a',4.5);
+
+  drawArrowHead(265,310,'r','#26a69a');
+  drawArrowHead(265,310,'r','#26a69a');
+  drawArrowHead(550,340,'r',powerActive?'#00e676':'#78909c');
+  drawArrowHead(880,280,'r','#1e88e5');
+  drawArrowHead(1120,120,'r','#29b6f6');
+  drawArrowHead(1170,300,'d','#29b6f6');
+
+  /* —— 风电：原 80→144 —— */
+  drawRoundedRect(W.x-72,W.y-72,144,144,14,'#0a2540','#26a69a');
+  ctx.strokeStyle='#80cbc4'; ctx.lineWidth=3.5;
+  ctx.beginPath(); ctx.moveTo(W.x,W.y+40); ctx.lineTo(W.x,W.y-30); ctx.stroke();
+  ctx.save(); ctx.translate(W.x,W.y-30);
+  ctx.rotate(animPhase*0.05*(0.2+Math.min(1,state.pWind/Math.max(1,state.windRated))));
+  for(let i=0;i<3;i++){
+    ctx.rotate(2*Math.PI/3);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(8,-42); ctx.lineTo(-8,-42);
+    ctx.fillStyle='#80cbc4'; ctx.fill();
+  }
+  ctx.restore();
+  drawLabel('风电',W.x,W.y+66,'#80cbc4',24);
+  drawLabel(state.pWind.toFixed(0)+' kW',W.x,W.y+95,'#00e676',24);
+
+  /* —— 光伏：原 80→144 —— */
+  drawRoundedRect(S.x-72,S.y-68,144,136,12,'#0a2540','#26a69a');
+  const sBright=state.pSolar>10?'#1976d2':'#0d47a1';
+  ctx.fillStyle=sBright;
+  for(let r=0;r<2;r++) for(let c=0;c<3;c++){
+    ctx.fillRect(S.x-54+c*36,S.y-42+r*36,30,28);
+    ctx.strokeStyle='#42a5f5'; ctx.lineWidth=1.2;
+    ctx.strokeRect(S.x-54+c*36,S.y-42+r*36,30,28);
+  }
+  drawLabel('光伏',S.x,S.y+60,'#80cbc4',24);
+  drawLabel(state.pSolar.toFixed(0)+' kW',S.x,S.y+98,state.pSolar>5?'#00e676':'#78909c',24);
+
+  /* —— 电力调配：原 92×60 → 166×108 —— */
+  drawRoundedRect(B.x-83,B.y-54,166,108,12,'#0d2a45','#00e5ff');
+  drawLabel('电力调配',B.x,B.y+38,'#00e5ff',24);
+  let dTxt='绿电直供', dCol='#00e676';
+  if(state.pGrid>5){dTxt='电网介入';dCol='#ff1744';}
+  else if(state.pDischarge>5){dTxt='储能放电';dCol='#ffea00';}
+  else if(state.pCharge>5){dTxt='储能充电';dCol='#00e676';}
+  drawLabel(dTxt,B.x,B.y-28,dCol,24);
+
+  /* —— 储能电站：原 96×92 → 172×166 —— */
+  drawRoundedRect(BAT.x-86,BAT.y-82,172,166,12,'#0a2540','#00e676');
+  const socH=90*state.soc;
+  ctx.fillStyle='#1b5e20'; ctx.fillRect(BAT.x-54,BAT.y+24-90,108,90);
+  ctx.fillStyle=state.soc>0.25?'#00e676':(state.soc>0.12?'#ffea00':'#ff1744');
+  ctx.fillRect(BAT.x-54,BAT.y+24-socH,108,socH);
+  ctx.strokeStyle='#00e676'; ctx.lineWidth=2.2; ctx.strokeRect(BAT.x-54,BAT.y-66,108,90);
+  drawLabel('储能电站',BAT.x,BAT.y+75,'#00e676',24);
+  drawLabel((state.soc*100).toFixed(0)+'% SOC',BAT.x,BAT.y+106,'#e8f4f8',24);
+  if(state.pCharge>5) drawLabel('▲充电 '+state.pCharge.toFixed(0)+'kW',BAT.x,BAT.y-88,'#00e676',24);
+  if(state.pDischarge>5) drawLabel('▼放电 '+state.pDischarge.toFixed(0)+'kW',BAT.x,BAT.y-92,'#ffea00',24);
+
+  /* —— 公共电网 —— */
+  drawRoundedRect(G.x-83,G.y-54,166,108,12,'#0a2540',gridActive?'#ff1744':'#546e7a');
+  ctx.strokeStyle=gridActive?'#ff8a80':'#78909c'; ctx.lineWidth=3.2;
+  ctx.beginPath();
+  ctx.moveTo(G.x-28,G.y+20); ctx.lineTo(G.x,G.y-28); ctx.lineTo(G.x+28,G.y+20);
+  ctx.moveTo(G.x-18,G.y-6); ctx.lineTo(G.x+18,G.y-6); ctx.stroke();
+  drawLabel('公共电网',G.x,G.y+48,gridActive?'#ff8a80':'#90a4ae',24);
+  drawLabel(state.pGrid.toFixed(0)+' kW',G.x,G.y+74,gridActive?'#ff1744':'#78909c',24);
+
+  /* —— 高压泵：原 96×76 → 172×136 —— */
+  drawRoundedRect(P.x-86,P.y-68,172,136,14,'#0a2540','#40c4ff');
+  ctx.beginPath(); ctx.arc(P.x,P.y-10,32,0,Math.PI*2);
+  ctx.strokeStyle='#40c4ff'; ctx.lineWidth=3.5; ctx.stroke();
+  ctx.save(); ctx.translate(P.x,P.y-10); ctx.rotate(animPhase*0.09*state.u);
+  ctx.strokeStyle='#80d8ff'; ctx.lineWidth=3;
+  for(let i=0;i<4;i++){ ctx.rotate(Math.PI/2); ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-24); ctx.stroke(); }
+  ctx.restore();
+  drawLabel('高压泵',P.x,P.y+60,'#40c4ff',24);
+  drawLabel(state.dP.toFixed(2)+' MPa  u='+state.u.toFixed(2),P.x-10,P.y+108,'#e8f4f8',24);
+
+  /* —— RO 膜组件：原 116×96 → 208×172 —— */
+  drawRoundedRect(R.x-104,R.y-86,208,172,12,'#0a2540','#29b6f6');
+  for(let i=0;i<3;i++){
+    const vx=R.x-64+i*50;
+    ctx.fillStyle='#0d47a1';
+    ctx.beginPath(); ctx.ellipse(vx,R.y-10,18,48,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#4fc3f7'; ctx.lineWidth=2.2; ctx.stroke();
+    if(state.Jw>3){
+      ctx.fillStyle='rgba(41,182,246,0.4)';
+      ctx.fillRect(vx-10,R.y-36,20,48*Math.min(1,state.Jw/20));
+    }
+  }
+  drawLabel('RO 膜组件',R.x,R.y+76,'#29b6f6',24);
+  drawLabel(state.Jw.toFixed(1)+' LMH  '+state.qProd.toFixed(1)+' m³/h',R.x,R.y+106,'#e8f4f8',24);
+
+  /* —— 淡水蓄水池：原 96×96 → 172×172 —— */
+  drawRoundedRect(T.x-86,T.y-82,172,172,12,'#0a2540','#29b6f6');
+  ctx.fillStyle='#0d3b5c'; ctx.fillRect(T.x-58,T.y-50,116,108);
+  const tankFrac=state.tank/state.tankCap, waterH=100*tankFrac;
+  const grad=ctx.createLinearGradient(0,T.y+50-waterH,0,T.y+50);
+  grad.addColorStop(0,'#4fc3f7'); grad.addColorStop(1,'#0277bd');
+  ctx.fillStyle=grad; ctx.fillRect(T.x-54,T.y+50-waterH,108,waterH);
+  if(running&&tankFrac>0.04){
+    ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=1.8; ctx.beginPath();
+    for(let i=0;i<108;i++){
+      const wy=T.y+50-waterH+Math.sin(i*0.25+animPhase*0.12)*3;
+      if(i===0) ctx.moveTo(T.x-54+i,wy); else ctx.lineTo(T.x-54+i,wy);
+    }
+    ctx.stroke();
+  }
+  ctx.strokeStyle='#29b6f6'; ctx.lineWidth=2.2; ctx.strokeRect(T.x-58,T.y-50,116,108);
+  drawLabel('淡水蓄水池',T.x,T.y+86,'#29b6f6',24);
+  drawLabel((tankFrac*100).toFixed(0)+'%  '+state.tank.toFixed(0)+' m³',T.x+10,T.y+112,'#e8f4f8',24);
+
+  /* —— 社区供水 —— */
+  drawRoundedRect(C.x-70,C.y-50,206,124,12,'#0a2540','#ffea00');
+  ctx.fillStyle='#37474f';
+  ctx.fillRect(C.x-46,C.y-4,22,36);
+  ctx.fillRect(C.x-14,C.y-20,26,52);
+  ctx.fillRect(C.x+20,C.y+4,22,28);
+  ctx.fillRect(C.x+54,C.y-6,22,42);
+  ctx.fillRect(C.x+88,C.y-6,22,48);
+  drawLabel('社区供水',C.x,C.y+68,'#ffea00',24);
+  drawLabel(state.dem.toFixed(1)+' m³/h',C.x,C.y+100,'#e8f4f8',24);
+
+  drawLabel('海水进水',660,425,'#64b5f6',24);
+  drawLabel('浓水排放',930,650,'#90a4ae',24);
+
+  ctx.fillStyle='rgba(0,229,255,0.9)';
+  ctx.font='bold 36px "Segoe UI",sans-serif';
+  ctx.textAlign='left';
+  ctx.fillText('反渗透海水淡化工艺流程示意图',-116,38);
+
+  const hour=((simTime%24)+24)%24, hh=Math.floor(hour), mm=Math.floor((hour-hh)*60);
+  const timeStr=`模拟时刻 ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+  ctx.fillStyle=(hour>=6&&hour<=18)?'#00e676':'#ff9100';
+  ctx.font='32px "Segoe UI",sans-serif'; ctx.textAlign='right';
+  ctx.fillText(timeStr+(hour>=6&&hour<=18?'  （白天·光伏可发电）':'  （夜间·光伏为0）'), LW-16, 38);
+}
+
+function spawnAlong(key,color,speed){
+  const path=PATHS[key]; if(!path||path.length<2) return;
+  particles.push({path,idx:0,t:0,color,speed:speed||1.2,life:path.length*20});
+}
+function updateParticles(){
+  if(state.pWind>25&&Math.random()<0.30) spawnAlong('wind','#00e676',1.3);
+  if(state.pSolar>20&&Math.random()<0.30) spawnAlong('solar','#c6ff00',1.3);
+  if(state.pGrid>8&&Math.random()<0.26) spawnAlong('red','#ff1744',1.25);
+  if(state.qProd>4&&Math.random()<0.36) spawnAlong('blue','#40c4ff',1.45);
+  if(state.pCharge>10&&Math.random()<0.20) spawnAlong('batIn','#00e676',1.1);
+  if(state.pDischarge>10&&Math.random()<0.20) spawnAlong('batOut','#ff6d00',1.1);
+  particles=particles.filter(p=>{
+    p.t+=p.speed*0.045; if(p.t>=1){p.t=0;p.idx++;} p.life--;
+    return p.idx<p.path.length-1&&p.life>0;
+  });
+}
+function drawParticles(){
+  particles.forEach(p=>{
+    const a=p.path[p.idx], b=p.path[p.idx+1]; if(!a||!b) return;
+    const lx=a.x+(b.x-a.x)*p.t, ly=a.y+(b.y-a.y)*p.t;
+    ctx.globalAlpha=Math.min(1,p.life/28); ctx.fillStyle=p.color;
+    ctx.beginPath(); ctx.arc(lx,ly,5.5,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=Math.min(0.3,p.life/50);
+    ctx.beginPath(); ctx.arc(lx,ly,11,0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha=1;
+}
+
+function loop(ts){
+  if(!running) return;
+  const realDt=Math.min(0.05,(ts-lastTs)/1000); lastTs=ts;
+  const simDt=realDt*state.speed*0.15;
+  let remain=simDt;
+  while(remain>0){ const stepH=Math.min(dt,remain); step(stepH); simTime+=stepH; remain-=stepH; }
+  animPhase++; updateParticles(); drawPlant(); drawParticles();
+  requestAnimationFrame(loop);
+}
+function resetSim(){
+  running=false; simTime=8.0;
+  state.soc=parseFloat(sliders.soc0.value)/100;
+  state.tank=(parseFloat(sliders.tank0.value)/100)*state.tankCap;
+  state.cumProd=0; state.cumGridE=0; state.cumCO2=0; state.cumROEnergy=0;
+  state.supplyOkHours=0; state.totalHours=0; state.u=0.70;
+  state.pWind=0; state.pSolar=0; state.pGreen=0; state.pRO=0; state.pGrid=0;
+  state.pCharge=0; state.pDischarge=0; state.dP=0; state.Jw=0; state.qProd=0; state.dem=0;
+  histT=[]; histGreen=[]; histRO=[]; histGrid=[];
+  histProd=[]; histDem=[]; histTank=[]; histSOC=[]; histCO2=[]; histCumProd=[];
+  particles=[]; updateCharts();
+  $('statusText').textContent='系统已重置（从上午 8:00 开始）。点击“启动”开始模拟。';
+  $('statusDot').style.background='var(--green)';
+  ['mGreen','mRO','mPress','mFlux','mProd','mCumProd','mGridE','mCO2','mUnitCO2','mSEC','mTime'].forEach(id=>$(id).textContent='0');
+  $('mSOC').textContent=(state.soc*100).toFixed(0);
+  $('mTank').textContent=((state.tank/state.tankCap)*100).toFixed(0);
+  const pS=solarPower(simTime), pW=windPower(simTime);
+  state.pSolar=pS; state.pWind=pW; state.pGreen=pS+pW;
+  drawPlant();
+}
+function init(){
+  initCharts(); resizeCanvas(); resetSim();
+  setInterval(()=>{ if(!running){ animPhase++; updateParticles(); drawPlant(); drawParticles(); } }, 60);
+}
+window.addEventListener('resize',()=>{ resizeCanvas(); drawPlant(); drawParticles(); });
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
+else requestAnimationFrame(()=>requestAnimationFrame(init));
+</script>
+
+<!-- 底部信息栏 -->
+<div style="
+    text-align: center;
+    padding: 20px 30px;
+    margin-top: 40px;
+    color: #e6f7ff;
+    font-size: 0.9rem;
+    border-top: 2px solid rgba(0, 180, 255, 0.5);
+    background: linear-gradient(135deg, rgba(10, 15, 43, 0.95), rgba(18, 26, 58, 0.9));
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 180, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+">
+    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00b4ff, #6c8cff, #00b4ff);"></div>
+    
+    <p style="font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; color: #00b4ff;">
+       绿电反渗透海水淡化探索 © 2026 | 物理化学交互仿真系统 | 版本 1.0 |
+      <style="margin-bottom: 12px; color: #cbd5e1;">
+        <strong>邮箱:</strong> xgyanger@qq.com
+    </p>
+    
+    <div style="margin-top: 15px;">
+        <span style="color: #ffcc00; font-weight: bold; font-size: 1.1rem;">
+            版权©2026 AIknow. 保留所有权利 | Copyright ©2026 AIknow. All rights reserved.
+        </span>
+    </div>
+</div>
+
+
+
+
+</body>
+</html>
