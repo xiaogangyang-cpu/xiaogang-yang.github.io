@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ζ电位与电双层结构：颗粒分散稳定性模拟器</title>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+  :root {
+    --bg: #060e1a;
+    --panel: #0c1a2e;
+    --panel2: #091525;
+    --cyan: #35d6ff;
+    --cyan-dim: rgba(53, 214, 255, 0.15);
+    --yellow: #ffd166;
+    --red: #ff5c5c;
+    --blue: #5b8cff;
+    --green: #3ddc97;
+    --text: #e8f1ff;
+    --muted: #8ba3c1;
+    --border: #1a3355;
+    --silver: #c0c8d4;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { font-size: 15px; }
+  @media (max-width: 1100px) { html { font-size: 15px; } }
+  @media (max-width: 700px)  { html { font-size: 13px; } }
+
+  body {
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ===== Header ===== */
+  header {
+    background: linear-gradient(90deg, #081424 0%, #0d2138 50%, #081424 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+  }
+  header h1 {
+    font-size: 1.65rem;
+    font-weight: 650;
+    color: var(--cyan);
+    letter-spacing: 0.5px;
+  }
+  header .subtitle {
+    font-size: 1.25rem;
+    color: var(--muted);
+    margin-top: 0.15rem;
+  }
+
+  /* ===== Main Grid: 30% | 30% | 40% ===== */
+  .main {
+    display: grid;
+    grid-template-columns: 30% 30% 40%;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    max-width: 1680px;
+    margin: 0 auto;
+  }
+  @media (max-width: 1100px) {
+    .main {
+      grid-template-columns: 1fr;
+      gap: 0.65rem;
+    }
+  }
+
+  /* ===== Panels ===== */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.9rem 1rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .panel h2 {
+    font-size: 1.2rem;
+    color: var(--cyan);
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-shrink: 0;
+  }
+  .panel h2::before {
+    content: "";
+    width: 3.5px;
+    height: 0.95rem;
+    background: var(--cyan);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ===== Controls ===== */
+  .controls-scroll {
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 0.25rem;
+  }
+  .control-group {
+    margin-bottom: 0.95rem;
+  }
+  .control-group label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 1.0rem;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+  }
+  .control-group label span.val {
+    color: var(--yellow);
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+  }
+  input[type="range"] {
+    width: 100%;
+    height: 5px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #152a45;
+    border-radius: 3px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 15px;
+    height: 15px;
+    background: var(--cyan);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(53,214,255,0.45);
+    transition: transform 0.15s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+  .hint-log {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 0.2rem;
+    opacity: 0.85;
+  }
+  select, .btn {
+    width: 100%;
+    padding: 0.5rem 0.7rem;
+    background: #0a182c;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  select:focus, .btn:focus { outline: none; border-color: var(--cyan); }
+  .btn {
+    background: linear-gradient(145deg, #153250, #0e243c);
+    margin-top: 0.4rem;
+  }
+  .btn:hover {
+    background: linear-gradient(145deg, #1c4060, #153250);
+    border-color: var(--cyan);
+  }
+  .btn-primary {
+    background: linear-gradient(145deg, #0e4a6e, #0a3550);
+    border-color: rgba(53,214,255,0.45);
+    color: var(--cyan);
+  }
+  .btn-warn {
+    background: linear-gradient(145deg, #4a2e0e, #3a2208);
+    border-color: rgba(255,209,102,0.4);
+    color: var(--yellow);
+  }
+  .btn-row {
+    display: flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    margin-top: 0.6rem;
+  }
+  .btn-row .btn { flex: 1; min-width: 0; font-size: 0.9rem; padding: 0.45rem 0.4rem; }
+
+  /* ===== Canvas areas ===== */
+  .canvas-wrap {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+  }
+  .canvas-wrap canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .canvas-label {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.7rem;
+    font-size: 0.95rem;
+    color: var(--muted);
+    pointer-events: none;
+    z-index: 2;
+    background: rgba(9,21,37,0.7);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+  }
+
+  /* ===== Results cards ===== */
+  .results {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+    margin-top: 0.7rem;
+    margin-bottom: 0.5rem;
+  }
+  .result-card {
+    background: #0a182c;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.55rem 0.4rem;
+    text-align: center;
+display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;   /* 窄屏时允许换行，避免挤爆 */
+  }
+  .result-card .name {
+    font-size: 0.88rem;
+    color: var(--muted);
+    margin-bottom: 0.15rem;
+  }
+  .result-card .value {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--cyan);
+    font-variant-numeric: tabular-nums;
+  }
+  .result-card .unit {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .result-card.highlight .value { color: var(--yellow); }
+
+  .hint-box {
+    background: #0a182c;
+    border-left: 3px solid var(--cyan);
+    padding: 0.55rem 0.7rem;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 0.2rem;
+  }
+  .hint-box.warn { border-left-color: var(--yellow); }
+
+  .legend-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 0.45rem;
+    padding: 0 0.2rem;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 0.25rem;
+    vertical-align: middle;
+  }
+
+  /* ===== Bottom sections ===== */
+  .bottom {
+    max-width: 1680px;
+    margin: 0 auto;
+    padding: 0 0.75rem 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  @media (max-width: 900px) {
+    .bottom { grid-template-columns: 1fr; }
+  }
+  .section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.1rem;
+  }
+  .section h3 {
+    font-size: 0.92rem;
+    color: var(--yellow);
+    margin-bottom: 0.7rem;
+  }
+  .section p, .section li {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+  .section ul { padding-left: 1.15rem; }
+
+  .task-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.7rem;
+  }
+  .task-btn {
+    padding: 0.4rem 0.75rem;
+    background: #0a182c;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.76rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .task-btn:hover, .task-btn.active {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: #0e2a44;
+  }
+  .task-content {
+    background: #0a182c;
+    border-radius: 8px;
+    padding: 0.75rem 0.9rem;
+    font-size: 0.78rem;
+    color: var(--muted);
+    min-height: 7rem;
+  }
+  .task-content h4 {
+    color: var(--cyan);
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+  }
+  .task-content strong { color: var(--yellow); }
+
+  .formula {
+    background: #060f18;
+    padding: 0.55rem 0.8rem;
+    border-radius: 6px;
+    margin: 0.55rem 0;
+    font-size: 0.82rem;
+    overflow-x: auto;
+  }
+
+  .app-module {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .app-viz {
+    flex: 1;
+    min-width: 180px;
+    height: 150px;
+    background: #0a182c;
+    border-radius: 8px;
+    position: relative;
+  }
+  .app-viz canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .app-controls {
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .disclaimer {
+    grid-column: 1 / -1;
+    background: #0a1520;
+    border: 1px solid #243848;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    color: #6a7a8a;
+  }
+  .disclaimer strong { color: var(--yellow); }
+
+  /* Middle panel specific */
+  .middle-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 600px;
+  }
+  @media (max-width: 1100px) {
+    .middle-panel { min-height: 480px; }
+  }
+
+  /* Right panel specific */
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 420px;
+  }
+  @media (max-width: 1100px) {
+    .right-panel { min-height: 360px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>泽塔 ζ 电位与电双层结构及稳定性模拟器</h1>
+    <div class="subtitle">胶体与界面化学 · 物理化学 · 电极浆料教学工具（线性化 Debye–Hückel 教学模型）</div>
+  </div>
+  <button class="btn btn-primary" id="btnReset" style="width:auto;padding:0.45rem 1rem;font-size:0.8rem;">恢复默认参数</button>
+</header>
+
+<div class="main">
+  <!-- ===== 左侧：参数控制 30% ===== -->
+  <div class="panel" id="controls">
+    <h2>参数控制</h2>
+    <div class="controls-scroll">
+      <div class="control-group">
+        <label>颗粒表面电势 ψ₀ <span class="val" id="valPsi0">+50 mV</span></label>
+        <input type="range" id="psi0" min="-100" max="100" value="50" step="1">
+      </div>
+
+      <div class="control-group">
+        <label>电解质浓度 c <span class="val" id="valConc">0.01 mol/L</span></label>
+        <input type="range" id="conc" min="0" max="1000" value="400" step="1">
+        <div class="hint-log">对数滑块 · 0.0001 ~ 0.5 mol/L</div>
+      </div>
+
+      <div class="control-group">
+        <label>电解质类型</label>
+        <select id="saltType">
+          <option value="NaCl">NaCl (1:1)</option>
+          <option value="CaCl2">CaCl₂ (2:1)</option>
+          <option value="AlCl3">AlCl₃ (3:1)</option>
+          <option value="custom">自定义价态</option>
+        </select>
+      </div>
+
+      <div class="control-group" id="customValence" style="display:none;">
+        <label>阳离子价态 z⁺</label>
+        <select id="zPlus">
+          <option value="1">+1</option>
+          <option value="2" selected>+2</option>
+          <option value="3">+3</option>
+        </select>
+        <label style="margin-top:0.5rem;">阴离子价态 z⁻</label>
+        <select id="zMinus">
+          <option value="-1" selected>-1</option>
+          <option value="-2">-2</option>
+          <option value="-3">-3</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>温度 T <span class="val" id="valT">298 K</span></label>
+        <input type="range" id="temp" min="273" max="353" value="298" step="1">
+      </div>
+
+      <div class="control-group">
+        <label>相对介电常数 εᵣ <span class="val" id="valEps">80</span></label>
+        <input type="range" id="epsr" min="10" max="100" value="80" step="1">
+      </div>
+
+      <div class="control-group">
+        <label>Stern 层位置 xₛ <span class="val" id="valXs">0.50 nm</span></label>
+        <input type="range" id="xs" min="0.2" max="1.5" value="0.5" step="0.05">
+      </div>
+
+      <div class="control-group">
+        <label>滑移面位置 xζ <span class="val" id="valXz">1.00 nm</span></label>
+        <input type="range" id="xz" min="0.5" max="5" value="1" step="0.05">
+      </div>
+
+      <div class="control-group">
+        <label>粒子半径 R <span class="val" id="valR">100 nm</span></label>
+        <input type="range" id="radius" min="10" max="500" value="100" step="5">
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-warn" id="btnAddElectrolyte">滴加 0.01 mol/L 电解质</button>
+        <button class="btn" id="btnAddMultivalent">加入多价离子</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 中间：先曲线，后结果 40% ===== -->
+  <div class="panel middle-panel">
+    <h2>电势衰减曲线 ψ(x)</h2>
+
+    <!-- 曲线在上 -->
+    <div class="canvas-wrap" style="min-height:260px; flex:1;">
+      <div class="canvas-label">ψ(x) = ψ₀ exp(−x/λ<sub>D</sub>) · 悬停读数</div>
+      <canvas id="potCanvas"></canvas>
+    </div>
+
+    <!-- 结果卡片在下 -->
+    <div class="results" id="results">
+      <div class="result-card"><div class="name">离子强度 I</div><div class="value" id="resI">—</div><div class="unit">mol/L</div></div>
+      <div class="result-card"><div class="name">Debye 长度 λ<sub>D</sub></div><div class="value" id="resLD">—</div><div class="unit">nm</div></div>
+      <div class="result-card"><div class="name">κ = 1/λ<sub>D</sub></div><div class="value" id="resK">—</div><div class="unit">nm⁻¹</div></div>
+      <div class="result-card highlight"><div class="name">ζ 电位</div><div class="value" id="resZeta">—</div><div class="unit">mV</div></div>
+      <div class="result-card"><div class="name">Stern 电势 ψ<sub>S</sub></div><div class="value" id="resPsiS">—</div><div class="unit">mV</div></div>
+      <div class="result-card"><div class="name">表面电势 ψ₀</div><div class="value" id="resPsi0">—</div><div class="unit">mV</div></div>
+      <div class="result-card"><div class="name">λ<sub>D</sub> / R</div><div class="value" id="resRatio">—</div><div class="unit"></div></div>
+      <div class="result-card"><div class="name">滑移面距离</div><div class="value" id="resXz">—</div><div class="unit">nm</div></div>
+    </div>
+    <div class="hint-box" id="hintRatio">—</div>
+  </div>
+
+  <!-- ===== 右侧：双电层与粒子 30% ===== -->
+  <div class="panel right-panel">
+    <h2>电双层结构与离子分布</h2>
+    <div class="canvas-wrap" style="flex:1; min-height:280px;">
+      <div class="canvas-label">定性动画 · 对离子富集示意</div>
+      <canvas id="edlCanvas"></canvas>
+    </div>
+    <div class="legend-bar">
+      <span><span class="legend-dot" style="background:linear-gradient(135deg,#e8eef5,#6a7688);"></span>颗粒</span>
+      <span><span class="legend-dot" style="background:#ffd166;"></span>Stern层</span>
+      <span><span class="legend-dot" style="background:#35d6ff;"></span>滑移面</span>
+      <span><span class="legend-dot" style="background:#ff5c5c;box-shadow:0 0 4px #ff5c5c;"></span>正离子</span>
+      <span><span class="legend-dot" style="background:#5b8cff;box-shadow:0 0 4px #5b8cff;"></span>负离子</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 底部模块 ===== -->
+<div class="bottom">
+  <div class="section">
+    <h3>工程应用：新能源电极浆料分散</h3>
+    <div class="app-module">
+      <div class="app-viz">
+        <canvas id="appCanvas"></canvas>
+      </div>
+      <div class="app-controls">
+        <p>模拟对象：LFP / 石墨 / 导电炭黑在水系或非水系浆料中的静电稳定。</p>
+        <p style="margin-top:0.45rem;">当前 |ζ| = <strong id="appZeta" style="color:var(--yellow);">—</strong> mV</p>
+        <p id="appStatus" style="margin-top:0.25rem;color:var(--cyan);">—</p>
+        <div class="btn-row" style="margin-top:0.6rem;">
+          <button class="btn btn-warn" id="btnAppAddSalt">滴加 0.01 mol/L 电解质</button>
+        </div>
+        <p style="margin-top:0.5rem;font-size:0.72rem;">定性示意：高 |ζ| → 静电排斥较强；双电层压缩 → 排斥减弱 → 团聚风险上升。实际稳定性还依赖空间位阻与流变。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>教学探究任务</h3>
+    <div class="task-btns">
+      <button class="task-btn active" data-task="1">任务1：降低浓度</button>
+      <button class="task-btn" data-task="2">任务2：加入CaCl₂</button>
+      <button class="task-btn" data-task="3">任务3：滑移面位置</button>
+
+    </div>
+    <div class="task-content" id="taskContent"></div>
+  </div>
+
+  <div class="section">
+    <h3>物理机理解释（教学要点）</h3>
+    <ul>
+      <li><strong>表面电势 ψ₀</strong>：颗粒固液界面处的电势，由表面电荷与吸附决定。</li>
+      <li><strong>Stern 层</strong>：紧邻表面的紧密层，离子受强吸附/水合作用，电势在此快速变化。</li>
+      <li><strong>滑移面与 ζ 电位</strong>：流体动力学剪切面处的电势，实验可测；ζ ≠ ψ₀。</li>
+      <li><strong>Debye 长度 λ<sub>D</sub></strong>：电势衰减的特征距离，随离子强度增加而缩短（双电层压缩）。</li>
+      <li><strong>多价离子</strong>：I 中含 z²，价态越高屏蔽越强，相同浓度下 λ<sub>D</sub> 更小。</li>
+      <li><strong>分散稳定性</strong>：高 |ζ| 有利于静电排斥，但不是唯一判据；空间位阻、溶剂、pH、分散剂同样关键。</li>
+    </ul>
+    <div class="formula">
+      \[ \kappa^{2} = \dfrac{2e^{2}N_{A}\cdot 1000\,I}{\varepsilon_{r}\varepsilon_{0}k_{B}T},\quad \lambda_{D}=1/\kappa \]
+      \[ \psi(x)=\psi_{0}\exp(-x/\lambda_{D}),\quad \zeta=\psi_{0}\exp(-x_{\zeta}/\lambda_{D}) \]
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>模型边界与科学性声明</h3>
+    <ul>
+      <li>本模拟器采用<strong>线性化 Debye–Hückel 近似</strong>，适用于 |ψ₀| 不太高的情况；高电势下应使用完整 Poisson–Boltzmann 方程。</li>
+      <li>Stern 层厚度与滑移面位置为<strong>教学可调参数</strong>，实际由离子尺寸、水合、吸附与表面化学决定。例如，stevenabbott.co.uk模型里把滑移面默认值选了1nm，Stern层厚度选了0.5nm，就是为了让图显示看起来合理。</li>
+      <li>ζ 电位<strong>不等于</strong>表面电荷密度，也<strong>不能直接等同</strong>于颗粒间排斥势能。</li>
+      <li>“|ζ| &gt; 30 mV 即稳定”是经验粗判据，并非普适绝对标准。</li>
+      <li>本工具<strong>不能</strong>准确预测真实离子周围的电势变化、仅能半定量动态呈现粒子周围离子的双电层结构。</li>
+      <li>本工具<strong>不能</strong>准确预测真实电极浆料的沉降、流变或絮凝时间。实际稳定性还与分散剂吸附、颗粒形貌、溶剂、流变历史有关。</li>
+    </ul>
+  </div>
+
+  <div class="disclaimer">
+    <strong>教学用途声明：</strong>本模拟器仅用于物理化学、胶体化学与新能源电极浆料课程的概念理解与探究。物理模型经过教学简化，请结合教材与实验数据综合判断。参考思想来源于经典双电层理论与公开教学资源，界面与交互逻辑独立实现。
+  </div>
+ 
+
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #38bdf8, #0ea5e9, #38bdf8);"></div>
+        
+        <p style="font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; color: #38bdf8;">
+            Zeta电势模拟 &copy; 2026 | 物理化学直觉训练 | 版本 1.0 | 
+        
+        <style="margin-bottom: 12px; color: #cbd5e1;">
+             <strong>邮箱:</strong> xgyanger@qq.com
+         
+  <div style="margin-bottom: 12px; display: flex; justify-content: center; gap: 12px;">
+            <span style="color: #ff9e00; font-weight: bold; font-size: 1rem;">
+                版权©2026 AIknow. 保留所有权利 | Copyright ©2026 AIknow. All rights reserved.
+            </span>
+        </div>
+
+</div>
+
+<script>
+(function() {
+  // ========== 物理常数 (SI) ==========
+  const e = 1.602176634e-19;
+  const NA = 6.02214076e23;
+  const eps0 = 8.8541878128e-12;
+  const kB = 1.380649e-23;
+
+  // ========== DOM ==========
+  const $ = id => document.getElementById(id);
+  const psi0El = $('psi0'), concEl = $('conc'), saltTypeEl = $('saltType');
+  const zPlusEl = $('zPlus'), zMinusEl = $('zMinus');
+  const tempEl = $('temp'), epsrEl = $('epsr');
+  const xsEl = $('xs'), xzEl = $('xz'), radiusEl = $('radius');
+  const customValence = $('customValence');
+
+  // ========== 状态 ==========
+  let state = {
+    psi0: 50, c: 0.01, salt: 'NaCl', zPlus: 1, zMinus: -1,
+    T: 298, epsr: 80, xs: 0.5, xz: 1.0, R: 100,
+    I: 0.01, lambdaD: 3.04, kappa: 0.329, psiS: 0, zeta: 0
+  };
+
+  let ions = [];
+  const MAX_IONS = 140;
+
+  // 滴加浓度步长
+  const DRIP_CONC = 0.01; // mol/L
+
+  const edlCanvas = $('edlCanvas');
+  const edlCtx = edlCanvas.getContext('2d');
+  const potCanvas = $('potCanvas');
+  const potCtx = potCanvas.getContext('2d');
+  const appCanvas = $('appCanvas');
+  const appCtx = appCanvas.getContext('2d');
+
+  // 对数浓度
+  function concFromSlider(v) {
+    const logMin = Math.log10(0.0001), logMax = Math.log10(0.5);
+    return Math.pow(10, logMin + (v / 1000) * (logMax - logMin));
+  }
+  function sliderFromConc(c) {
+    const logMin = Math.log10(0.0001), logMax = Math.log10(0.5);
+    return ((Math.log10(Math.max(0.0001, Math.min(0.5, c))) - logMin) / (logMax - logMin)) * 1000;
+  }
+
+  // ========== 计算 ==========
+  function getIonConcentrations() {
+    const c = state.c;
+    let zP = state.zPlus, zM = state.zMinus;
+    if (state.salt === 'NaCl') { zP = 1; zM = -1; }
+    else if (state.salt === 'CaCl2') { zP = 2; zM = -1; }
+    else if (state.salt === 'AlCl3') { zP = 3; zM = -1; }
+    const cPlus = c;
+    const cMinus = c * zP / Math.abs(zM);
+    return { cPlus, cMinus, zP, zM };
+  }
+
+  function calcIonicStrength() {
+    const { cPlus, cMinus, zP, zM } = getIonConcentrations();
+    return 0.5 * (cPlus * zP * zP + cMinus * zM * zM);
+  }
+
+  function calcDebye() {
+    const I = state.I, T = state.T, epsr = state.epsr;
+    const kappa2 = (2 * e * e * NA * 1000 * I) / (epsr * eps0 * kB * T);
+    const kappa_m = Math.sqrt(kappa2);
+    const lambdaD_nm = (1 / kappa_m) * 1e9;
+    return { lambdaD: lambdaD_nm, kappa: 1 / lambdaD_nm };
+  }
+
+  function calcPotentials() {
+    const ld = state.lambdaD, psi0 = state.psi0;
+    return {
+      psiS: psi0 * Math.exp(-state.xs / ld),
+      zeta: psi0 * Math.exp(-state.xz / ld)
+    };
+  }
+
+  function updateAll() {
+    state.psi0 = parseFloat(psi0El.value);
+    state.c = concFromSlider(parseFloat(concEl.value));
+    state.salt = saltTypeEl.value;
+    if (state.salt === 'custom') {
+      state.zPlus = parseInt(zPlusEl.value);
+      state.zMinus = parseInt(zMinusEl.value);
+      customValence.style.display = 'block';
+    } else {
+      customValence.style.display = 'none';
+      if (state.salt === 'NaCl') { state.zPlus = 1; state.zMinus = -1; }
+      else if (state.salt === 'CaCl2') { state.zPlus = 2; state.zMinus = -1; }
+      else if (state.salt === 'AlCl3') { state.zPlus = 3; state.zMinus = -1; }
+    }
+    state.T = parseFloat(tempEl.value);
+    state.epsr = parseFloat(epsrEl.value);
+    state.xs = parseFloat(xsEl.value);
+    state.xz = parseFloat(xzEl.value);
+    state.R = parseFloat(radiusEl.value);
+    if (state.xz < state.xs) {
+      state.xz = state.xs;
+      xzEl.value = state.xz;
+    }
+
+    state.I = calcIonicStrength();
+    const deb = calcDebye();
+    state.lambdaD = deb.lambdaD;
+    state.kappa = deb.kappa;
+    const pots = calcPotentials();
+    state.psiS = pots.psiS;
+    state.zeta = pots.zeta;
+
+    // UI
+    $('valPsi0').textContent = (state.psi0 >= 0 ? '+' : '') + state.psi0.toFixed(0) + ' mV';
+    $('valConc').textContent = state.c >= 0.01 ? state.c.toFixed(3) + ' mol/L' : state.c.toExponential(2) + ' mol/L';
+    $('valT').textContent = state.T.toFixed(0) + ' K';
+    $('valEps').textContent = state.epsr.toFixed(0);
+    $('valXs').textContent = state.xs.toFixed(2) + ' nm';
+    $('valXz').textContent = state.xz.toFixed(2) + ' nm';
+    $('valR').textContent = state.R.toFixed(0) + ' nm';
+
+    $('resI').textContent = state.I >= 0.01 ? state.I.toFixed(4) : state.I.toExponential(2);
+    $('resLD').textContent = state.lambdaD.toFixed(3);
+    $('resK').textContent = state.kappa.toFixed(3);
+    $('resZeta').textContent = (state.zeta >= 0 ? '+' : '') + state.zeta.toFixed(1);
+    $('resPsiS').textContent = (state.psiS >= 0 ? '+' : '') + state.psiS.toFixed(1);
+    $('resPsi0').textContent = (state.psi0 >= 0 ? '+' : '') + state.psi0.toFixed(0);
+    const ratio = state.lambdaD / state.R;
+    $('resRatio').textContent = ratio.toFixed(3);
+    $('resXz').textContent = state.xz.toFixed(2);
+
+    const hint = $('hintRatio');
+    if (ratio < 0.1) {
+      hint.className = 'hint-box';
+      hint.innerHTML = 'λ<sub>D</sub>/R 较小：薄双电层近似可能适用，需结合体系条件判断。';
+    } else if (ratio > 0.5) {
+      hint.className = 'hint-box warn';
+      hint.innerHTML = 'λ<sub>D</sub>/R 较大：电双层厚度与粒子尺度不可忽略，经典薄双电层近似可能不适用。';
+    } else {
+      hint.className = 'hint-box';
+      hint.innerHTML = 'λ<sub>D</sub>/R 中等：需根据具体问题选择合适的相互作用模型。';
+    }
+
+    $('appZeta').textContent = Math.abs(state.zeta).toFixed(1);
+    const absZ = Math.abs(state.zeta);
+    let status = '';
+    if (absZ > 40) status = '静电排斥较强，颗粒较难直接接近（定性）。';
+    else if (absZ > 20) status = '静电排斥中等，稳定性需结合其他因素。';
+    else status = '静电稳定作用减弱，团聚/絮凝风险增加（定性）。';
+    $('appStatus').textContent = status;
+    $('appStatus').style.color = absZ > 40 ? 'var(--green)' : (absZ > 20 ? 'var(--yellow)' : 'var(--red)');
+
+    rebuildIons();
+  }
+
+  // ========== 离子粒子（更美观） ==========
+  function rebuildIons() {
+    const densityFactor = Math.min(1.6, 0.28 + Math.log10(state.c / 0.0001) * 0.28);
+    const n = Math.floor(MAX_IONS * densityFactor);
+    const w = edlCanvas.width / (window.devicePixelRatio || 1);
+    const h = edlCanvas.height / (window.devicePixelRatio || 1);
+    const cx = w * 0.5, cy = h * 0.52;
+    const Rpx = Math.min(w, h) * 0.13;
+
+    ions = [];
+    for (let i = 0; i < n; i++) {
+      const isPos = Math.random() > 0.45;
+      const preferCounter = (state.psi0 > 0 && !isPos) || (state.psi0 < 0 && isPos);
+      let r;
+      if (preferCounter && Math.random() < 0.58) {
+        r = Rpx + 10 + Math.random() * Math.min(state.lambdaD * (Rpx / state.R) * 2.8, 100);
+      } else {
+        r = Rpx + 25 + Math.random() * (Math.min(w, h) * 0.38);
+      }
+      const angle = Math.random() * Math.PI * 2;
+      const size = 2.8 + Math.random() * 2.2;
+      ions.push({
+        x: cx + r * Math.cos(angle),
+        y: cy + r * Math.sin(angle),
+        vx: (Math.random() - 0.5) * 0.55,
+        vy: (Math.random() - 0.5) * 0.55,
+        pos: isPos,
+        r: size,
+        glow: 0.5 + Math.random() * 0.5,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  function updateIons(dt) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = edlCanvas.width / dpr;
+    const h = edlCanvas.height / dpr;
+    const cx = w * 0.5, cy = h * 0.52;
+    const Rpx = Math.min(w, h) * 0.13;
+    const scale = Rpx / state.R;
+    const ldPx = state.lambdaD * scale;
+
+    for (const ion of ions) {
+      ion.phase += 0.04;
+      ion.vx += (Math.random() - 0.5) * 0.12;
+      ion.vy += (Math.random() - 0.5) * 0.12;
+      ion.vx *= 0.985;
+      ion.vy *= 0.985;
+
+      const dx = ion.x - cx, dy = ion.y - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const nx = dx / dist, ny = dy / dist;
+      const isCounter = (state.psi0 > 0 && !ion.pos) || (state.psi0 < 0 && ion.pos);
+      const forceScale = 0.09 * Math.min(2.2, Math.abs(state.psi0) / 45);
+
+      if (dist > Rpx + 5) {
+        if (isCounter) {
+          const f = forceScale * Math.exp(-(dist - Rpx) / (ldPx + 12));
+          ion.vx -= nx * f;
+          ion.vy -= ny * f;
+        } else {
+          const f = forceScale * 0.55 * Math.exp(-(dist - Rpx) / (ldPx + 12));
+          ion.vx += nx * f;
+          ion.vy += ny * f;
+        }
+      }
+
+      ion.x += ion.vx;
+      ion.y += ion.vy;
+
+      if (dist < Rpx + ion.r + 3) {
+        ion.x = cx + (Rpx + ion.r + 4) * nx;
+        ion.y = cy + (Rpx + ion.r + 4) * ny;
+        ion.vx *= -0.35;
+        ion.vy *= -0.35;
+      }
+      if (ion.x < 5) { ion.x = 5; ion.vx *= -1; }
+      if (ion.x > w - 5) { ion.x = w - 5; ion.vx *= -1; }
+      if (ion.y < 5) { ion.y = 5; ion.vy *= -1; }
+      if (ion.y > h - 5) { ion.y = h - 5; ion.vy *= -1; }
+    }
+  }
+
+  // ========== 绘制电双层（美化粒子） ==========
+  function drawEDL() {
+    const ctx = edlCtx;
+    const dpr = window.devicePixelRatio || 1;
+    const w = edlCanvas.width / dpr;
+    const h = edlCanvas.height / dpr;
+    ctx.clearRect(0, 0, w, h);
+
+    const cx = w * 0.5, cy = h * 0.52;
+    const Rpx = Math.min(w, h) * 0.13;
+    const scale = Rpx / state.R;
+    const ldPx = Math.max(10, state.lambdaD * scale);
+    const maxRing = Math.min(ldPx * 3.2, Math.min(w, h) * 0.4);
+
+    // 背景径向光晕
+    const bg = ctx.createRadialGradient(cx, cy, Rpx * 0.5, cx, cy, maxRing * 1.1);
+    bg.addColorStop(0, 'rgba(30, 60, 100, 0.25)');
+    bg.addColorStop(0.5, 'rgba(20, 40, 70, 0.12)');
+    bg.addColorStop(1, 'rgba(7, 17, 31, 0)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // 扩散层多层光环
+    for (let i = 3; i >= 1; i--) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, Rpx + maxRing * (i / 3), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(53, 214, 255, ${0.05 * (4 - i)})`;
+      ctx.lineWidth = maxRing / 3.2;
+      ctx.stroke();
+    }
+
+    // Stern 层
+    const xsPx = Math.max(3, state.xs * scale);
+    ctx.beginPath();
+    ctx.arc(cx, cy, Rpx + xsPx * 0.5, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 209, 102, 0.4)';
+    ctx.lineWidth = xsPx;
+    ctx.stroke();
+
+    // 滑移面虚线
+    const xzPx = state.xz * scale;
+    ctx.beginPath();
+    ctx.arc(cx, cy, Rpx + xzPx, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(53, 214, 255, 0.85)';
+    ctx.lineWidth = 1.6;
+    ctx.setLineDash([5, 3.5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 颗粒本体（金属质感）
+    const grad = ctx.createRadialGradient(cx - Rpx * 0.35, cy - Rpx * 0.35, 0, cx, cy, Rpx);
+    grad.addColorStop(0, '#f0f4f8');
+    grad.addColorStop(0.35, '#c5d0dc');
+    grad.addColorStop(0.75, '#8a98a8');
+    grad.addColorStop(1, '#5a6878');
+    ctx.beginPath();
+    ctx.arc(cx, cy, Rpx, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    // 高光
+    ctx.beginPath();
+    ctx.ellipse(cx - Rpx * 0.25, cy - Rpx * 0.3, Rpx * 0.35, Rpx * 0.22, -0.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(140,155,170,0.6)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, Rpx, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 表面电荷标记
+    const nCharges = 10;
+    for (let i = 0; i < nCharges; i++) {
+      const a = (i / nCharges) * Math.PI * 2 + 0.1;
+      const sx = cx + (Rpx - 2.5) * Math.cos(a);
+      const sy = cy + (Rpx - 2.5) * Math.sin(a);
+      ctx.beginPath();
+      ctx.arc(sx, sy, 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = state.psi0 >= 0 ? 'rgba(255,100,100,0.8)' : 'rgba(100,140,255,0.8)';
+      ctx.fill();
+    }
+
+    // 离子（带光晕与微闪烁）
+    for (const ion of ions) {
+      const pulse = 0.75 + 0.25 * Math.sin(ion.phase);
+      const gr = ctx.createRadialGradient(ion.x, ion.y, 0, ion.x, ion.y, ion.r * 2.2);
+      if (ion.pos) {
+        gr.addColorStop(0, `rgba(255, 120, 120, ${0.95 * pulse})`);
+        gr.addColorStop(0.4, `rgba(255, 80, 80, ${0.7 * pulse})`);
+        gr.addColorStop(1, 'rgba(255, 60, 60, 0)');
+      } else {
+        gr.addColorStop(0, `rgba(120, 160, 255, ${0.95 * pulse})`);
+        gr.addColorStop(0.4, `rgba(80, 130, 255, ${0.7 * pulse})`);
+        gr.addColorStop(1, 'rgba(60, 110, 255, 0)');
+      }
+      ctx.beginPath();
+      ctx.arc(ion.x, ion.y, ion.r * 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = gr;
+      ctx.fill();
+
+      // 核心实心
+      ctx.beginPath();
+      ctx.arc(ion.x, ion.y, ion.r * 0.7, 0, Math.PI * 2);
+      ctx.fillStyle = ion.pos ? `rgba(255, 200, 200, ${0.9 * pulse})` : `rgba(200, 220, 255, ${0.9 * pulse})`;
+      ctx.fill();
+    }
+
+    // 文字标注
+    ctx.font = '600 11px Segoe UI, sans-serif';
+    ctx.textAlign = 'left';
+    let ly = 50;
+    const lx = 10;
+    ctx.fillStyle = '#8ba3c1';
+    ctx.fillText('x = 0 (表面)', lx, ly); ly += 15;
+    ctx.fillStyle = '#ffd166';
+    ctx.fillText(`Stern xₛ = ${state.xs.toFixed(2)} nm`, lx, ly); ly += 15;
+    ctx.fillStyle = '#35d6ff';
+    ctx.fillText(`滑移面 xζ = ${state.xz.toFixed(2)} nm`, lx, ly); ly += 15;
+    ctx.fillStyle = '#3ddc97';
+    ctx.fillText(`ζ = ${state.zeta.toFixed(1)} mV`, lx, ly); ly += 15;
+    ctx.fillStyle = '#8ba3c1';
+    ctx.fillText(`λ_D = ${state.lambdaD.toFixed(2)} nm`, lx, ly);
+
+// ===== 标尺：条长固定，数字随 R 实时变化，取整数 =====
+const barPx = 90; // 标尺条固定像素长度
+const pxPerNmParticle = Rpx / state.R; // 当前粒子比例 px/nm（Rpx 是粒子像素半径）
+let barNm = barPx / pxPerNmParticle;   // 反算这段标尺代表多少 nm
+
+// 取整：按 1/2/5 × 10^n 取“整数刻度”，保证数字整齐
+const mag = Math.pow(10, Math.floor(Math.log10(barNm)));
+const candidates = [1, 2, 5, 10].map(k => k * mag);
+let niceNm = candidates[0];
+for (const c of candidates) {
+  if (c <= barNm) niceNm = c;
+}
+// 用 niceNm 反推条长，使条长和数字严格一致
+const barPxFinal = niceNm * pxPerNmParticle;
+
+const bx = 14;
+const by = h - 16;
+ctx.strokeStyle = '#8ba3c1';
+ctx.lineWidth = 1.5;
+ctx.beginPath();
+ctx.moveTo(bx, by);
+ctx.lineTo(bx + barPxFinal, by);
+ctx.moveTo(bx, by - 4);
+ctx.lineTo(bx, by + 4);
+ctx.moveTo(bx + barPxFinal, by - 4);
+ctx.lineTo(bx + barPxFinal, by + 4);
+ctx.stroke();
+
+ctx.fillStyle = '#8ba3c1';
+ctx.font = '600 10px Segoe UI, sans-serif';
+ctx.textAlign = 'center';
+ctx.fillText(`${niceNm.toFixed(0)} nm`, bx + barPxFinal / 2, by - 6);
+
+  }
+
+  // ========== 电势曲线 ==========
+  let hoverX = -1;
+  function drawPotential() {
+    const ctx = potCtx;
+    const dpr = window.devicePixelRatio || 1;
+    const w = potCanvas.width / dpr;
+    const h = potCanvas.height / dpr;
+    ctx.clearRect(0, 0, w, h);
+
+    const padL = 44, padR = 14, padT = 18, padB = 34;
+    const plotW = w - padL - padR;
+    const plotH = h - padT - padB;
+
+    const xMax = Math.max(8, state.lambdaD * 4, state.xz * 1.9, state.xs * 3);
+    const psiMax = Math.max(20, Math.abs(state.psi0) * 1.18);
+
+    // 网格
+    ctx.strokeStyle = 'rgba(30, 58, 95, 0.55)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = padT + plotH * i / 4;
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
+    }
+    for (let i = 0; i <= 5; i++) {
+      const x = padL + plotW * i / 5;
+      ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
+    }
+
+    // 轴
+    ctx.strokeStyle = '#5a7a9a';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, padT + plotH);
+    ctx.lineTo(padL + plotW, padT + plotH);
+    ctx.stroke();
+
+    // 零线
+    const y0 = padT + plotH * psiMax / (2 * psiMax);
+    ctx.strokeStyle = 'rgba(139, 163, 193, 0.28)';
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(padL, y0); ctx.lineTo(padL + plotW, y0); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 曲线填充
+    ctx.beginPath();
+    const N = 160;
+    for (let i = 0; i <= N; i++) {
+      const xnm = (i / N) * xMax;
+      const psi = state.psi0 * Math.exp(-xnm / state.lambdaD);
+      const px = padL + (xnm / xMax) * plotW;
+      const py = padT + plotH * (psiMax - psi) / (2 * psiMax);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.lineTo(padL + plotW, y0);
+    ctx.lineTo(padL, y0);
+    ctx.closePath();
+    const fillGrad = ctx.createLinearGradient(0, padT, 0, padT + plotH);
+    if (state.psi0 >= 0) {
+      fillGrad.addColorStop(0, 'rgba(53, 214, 255, 0.18)');
+      fillGrad.addColorStop(1, 'rgba(53, 214, 255, 0.01)');
+    } else {
+      fillGrad.addColorStop(0, 'rgba(53, 214, 255, 0.01)');
+      fillGrad.addColorStop(1, 'rgba(53, 214, 255, 0.18)');
+    }
+    ctx.fillStyle = fillGrad;
+    ctx.fill();
+
+    // 曲线描边
+    ctx.beginPath();
+    for (let i = 0; i <= N; i++) {
+      const xnm = (i / N) * xMax;
+      const psi = state.psi0 * Math.exp(-xnm / state.lambdaD);
+      const px = padL + (xnm / xMax) * plotW;
+      const py = padT + plotH * (psiMax - psi) / (2 * psiMax);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = '#35d6ff';
+    ctx.lineWidth = 2.2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // 标记点
+    function mark(xnm, psi, color, label) {
+      const px = padL + (xnm / xMax) * plotW;
+      const py = padT + plotH * (psiMax - psi) / (2 * psiMax);
+      ctx.beginPath();
+      ctx.arc(px, py, 5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(px, py, 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = '#0a1525';
+      ctx.fill();
+      ctx.fillStyle = color;
+      ctx.font = '600 10.5px Segoe UI';
+      ctx.textAlign = 'left';
+      ctx.fillText(label, px + 7, py - 5);
+    }
+    mark(0, state.psi0, '#ffd166', 'ψ₀');
+    mark(state.xs, state.psiS, '#ff9f43', 'ψₛ');
+    mark(state.xz, state.zeta, '#3ddc97', 'ζ');
+
+    // λD 竖线
+    if (state.lambdaD < xMax) {
+      const ldX = padL + (state.lambdaD / xMax) * plotW;
+      ctx.strokeStyle = 'rgba(255, 209, 102, 0.55)';
+      ctx.setLineDash([3, 2.5]);
+      ctx.beginPath(); ctx.moveTo(ldX, padT); ctx.lineTo(ldX, padT + plotH); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#ffd166';
+      ctx.font = '600 10px Segoe UI';
+      ctx.textAlign = 'center';
+      ctx.fillText('λ_D', ldX, padT + plotH + 13);
+    }
+
+    // 轴标签
+    ctx.fillStyle = '#8ba3c1';
+    ctx.font = '12.5px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText('Distance from surface (nm)', padL + plotW / 2, h - 6);
+    ctx.save();
+    ctx.translate(11, padT + plotH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Electric potential (mV)', 0, 0);
+    ctx.restore();
+
+    ctx.textAlign = 'right';
+    ctx.fillText(psiMax.toFixed(0), padL - 5, padT + 9);
+    ctx.fillText((-psiMax).toFixed(0), padL - 5, padT + plotH);
+    ctx.textAlign = 'center';
+    ctx.fillText('0', padL, padT + plotH + 12);
+    ctx.fillText(xMax.toFixed(1), padL + plotW, padT + plotH + 12);
+
+    // 悬停
+    if (hoverX >= padL && hoverX <= padL + plotW) {
+      const xnm = ((hoverX - padL) / plotW) * xMax;
+      const psi = state.psi0 * Math.exp(-xnm / state.lambdaD);
+      const py = padT + plotH * (psiMax - psi) / (2 * psiMax);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath(); ctx.moveTo(hoverX, padT); ctx.lineTo(hoverX, padT + plotH); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(hoverX, py, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.font = '600 11px Segoe UI';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#e8f1ff';
+      const tip = `x = ${xnm.toFixed(2)} nm   ψ = ${psi.toFixed(1)} mV`;
+      const tw = ctx.measureText(tip).width;
+      let tx = hoverX + 10;
+      if (tx + tw > w - 8) tx = hoverX - tw - 10;
+      ctx.fillText(tip, tx, py - 10);
+    }
+  }
+
+  potCanvas.addEventListener('mousemove', e => {
+    const rect = potCanvas.getBoundingClientRect();
+    const scaleX = (potCanvas.width / (window.devicePixelRatio || 1)) / rect.width;
+    hoverX = (e.clientX - rect.left) * scaleX;
+    drawPotential();
+  });
+  potCanvas.addEventListener('mouseleave', () => { hoverX = -1; drawPotential(); });
+
+  // ========== 应用模块 ==========
+  function drawApp() {
+    const ctx = appCtx;
+    const dpr = window.devicePixelRatio || 1;
+    const w = appCanvas.width / dpr;
+    const h = appCanvas.height / dpr;
+    ctx.clearRect(0, 0, w, h);
+
+    const absZ = Math.abs(state.zeta);
+    const repel = Math.min(1, absZ / 50);
+    const gap = 28 + repel * 42;
+    const r = 26;
+    const y = h / 2;
+    const x1 = w / 2 - gap / 2 - r;
+    const x2 = w / 2 + gap / 2 + r;
+
+    function halo(x, strength) {
+      const g = ctx.createRadialGradient(x, y, r * 0.6, x, y, r + 22 + strength * 22);
+      g.addColorStop(0, `rgba(53,214,255,${0.18 * strength})`);
+      g.addColorStop(1, 'rgba(53,214,255,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, r + 22 + strength * 22, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    halo(x1, repel);
+    halo(x2, repel);
+
+    function particle(x) {
+      const g = ctx.createRadialGradient(x - 7, y - 7, 0, x, y, r);
+      g.addColorStop(0, '#e0e8f0');
+      g.addColorStop(0.6, '#9aa8b8');
+      g.addColorStop(1, '#5a6878');
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = g;
+      ctx.fill();
+    }
+    particle(x1);
+    particle(x2);
+
+    if (repel > 0.12) {
+      ctx.fillStyle = `rgba(61,220,151,${0.45 + repel * 0.5})`;
+      const ah = 7 + repel * 11;
+      ctx.beginPath();
+      ctx.moveTo(w/2 - 7, y);
+      ctx.lineTo(w/2 - 7 - ah, y - 5.5);
+      ctx.lineTo(w/2 - 7 - ah, y + 5.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(w/2 + 7, y);
+      ctx.lineTo(w/2 + 7 + ah, y - 5.5);
+      ctx.lineTo(w/2 + 7 + ah, y + 5.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.font = '600 11px Segoe UI';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = `rgba(61,220,151,${0.75 + repel * 0.25})`;
+      ctx.fillText('静电排斥（定性）', w/2, y - 20);
+    } else {
+      ctx.font = '600 11px Segoe UI';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,92,92,0.85)';
+      ctx.fillText('排斥减弱 · 靠近风险↑', w/2, y - 20);
+    }
+  }
+
+  // ========== 任务 ==========
+  const tasks = {
+    1: {
+      title: '任务1：降低电解质浓度',
+      steps: '将电解质浓度滑块向左调低（例如从 0.01 调至 0.001 mol/L）。',
+      observe: '观察 Debye 长度 λ_D 是否明显增大；ζ 电位绝对值是否上升；扩散层在可视化中是否扩展。',
+      formula: 'λ_D ∝ 1/√I，I 减小 → λ_D 增大 → 在相同 xζ 处 exp(−xζ/λ_D) 更接近 1 → |ζ| 更接近 |ψ₀|。',
+      think: '为什么低离子强度下静电稳定往往更有效？双电层扩展如何影响颗粒间重叠排斥？',
+      eng: '电极浆料中若溶剂离子本底过高，双电层被压缩，单靠静电可能不足以维持分散，常需分散剂提供空间位阻。'
+    },
+    2: {
+      title: '任务2：加入 CaCl₂',
+      steps: '先选择 NaCl、浓度约 0.01 mol/L，记录 λ_D 与 ζ；再切换为 CaCl₂（保持相同盐浓度），对比。',
+      observe: '相同盐浓度下，CaCl₂ 的离子强度更高（含 z²），λ_D 更短，ζ 衰减更快。',
+      formula: 'I = ½ Σ cᵢzᵢ²。CaCl₂：c_Ca=c, c_Cl=2c → I = ½(c·4 + 2c·1) = 3c；NaCl：I=c。',
+      think: '为什么多价离子在相同摩尔浓度下屏蔽能力更强？这对浆料配方中“避免高价杂质离子”有何启示？',
+      eng: '实际水系浆料中，Ca²⁺、Al³⁺ 等杂质或添加剂会显著压缩双电层，可能诱发絮凝，需严格控制。'
+    },
+    3: {
+      title: '任务3：改变滑移面位置',
+      steps: '固定其他参数，仅调节“滑移面位置 xζ”，观察 ζ 的变化。',
+      observe: 'xζ 越大，ζ 绝对值越小；ζ 始终 ≤ |ψ₀|（同号时）。Stern 电势与 ζ 不同。',
+      formula: 'ζ = ψ₀ exp(−xζ/λ_D)。滑移面位于 Stern 层外侧，受流体动力学与离子吸附共同影响。',
+      think: '为什么实验测得的是 ζ 而不是 ψ₀？ζ 与表面电势在什么条件下接近、什么条件下相差很大？',
+      eng: 'ζ 是可测的工程参数，但解读时需结合 pH、离子种类与吸附。不能把 ζ 直接当成表面电荷密度。'
+    },
+
+  };
+
+  function showTask(id) {
+    const t = tasks[id];
+    if (!t) return;
+    $('taskContent').innerHTML = `
+      <h4>${t.title}</h4>
+      <p><strong>操作步骤：</strong>${t.steps}</p>
+      <p><strong>观察提示：</strong>${t.observe}</p>
+      <p><strong>关键公式：</strong>${t.formula}</p>
+      <p><strong>思考问题：</strong>${t.think}</p>
+      <p><strong>工程解释：</strong>${t.eng}</p>
+    `;
+    document.querySelectorAll('.task-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.task === String(id));
+    });
+  }
+
+  // ========== 事件 ==========
+  function bind() {
+    [psi0El, concEl, tempEl, epsrEl, xsEl, xzEl, radiusEl, zPlusEl, zMinusEl].forEach(el => {
+      el.addEventListener('input', updateAll);
+    });
+    saltTypeEl.addEventListener('change', updateAll);
+
+    $('btnReset').addEventListener('click', () => {
+      psi0El.value = 50;
+      concEl.value = sliderFromConc(0.01);
+      saltTypeEl.value = 'NaCl';
+      zPlusEl.value = 2;
+      zMinusEl.value = -1;
+      tempEl.value = 298;
+      epsrEl.value = 80;
+      xsEl.value = 0.5;
+      xzEl.value = 1;
+      radiusEl.value = 100;
+      updateAll();
+    });
+
+    // 滴加固定浓度
+    function dripElectrolyte() {
+      const newC = Math.min(0.5, state.c + DRIP_CONC);
+      concEl.value = sliderFromConc(newC);
+      updateAll();
+    }
+
+    $('btnAddElectrolyte').addEventListener('click', dripElectrolyte);
+    $('btnAppAddSalt').addEventListener('click', dripElectrolyte);
+
+    $('btnAddMultivalent').addEventListener('click', () => {
+      saltTypeEl.value = 'CaCl2';
+      updateAll();
+    });
+
+    document.querySelectorAll('.task-btn').forEach(btn => {
+      btn.addEventListener('click', () => showTask(btn.dataset.task));
+    });
+  }
+
+  // ========== Canvas 自适应高清 ==========
+  function resizeCanvases() {
+    const dpr = window.devicePixelRatio || 1;
+    function setup(canvas) {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const cssW = rect.width || 300;
+      const cssH = rect.height || 240;
+      canvas.width = cssW * dpr;
+      canvas.height = cssH * dpr;
+      canvas.style.width = cssW + 'px';
+      canvas.style.height = cssH + 'px';
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    setup(edlCanvas);
+    setup(potCanvas);
+    setup(appCanvas);
+    rebuildIons();
+  }
+
+  // ========== 动画循环 ==========
+  function loop() {
+    updateIons();
+    drawEDL();
+    drawPotential();
+    drawApp();
+    requestAnimationFrame(loop);
+  }
+
+  // ========== 初始化 ==========
+  function init() {
+    concEl.value = sliderFromConc(0.01);
+    bind();
+    resizeCanvases();
+    updateAll();
+    showTask(1);
+    loop();
+
+    window.addEventListener('resize', () => {
+      resizeCanvases();
+      drawEDL();
+      drawPotential();
+      drawApp();
+    });
+
+    if (window.MathJax && MathJax.typesetPromise) {
+      MathJax.typesetPromise().catch(() => {});
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
